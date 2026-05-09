@@ -1,10 +1,12 @@
 # Prezva — Session Notes
+# Read this at the START of every build session before doing anything.
+# Update this at the END of every build session.
 
 ---
 
 ## Current Phase
 **Phase 1 — Organizations (Task 24)**
-Next task: Org creation API, invite flow, org switcher, settings page
+Next task: Org API routes, invite flow, org switcher, settings page
 
 ## Last Session
 Date: May 9 2026
@@ -13,33 +15,47 @@ Date: May 9 2026
 ### Pre-Build Foundation ✅
 ### Phase 1 Schema ✅ (0001_initial_schema.sql — 23 tables)
 ### Phase 1 RLS ✅ (0002_rls.sql — 75 policies, 4 helper functions)
-### Task 21 — CI/CD Gate ✅ (GitHub Actions green, all 3 jobs)
-### Task 22 — Auth Module ✅
-- middleware.ts, lib/auth/actions.ts, lib/auth/get-user.ts
-- Auth pages: login, signup, forgot-password, update-password
-- Dashboard: protected layout + page (requireUser gate)
-- Types: src/types/database.ts
-- Tests: 82/82 passing | Build validator: 14 PASS/0 FAIL | CI: green
+### Task 21 — CI/CD Gate ✅
+### Task 22 — Auth Module ✅ (82/82 tests, CI green)
+### Rename: Xekin → Prezva ✅
+- GitHub: 4Slog/prezva
+- Vercel project: prezva
+- Supabase project display: prezva (ID unchanged)
+- Lin folder: ~/Prezva/
+- prezva.app DNS → Vercel (A: 76.76.21.21)
+- prezva.com → 301 redirect to prezva.app
+- All source files, scripts, docs updated
 
 ## Locked Decisions
 - ALL code on lin ~/Prezva/dev/ — Mac is browser only (http://10.0.0.60:3100)
 - Auth pages: useActionState (client components)
 - redirect() uses plain strings — typedRoutes disabled
-- Lint: eslint directly (next lint dropped in v16)
-- build.sh: supabase client = src/lib/supabase/client.ts
-- Write SQL/sensitive files via paramiko SFTP — never bash heredoc (PID contamination)
-- DB password URL-encoded: ERg%2A%3FZ6grtE5nH%24
+- Lint: eslint src/ --ext .ts,.tsx --max-warnings 0
+- Write SQL/files via paramiko SFTP — never bash heredoc (PID contamination)
+- DB push URL: postgresql://postgres:ERg%2A%3FZ6grtE5nH%24@db.jmhxyyrleipcorvkmxfk.supabase.co:5432/postgres
+- After new pages: npm run build FIRST, then npm run type-check
 
-## Next Action (Task 24 — Orgs)
-1. POST /api/orgs — create org, auto-add creator as owner in org_members
-2. GET /api/orgs — list user's orgs
-3. PATCH /api/orgs/[id] — update org settings (owner only)
-4. POST /api/orgs/[id]/invite — email invite flow
-5. Org switcher component (header dropdown)
-6. Org settings page
+## Task 24 — Orgs (Next)
+1. POST /api/orgs — create org + auto-add creator as owner in org_members
+2. GET /api/orgs — list authenticated user's orgs
+3. PATCH /api/orgs/[id] — update settings (owner only)
+4. POST /api/orgs/[id]/invite — send email invite, create pending org_members row
+5. Org switcher component (dropdown in nav header)
+6. /dashboard/settings page (org profile edit)
 7. Tests + gate check
 
+## Upcoming Tasks (Phase 1)
+25 → Events | 28 → Tickets | 33 → Registration+Stripe | 38 → Attendees
+47 → QR Check-in (offline-first) | 62 → Agenda | 68 → Speakers
+72 → Attendee web app | 78 → Announcements | 83 → Messaging
+87 → Surveys | 91 → Analytics | 97 → Phase 1 system tests + gate
+
+## Audit Gaps to Add (from Master Plan Audit review)
+- Background job queue (Trigger.dev/Inngest) — add before Task 33 Registration
+- Database seed script (Faker.js) — add before testing at scale
+- i18n foundation (next-intl) — add during Phase 1 Polish
+
 ## Validation Status
-Last: May 9 2026 — 14 PASS, 0 WARN, 0 FAIL
-Tests: 82/82 (schema 28 + rls 33 + auth 21)
-CI: green ✅ | Vercel: auto-deploy on push ✅
+Last: May 9 2026 — 45 PASS, 1 WARN (dev server not running), 0 FAIL
+Tests: 82/82 passing
+CI: green ✅ | Vercel: prezva.app live ✅
