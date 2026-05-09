@@ -149,3 +149,36 @@ CI: green ✅ | Vercel: prezva.app live ✅
 - Discount codes
 - No-oversell capacity enforcement
 - Offline queue for check-in
+
+## Session — May 9 2026 (afternoon continued)
+
+### Stripe Connect Express — COMPLETE ✅ (commit 7b048a9)
+- Direct charges model, ticketing industry, Stripe-hosted onboarding
+- Money flow: attendee pays → 100% to event planner bank → Prezva takes /bin/sh
+- lib/connect/actions.ts — create/retrieve account, onboarding link, login link, status, disconnect
+- api/connect/onboard + callback + status routes
+- ConnectBankButton component (live status: not_connected/pending/restricted/active)
+- Org settings page updated with Payments section
+- Stripe checkout updated: transfer_data routes to connected account
+- Registration blocks paid tickets if no connected account
+- Webhook handles account.updated + account.application.deauthorized
+- Paul's Stripe account fully verified: charges_enabled=true, payouts_enabled=true
+
+### Landing page — COMPLETE ✅ (commit f60725d)
+- Replaced default Next.js placeholder
+- Hero, feature strip, offline-first callout, nav, footer
+- Full brand tokens
+- Live at prezva.app
+
+### Current state
+- Tests: 119/119 passing
+- Validator: 11 PASS / 1 WARN / 0 FAIL
+- prezva.app live with real landing page
+- Full flow works: signup → org → connect bank → event → ticket → register → pay → confirmation
+
+### Next: Task 38 — Attendees module
+- Attendee list with search/filter
+- CSV import/export
+- Attendee detail page
+- Manual add attendee
+- Segments/tags
