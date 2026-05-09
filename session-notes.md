@@ -87,3 +87,27 @@ CI: green ✅ | Vercel: prezva.app live ✅
 ### Next: Task 25 — Org-level roles enforcement (owner/admin/staff gates on event creation)
    OR skip to Task 28 — Events module (create event, lifecycle, settings)
    Ask Paul which to tackle next.
+
+## Branding Sprint — COMPLETE ✅ (May 9 2026)
+
+### Design assets stored on lin
+- ~/Prezva/design/mockups/organizer-dashboard.png (6.4MB — Gemini concept)
+- ~/Prezva/design/mockups/attendee-qr-mobile.png (1.8MB — Gemini concept)
+- ~/Prezva/design/brand/design-tokens.md — full token documentation
+
+### Files changed in codebase
+- src/app/globals.css — full Prezva token system (15 color vars, 8 utility classes, shadcn var mapping)
+- src/lib/brand.ts — BRAND constants for JS/TS (colors, typography, radius)
+- src/app/layout.tsx — proper metadata (title template, OG, twitter, themeColor)
+- src/app/(dashboard)/layout.tsx — branded sidebar (navy/teal, Offline Sync Health indicator)
+- src/app/(dashboard)/dashboard/page.tsx — stat card shells + empty state
+
+### Design direction locked
+- Palette: deep navy (#0D1B2A) + teal (#00BFA6) — unclaimed in event tech category
+- Font: Geist (already in stack)
+- Offline Sync Health indicator is a signature brand element — keep always visible
+- Mockup UI patterns captured in design-tokens.md
+
+### Commit: 779cb35
+
+### Next: Task 28 — Events module
