@@ -1,60 +1,54 @@
 # Xekin — Session Notes
-# Read this at the START of every build session before doing anything.
-# Update this at the END of every build session.
 
 ---
 
 ## Current Phase
-**Phase 1 — RLS (Row Level Security)**
-Next task: Write 0002_rls.sql — RLS policies on all 23 tables
+**Phase 1 — Organizations (Task 24)**
+Next task: Org creation, profile, settings, multi-member orgs, org-level roles
 
 ## Last Session
 Date: May 9 2026
 
-## What Was Completed This Session
-### Pre-Build Foundation ✅
-- Next.js 14 scaffolded at ~/Xekin/dev/
-- GitHub repo: github.com/4Slog/xekin (private), branches: main, staging, dev
-- All deps installed (Supabase, Stripe, Resend, Zod, Vitest, Playwright, etc.)
-- Supabase client/server/middleware files created
-- next.config.ts, vitest.config.ts, .env.example, vercel.json configured
-- GitHub Actions CI pipeline live
-- Vercel auto-deploy working (fixed commit author email)
-- Supabase xekin project connected, .env.local written
-- Validator: 44 PASS / 0 FAIL
+## What Was Completed
+### Task 21 — CI/CD Gate ✅
+- Fixed Next.js v16 lint (next lint removed, replaced with eslint directly)
+- Fixed TypeScript config (vitest globals, removed stale .next/types/routes.d.ts)
+- CI: first green build — all 3 jobs passing (lint+types, unit tests, security audit)
 
-### Phase 1 — Schema ✅
-- 0001_initial_schema.sql — 610 lines, applied to Supabase
-- 23 tables live and verified (all REST 200 OK)
-- 5 triggers, 20+ indexes, all enums defined
-- Schema tests: 28/28 passing
-- Build validator: 13 PASS / 0 FAIL
-- Pushed to GitHub, Vercel auto-deployed
+### Task 22 — Auth Module ✅
+- src/middleware.ts — session refresh on every request
+- src/lib/auth/actions.ts — signIn, signUp, signOut, resetPassword, updatePassword (server actions)
+- src/lib/auth/get-user.ts — getUser, requireUser, getProfile
+- src/app/auth/callback/route.ts — OAuth/magic link exchange
+- src/app/(auth)/ — login, signup, forgot-password pages (useActionState)
+- src/app/(dashboard)/ — protected layout + dashboard page
+- src/app/auth/update-password/page.tsx
+- src/types/database.ts — TypeScript types for all tables
+- Auth tests: 21 passing
+- Build validator: 14 PASS / 0 FAIL
+- CI: green ✅
 
-## Decisions Made (never revisit)
-- ALL code on lin ~/Xekin/dev/ — Mac is browser only (http://10.0.0.60:3100)
-- Stack: Next.js 14 + TypeScript + Tailwind + shadcn/ui + Supabase + Stripe + Resend
-- Ports: dev=3100, staging=3101, Storybook=6006
-- Commit email: sowu.paul@gmail.com (required for Vercel auto-deploy)
-- Supabase DB URL encoding: ERg%2A%3FZ6grtE5nH%24 (URL-encoded password)
-- Write trigger functions using Python heredoc — NOT bash heredoc (bash replaces 86433 with PID)
+## Running Totals
+- Migration files: 0001_initial_schema.sql, 0002_rls.sql
+- Test files: schema (28), rls (33), auth (21) = 82 total passing
+- CI: green on every push ✅
+- Routes live on Vercel: /, /login, /signup, /forgot-password, /dashboard, /auth/callback, /auth/update-password
 
-## Still Needs Manual Action (Paul)
-1. Buy domains: xekin.app + xekin.com + xekin.io
-2. Register @xekin social handles
-3. Form Alabama LLC + EIN + bank account
-4. Termly Privacy Policy + ToS
-5. Cyber liability insurance
-6. Add Stripe keys to .env.local when ready
-7. Add Resend key to .env.local when ready
+## Key Decisions (locked)
+- Auth pages use useActionState (client components) — not plain server actions
+- redirect() uses plain strings — typedRoutes disabled by removing .next/types/routes.d.ts
+- build.sh validator updated: supabase client path = src/lib/supabase/client.ts
 
-## Next Action
-Start Phase 1 Task 20: RLS policies
-- Write supabase/migrations/0002_rls.sql
-- Enable RLS on all 23 tables
-- Policies: users see own data, org members see org data, public sees published events
-- Run rls.sh validator after applying
+## Next Task: Orgs (Task 24)
+1. API route: POST /api/orgs — create org, auto-add creator as owner
+2. API route: GET /api/orgs — list user's orgs
+3. API route: PATCH /api/orgs/[id] — update org settings
+4. Invite member flow (email invite → org_members row)
+5. Org switcher component (user can belong to multiple orgs)
+6. Org settings page
+7. Tests + gate check
 
 ## Validation Status
-Last run: May 9 2026 — 13 PASS, 0 WARN, 0 FAIL (build.sh schema)
-Environment: 44 PASS, 2 WARN (dev server not running — expected), 0 FAIL
+Last: May 9 2026 — 14 PASS, 0 WARN, 0 FAIL (build.sh auth)
+CI: green ✅
+Tests: 82/82 passing
