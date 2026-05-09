@@ -49,3 +49,4 @@ jobs:
           path: ./
           base: HEAD~1
           head: HEAD
+          extra_args: --only-verified
