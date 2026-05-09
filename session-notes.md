@@ -1,4 +1,4 @@
-# Xekin — Session Notes
+# Prezva — Session Notes
 
 ---
 
@@ -22,7 +22,7 @@ Date: May 9 2026
 - Tests: 82/82 passing | Build validator: 14 PASS/0 FAIL | CI: green
 
 ## Locked Decisions
-- ALL code on lin ~/Xekin/dev/ — Mac is browser only (http://10.0.0.60:3100)
+- ALL code on lin ~/Prezva/dev/ — Mac is browser only (http://10.0.0.60:3100)
 - Auth pages: useActionState (client components)
 - redirect() uses plain strings — typedRoutes disabled
 - Lint: eslint directly (next lint dropped in v16)

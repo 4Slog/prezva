@@ -10,7 +10,7 @@ export default function LoginPage() {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-        <p className="text-gray-500 mt-1">Sign in to your Xekin account</p>
+        <p className="text-gray-500 mt-1">Sign in to your Prezva account</p>
       </div>
       {state?.error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">

@@ -1,11 +1,11 @@
-# Xekin — "Check In" Event Platform
+# Prezva — "Check In" Event Platform
 # Project-Level Claude Code Instructions
 # Read this file fully before doing anything in this project.
-# Also read: ~/Xekin/dev/session-notes.md for current task state.
+# Also read: ~/Prezva/dev/session-notes.md for current task state.
 
 ---
 
-## What Xekin Is
+## What Prezva Is
 A full-featured event management SaaS platform — a Whova competitor built for small/micro
 businesses at a fraction of the cost. Pronounced ZEH-kin ("Check In").
 - External-facing SaaS, white-labelable, resellable
@@ -21,12 +21,12 @@ businesses at a fraction of the cost. Pronounced ZEH-kin ("Check In").
 - Staging: port 3101
 - Storybook: port 6006
 - Mac is browser-only — view at http://10.0.0.60:3100
-- Never write files outside ~/Xekin/dev/ unless explicitly instructed
+- Never write files outside ~/Prezva/dev/ unless explicitly instructed
 
 ---
 
 ## File Structure
-~/Xekin/
+~/Prezva/
 ├── dev/                    ← YOU ARE HERE (all source code)
 │   ├── CLAUDE.md           ← this file
 │   ├── session-notes.md    ← READ THIS FIRST every session
@@ -52,8 +52,8 @@ businesses at a fraction of the cost. Pronounced ZEH-kin ("Check In").
 ---
 
 ## Supabase
-- Production project: xekin-prod
-- Staging project: xekin-staging (use for ALL testing — never test on prod)
+- Production project: prezva-prod
+- Staging project: prezva-staging (use for ALL testing — never test on prod)
 - Credentials: ~/.claude/global-memory/credentials.md on lin
 - ALWAYS run migrations on staging first, then prod
 - ALWAYS enable RLS on every new table immediately after creation
@@ -74,7 +74,7 @@ businesses at a fraction of the cost. Pronounced ZEH-kin ("Check In").
 ---
 
 ## After Every Code Change (MANDATORY)
-Run: `bash ~/Xekin/scripts/validate/build.sh [module]`
+Run: `bash ~/Prezva/scripts/validate/build.sh [module]`
 Report the PASS/WARN/FAIL counts before saying the task is done.
 If FAIL: fix it before reporting. Do not hand over broken code.
 
@@ -99,7 +99,7 @@ Modules: auth | schema | checkin | api | ui | all
 - Conventional commits: feat: | fix: | chore: | docs: | test: | perf:
 - Push to staging → Vercel preview URL generated automatically
 - Push to main → Vercel auto-deploys to production
-- GitHub: github.com/4Slog/xekin (private)
+- GitHub: github.com/4Slog/prezva (private)
 
 ---
 
@@ -135,9 +135,9 @@ Analytics → System Tests → Phase 1 Launch
 ---
 
 ## Memory & Docs
-- Project memory: ~/.claude/global-memory/xekin_project.md
-- Master build plan: ~/Xekin/docs/Xekin_Master_Build_Plan.docx
-- Audit: ~/Xekin/docs/Xekin_Master_Plan_Audit.docx
-- OSS guide: ~/Xekin/docs/Xekin_OSS_Costs_AI_Guide.docx
-- Reliability: ~/Xekin/docs/Xekin_Reliability_PII_Offline.docx
-- Whova research: ~/Xekin/docs/Xekin_Whova_DeepDive_Blueprint.docx
+- Project memory: ~/.claude/global-memory/prezva_project.md
+- Master build plan: ~/Prezva/docs/Prezva_Master_Build_Plan.docx
+- Audit: ~/Prezva/docs/Prezva_Master_Plan_Audit.docx
+- OSS guide: ~/Prezva/docs/Prezva_OSS_Costs_AI_Guide.docx
+- Reliability: ~/Prezva/docs/Prezva_Reliability_PII_Offline.docx
+- Whova research: ~/Prezva/docs/Prezva_Whova_DeepDive_Blueprint.docx

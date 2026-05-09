@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- XEKIN — 0001_initial_schema.sql
+-- PREZVA — 0001_initial_schema.sql
 -- Full Phase 1 schema: orgs, events, registration, check-in,
 -- agenda, speakers, attendees, announcements, messaging,
 -- surveys, analytics, audit logs
