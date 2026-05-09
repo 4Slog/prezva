@@ -96,5 +96,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Connect account updated — sync status
+  if (event.type === 'account.updated') {
+    const account = event.data.object
+    // If account becomes restricted or loses capabilities, we could notify the org owner
+    // For now just log — future: send email alert via Trigger.dev
+    console.log('[stripe] account.updated:', account.id, {
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+    })
+  }
+
+  // Connect account deauthorized — clear stripe_account_id from org
+  if (event.type === 'account.application.deauthorized') {
+    const account = event.data.object as { id: string }
+    await supabase
+      .from('organizations')
+      .update({ stripe_account_id: null })
+      .eq('stripe_account_id', account.id)
+  }
+
   return NextResponse.json({ received: true })
 }

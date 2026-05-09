@@ -73,7 +73,7 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, organizations(name)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, organizations(name, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -139,6 +139,12 @@ export async function startRegistration(formData: FormData) {
   }
 
   // Paid ticket → Stripe Checkout
+  // Require connected account for paid tickets
+  const org = event.organizations as unknown as { name: string; stripe_account_id: string | null } | null
+  if (!org?.stripe_account_id) {
+    return { error: 'This organization has not connected a bank account yet. Contact the event organizer.' }
+  }
+
   return await createPaidRegistration(
     supabase,
     parsed.data,
@@ -147,6 +153,7 @@ export async function startRegistration(formData: FormData) {
     user?.id,
     discountCodeId,
     discountAmountCents,
+    org.stripe_account_id,
   )
 }
 
@@ -206,6 +213,7 @@ async function createPaidRegistration(
   userId: string | undefined,
   discountCodeId: string | undefined,
   discountAmountCents: number,
+  connectedAccountId: string,
 ) {
   // Create pending registration first
   const { data: reg, error } = await supabase
@@ -233,18 +241,18 @@ async function createPaidRegistration(
   try {
     const org = event.organizations as { name: string } | null
     const session = await createCheckoutSession({
-      eventId:       data.event_id,
-      eventTitle:    event.title as string,
-      eventSlug:     event.slug as string,
-      ticketTypeId:  data.ticket_type_id,
-      ticketName:    ticket.name as string,
-      priceCents:    ticket.price_cents as number,
-      currency:      ticket.currency as string,
-      quantity:      1,
-      attendeeEmail: data.attendee_email,
-      attendeeName:  data.attendee_name,
-      discountCodeId,
+      eventId:            data.event_id,
+      eventTitle:         event.title as string,
+      eventSlug:          event.slug as string,
+      ticketTypeId:       data.ticket_type_id,
+      ticketName:         ticket.name as string,
+      priceCents:         ticket.price_cents as number,
+      currency:           ticket.currency as string,
+      quantity:           1,
+      attendeeEmail:      data.attendee_email,
+      attendeeName:       data.attendee_name,
       discountAmountCents,
+      connectedAccountId,
       metadata: {
         registration_id:  reg.id,
         event_id:         data.event_id,

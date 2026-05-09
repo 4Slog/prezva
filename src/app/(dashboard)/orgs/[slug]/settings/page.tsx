@@ -3,16 +3,21 @@ import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { InviteForm } from '@/components/orgs/InviteForm'
 import { MemberList } from '@/components/orgs/MemberList'
+import { ConnectBankButton } from '@/components/connect/ConnectBankButton'
 import { updateOrg } from '@/lib/orgs/actions'
+import { getConnectStatus } from '@/lib/connect/actions'
 
-type Props = { params: Promise<{ slug: string }> }
+type Props = {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ connect?: string }>
+}
 
-export default async function OrgSettingsPage({ params }: Props) {
+export default async function OrgSettingsPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const { connect } = await searchParams
   const user = await requireUser()
   const supabase = await createClient()
 
-  // Fetch org + caller membership
   const { data: org } = await supabase
     .from('organizations')
     .select('*, org_members!inner(user_id, role, accepted_at)')
@@ -24,25 +29,59 @@ export default async function OrgSettingsPage({ params }: Props) {
 
   const myRole = (org.org_members as { role: string }[])[0]?.role ?? 'staff'
   const canManage = ['owner', 'admin'].includes(myRole)
+  const isOwner = myRole === 'owner'
 
-  // Fetch all members
   const { data: members } = await supabase
     .from('org_members')
     .select('id, role, accepted_at, created_at, profiles(id, full_name, email, avatar_url, job_title)')
     .eq('org_id', org.id)
     .order('created_at', { ascending: true })
 
+  // Fetch Connect status server-side for initial render
+  const connectStatus = isOwner ? await getConnectStatus(org.id) : null
+
+  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{org.name}</h1>
-        <p className="text-sm text-gray-500">Organization settings</p>
+        <h1 className="text-2xl font-bold text-[#F0F4F8]">{org.name}</h1>
+        <p className="text-sm text-[#94A3B8]">Organization settings</p>
       </div>
+
+      {/* Connect status banner */}
+      {connect === 'success' && (
+        <div className="mb-6 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/30 px-4 py-3">
+          <p className="text-sm font-medium text-[#22C55E]">
+            ✅ Bank account connected — ticket payments will go directly to your account.
+          </p>
+        </div>
+      )}
+      {connect === 'incomplete' && (
+        <div className="mb-6 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 px-4 py-3">
+          <p className="text-sm font-medium text-[#F59E0B]">
+            ⚠️ Stripe setup incomplete — finish connecting your bank account to accept payments.
+          </p>
+        </div>
+      )}
+
+      {/* Stripe Connect — owners only */}
+      {isOwner && connectStatus && (
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">Payments</h2>
+          <ConnectBankButton
+            orgId={org.id}
+            orgSlug={org.slug}
+            initialStatus={connectStatus as Parameters<typeof ConnectBankButton>[0]['initialStatus']}
+          />
+        </section>
+      )}
 
       {/* General settings */}
       {canManage && (
-        <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">General</h2>
+        <section className="mb-8 rounded-xl border border-[#1E3A5F] bg-[#112240] p-6">
+          <h2 className="text-base font-semibold text-[#F0F4F8] mb-4">General</h2>
           <form
             action={async (fd: FormData) => {
               'use server'
@@ -51,21 +90,12 @@ export default async function OrgSettingsPage({ params }: Props) {
             className="flex flex-col gap-4"
           >
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
-              <input
-                name="name"
-                defaultValue={org.name}
-                required
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
+              <label className={labelCls}>Name</label>
+              <input name="name" defaultValue={org.name} required className={inputCls} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Timezone</label>
-              <select
-                name="timezone"
-                defaultValue={org.timezone}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
+              <label className={labelCls}>Timezone</label>
+              <select name="timezone" defaultValue={org.timezone} className={inputCls}>
                 <option value="America/New_York">Eastern (ET)</option>
                 <option value="America/Chicago">Central (CT)</option>
                 <option value="America/Denver">Mountain (MT)</option>
@@ -75,7 +105,8 @@ export default async function OrgSettingsPage({ params }: Props) {
             </div>
             <button
               type="submit"
-              className="self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
             >
               Save changes
             </button>
@@ -86,14 +117,13 @@ export default async function OrgSettingsPage({ params }: Props) {
       {/* Member list */}
       <section className="mb-6">
         <MemberList
-          members={(members ?? []) as unknown as Parameters<typeof MemberList>[0]["members"]}
+          members={(members ?? []) as unknown as Parameters<typeof MemberList>[0]['members']}
           orgId={org.id}
           currentUserId={user.id}
           currentUserRole={myRole}
         />
       </section>
 
-      {/* Invite */}
       {canManage && <InviteForm orgId={org.id} />}
     </div>
   )
