@@ -1,5 +1,15 @@
 import { requireUser } from '@/lib/auth/get-user'
-import { signOut } from '@/lib/auth/actions'
+import { getUserOrgs } from '@/lib/orgs/actions'
+import Link from 'next/link'
+import { OrgSwitcher } from '@/components/orgs/OrgSwitcher'
+
+const NAV = [
+  { href: '/dashboard',        label: 'Dashboard',     icon: '⊞' },
+  { href: '/events',           label: 'Events',        icon: '📅' },
+  { href: '/attendees',        label: 'Attendees',     icon: '👥' },
+  { href: '/agenda',           label: 'Agenda',        icon: '📋' },
+  { href: '/announcements',    label: 'Announcements', icon: '📣' },
+]
 
 export default async function DashboardLayout({
   children,
@@ -7,19 +17,88 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const user = await requireUser()
+  const orgs = await getUserOrgs()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <span className="font-bold text-blue-600 text-lg">Prezva</span>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{user.email}</span>
-          <form action={signOut}>
-            <button type="submit" className="text-sm text-gray-600 hover:text-gray-900">Sign out</button>
-          </form>
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--pz-bg)' }}>
+
+      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      <aside
+        className="flex w-56 flex-shrink-0 flex-col"
+        style={{ background: 'var(--pz-surface)', borderRight: '1px solid var(--pz-border)' }}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-2 px-5 py-5">
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black"
+            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          >
+            P
+          </div>
+          <span className="text-lg font-bold" style={{ color: 'var(--pz-text)' }}>
+            Prezva
+          </span>
         </div>
-      </nav>
-      <main className="p-6">{children}</main>
+
+        {/* Org switcher */}
+        <div className="px-3 pb-3">
+          <OrgSwitcher orgs={orgs as unknown as Parameters<typeof OrgSwitcher>[0]['orgs']} />
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 px-2 py-2 space-y-0.5">
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="pz-nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all"
+            >
+              <span className="text-base">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Offline Sync Health */}
+        <div className="px-3 pb-5">
+          <div
+            className="pz-glow-teal flex items-center gap-2 rounded-lg px-3 py-2.5"
+            style={{ background: 'rgba(0,191,166,0.08)', border: '1px solid rgba(0,191,166,0.2)' }}
+          >
+            <span className="pz-dot-online h-2.5 w-2.5 flex-shrink-0 rounded-full" />
+            <span className="text-xs font-medium" style={{ color: 'var(--pz-teal)' }}>
+              Offline Sync Health
+            </span>
+            <span className="ml-auto text-xs font-bold" style={{ color: 'var(--pz-success)' }}>
+              100%
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Main content ────────────────────────────────────────────────── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <header
+          className="flex h-14 flex-shrink-0 items-center justify-between px-6"
+          style={{ borderBottom: '1px solid var(--pz-border)' }}
+        >
+          <div />
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              {(user.email ?? 'U')[0].toUpperCase()}
+            </div>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

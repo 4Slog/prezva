@@ -59,3 +59,31 @@ Date: May 9 2026
 Last: May 9 2026 — 45 PASS, 1 WARN (dev server not running), 0 FAIL
 Tests: 82/82 passing
 CI: green ✅ | Vercel: prezva.app live ✅
+
+## Task 24 — Organizations — COMPLETE ✅ (May 9 2026)
+
+### Files created (11)
+- src/lib/orgs/actions.ts — createOrg, updateOrg, inviteMember, removeMember, acceptInvite, getUserOrgs, getOrgBySlug
+- src/app/api/orgs/route.ts — POST (create) + GET (list)
+- src/app/api/orgs/[id]/route.ts — GET + PATCH
+- src/app/api/orgs/[id]/invite/route.ts — POST invite
+- src/app/api/orgs/[id]/members/route.ts — GET members
+- src/components/orgs/OrgSwitcher.tsx
+- src/components/orgs/InviteForm.tsx
+- src/components/orgs/MemberList.tsx
+- src/app/(dashboard)/orgs/new/page.tsx
+- src/app/(dashboard)/orgs/[slug]/settings/page.tsx
+- src/__tests__/orgs.test.ts (12 tests)
+
+### Test totals: 94/94 passing
+### Build validator: 12 PASS / 0 WARN / 0 FAIL
+### Commit: 8446469 — pushed to main, Vercel deploying
+
+### Notes
+- Zod v4 uses .issues[0].message not .errors[0].message
+- vi.clearAllMocks() resets mockResolvedValue — use mockReset + re-install in beforeEach
+- mockFrom needs full chain shape for TypeScript even in conditional branches
+
+### Next: Task 25 — Org-level roles enforcement (owner/admin/staff gates on event creation)
+   OR skip to Task 28 — Events module (create event, lifecycle, settings)
+   Ask Paul which to tackle next.

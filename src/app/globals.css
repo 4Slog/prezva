@@ -1,26 +1,155 @@
 @import "tailwindcss";
 
+/* ── Prezva Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --pz-bg:          #0D1B2A;   /* page background  */
+  --pz-surface:     #112240;   /* card / panel     */
+  --pz-surface-2:   #1A2F4A;   /* elevated surface */
+  --pz-border:      #1E3A5F;   /* subtle border    */
+
+  /* Accent */
+  --pz-teal:        #00BFA6;   /* primary action   */
+  --pz-teal-light:  #00E5CC;   /* hover / glow     */
+  --pz-teal-dim:    #007A6B;   /* muted teal       */
+
+  /* Text */
+  --pz-text:        #F0F4F8;   /* primary text     */
+  --pz-muted:       #94A3B8;   /* secondary text   */
+  --pz-label:       #64748B;   /* labels / captions*/
+
+  /* Semantic */
+  --pz-success:     #22C55E;   /* online / good    */
+  --pz-warning:     #F59E0B;   /* caution / pending*/
+  --pz-error:       #EF4444;   /* error / offline  */
+  --pz-live:        #F43F5E;   /* LIVE badge       */
+
+  /* Shadows */
+  --pz-shadow:      0 4px 24px rgba(0, 0, 0, 0.4);
+  --pz-shadow-teal: 0 0 16px rgba(0, 191, 166, 0.25);
+
+  /* Mapped to shadcn CSS vars */
+  --background:         13 27% 11%;   /* #0D1B2A */
+  --foreground:         210 40% 95%;  /* #F0F4F8 */
+  --card:               220 58% 16%;  /* #112240 */
+  --card-foreground:    210 40% 95%;
+  --popover:            220 58% 16%;
+  --popover-foreground: 210 40% 95%;
+  --primary:            174 100% 37%; /* #00BFA6 */
+  --primary-foreground: 0 0% 100%;
+  --secondary:          220 44% 20%;  /* #1A2F4A */
+  --secondary-foreground: 210 40% 95%;
+  --muted:              215 25% 27%;
+  --muted-foreground:   215 20% 65%;  /* #94A3B8 */
+  --accent:             174 100% 45%; /* #00E5CC */
+  --accent-foreground:  0 0% 100%;
+  --destructive:        0 84% 60%;    /* #EF4444 */
+  --destructive-foreground: 0 0% 100%;
+  --border:             213 52% 24%;  /* #1E3A5F */
+  --input:              213 52% 24%;
+  --ring:               174 100% 37%; /* teal ring */
+  --radius:             0.5rem;
 }
 
+/* ── @theme (Tailwind v4 token registration) ──────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background:  var(--pz-bg);
+  --color-foreground:  var(--pz-text);
+  --color-surface:     var(--pz-surface);
+  --color-surface-2:   var(--pz-surface-2);
+  --color-border:      var(--pz-border);
+  --color-teal:        var(--pz-teal);
+  --color-teal-light:  var(--pz-teal-light);
+  --color-teal-dim:    var(--pz-teal-dim);
+  --color-muted:       var(--pz-muted);
+  --color-label:       var(--pz-label);
+  --color-success:     var(--pz-success);
+  --color-warning:     var(--pz-warning);
+  --color-error:       var(--pz-error);
+  --color-live:        var(--pz-live);
+  --font-sans:         var(--font-geist-sans);
+  --font-mono:         var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html { height: 100%; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--pz-bg);
+  color: var(--pz-text);
+  font-family: var(--font-geist-sans, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
 }
+
+/* ── Prezva utility classes ───────────────────────────────────────────────── */
+
+/* Cards */
+.pz-card {
+  background: var(--pz-surface);
+  border: 1px solid var(--pz-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--pz-shadow);
+}
+
+.pz-card-elevated {
+  background: var(--pz-surface-2);
+  border: 1px solid var(--pz-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--pz-shadow);
+}
+
+/* Teal glow effect (sync indicator, active states) */
+.pz-glow-teal {
+  box-shadow: var(--pz-shadow-teal);
+}
+
+/* Sidebar nav active state */
+.pz-nav-active {
+  background: rgba(0, 191, 166, 0.15);
+  color: var(--pz-teal);
+  border-left: 3px solid var(--pz-teal);
+}
+
+.pz-nav-item {
+  color: var(--pz-muted);
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.pz-nav-item:hover {
+  color: var(--pz-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Sync status dot */
+.pz-dot-online  { background: var(--pz-success); box-shadow: 0 0 8px var(--pz-success); }
+.pz-dot-warning { background: var(--pz-warning); box-shadow: 0 0 8px var(--pz-warning); }
+.pz-dot-offline { background: var(--pz-error);   box-shadow: 0 0 8px var(--pz-error);   }
+
+/* LIVE badge */
+.pz-live-badge {
+  background: var(--pz-live);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+}
+
+/* Stat bar (teal progress under stat cards) */
+.pz-stat-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--pz-teal), var(--pz-teal-light));
+  border-radius: 9999px;
+  margin-top: 0.75rem;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--pz-surface); }
+::-webkit-scrollbar-thumb { background: var(--pz-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--pz-teal-dim); }
