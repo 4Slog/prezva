@@ -21,6 +21,7 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.100.9",
+    "@trigger.dev/sdk": "^4.4.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -52,5 +53,5 @@
     "typescript": "^5",
     "vitest": "^4.1.5"
   },
-  "description": "Prezva \u2014 Event management platform"
+  "description": "Prezva — Event management platform"
 }
