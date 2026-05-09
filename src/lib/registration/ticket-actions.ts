@@ -1,0 +1,146 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/get-user'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+const TicketSchema = z.object({
+  name:           z.string().min(1).max(80),
+  description:    z.string().max(500).optional(),
+  type:           z.enum(['free', 'paid', 'donation']).default('free'),
+  price_cents:    z.coerce.number().int().min(0).default(0),
+  currency:       z.string().length(3).default('usd'),
+  quantity:       z.coerce.number().int().min(1).optional(),
+  max_per_order:  z.coerce.number().int().min(1).max(100).default(10),
+  sale_starts_at: z.string().datetime().optional(),
+  sale_ends_at:   z.string().datetime().optional(),
+  is_visible:     z.coerce.boolean().default(true),
+  sort_order:     z.coerce.number().int().default(0),
+})
+
+async function assertEventAccess(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  userId: string,
+) {
+  const { data: event } = await supabase
+    .from('events')
+    .select('org_id')
+    .eq('id', eventId)
+    .maybeSingle()
+  if (!event) throw new Error('Event not found')
+
+  const { data: member } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', event.org_id)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!member || !['owner', 'admin'].includes(member.role)) {
+    throw new Error('Insufficient permissions')
+  }
+  return event
+}
+
+export async function createTicketType(eventId: string, formData: FormData) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  try { await assertEventAccess(supabase, eventId, user.id) }
+  catch (e) { return { error: (e as Error).message } }
+
+  const raw: Record<string, unknown> = {}
+  for (const [k, v] of formData.entries()) {
+    raw[k] = v === '' ? undefined : v
+  }
+  raw.type = raw.type || 'free'
+
+  const parsed = TicketSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  // Free tickets must have price 0
+  if (parsed.data.type === 'free') parsed.data.price_cents = 0
+
+  const { data, error } = await supabase
+    .from('ticket_types')
+    .insert({ ...parsed.data, event_id: eventId })
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/[slug]/tickets`)
+  return { data }
+}
+
+export async function updateTicketType(ticketId: string, eventId: string, formData: FormData) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  try { await assertEventAccess(supabase, eventId, user.id) }
+  catch (e) { return { error: (e as Error).message } }
+
+  const raw: Record<string, unknown> = {}
+  for (const key of TicketSchema.keyof().options) {
+    const v = formData.get(key)
+    if (v !== null && v !== '') raw[key] = v
+  }
+
+  const parsed = TicketSchema.partial().safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { data, error } = await supabase
+    .from('ticket_types')
+    .update(parsed.data)
+    .eq('id', ticketId)
+    .eq('event_id', eventId)
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/[slug]/tickets`)
+  return { data }
+}
+
+export async function deleteTicketType(ticketId: string, eventId: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  try { await assertEventAccess(supabase, eventId, user.id) }
+  catch (e) { return { error: (e as Error).message } }
+
+  // Cannot delete if any confirmed registrations exist
+  const { data: regCount } = await supabase
+    .from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('ticket_type_id', ticketId)
+    .in('status', ['confirmed', 'pending'])
+
+  if ((regCount as unknown as number) > 0) {
+    return { error: 'Cannot delete a ticket type with active registrations' }
+  }
+
+  const { error } = await supabase
+    .from('ticket_types')
+    .delete()
+    .eq('id', ticketId)
+    .eq('event_id', eventId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/[slug]/tickets`)
+  return { success: true }
+}
+
+export async function getEventTickets(eventId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('ticket_types')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  if (error) return []
+  return data
+}
