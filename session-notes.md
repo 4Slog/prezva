@@ -4,51 +4,42 @@
 
 ## Current Phase
 **Phase 1 — Organizations (Task 24)**
-Next task: Org creation, profile, settings, multi-member orgs, org-level roles
+Next task: Org creation API, invite flow, org switcher, settings page
 
 ## Last Session
 Date: May 9 2026
 
-## What Was Completed
-### Task 21 — CI/CD Gate ✅
-- Fixed Next.js v16 lint (next lint removed, replaced with eslint directly)
-- Fixed TypeScript config (vitest globals, removed stale .next/types/routes.d.ts)
-- CI: first green build — all 3 jobs passing (lint+types, unit tests, security audit)
-
+## Completed This Session
+### Pre-Build Foundation ✅
+### Phase 1 Schema ✅ (0001_initial_schema.sql — 23 tables)
+### Phase 1 RLS ✅ (0002_rls.sql — 75 policies, 4 helper functions)
+### Task 21 — CI/CD Gate ✅ (GitHub Actions green, all 3 jobs)
 ### Task 22 — Auth Module ✅
-- src/middleware.ts — session refresh on every request
-- src/lib/auth/actions.ts — signIn, signUp, signOut, resetPassword, updatePassword (server actions)
-- src/lib/auth/get-user.ts — getUser, requireUser, getProfile
-- src/app/auth/callback/route.ts — OAuth/magic link exchange
-- src/app/(auth)/ — login, signup, forgot-password pages (useActionState)
-- src/app/(dashboard)/ — protected layout + dashboard page
-- src/app/auth/update-password/page.tsx
-- src/types/database.ts — TypeScript types for all tables
-- Auth tests: 21 passing
-- Build validator: 14 PASS / 0 FAIL
-- CI: green ✅
+- middleware.ts, lib/auth/actions.ts, lib/auth/get-user.ts
+- Auth pages: login, signup, forgot-password, update-password
+- Dashboard: protected layout + page (requireUser gate)
+- Types: src/types/database.ts
+- Tests: 82/82 passing | Build validator: 14 PASS/0 FAIL | CI: green
 
-## Running Totals
-- Migration files: 0001_initial_schema.sql, 0002_rls.sql
-- Test files: schema (28), rls (33), auth (21) = 82 total passing
-- CI: green on every push ✅
-- Routes live on Vercel: /, /login, /signup, /forgot-password, /dashboard, /auth/callback, /auth/update-password
+## Locked Decisions
+- ALL code on lin ~/Xekin/dev/ — Mac is browser only (http://10.0.0.60:3100)
+- Auth pages: useActionState (client components)
+- redirect() uses plain strings — typedRoutes disabled
+- Lint: eslint directly (next lint dropped in v16)
+- build.sh: supabase client = src/lib/supabase/client.ts
+- Write SQL/sensitive files via paramiko SFTP — never bash heredoc (PID contamination)
+- DB password URL-encoded: ERg%2A%3FZ6grtE5nH%24
 
-## Key Decisions (locked)
-- Auth pages use useActionState (client components) — not plain server actions
-- redirect() uses plain strings — typedRoutes disabled by removing .next/types/routes.d.ts
-- build.sh validator updated: supabase client path = src/lib/supabase/client.ts
-
-## Next Task: Orgs (Task 24)
-1. API route: POST /api/orgs — create org, auto-add creator as owner
-2. API route: GET /api/orgs — list user's orgs
-3. API route: PATCH /api/orgs/[id] — update org settings
-4. Invite member flow (email invite → org_members row)
-5. Org switcher component (user can belong to multiple orgs)
+## Next Action (Task 24 — Orgs)
+1. POST /api/orgs — create org, auto-add creator as owner in org_members
+2. GET /api/orgs — list user's orgs
+3. PATCH /api/orgs/[id] — update org settings (owner only)
+4. POST /api/orgs/[id]/invite — email invite flow
+5. Org switcher component (header dropdown)
 6. Org settings page
 7. Tests + gate check
 
 ## Validation Status
-Last: May 9 2026 — 14 PASS, 0 WARN, 0 FAIL (build.sh auth)
-CI: green ✅
-Tests: 82/82 passing
+Last: May 9 2026 — 14 PASS, 0 WARN, 0 FAIL
+Tests: 82/82 (schema 28 + rls 33 + auth 21)
+CI: green ✅ | Vercel: auto-deploy on push ✅
