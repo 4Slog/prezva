@@ -111,3 +111,41 @@ CI: green ✅ | Vercel: prezva.app live ✅
 ### Commit: 779cb35
 
 ### Next: Task 28 — Events module
+
+## Session — May 9 2026 (continued)
+
+### Task 28 — Events module — COMPLETE ✅
+- POST/GET /api/events, GET/PATCH/DELETE /api/events/[id]
+- lib/events/actions.ts (6 actions), EventStatusBadge, EventCard, EventStatusActions
+- /events list, /events/new, /events/[slug], /events/[slug]/settings
+- Status lifecycle: draft→published→live→ended→archived (+cancelled)
+- 12 tests added — 106/106 total
+- Commit: a0be1cd
+
+### Trigger.dev v4 — COMPLETE ✅
+- SDK: @trigger.dev/sdk v4.4.5
+- trigger.config.ts at project root
+- src/trigger/jobs/registration.ts — send-registration-confirmation + process-waitlist
+- src/lib/trigger.ts — safe enqueue helpers
+- TRIGGER_SECRET_KEY set on lin + Vercel
+- Commit: 859b5c2
+
+### Stripe + Webhook — COMPLETE ✅
+- Restricted key (prezva-phase1) set on lin + Vercel
+- Webhook endpoint: we_1TVF9cGMRrqkotYjT37T9tP9 → https://prezva.app/api/webhooks/stripe
+- Events: payment_intent.succeeded/failed, checkout.session.completed/expired
+- All 3 Stripe vars set: SECRET_KEY, PUBLISHABLE_KEY, WEBHOOK_SECRET
+- NOTE: using live restricted key — use test card 4242 4242 4242 4242 for testing
+
+### Audit warning (known, safe)
+- 4 high vulns in @trigger.dev/sdk internals (socket.io, opentelemetry)
+- No fix without --force; upstream issue; not in our code path
+
+### Next: Task 33 — Registration & Ticketing
+- Ticket types (free/paid/donation) CRUD
+- Stripe Checkout session creation
+- /api/webhooks/stripe handler (payment confirmation → registration)
+- Registration flow (attendee form → payment → QR generation → email via Trigger.dev)
+- Discount codes
+- No-oversell capacity enforcement
+- Offline queue for check-in
