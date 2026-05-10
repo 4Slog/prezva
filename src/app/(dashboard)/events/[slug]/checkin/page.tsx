@@ -12,7 +12,7 @@ export default async function CheckInPage({ params }: Props) {
   const supabase = await createClient()
 
   const { data: event } = await supabase
-    .from('events').select('id, name, slug, org_id').eq('slug', slug).single()
+    .from('events').select('id, title, slug, org_id').eq('slug', slug).single()
   if (!event) notFound()
 
   const { data: member } = await supabase
@@ -26,7 +26,7 @@ export default async function CheckInPage({ params }: Props) {
     <div className="p-6">
       <CheckInClient
         eventId={(event as any).id}
-        eventName={(event as any).name}
+        eventName={(event as any).title}
         initialStats={initialStats}
       />
     </div>

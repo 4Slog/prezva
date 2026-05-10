@@ -6,7 +6,6 @@ import { removeMember } from '@/lib/orgs/actions'
 interface Member {
   id: string
   role: string
-  accepted_at: string | null
   created_at: string
   profiles: {
     id: string
@@ -76,11 +75,6 @@ export function MemberList({ members, orgId, currentUserId, currentUserRole }: M
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {m.accepted_at === null && (
-                  <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700">
-                    pending
-                  </span>
-                )}
                 {roleBadge(m.role)}
                 {canManage && p?.id !== currentUserId && m.role !== 'owner' && (
                   <button

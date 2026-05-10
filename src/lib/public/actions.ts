@@ -59,14 +59,15 @@ export async function getBookmarks(userId: string, eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('session_bookmarks')
-    .select('session_id')
+    .select('session_id, sessions!inner(event_id)')
     .eq('user_id', userId)
-    .eq('event_id', eventId)
+    .eq('sessions.event_id', eventId)
   return (data ?? []).map((b: { session_id: string }) => b.session_id)
 }
 
 export async function toggleBookmark(userId: string, eventId: string, sessionId: string) {
   const supabase = await createClient()
+  void eventId
   const { data: existing } = await supabase
     .from('session_bookmarks')
     .select('id')
@@ -77,6 +78,6 @@ export async function toggleBookmark(userId: string, eventId: string, sessionId:
     await supabase.from('session_bookmarks').delete().eq('id', existing.id)
     return 'removed'
   }
-  await supabase.from('session_bookmarks').insert({ user_id: userId, session_id: sessionId, event_id: eventId })
+  await supabase.from('session_bookmarks').insert({ user_id: userId, session_id: sessionId })
   return 'added'
 }

@@ -20,7 +20,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
 
   const { data: org } = await supabase
     .from('organizations')
-    .select('*, org_members!inner(user_id, role, accepted_at)')
+    .select('*, org_members!inner(user_id, role)')
     .eq('slug', slug)
     .eq('org_members.user_id', user.id)
     .maybeSingle()
@@ -33,7 +33,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
 
   const { data: members } = await supabase
     .from('org_members')
-    .select('id, role, accepted_at, created_at, profiles(id, full_name, email, avatar_url, job_title)')
+    .select('id, role, created_at, profiles(id, full_name, email, avatar_url, job_title)')
     .eq('org_id', org.id)
     .order('created_at', { ascending: true })
 

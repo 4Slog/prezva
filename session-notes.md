@@ -5,8 +5,31 @@
 ---
 
 ## Current Phase
-**Phase 1 — Organizations (Task 24)**
-Next task: Org API routes, invite flow, org switcher, settings page
+**Phase 1 — Sprint 1 (Schema/Code Reconciliation)**
+Phase 1 tasks 24–97 are committed. A live audit (May 10 2026) found 7 P0 schema bugs that unit tests
+can't catch (tests mock the DB). Sprint 1 fixes those before Phase 1 is genuinely launch-ready.
+
+Full audit saved at: `~/Prezva/audit/phase1-audit-save.md`
+
+### Resume point — Sprint 1
+1. Create branch `sprint1-schema-reconciliation` off `main`
+2. Apply 20 P0 code edits (see audit file §"P0 fixes")
+3. Write `supabase/migrations/0003_phase1_schema_corrections.sql` — drop 4 audit-only columns
+4. Run `npx vitest run` — fix orgs.test.ts fixture (drop `accepted_at`)
+5. Commit + push → verify broken planner pages now load in Chrome
+6. Mark Sprint 1 ✅ → move to Sprint 2 (integration test gate)
+
+### Audit-only SQL patches applied directly to prod Supabase (NOT in any migration — must be reverted by Sprint 1 migration):
+- `org_members.accepted_at` — DROP
+- `survey_questions.required` — DROP
+- `session_bookmarks.event_id` — DROP
+- `ticket_types.ticket_type` (generated column) — DROP
+- `question_type` enum: added `yes_no` value — LEAVE (Postgres can't drop enum values)
+
+### Demo seed data live on prezva.app
+- Owner: demo.owner@prezva-audit.test / AuditDemo2026!
+- Org: civitas | Event: birmingham-sbw-2026
+- DO NOT wipe until Sprint 1 walkthrough is verified
 
 ## Last Session
 Date: May 9 2026

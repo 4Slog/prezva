@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 
 interface OrgMembership {
   role: string
-  accepted_at: string | null
   organizations: {
     id: string
     name: string
@@ -60,11 +59,6 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
                     {org.name[0]}
                   </span>
                   <span className="flex-1 truncate">{org.name}</span>
-                  {m.accepted_at === null && (
-                    <span className="rounded-full bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-700">
-                      pending
-                    </span>
-                  )}
                 </button>
               )
             })}

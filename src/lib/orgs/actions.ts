@@ -91,7 +91,6 @@ export async function createOrg(formData: FormData) {
     user_id: user.id,
     role: 'owner',
     invited_by: user.id,
-    accepted_at: new Date().toISOString(),
   })
   if (memberErr) return { error: memberErr.message }
 
@@ -205,20 +204,8 @@ export async function removeMember(orgId: string, memberId: string) {
 }
 
 // ── Accept invite ────────────────────────────────────────────────────────────
-
-export async function acceptInvite(orgId: string) {
-  const user = await requireUser()
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('org_members')
-    .update({ accepted_at: new Date().toISOString() })
-    .eq('org_id', orgId)
-    .eq('user_id', user.id)
-    .is('accepted_at', null)
-
-  if (error) return { error: error.message }
-
+// No-op: schema has no accepted_at column — all org_members rows are treated as accepted.
+export async function acceptInvite(_orgId: string) {
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -233,7 +220,7 @@ export async function getOrgBySlug(slug: string) {
     .from('organizations')
     .select(`
       *,
-      org_members!inner(user_id, role, accepted_at)
+      org_members!inner(user_id, role)
     `)
     .eq('slug', slug)
     .eq('org_members.user_id', user.id)
@@ -253,7 +240,6 @@ export async function getUserOrgs() {
     .from('org_members')
     .select(`
       role,
-      accepted_at,
       organizations(id, name, slug, logo_url, timezone)
     `)
     .eq('user_id', user.id)

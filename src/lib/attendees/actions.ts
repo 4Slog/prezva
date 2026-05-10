@@ -215,7 +215,7 @@ export async function importAttendeesCSV(eventId: string, csv: string) {
 
   const { data: tickets } = await supabase
     .from('ticket_types').select('id')
-    .eq('event_id', eventId).eq('ticket_type', 'free').limit(1)
+    .eq('event_id', eventId).eq('type', 'free').limit(1)
   const ticketId = (tickets as any)?.[0]?.id
   if (!ticketId) return { error: 'No free ticket type found. Create one first.' }
 

@@ -12,7 +12,7 @@ export default async function AgendaPage({ params }: Props) {
   const supabase = await createClient()
 
   const { data: event } = await supabase
-    .from('events').select('id, name, org_id').eq('slug', slug).single()
+    .from('events').select('id, title, org_id').eq('slug', slug).single()
   if (!event) notFound()
 
   const { data: member } = await supabase
