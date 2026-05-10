@@ -32,9 +32,9 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
     supabase.from('events').select('capacity, registration_count, checked_in_count').eq('id', eventId).single(),
     supabase.from('registrations').select('status, amount_paid_cents, ticket_type_id, created_at').eq('event_id', eventId),
     supabase.from('check_ins').select('id').eq('event_id', eventId),
-    supabase.from('survey_responses').select('id').eq('survey_id', eventId),
+    supabase.from('survey_responses').select('id, surveys!inner(event_id)').eq('surveys.event_id', eventId),
     supabase.from('announcements').select('id').eq('event_id', eventId),
-    supabase.from('ticket_types').select('id, name, ticket_type').eq('event_id', eventId),
+    supabase.from('ticket_types').select('id, name, type').eq('event_id', eventId),
   ])
 
   const regs = registrations ?? []

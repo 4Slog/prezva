@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     const { data, error } = await supabase
       .from('organizations')
-      .select('*, org_members!inner(user_id, role, accepted_at)')
+      .select('*, org_members!inner(user_id, role)')
       .eq('id', id)
       .eq('org_members.user_id', user.id)
       .maybeSingle()

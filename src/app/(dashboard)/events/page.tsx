@@ -14,7 +14,6 @@ export default async function EventsPage() {
     .from('org_members')
     .select('org_id, role, organizations(id, name, slug)')
     .eq('user_id', user.id)
-    .not('accepted_at', 'is', null)
 
   // Get all events across all orgs
   const orgIds = (memberships ?? []).map((m) => m.org_id)

@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       role: 'owner',
       invited_by: user.id,
-      accepted_at: new Date().toISOString(),
     })
 
     return NextResponse.json(org, { status: 201 })
@@ -58,7 +57,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('org_members')
-      .select('role, accepted_at, organizations(id, name, slug, logo_url, timezone)')
+      .select('role, organizations(id, name, slug, logo_url, timezone)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
 

@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-export type QuestionType = 'text' | 'rating' | 'multiple_choice' | 'yes_no'
+export type QuestionType = 'text' | 'rating' | 'multiple_choice' | 'boolean'
 
 export interface Survey {
   id: string; event_id: string; title: string; description: string | null
@@ -13,7 +13,7 @@ export interface Survey {
 }
 export interface SurveyQuestion {
   id: string; survey_id: string; question_text: string; question_type: QuestionType
-  options: string[] | null; required: boolean; sort_order: number
+  options: string[] | null; is_required: boolean; sort_order: number
 }
 
 const SurveySchema = z.object({
@@ -22,7 +22,7 @@ const SurveySchema = z.object({
 })
 const QuestionSchema = z.object({
   question_text: z.string().min(1).max(500),
-  question_type: z.enum(['text', 'rating', 'multiple_choice', 'yes_no']),
+  question_type: z.enum(['text', 'rating', 'multiple_choice', 'boolean']),
   options: z.string().optional(),
   required: z.string().optional(),
   sort_order: z.string().optional(),
@@ -69,7 +69,7 @@ export async function addQuestion(surveyId: string, formData: FormData) {
     .from('survey_questions').insert({
       survey_id: surveyId, question_text: parsed.data.question_text,
       question_type: parsed.data.question_type, options,
-      required: parsed.data.required === 'true',
+      is_required: parsed.data.required === 'true',
       sort_order: parseInt(parsed.data.sort_order ?? '0', 10),
     }).select().single()
   if (error) return { error: error.message }

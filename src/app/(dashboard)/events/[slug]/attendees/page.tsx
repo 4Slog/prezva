@@ -13,7 +13,7 @@ export default async function AttendeesPage({ params }: Props) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, name, slug, org_id')
+    .select('id, title, slug, org_id')
     .eq('slug', slug)
     .single()
   if (!event) notFound()
@@ -35,7 +35,7 @@ export default async function AttendeesPage({ params }: Props) {
     <div className="max-w-6xl mx-auto p-6">
       <AttendeesClient
         eventId={(event as any).id}
-        eventName={(event as any).name}
+        eventName={(event as any).title}
         initialData={initialData}
         tickets={(ticketsResult.data ?? []) as { id: string; name: string }[]}
       />

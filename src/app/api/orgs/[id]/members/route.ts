@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     const { data, error } = await supabase
       .from('org_members')
-      .select('id, role, accepted_at, created_at, profiles(id, full_name, email, avatar_url, job_title)')
+      .select('id, role, created_at, profiles(id, full_name, email, avatar_url, job_title)')
       .eq('org_id', orgId)
       .order('created_at', { ascending: true })
 
