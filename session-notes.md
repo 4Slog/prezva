@@ -11,13 +11,25 @@ can't catch (tests mock the DB). Sprint 1 fixes those before Phase 1 is genuinel
 
 Full audit saved at: `~/Prezva/audit/phase1-audit-save.md`
 
-### Resume point — Sprint 1
-1. Create branch `sprint1-schema-reconciliation` off `main`
-2. Apply 20 P0 code edits (see audit file §"P0 fixes")
-3. Write `supabase/migrations/0003_phase1_schema_corrections.sql` — drop 4 audit-only columns
-4. Run `npx vitest run` — fix orgs.test.ts fixture (drop `accepted_at`)
-5. Commit + push → verify broken planner pages now load in Chrome
-6. Mark Sprint 1 ✅ → move to Sprint 2 (integration test gate)
+### Sprint 1 status — May 10 2026 (COMMIT EXISTS, NOT YET VALIDATED)
+Branch: `sprint1-schema-reconciliation` exists, already has commit `07ab7c7`
+- All 20 P0 code edits applied ✅
+- Migration 0003 written ✅
+- Tests reported 189/189 at commit time ✅
+- Branch pushed to origin ✅
+- **NOT YET VALIDATED:** migration not confirmed pushed to prod, broken pages not confirmed fixed in browser
+
+### Resume point — next session
+1. Confirm tests still pass: `npx vitest run`
+2. Confirm migration 0003 was pushed to prod Supabase (check audit-only columns are gone)
+3. Confirm Vercel deployed sprint1 branch (check prezva.app or Vercel dashboard)
+4. Use Playwright MCP (newly configured) to walk broken planner pages in Chrome
+5. If all green → merge to main, mark Sprint 1 ✅ → Sprint 2
+
+### Playwright MCP — newly configured (May 10 2026)
+- Added to ~/.claude.json: `npx @playwright/mcp@latest --browser chrome --headless`
+- Takes effect on next session restart
+- Use for visual validation of planner pages: /attendees, /checkin, /agenda
 
 ### Audit-only SQL patches applied directly to prod Supabase (NOT in any migration — must be reverted by Sprint 1 migration):
 - `org_members.accepted_at` — DROP
