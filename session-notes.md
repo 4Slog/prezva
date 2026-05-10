@@ -5,29 +5,37 @@
 ---
 
 ## Current Phase
-**Phase 1 — Sprint 2 (Integration Test Gate)**
+**Phase 1 — Sprint 3 (Make Advertised Features Work)**
 
-Sprint 1 is COMPLETE as of May 10 2026.
-- 20 P0 code edits applied, migration 0003 merged, all 3 broken planner pages confirmed loading in browser
-- Merged to main (commit 93328a1), pushed to origin
-- Tests: 189/189 | Build: PASS | Playwright MCP available
+Sprint 1 + Sprint 2 both COMPLETE as of May 10 2026.
 
-Full audit saved at: `~/Prezva/audit/phase1-audit-save.md`
+### Sprint 2 — COMPLETE (May 10 2026)
+- Branch `sprint2-integration-tests` merged to main (commit 6ce61c5)
+- 23 integration tests added — real DB, no mocks
+- Caught one new P0: `getUserOrgs` ordered by `created_at` → fixed to `joined_at`
+- Build gate updated: integration tests now run as step 4 in build.sh
+- Unit: 189/189 | Integration: 23/23 | Build: PASS
 
-### Sprint 2 goal
-Replace mocked DB tests with real Supabase integration tests so schema bugs surface at test time (not in prod).
-Unit tests mock the DB — that's why 7 P0 bugs existed despite 189 passing tests.
+### Running test suites
+```bash
+npx vitest run                                           # unit tests (189)
+npx vitest run --config vitest.integration.config.ts    # integration (23)
+bash ~/Prezva/scripts/validate/build.sh                 # full gate (both)
+```
 
-### Resume point — next session (Sprint 2)
-1. Read `~/Prezva/audit/phase1-audit-save.md` §"Sprint 2" for full scope
-2. Create branch `sprint2-integration-tests`
-3. Write real-DB integration tests (Vitest + supabase-js against staging project)
-4. Gate: all integration tests green before merging to main
+### Resume point — next session (Sprint 3)
+Goal: Make the features that are shown in the UI actually work end-to-end.
+Per audit file, Sprint 3 covers: offline check-in, announcements send, realtime updates,
+my-QR code, invites, CSV import, waitlist management, Stripe webhook sync.
 
-### Notes
-- Playwright MCP: `npx @playwright/mcp@latest --browser chrome --headless` — configured in ~/.claude.json
-- Demo seed live on prezva.app (civitas org / birmingham-sbw-2026) — DO NOT wipe until Sprint 2 verified
-- Staging Supabase: credentials in ~/.claude/global-memory/credentials.md
+1. Read `~/Prezva/audit/phase1-audit-save.md` §"Sprint 3" for the full scope
+2. Create branch `sprint3-features`
+3. Work through feature list — Playwright MCP available for visual validation
+
+### Infrastructure notes
+- Playwright MCP: `npx @playwright/mcp@latest --browser chrome --headless` — in ~/.claude.json
+- Demo seed: civitas org / birmingham-sbw-2026 — DO NOT wipe (still needed for Sprint 3 validation)
+- `.env.test` needed for integration suite (gitignored, same creds as `.env.local`)
 
 ### Demo seed data live on prezva.app
 - Owner: demo.owner@prezva-audit.test / AuditDemo2026!
