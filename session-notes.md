@@ -5,38 +5,29 @@
 ---
 
 ## Current Phase
-**Phase 1 — Sprint 1 (Schema/Code Reconciliation)**
-Phase 1 tasks 24–97 are committed. A live audit (May 10 2026) found 7 P0 schema bugs that unit tests
-can't catch (tests mock the DB). Sprint 1 fixes those before Phase 1 is genuinely launch-ready.
+**Phase 1 — Sprint 2 (Integration Test Gate)**
+
+Sprint 1 is COMPLETE as of May 10 2026.
+- 20 P0 code edits applied, migration 0003 merged, all 3 broken planner pages confirmed loading in browser
+- Merged to main (commit 93328a1), pushed to origin
+- Tests: 189/189 | Build: PASS | Playwright MCP available
 
 Full audit saved at: `~/Prezva/audit/phase1-audit-save.md`
 
-### Sprint 1 status — May 10 2026 (COMMIT EXISTS, NOT YET VALIDATED)
-Branch: `sprint1-schema-reconciliation` exists, already has commit `07ab7c7`
-- All 20 P0 code edits applied ✅
-- Migration 0003 written ✅
-- Tests reported 189/189 at commit time ✅
-- Branch pushed to origin ✅
-- **NOT YET VALIDATED:** migration not confirmed pushed to prod, broken pages not confirmed fixed in browser
+### Sprint 2 goal
+Replace mocked DB tests with real Supabase integration tests so schema bugs surface at test time (not in prod).
+Unit tests mock the DB — that's why 7 P0 bugs existed despite 189 passing tests.
 
-### Resume point — next session
-1. Confirm tests still pass: `npx vitest run`
-2. Confirm migration 0003 was pushed to prod Supabase (check audit-only columns are gone)
-3. Confirm Vercel deployed sprint1 branch (check prezva.app or Vercel dashboard)
-4. Use Playwright MCP (newly configured) to walk broken planner pages in Chrome
-5. If all green → merge to main, mark Sprint 1 ✅ → Sprint 2
+### Resume point — next session (Sprint 2)
+1. Read `~/Prezva/audit/phase1-audit-save.md` §"Sprint 2" for full scope
+2. Create branch `sprint2-integration-tests`
+3. Write real-DB integration tests (Vitest + supabase-js against staging project)
+4. Gate: all integration tests green before merging to main
 
-### Playwright MCP — newly configured (May 10 2026)
-- Added to ~/.claude.json: `npx @playwright/mcp@latest --browser chrome --headless`
-- Takes effect on next session restart
-- Use for visual validation of planner pages: /attendees, /checkin, /agenda
-
-### Audit-only SQL patches applied directly to prod Supabase (NOT in any migration — must be reverted by Sprint 1 migration):
-- `org_members.accepted_at` — DROP
-- `survey_questions.required` — DROP
-- `session_bookmarks.event_id` — DROP
-- `ticket_types.ticket_type` (generated column) — DROP
-- `question_type` enum: added `yes_no` value — LEAVE (Postgres can't drop enum values)
+### Notes
+- Playwright MCP: `npx @playwright/mcp@latest --browser chrome --headless` — configured in ~/.claude.json
+- Demo seed live on prezva.app (civitas org / birmingham-sbw-2026) — DO NOT wipe until Sprint 2 verified
+- Staging Supabase: credentials in ~/.claude/global-memory/credentials.md
 
 ### Demo seed data live on prezva.app
 - Owner: demo.owner@prezva-audit.test / AuditDemo2026!
