@@ -243,7 +243,7 @@ export async function getUserOrgs() {
       organizations(id, name, slug, logo_url, timezone)
     `)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
+    .order('joined_at', { ascending: true })
 
   if (error) return []
   return data
