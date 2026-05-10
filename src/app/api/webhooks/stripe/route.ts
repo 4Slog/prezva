@@ -96,15 +96,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Connect account updated — sync status
+  // Connect account updated — sync capability flags to org row
   if (event.type === 'account.updated') {
     const account = event.data.object
-    // If account becomes restricted or loses capabilities, we could notify the org owner
-    // For now just log — future: send email alert via Trigger.dev
-    console.log('[stripe] account.updated:', account.id, {
-      charges_enabled: account.charges_enabled,
-      payouts_enabled: account.payouts_enabled,
-    })
+    await supabase
+      .from('organizations')
+      .update({
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+      })
+      .eq('stripe_account_id', account.id)
   }
 
   // Connect account deauthorized — clear stripe_account_id from org

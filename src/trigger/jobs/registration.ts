@@ -76,8 +76,73 @@ export const processWaitlist = schemaTask({
     eventTitle: z.string(),
   }),
   run: async (payload) => {
-    // Full waitlist promotion logic added in Task 33 Registration module.
-    // Infrastructure is wired; body will be filled when Registration is built.
-    return { processed: true, eventId: payload.eventId }
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+
+    // Find highest-priority waitlisted registration
+    const { data: next } = await supabase
+      .from('registrations')
+      .select('id, attendee_email, attendee_name, qr_code, waitlist_position')
+      .eq('event_id', payload.eventId)
+      .eq('status', 'waitlisted')
+      .order('waitlist_position', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!next) return { processed: false, reason: 'no waitlisted registrations' }
+
+    // Promote to confirmed
+    const { error } = await supabase
+      .from('registrations')
+      .update({ status: 'confirmed', waitlist_position: null })
+      .eq('id', next.id)
+
+    if (error) throw new Error(`Failed to promote waitlisted reg: ${error.message}`)
+
+    // Send promotion email
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0D1B2A;padding:24px;border-radius:12px 12px 0 0;">
+          <h1 style="color:#00BFA6;margin:0;font-size:1.5rem;">A spot opened up!</h1>
+        </div>
+        <div style="background:#112240;padding:24px;border-radius:0 0 12px 12px;color:#F0F4F8;">
+          <p>Hi ${next.attendee_name},</p>
+          <p>Good news — a spot opened up for <strong>${payload.eventTitle}</strong> and you've been confirmed!</p>
+          <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px;margin:16px 0;text-align:center;">
+            <p style="color:#94A3B8;font-size:0.875rem;margin:0 0 8px;">Your check-in QR code</p>
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(next.qr_code)}"
+              alt="QR Code" width="160" style="border-radius:4px;"
+            />
+            <p style="color:#64748B;font-size:0.75rem;margin:8px 0 0;font-family:monospace;">${next.qr_code}</p>
+          </div>
+          <p style="color:#94A3B8;font-size:0.875rem;">Powered by Prezva</p>
+        </div>
+      </div>
+    `
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `Prezva <events@prezva.app>`,
+        to: next.attendee_email,
+        subject: `🎉 You're in! Spot confirmed for ${payload.eventTitle}`,
+        html,
+      }),
+    })
+
+    if (!res.ok) {
+      const err = await res.text()
+      throw new Error(`Resend failed (${res.status}): ${err}`)
+    }
+
+    return { processed: true, promotedId: next.id, sentTo: next.attendee_email }
   },
 })

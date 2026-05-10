@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { enqueueAnnouncementDelivery } from '@/lib/trigger'
 
 export type AnnouncementChannel = 'email' | 'push' | 'both'
 
@@ -75,6 +76,11 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
     .single()
 
   if (error) return { error: error.message }
+
+  if (parsed.data.channel !== 'push') {
+    await enqueueAnnouncementDelivery({ announcementId: data.id })
+  }
+
   revalidatePath('/dashboard')
   return { data }
 }
