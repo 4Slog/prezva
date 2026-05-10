@@ -26,8 +26,8 @@ export default function AgendaClient({ sessions, eventId, userId }: {
     grouped[day].push(s)
   }
   function handleBookmark(sessionId: string) {
-    if (!userId) { window.location.href = '/login'; return }
-    setBookmarks(prev => { const n = new Set(prev); n.has(sessionId) ? n.delete(sessionId) : n.add(sessionId); return n })
+    if (!userId) { window.location.assign('/login'); return }
+    setBookmarks(prev => { const n = new Set(prev); if (n.has(sessionId)) { n.delete(sessionId) } else { n.add(sessionId) } return n })
     startTransition(() => { toggleBookmark(userId, eventId, sessionId) })
   }
   if (sessions.length === 0) return (
