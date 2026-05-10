@@ -5,6 +5,7 @@
  */
 import { tasks } from '@trigger.dev/sdk/v3'
 import type { sendConfirmationEmail, processWaitlist } from '@/trigger/jobs/registration'
+import type { sendAnnouncement } from '@/trigger/jobs/announcement'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -37,6 +38,22 @@ export async function enqueueWaitlistProcessing(payload: WaitlistPayload) {
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue waitlist processing:', err)
+    return null
+  }
+}
+
+type AnnouncementPayload = Parameters<typeof sendAnnouncement.trigger>[0]
+
+export async function enqueueAnnouncementDelivery(payload: AnnouncementPayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) return null
+  try {
+    const handle = await tasks.trigger<typeof sendAnnouncement>(
+      'send-announcement',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue announcement delivery:', err)
     return null
   }
 }

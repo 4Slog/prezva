@@ -4,7 +4,35 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { randomBytes } from 'crypto'
 import type { Registration } from '@/types/database'
+
+// RFC 4180-compliant CSV parser — handles quoted fields with embedded commas and newlines
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++ }
+      else if (ch === '"') { inQuotes = false }
+      else { field += ch }
+    } else {
+      if (ch === '"') { inQuotes = true }
+      else if (ch === ',') { row.push(field); field = '' }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++
+        row.push(field); field = ''
+        if (row.some(f => f)) rows.push(row)
+        row = []
+      } else { field += ch }
+    }
+  }
+  if (field || row.length) { row.push(field); if (row.some(f => f)) rows.push(row) }
+  return rows
+}
 
 export interface AttendeeWithTicket extends Registration {
   ticket_name: string
@@ -141,7 +169,7 @@ export async function manualAddAttendee(raw: unknown) {
     return { error: 'Event is at capacity' }
   }
 
-  const qr = 'PREZVA-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+  const qr = 'PREZVA-' + randomBytes(12).toString('hex').toUpperCase()
   const { data, error } = await supabase
     .from('registrations')
     .insert({
@@ -219,24 +247,24 @@ export async function importAttendeesCSV(eventId: string, csv: string) {
   const ticketId = (tickets as any)?.[0]?.id
   if (!ticketId) return { error: 'No free ticket type found. Create one first.' }
 
-  const lines = csv.trim().split('\n').slice(1)
+  const rows = parseCSV(csv).slice(1) // drop header row
   const errors: string[] = []
   let imported = 0
 
-  for (const line of lines) {
-    const cols = line.split(',').map((c: string) => c.trim().replace(/^"|"$/g, ''))
+  for (const cols of rows) {
     const [name, email] = cols
     if (!name || !email || !email.includes('@')) {
-      errors.push('Skipped: ' + line.slice(0, 60))
+      errors.push('Skipped: ' + cols.join(',').slice(0, 60))
       continue
     }
+    const qr = 'PREZVA-' + randomBytes(12).toString('hex').toUpperCase()
     const { error } = await supabase.from('registrations').insert({
       event_id: eventId,
       ticket_type_id: ticketId,
-      attendee_email: email,
-      attendee_name: name,
+      attendee_email: email.trim(),
+      attendee_name: name.trim(),
       status: 'confirmed',
-      qr_code: 'PREZVA-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      qr_code: qr,
       amount_paid_cents: 0,
     })
     if (error) errors.push(name + ' <' + email + '>: ' + error.message)

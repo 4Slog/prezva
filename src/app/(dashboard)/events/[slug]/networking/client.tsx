@@ -1,7 +1,8 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import { MessageCircle, Search, User } from 'lucide-react'
 import { getOrCreateConversation, getMessages, sendMessage } from '@/lib/messaging/actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface Attendee {
   user_id: string | null
@@ -20,6 +21,26 @@ export default function NetworkingClient({ attendees, eventId, currentUserId }: 
   const [messages, setMessages] = useState<Message[]>([])
   const [newMsg, setNewMsg] = useState('')
   const [isPending, startTransition] = useTransition()
+  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
+
+  useEffect(() => {
+    if (!activeConvId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`messages:${activeConvId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${activeConvId}`,
+      }, (payload) => {
+        const msg = payload.new as Message
+        setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
+      })
+      .subscribe()
+    channelRef.current = channel
+    return () => { supabase.removeChannel(channel) }
+  }, [activeConvId])
 
   const filtered = attendees.filter(a => {
     const name = a.profiles?.full_name ?? a.attendee_name
