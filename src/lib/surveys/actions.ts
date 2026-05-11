@@ -110,6 +110,36 @@ export async function submitSurveyResponse(surveyId: string, answers: Record<str
   return { success: true }
 }
 
+export async function submitSurveyResponseByToken(surveyId: string, token: string, answers: Record<string, string>) {
+  const supabase = await createClient()
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id, event_id')
+    .eq('qr_code', token)
+    .maybeSingle()
+  if (!reg) return { error: 'Invalid or expired token' }
+
+  const { data: survey } = await supabase.from('surveys').select('event_id, status').eq('id', surveyId).maybeSingle()
+  if (!survey || survey.event_id !== (reg as any).event_id) return { error: 'Survey not found' }
+  if (survey.status !== 'active') return { error: 'This survey is not accepting responses' }
+
+  const { data: resp, error: respErr } = await supabase
+    .from('survey_responses')
+    .insert({ survey_id: surveyId, user_id: null, registration_id: (reg as any).id })
+    .select().single()
+  if (respErr) return { error: respErr.message }
+
+  const answerRows = Object.entries(answers).map(([questionId, answer]) => ({
+    response_id: resp.id, question_id: questionId, answer_text: answer,
+  }))
+  if (answerRows.length > 0) {
+    const { error: ansErr } = await supabase.from('survey_answers').insert(answerRows)
+    if (ansErr) return { error: ansErr.message }
+  }
+  return { success: true }
+}
+
 export async function getSurveyResults(surveyId: string) {
   const supabase = await createClient()
   await requireUser()

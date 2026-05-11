@@ -1,7 +1,40 @@
 import { requireUser } from '@/lib/auth/get-user'
+import { createClient } from '@/lib/supabase/server'
+import { getUserOrgs } from '@/lib/orgs/actions'
+import { SetupChecklist } from '@/components/dashboard/SetupChecklist'
 
 export default async function DashboardPage() {
   const user = await requireUser()
+  const supabase = await createClient()
+  const orgs = await getUserOrgs()
+
+  // Compute checklist state for the first org (if any)
+  let checklistItems = null
+  if (orgs.length > 0) {
+    const orgData = (orgs[0] as any).organizations
+    const orgId = orgData?.id
+
+    const [eventsResult, membersResult, integrationsResult] = await Promise.all([
+      supabase.from('events').select('id').eq('org_id', orgId).limit(1),
+      supabase.from('org_members').select('id').eq('org_id', orgId).limit(2),
+      supabase.from('org_integrations').select('id').eq('org_id', orgId).eq('status', 'active').limit(1),
+    ])
+
+    const hasEvent = (eventsResult.data?.length ?? 0) > 0
+    const hasMultipleMembers = (membersResult.data?.length ?? 0) > 1
+    const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
+    const orgSlug = orgData?.slug
+
+    checklistItems = [
+      { label: 'Create your organization', done: true },
+      { label: 'Create your first event', done: hasEvent, href: '/events/new' },
+      { label: 'Invite a team member', done: hasMultipleMembers, href: `/orgs/${orgSlug}/settings` },
+      { label: 'Connect an integration (optional)', done: hasIntegration, href: `/orgs/${orgSlug}/integrations` },
+      { label: 'Publish your event', done: false, href: '/events' },
+    ]
+  }
+
+  const showChecklist = checklistItems && checklistItems.filter(i => !i.done).length > 0
 
   return (
     <div>
@@ -14,42 +47,36 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Stat cards — placeholder until Events module */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
         {[
-          { label: 'Registered',       value: '—',  },
-          { label: 'Checked In',       value: '—',  },
-          { label: 'Active Sessions',  value: '—',  },
-          { label: 'System Health',    value: '100%'},
+          { label: 'Registered',       value: '—' },
+          { label: 'Checked In',       value: '—' },
+          { label: 'Active Sessions',  value: '—' },
+          { label: 'System Health',    value: '100%' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--pz-muted)' }}>
-              {s.label}
-            </p>
-            <p className="text-3xl font-bold" style={{ color: 'var(--pz-text)' }}>
-              {s.value}
-            </p>
+            <p className="text-xs font-medium mb-2" style={{ color: 'var(--pz-muted)' }}>{s.label}</p>
+            <p className="text-3xl font-bold" style={{ color: 'var(--pz-text)' }}>{s.value}</p>
             <div className="pz-stat-bar" />
           </div>
         ))}
       </div>
 
-      {/* Empty state — events module coming */}
-      <div className="pz-card p-8 text-center">
-        <p className="text-lg font-semibold mb-2" style={{ color: 'var(--pz-text)' }}>
-          No events yet
-        </p>
-        <p className="text-sm mb-4" style={{ color: 'var(--pz-muted)' }}>
-          Create an organization first, then add your first event.
-        </p>
-        <a
-          href="/orgs/new"
-          className="inline-block rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-        >
-          Create organization
-        </a>
-      </div>
+      {showChecklist && checklistItems && (
+        <div className="mb-8">
+          <SetupChecklist items={checklistItems} />
+        </div>
+      )}
+
+      {orgs.length === 0 && (
+        <div className="pz-card p-8 text-center">
+          <p className="text-lg font-semibold mb-2" style={{ color: 'var(--pz-text)' }}>No events yet</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--pz-muted)' }}>Create an organization first, then add your first event.</p>
+          <a href="/orgs/new" className="inline-block rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+            Create organization
+          </a>
+        </div>
+      )}
     </div>
   )
 }

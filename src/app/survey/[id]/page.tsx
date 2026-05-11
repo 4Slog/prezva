@@ -1,0 +1,37 @@
+import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
+import { SurveyGuestForm } from '@/components/surveys/SurveyGuestForm'
+
+export default async function PublicSurveyPage({ params, searchParams }: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ token?: string }>
+}) {
+  const { id } = await params
+  const { token } = await searchParams
+
+  if (!token) notFound()
+
+  const supabase = await createClient()
+
+  const { data: survey } = await supabase.from('surveys').select('id, title, description, status').eq('id', id).maybeSingle()
+  if (!survey || survey.status !== 'active') notFound()
+
+  const { data: questions } = await supabase
+    .from('survey_questions')
+    .select('id, question_text, question_type, options, is_required, sort_order')
+    .eq('survey_id', id)
+    .order('sort_order', { ascending: true })
+
+  return (
+    <main className="min-h-screen bg-[#0D1B2A] flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        <div className="mb-6">
+          <img src="/icons/icon-192.png" alt="Prezva" className="w-10 h-10 mb-4" />
+          <h1 className="text-2xl font-bold text-[#F0F4F8]">{survey.title}</h1>
+          {survey.description && <p className="text-sm text-[#94A3B8] mt-1">{survey.description}</p>}
+        </div>
+        <SurveyGuestForm surveyId={id} token={token} questions={questions ?? []} />
+      </div>
+    </main>
+  )
+}
