@@ -7,14 +7,39 @@ interface Survey { id: string; title: string; description: string | null; status
 
 const STATUS_COLOR: Record<string, string> = { draft: '#6b7280', active: '#059669', closed: '#7c3aed' }
 
-export default function SurveysClient({ surveys: init, eventId, slug }: {
-  surveys: Survey[]; eventId: string; slug: string
+export default function SurveysClient({ surveys: init, eventId, slug, orgId, googleFormsConnected }: {
+  surveys: Survey[]; eventId: string; slug: string; orgId: string; googleFormsConnected: boolean
 }) {
   const [surveys, setSurveys] = useState(init)
   const [showCreate, setShowCreate] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [showGFImport, setShowGFImport] = useState(false)
+  const [gfFormId, setGfFormId] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState('')
+
+  async function handleGFImport() {
+    if (!gfFormId.trim()) return
+    setImporting(true)
+    try {
+      const res = await fetch('/api/integrations/google-forms/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId, eventId, formId: gfFormId }),
+      })
+      const json = await res.json()
+      if (json.surveyId) {
+        setImportMsg(`Imported ${json.questionCount} questions`)
+        // reload surveys from server — use a lightweight re-fetch
+        const surveyRes = await fetch(`/api/events/${eventId}/surveys`)
+        if (surveyRes.ok) { const d = await surveyRes.json(); setSurveys(d) }
+      } else {
+        setImportMsg('Import failed')
+      }
+    } finally { setImporting(false); setShowGFImport(false) }
+  }
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -46,10 +71,32 @@ export default function SurveysClient({ surveys: init, eventId, slug }: {
 
   return (
     <div>
+      {importMsg && <p style={{ color: '#059669', fontSize: 14, marginBottom: '1rem' }}>{importMsg}</p>}
       {!showCreate && (
-        <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
-          <Plus size={16} /> New Survey
-        </button>
+        <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
+          <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
+            <Plus size={16} /> New Survey
+          </button>
+          {googleFormsConnected && (
+            <button onClick={() => setShowGFImport(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>
+              Import from Google Forms
+            </button>
+          )}
+        </div>
+      )}
+      {showGFImport && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: '1.5rem', width: '100%', maxWidth: 440 }}>
+            <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Import from Google Forms</h2>
+            <input value={gfFormId} onChange={e => setGfFormId(e.target.value)} placeholder="Google Form ID" style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button onClick={() => setShowGFImport(false)} style={{ padding: '0.5rem 1rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'none', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleGFImport} disabled={importing} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', cursor: 'pointer', opacity: importing ? 0.5 : 1 }}>
+                {importing ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {showCreate && (
         <form onSubmit={handleCreate} style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--color-surface)' }}>

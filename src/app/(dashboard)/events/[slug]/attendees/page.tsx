@@ -26,18 +26,23 @@ export default async function AttendeesPage({ params }: Props) {
     .single()
   if (!member) notFound()
 
-  const [initialData, ticketsResult] = await Promise.all([
+  const [initialData, ticketsResult, integrationsResult] = await Promise.all([
     getAttendees((event as any).id),
     supabase.from('ticket_types').select('id, name').eq('event_id', (event as any).id).eq('is_active', true),
+    supabase.from('org_integrations').select('provider, status').eq('org_id', (event as any).org_id).in('provider', ['mailchimp', 'constant_contact', 'eventbrite']),
   ])
+
+  const connectedProviders = new Set((integrationsResult.data ?? []).filter(i => i.status === 'connected').map(i => i.provider))
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       <AttendeesClient
         eventId={(event as any).id}
         eventName={(event as any).title}
+        orgId={(event as any).org_id}
         initialData={initialData}
         tickets={(ticketsResult.data ?? []) as { id: string; name: string }[]}
+        integrations={{ mailchimp: connectedProviders.has('mailchimp'), constant_contact: connectedProviders.has('constant_contact'), eventbrite: connectedProviders.has('eventbrite') }}
       />
     </div>
   )
