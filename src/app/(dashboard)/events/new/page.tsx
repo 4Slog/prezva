@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createEvent } from '@/lib/events/actions'
+import { getEventTemplates, createEventFromTemplate } from '@/lib/productivity/sprint11-actions'
 
 interface Org { id: string; name: string; slug: string }
 interface Membership {
@@ -9,6 +10,8 @@ interface Membership {
   role: string
   organizations: Org | null
 }
+
+interface EventTemplate { id: string; name: string; description: string | null; created_at: string }
 
 function toSlug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -19,19 +22,44 @@ export default function NewEventPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [eventType, setEventType] = useState('in_person')
+  const [templates, setTemplates] = useState<EventTemplate[]>([])
+  const [selectedOrgId, setSelectedOrgId] = useState('')
+  const [useTemplate, setUseTemplate] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState('')
 
   useEffect(() => {
     fetch('/api/orgs')
       .then((r) => r.json())
-      .then((d) => setOrgs(Array.isArray(d) ? d.filter((m: Membership) => ['owner', 'admin'].includes(m.role)) : []))
+      .then((d) => {
+        const filtered = Array.isArray(d) ? d.filter((m: Membership) => ['owner', 'admin'].includes(m.role)) : []
+        setOrgs(filtered)
+        if (filtered.length === 1) setSelectedOrgId(filtered[0].org_id)
+      })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!selectedOrgId) return
+    getEventTemplates(selectedOrgId).then(setTemplates).catch(() => {})
+  }, [selectedOrgId])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setPending(true)
     setError(null)
     const fd = new FormData(e.currentTarget)
+
+    if (useTemplate && selectedTemplate) {
+      const title = fd.get('title') as string
+      const slug = (document.getElementById('slug') as HTMLInputElement)?.value
+      if (!title || !slug) { setError('Title and slug required'); setPending(false); return }
+      const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug)
+      setPending(false)
+      if (result.error) setError(result.error)
+      else window.location.href = `/events/${result.slug}`
+      return
+    }
+
     const result = await createEvent(fd)
     setPending(false)
     if (result?.error) setError(result.error)
@@ -64,7 +92,13 @@ export default function NewEventPage() {
           <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Organization</h2>
           <div>
             <label className={labelCls}>Organization *</label>
-            <select name="org_id" required className={inputCls}>
+            <select
+              name="org_id"
+              required
+              className={inputCls}
+              value={selectedOrgId}
+              onChange={e => { setSelectedOrgId(e.target.value); setSelectedTemplate(''); setUseTemplate(false) }}
+            >
               <option value="">Select an organization</option>
               {orgs.map((m) => m.organizations && (
                 <option key={m.org_id} value={m.org_id}>{m.organizations.name}</option>
@@ -72,6 +106,29 @@ export default function NewEventPage() {
             </select>
           </div>
         </div>
+
+        {/* T-120: Create from template */}
+        {templates.length > 0 && (
+          <div className="pz-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} className="rounded" />
+                <span className="text-sm font-semibold text-[#F0F4F8]">Start from a template</span>
+              </label>
+            </div>
+            {useTemplate && (
+              <div>
+                <label className={labelCls}>Template</label>
+                <select className={inputCls} value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} required={useTemplate}>
+                  <option value="">Select a template</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}{t.description ? ` — ${t.description}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Basic info */}
         <div className="pz-card p-5">
