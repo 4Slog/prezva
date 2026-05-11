@@ -427,3 +427,79 @@ export async function resolveCommunityReport(reportId: string) {
     .eq('id', reportId)
   return { success: true }
 }
+
+// ─── T-091b: Matchmaking (keyword-based similarity) ──────────────────────────
+
+function tokenize(text: string): Set<string> {
+  return new Set(
+    text.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(t => t.length > 2)
+  )
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0
+  let intersection = 0
+  for (const item of a) if (b.has(item)) intersection++
+  const union = a.size + b.size - intersection
+  return union === 0 ? 0 : intersection / union
+}
+
+export async function getMatchSuggestions(eventId: string, registrationId: string, limit = 8) {
+  const supabase = await createClient()
+
+  const { data: myProfile } = await supabase
+    .from('attendee_profiles')
+    .select('interests, bio, company, job_title, user_id')
+    .eq('registration_id', registrationId)
+    .single()
+
+  if (!myProfile) return []
+
+  const { data: others } = await supabase
+    .from('attendee_profiles')
+    .select(`
+      id, bio, company, job_title, interests, avatar_url, is_visible, registration_id, user_id,
+      registrations!inner(attendee_name, ticket_types(name))
+    `)
+    .eq('event_id', eventId)
+    .eq('is_visible', true)
+    .neq('registration_id', registrationId)
+    .limit(200)
+
+  if (!others?.length) return []
+
+  const mp = myProfile as any
+  const myInterests = new Set<string>((mp.interests ?? []).map((i: string) => i.toLowerCase().trim()))
+  const myText = tokenize([mp.bio ?? '', mp.company ?? '', mp.job_title ?? ''].join(' '))
+
+  const scored = others.map((o: any) => {
+    const theirInterests = new Set<string>((o.interests ?? []).map((i: string) => i.toLowerCase().trim()))
+    const theirText = tokenize([o.bio ?? '', o.company ?? '', o.job_title ?? ''].join(' '))
+
+    const interestScore = jaccardSimilarity(myInterests, theirInterests)
+    const textScore = jaccardSimilarity(myText, theirText)
+    const score = interestScore * 0.7 + textScore * 0.3
+
+    return {
+      id: o.id,
+      registration_id: o.registration_id,
+      name: o.registrations?.attendee_name ?? '',
+      company: o.company ?? '',
+      job_title: o.job_title ?? '',
+      bio: o.bio ?? '',
+      interests: o.interests ?? [],
+      avatar_url: o.avatar_url ?? null,
+      ticket_name: o.registrations?.ticket_types?.name ?? '',
+      score,
+    }
+  })
+
+  return scored
+    .filter(p => p.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ score: _score, ...rest }) => rest)
+}
