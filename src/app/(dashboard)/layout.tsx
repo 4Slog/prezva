@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import Link from 'next/link'
 import { OrgSwitcher } from '@/components/orgs/OrgSwitcher'
+import { SyncHealthPill } from '@/components/layout/SyncHealthPill'
 
 const NAV = [
   { href: '/dashboard',        label: 'Dashboard',     icon: '⊞' },
@@ -61,18 +62,7 @@ export default async function DashboardLayout({
 
         {/* Offline Sync Health */}
         <div className="px-3 pb-5">
-          <div
-            className="pz-glow-teal flex items-center gap-2 rounded-lg px-3 py-2.5"
-            style={{ background: 'rgba(0,191,166,0.08)', border: '1px solid rgba(0,191,166,0.2)' }}
-          >
-            <span className="pz-dot-online h-2.5 w-2.5 flex-shrink-0 rounded-full" />
-            <span className="text-xs font-medium" style={{ color: 'var(--pz-teal)' }}>
-              Offline Sync Health
-            </span>
-            <span className="ml-auto text-xs font-bold" style={{ color: 'var(--pz-success)' }}>
-              100%
-            </span>
-          </div>
+          <SyncHealthPill />
         </div>
       </aside>
 

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
@@ -184,6 +185,7 @@ export async function manualAddAttendee(raw: unknown) {
     .select().single()
 
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'attendee.add', 'registration', data.id, { eventId, email: attendeeEmail })
   revalidatePath('/events')
   return { data }
 }
@@ -217,6 +219,7 @@ export async function removeAttendee(registrationId: string) {
   const { error } = await supabase
     .from('registrations').update({ status: 'cancelled' }).eq('id', registrationId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'attendee.cancel', 'registration', registrationId)
   revalidatePath('/events')
   return { success: true }
 }

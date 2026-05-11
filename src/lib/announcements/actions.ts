@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { enqueueAnnouncementDelivery } from '@/lib/trigger'
+import { sendAnnouncementPush } from '@/lib/push/send'
 
 export type AnnouncementChannel = 'email' | 'push' | 'both'
 
@@ -94,8 +95,13 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
 
   if (error) return { error: error.message }
 
-  if (!isScheduled && parsed.data.channel !== 'push') {
-    await enqueueAnnouncementDelivery({ announcementId: data.id })
+  if (!isScheduled) {
+    if (parsed.data.channel === 'email' || parsed.data.channel === 'both') {
+      await enqueueAnnouncementDelivery({ announcementId: data.id })
+    }
+    if (parsed.data.channel === 'push' || parsed.data.channel === 'both') {
+      await sendAnnouncementPush(eventId, parsed.data.title, parsed.data.body)
+    }
   }
 
   revalidatePath('/dashboard')

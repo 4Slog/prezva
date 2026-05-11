@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
@@ -95,6 +96,7 @@ export async function createOrg(formData: FormData) {
   })
   if (memberErr) return { error: memberErr.message }
 
+  await logAudit(supabase, org.id, user.id, 'org.create', 'organization', org.id)
   revalidatePath('/dashboard')
   redirect(`/orgs/${org.slug}/settings`)
 }

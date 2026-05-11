@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { BRAND } from '@/lib/brand'
+import { OfflineIndicator } from '@/components/pwa/OfflineIndicator'
+import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -22,6 +24,13 @@ export const metadata: Metadata = {
   },
   description: BRAND.tagline,
   metadataBase: new URL(BRAND.url),
+  manifest: '/manifest.json',
+  themeColor: '#00BFA6',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: BRAND.name,
+  },
   openGraph: {
     title: BRAND.name,
     description: BRAND.tagline,
@@ -34,7 +43,9 @@ export const metadata: Metadata = {
     title: BRAND.name,
     description: BRAND.tagline,
   },
-  themeColor: '#0D1B2A',
+  icons: {
+    apple: '/icons/icon-192.png',
+  },
 }
 
 export default function RootLayout({
@@ -48,7 +59,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#0D1B2A] text-[#F0F4F8]">
+        <OfflineIndicator />
         {children}
+        <IOSInstallPrompt />
       </body>
     </html>
   )
