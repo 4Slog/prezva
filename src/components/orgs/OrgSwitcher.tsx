@@ -24,26 +24,32 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
   const router = useRouter()
 
   const current = orgs.find((m) => m.organizations?.slug === currentSlug)
+    ?? (orgs.length === 1 ? orgs[0] : null)
   const display = current?.organizations?.name ?? 'Select organization'
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+        style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)' }}
       >
-        <span className="max-w-[160px] truncate">{display}</span>
-        <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <span className="flex-1 truncate text-left">{display}</span>
+        <svg className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--pz-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute left-0 z-20 mt-1 w-56 rounded-md border border-gray-100 bg-white shadow-lg">
+        <div
+          className="absolute left-0 z-20 mt-1 w-56 rounded-md shadow-lg"
+          style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)' }}
+        >
           <div className="p-1">
             {orgs.map((m) => {
               const org = m.organizations
               if (!org) return null
+              const isActive = org.slug === currentSlug
               return (
                 <button
                   key={org.id}
@@ -51,11 +57,16 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
                     setOpen(false)
                     router.push(`/orgs/${org.slug}/settings`)
                   }}
-                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left hover:bg-gray-50 ${
-                    org.slug === currentSlug ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
-                  }`}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left"
+                  style={{
+                    background: isActive ? 'rgba(0,191,166,0.1)' : 'transparent',
+                    color: isActive ? 'var(--pz-teal)' : 'var(--pz-text)',
+                  }}
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-200 text-xs font-bold uppercase">
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded text-xs font-bold uppercase"
+                    style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal)' }}
+                  >
                     {org.name[0]}
                   </span>
                   <span className="flex-1 truncate">{org.name}</span>
@@ -63,11 +74,12 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
               )
             })}
           </div>
-          <div className="border-t border-gray-100 p-1">
+          <div className="p-1" style={{ borderTop: '1px solid var(--pz-border)' }}>
             <Link
               href="/orgs/new"
               onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm"
+              style={{ color: 'var(--pz-muted)' }}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

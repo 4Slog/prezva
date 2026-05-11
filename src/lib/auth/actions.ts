@@ -9,11 +9,14 @@ export async function signUp(_prevState: unknown, formData: FormData): Promise<{
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = formData.get('full_name') as string
+  const acceptedTerms = formData.get('accepted_terms') === 'on'
+
+  if (!acceptedTerms) return { error: 'You must accept the Terms of Service to continue.' }
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: { data: { full_name: fullName, accepted_terms_at: new Date().toISOString() } },
   })
 
   if (error) return { error: error.message }
