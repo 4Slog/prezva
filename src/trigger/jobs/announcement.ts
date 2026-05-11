@@ -15,20 +15,35 @@ export const sendAnnouncement = schemaTask({
 
     const { data: ann } = await supabase
       .from('announcements')
-      .select('id, event_id, title, body, channel')
+      .select('id, event_id, title, body, channel, audience_filter, exclude_filter')
       .eq('id', payload.announcementId)
       .maybeSingle()
 
     if (!ann) return { sent: 0, failed: 0, reason: 'announcement not found' }
     if (ann.channel === 'push') return { sent: 0, failed: 0, reason: 'push-only — no email sent' }
 
-    const { data: regs } = await supabase
+    const audienceTypes: string[] = ann.audience_filter?.types ?? []
+    const excludeTypes: string[] = ann.exclude_filter?.types ?? []
+
+    const regQuery = supabase
       .from('registrations')
-      .select('attendee_email, attendee_name')
+      .select('attendee_email, attendee_name, ticket_type_id')
       .eq('event_id', ann.event_id)
       .eq('status', 'confirmed')
 
-    if (!regs || regs.length === 0) return { sent: 0, failed: 0 }
+    const { data: regsRaw } = await regQuery
+
+    // Apply audience filter (include only specified ticket types, if any)
+    let regs = regsRaw ?? []
+    if (audienceTypes.length > 0) {
+      regs = regs.filter((r: any) => audienceTypes.includes(r.ticket_type_id))
+    }
+    // Apply exclusion filter
+    if (excludeTypes.length > 0) {
+      regs = regs.filter((r: any) => !excludeTypes.includes(r.ticket_type_id))
+    }
+
+    if (regs.length === 0) return { sent: 0, failed: 0 }
 
     const { data: ev } = await supabase
       .from('events')

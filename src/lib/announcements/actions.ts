@@ -16,6 +16,9 @@ export interface Announcement {
   body: string
   channel: AnnouncementChannel
   segment: string | null
+  audience_filter: { types: string[]; tags: string[] }
+  exclude_filter: { types: string[]; tags: string[] }
+  scheduled_for: string | null
   sent_at: string | null
   recipient_count: number
   created_at: string
@@ -26,6 +29,9 @@ const CreateSchema = z.object({
   body: z.string().min(1).max(2000),
   channel: z.enum(['email', 'push', 'both']),
   segment: z.string().nullable().optional(),
+  audience_types: z.string().optional(),
+  exclude_types: z.string().optional(),
+  scheduled_for: z.string().optional(),
 })
 
 export async function getAnnouncements(eventId: string) {
@@ -47,18 +53,26 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
     body: formData.get('body'),
     channel: formData.get('channel'),
     segment: formData.get('segment') || null,
+    audience_types: formData.get('audience_types') as string || '',
+    exclude_types: formData.get('exclude_types') as string || '',
+    scheduled_for: formData.get('scheduled_for') as string || undefined,
   }
   const parsed = CreateSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  // Count recipients based on segment
-  let recipientCount = 0
+  const audienceTypes = parsed.data.audience_types ? parsed.data.audience_types.split(',').filter(Boolean) : []
+  const excludeTypes = parsed.data.exclude_types ? parsed.data.exclude_types.split(',').filter(Boolean) : []
+  const scheduledFor = parsed.data.scheduled_for || null
+
+  // Count recipients
   const { count } = await supabase
     .from('registrations')
     .select('*', { count: 'exact', head: true })
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
-  recipientCount = count ?? 0
+  const recipientCount = count ?? 0
+
+  const isScheduled = !!scheduledFor && new Date(scheduledFor) > new Date()
 
   const { data, error } = await supabase
     .from('announcements')
@@ -69,7 +83,10 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
       body: parsed.data.body,
       channel: parsed.data.channel,
       segment: parsed.data.segment,
-      sent_at: new Date().toISOString(),
+      audience_filter: { types: audienceTypes, tags: [] },
+      exclude_filter: { types: excludeTypes, tags: [] },
+      scheduled_for: scheduledFor,
+      sent_at: isScheduled ? null : new Date().toISOString(),
       recipient_count: recipientCount,
     })
     .select()
@@ -77,7 +94,7 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
 
   if (error) return { error: error.message }
 
-  if (parsed.data.channel !== 'push') {
+  if (!isScheduled && parsed.data.channel !== 'push') {
     await enqueueAnnouncementDelivery({ announcementId: data.id })
   }
 
