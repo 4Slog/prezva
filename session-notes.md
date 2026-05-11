@@ -4,47 +4,54 @@
 
 ## Current state
 
-- **Branch:** `sprint15-integrations-p3` — COMPLETE, pushed to origin
-- **Tests:** 189/189 unit + 23/23 integration (gate PASS, 12 checks, 1 warning = pre-existing npm vulns)
-- **Integration providers:** 16 total (was 9 after S14, now +7 association adapters)
+- **Branch:** `sprint16-pwa-expo` — COMPLETE, commit d70968a
+- **Tests:** 189/189 unit + 23/23 integration (gate: 12 PASS, 1 WARN = pre-existing npm vulns)
+- **Integration providers:** 16 total (Sprints 13-15)
+- **Expo wrapper:** ~/Prezva/expo/ (outside dev git repo, not tracked in GitHub)
 
-## Sprint 15 — COMPLETE
+## Sprint 16 — COMPLETE ✅
 
-All Sprint 15 tasks done:
-- T-114 through T-114f: 7 association adapters (WildApricot, iMIS, MemberClicks, YourMembership, Glue Up, Neon, Novi)
-- verifyMembership interface + association-verify helper
-- T-117: member-only ticket gating (migration 0016, registration check, TicketManager checkbox)
-- T-115: integration management UI (7 sections, Mailchimp list picker, disconnect API, last-synced timestamps, association badges)
+All Sprint 16 tasks done:
+- T-122: SyncHealthPill wired to navigator.onLine + Dexie pending count (lazy useState init)
+- T-123/a/b/c: next-pwa service worker, manifest.json, icons (192/512/maskable), iOS install prompt, Workbox caching
+- T-124: VAPID push subscriptions table (migration 0017), PushSubscriber component, sendAnnouncementPush
+- T-125: audit_logs table (migration 0017 combined), logAudit helper, writes in org/event/attendee actions
+- T-125a: OfflineIndicator fixed-top banner
+- T-140: Expo webview wrapper at ~/Prezva/expo/ (blank-typescript, react-native-webview)
+- T-140a: expo-notifications native push bridge with token injection into WebView
+- T-140b: eas.json with preview + production build profiles
+- T-140c/d: Store submission prep docs in ~/Prezva/docs/store-submissions/ (deferred — Paul enrollment needed)
 
-## Next action: Sprint 16
+## Sprint 16 — Critical build fixes
 
-**Brief:** `~/.claude/projects/-home-paul/memory/prezva_sprint_16_brief.md`
+- **next-pwa@5 + Next.js 16 Turbopack conflict:** Added `--webpack` to `package.json` build script. next-pwa v5 uses webpack plugins; Next.js 16 defaults to Turbopack for builds.
+- **Uint8Array<ArrayBuffer>:** Use `new Uint8Array(n)` + for-loop instead of `Uint8Array.from()` in PushSubscriber.
+- **Supabase `.in()` subquery:** Not type-safe — fetch IDs separately, then pass array.
+- **ESLint setState in useEffect:** Use lazy `useState(() => navigator.onLine)` instead of sync setState in effect.
+- **ESLint v9 ignores:** Use `globalIgnores([...])` in `eslint.config.mjs` — `.eslintignore` is deprecated.
+- **Generated SW files:** Add `public/sw.js` etc. to both `.gitignore` AND `eslint.config.mjs` ignores.
 
-**Branch to create:** `sprint16-pwa-expo` from `sprint15-integrations-p3`
+## Next action: Sprint 17
+
+**Brief:** `~/.claude/projects/-home-paul/memory/prezva_sprint_17_brief.md`
+
+**Branch to create:** `sprint17-security-polish` from `sprint16-pwa-expo`
 
 **Tasks:**
-- T-122: Wire SyncHealthPill to navigator.onLine + Dexie pending count
-- T-123: next-pwa + service worker (Workbox)
-- T-123a: Web app manifest + icons (192px, 512px) + metadata
-- T-123b: iOS "Add to Home Screen" prompt component
-- T-123c: Workbox cache strategies (StaleWhileRevalidate agenda, NetworkFirst checkin)
-- T-124: Web Push VAPID (generate keys, subscribe endpoint, push_subscriptions table migration 0017, send on announcement)
-- T-125: audit_logs table migration 0018 + writes in org/event/attendee actions
-- T-125a: OfflineIndicator component in root layout
-- T-140: Create Expo webview wrapper at ~/Prezva/expo/ (blank-typescript template)
-- T-140a: Native push bridge (expo-notifications, token injection to WebView)
-- T-140b: EAS Build pipeline (eas.json, Paul-dependent on Apple/Play enrollment)
-- T-140c/d: App Store/Play Store submission prep docs (deferred — Paul enrollment needed)
-
-**Key note:** T-140c (iOS App Store) and T-140d (Google Play) are Paul-dependent. Write the config and prep docs but mark as deferred pending Apple Developer enrollment.
-
-## Key technical notes from Sprint 15
-
-- WildApricot: Basic Auth header for token exchange (not body params) — inline in adapter
-- Novi: fully inline token flow — org-specific subdomain from NOVI_SUBDOMAIN env var
-- iMIS/MemberClicks: store org-specific base URLs in directionality_preferences
-- T-117: `(ticket as any).membership_required` — verifyMembership is a no-op when no association provider connected
-- New POST endpoint `/api/integrations/[provider]/disconnect` replaces server action in page
+- T-126: 2FA for organizers (Supabase Auth MFA TOTP)
+- T-126a: 2FA for attendees (optional/skip if tight)
+- T-128: GDPR data export endpoint (GET /api/gdpr/export)
+- T-129: GDPR data deletion endpoint (POST /api/gdpr/delete)
+- T-130: Survey guest responses via token link (qr_code as token)
+- T-131: Survey response CSV export (GET /api/events/[id]/surveys/[surveyId]/export)
+- T-132: Duplicate of T-130 — mark ✅ when T-130 done
+- T-133: In-app help center /help page (shadcn Accordion, static content)
+- T-134: Setup checklist component on dashboard (new org / 0 events)
+- T-135: Uptime monitoring doc (~Prezva/docs/ops/uptime-monitoring.md)
+- T-136: SOC 2 prep doc (~Prezva/docs/ops/soc2-prep.md)
+- T-137: SPF/DKIM/DMARC doc (~Prezva/docs/ops/email-authentication.md)
+- T-138: E2E Playwright tests (e2e/ — 9 tests E2E-01 through E2E-09)
+- T-139: Seed script (scripts/seed.ts — uses service role key to bypass RLS)
 
 ## Completed sprints
 - S1: Schema reconciliation | S2: Integration test gate | S3: Feature delivery
@@ -53,3 +60,4 @@ All Sprint 15 tasks done:
 - S10: Survey depth | S11: Productivity tools | S12: Apple/Google Wallet
 - S13: Integrations P1 (Outlook, Zoom, Teams) | S14: Integrations P2 (Drive, SP, Mailchimp, CC, GForms, EB)
 - S15: Integrations P3 (7 association adapters + mgmt UI + member gating)
+- S16: PWA + Expo (service worker, VAPID push, audit log, offline indicators, Expo wrapper)
