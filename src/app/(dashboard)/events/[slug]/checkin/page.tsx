@@ -20,7 +20,10 @@ export default async function CheckInPage({ params }: Props) {
     .eq('org_id', (event as any).org_id).eq('user_id', user.id).single()
   if (!member) notFound()
 
-  const initialStats = await getCheckInStats((event as any).id)
+  const [initialStats, ticketTypesResult] = await Promise.all([
+    getCheckInStats((event as any).id),
+    supabase.from('ticket_types').select('id, name').eq('event_id', (event as any).id).eq('is_active', true),
+  ])
 
   return (
     <div className="p-6">
@@ -28,6 +31,7 @@ export default async function CheckInPage({ params }: Props) {
         eventId={(event as any).id}
         eventName={(event as any).title}
         initialStats={initialStats}
+        ticketTypes={(ticketTypesResult.data ?? []) as { id: string; name: string }[]}
       />
     </div>
   )
