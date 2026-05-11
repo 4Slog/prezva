@@ -1,109 +1,63 @@
-# Prezva — Session Notes
-# Read this at the START of every build session before doing anything.
-# Update this at the END of every build session.
+# Prezva Session Notes
 
----
+## Last updated: 2026-05-11
 
-## Current Phase
-**Phase 1 — Sprint 3 COMPLETE (May 10 2026)**
+## Current state
 
-Sprint 1, 2, and 3 all COMPLETE as of May 10 2026.
+- **Branch:** `sprint14-integrations-p2` — COMPLETE, pushed to origin
+- **Tests:** 189/189 unit + 23/23 integration (gate PASS, 12 checks, 1 warning = pre-existing npm vulns)
+- **Last commits on sprint14 branch:**
+  - feat: add Google Drive and SharePoint adapters (T-110, T-110a)
+  - feat: add Mailchimp and Constant Contact adapters (T-111, T-111a)
+  - feat: add Google Forms adapter with survey import (T-112)
+  - feat: add Eventbrite adapter with paginated attendee import (T-113)
+  - feat: register all 6 Sprint 14 integration adapters in registry
+  - feat: add integration UI touchpoints for attendees, surveys, and sync routes
 
----
+## Sprint 14 — COMPLETE
 
-## Sprint 3 — COMPLETE ✅ (May 10 2026)
-All 8 broken/stub features now work end-to-end.
+All Sprint 14 tasks done. 9 integration providers total in registry.
 
-| # | Feature | Files |
-|---|---------|-------|
-| 11 | Stripe `account.updated` → sync charges/payouts to org | src/app/api/webhooks/stripe/route.ts |
-| 12 | CSV import RFC 4180 parser + crypto QR | src/lib/attendees/actions.ts |
-| 13 | Realtime messaging (Supabase channel subscription) | src/app/(dashboard)/events/[slug]/networking/client.tsx |
-| 14 | `/e/[slug]/my-qr` QR lookup page | src/app/e/[slug]/my-qr/{page,qr-display}.tsx |
-| 15 | Waitlist Trigger.dev job (process-waitlist) | src/trigger/jobs/registration.ts |
-| 16 | Announcements email delivery via Trigger.dev | src/trigger/jobs/announcement.ts, src/lib/trigger.ts |
-| 17 | Member invite — token email + `/invite/[token]` accept | src/lib/orgs/actions.ts, src/app/invite/[token]/page.tsx, supabase/migrations/0004_org_member_invites.sql |
-| 18 | Offline check-in — Dexie queue + sync on reconnect | src/lib/checkin/offline-db.ts, src/app/(dashboard)/events/[slug]/checkin/client.tsx |
+## Next action: Sprint 15
 
-### Build status
-- Build validator: 12 PASS / 1 WARN (npm audit vulns, not our code) / 0 FAIL
-- ESLint: clean
-- TypeScript: clean
+**Brief:** `~/.claude/projects/-home-paul/memory/prezva_sprint_15_brief.md`
 
-### Key decisions made in Sprint 3
-- Member invite now uses `org_member_invites` table (migration 0004) — invites by email, no longer requires pre-existing Prezva account
-- `acceptInvite(token)` now real: promotes to org_member, marks invite accepted, validates email match
-- Offline DB (Dexie v4) — `prezva-checkin` IndexedDB, table `pending`, auto-syncs on `window:online`
-- Announcement job sends to all confirmed registrations; `channel: 'push'` skips email (no push infra yet)
-- Waitlist job: promotes top `waitlist_position` row, clears position, sends promotion email
+**Branch to create:** `sprint15-integrations-p3` from `sprint14-integrations-p2`
 
----
+**Tasks:**
+- T-114: WildApricot adapter (association verification)
+- T-114a: iMIS adapter
+- T-114b: MemberClicks adapter
+- T-114c: YourMembership adapter
+- T-114d: Glue Up adapter
+- T-114e: Neon CRM adapter
+- T-114f: Novi AMS adapter
+- registry update + `verifyMembership` interface + `association-verify.ts` helper
+- T-115: Integration management UI (sections, directionality config, Mailchimp list picker, reconnect)
+- T-117: Member-only ticket gating (schema migration 0016, registration action check)
 
-## Resume Point — Next Session
-**Next task: Apply migration 0004 to Supabase (staging then prod)**
+**After Sprint 15:** Write Sprint 16 brief (PWA + Expo wrapper, T-122 through T-140d).
 
-```sql
--- Run in Supabase SQL editor (staging first, then prod):
--- supabase/migrations/0004_org_member_invites.sql
-```
+## Key technical notes from Sprint 14
 
-Then: Start next feature sprint (Task 50 — Attendee Web App per Master Build Plan, or whatever phase is next)
+- `do..while` loops with ternary initializers trigger TS7022 "implicit any" — annotate with `const url: string`, `const res: Response`, `const data: Record<string, unknown>`
+- Mailchimp: access_token is long-lived (no refresh). Stored in `encrypted_refresh_token` field. dc from `/oauth2/metadata` to `directionality_preferences.dc`
+- Eventbrite: also long-lived access_token. Paginated via `continuation` token in `data.pagination`
+- WildApricot (Sprint 15): uses Basic Auth in token exchange header, not body — handle inline in adapter
+- Integration UI buttons are conditional on `status === 'connected'` — hidden when not OAuth'd
 
----
-
-## Running Test Suites
-```bash
-npx vitest run                                           # unit tests
-npx vitest run --config vitest.integration.config.ts    # integration (23)
-bash ~/Prezva/scripts/validate/build.sh                 # full gate
-```
-
----
-
-## Infrastructure Notes
-- Playwright MCP: `npx @playwright/mcp@latest --browser chrome --headless` — in ~/.claude.json
-- Demo seed: civitas org / birmingham-sbw-2026 — DO NOT wipe
-- `.env.test` needed for integration suite (gitignored, same creds as `.env.local`)
-
----
-
-## Demo Seed Data (prezva.app)
-- Owner: demo.owner@prezva-audit.test / AuditDemo2026!
-- Org: civitas | Event: birmingham-sbw-2026
-
----
-
-## Locked Decisions
-- ALL code on lin ~/Prezva/dev/ — Mac is browser only (http://10.0.0.60:3100)
-- Auth pages: useActionState (client components)
-- redirect() uses plain strings — typedRoutes disabled
-- Lint: eslint src/ --ext .ts,.tsx --max-warnings 0
-- Write SQL/files via paramiko SFTP — never bash heredoc (PID contamination)
-- DB push URL: postgresql://postgres:ERg%2A%3FZ6grtE5nH%24@db.jmhxyyrleipcorvkmxfk.supabase.co:5432/postgres
-- After new pages: npm run build FIRST, then npm run type-check
-
----
-
-## Completed Modules (cumulative)
-- Schema + RLS (0001, 0002, 0003)
-- CI/CD Gate (Task 21)
-- Auth (Task 22) — 82/82 tests
-- Orgs (Task 24) — createOrg, inviteMember, org switcher, settings
-- Branding Sprint — Prezva tokens, sidebar, dashboard shells
-- Events (Task 28) — full lifecycle, status badge, event card
-- Trigger.dev v4 — registration confirmation + waitlist jobs
-- Stripe Connect Express — direct charges, onboarding, webhook
-- Landing page — prezva.app
-- Registration + Tickets (Task 33) — Stripe Checkout, QR gen, confirmation email
-- Attendees (Task 38) — list, search, CSV import/export, manual add
-- Sprint 1 — 20 P0 schema/code fixes (commit 07ab7c7)
-- Sprint 2 — 23 integration tests, real DB (commit 6ce61c5)
-- Sprint 3 — 8 stub features made real (this session)
-
----
-
-## Audit Gaps (still pending)
-- Apply migration 0004 to Supabase staging + prod
-- Seed script (Faker.js) — before testing at scale
-- i18n foundation (next-intl) — Phase 1 Polish
-- Push notification infra — announcements currently email-only
+## Completed sprints
+- Sprint 1: Schema reconciliation
+- Sprint 2: Integration test gate
+- Sprint 3: Existing feature delivery
+- Sprint 4: UX polish + nav fixes
+- Sprint 5: Registration depth
+- Sprint 6: Agenda depth + session features
+- Sprint 7: Check-in depth
+- Sprint 8: Speakers + networking depth
+- Sprint 9: Email + notifications
+- Sprint 10: Survey depth
+- Sprint 11: Productivity tools (CSV import, clone, templates, recurrence, badges)
+- Sprint 12: Apple/Google Wallet passes
+- Sprint 13: Integrations P1 (Outlook, Zoom, Teams + OAuth infrastructure)
+- Sprint 14: Integrations P2 (Google Drive, SharePoint, Mailchimp, CC, Google Forms, Eventbrite)
