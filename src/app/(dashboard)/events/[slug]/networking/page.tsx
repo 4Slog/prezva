@@ -15,7 +15,7 @@ export default async function NetworkingPage({ params }: { params: Promise<{ slu
     <div style={{ padding: '2rem', maxWidth: 900 }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Networking</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 4 }}>Connect with other attendees</p>
+        <p style={{ color: 'var(--pz-muted)', fontSize: 14, marginTop: 4 }}>Connect with other attendees</p>
       </div>
       <NetworkingClient attendees={attendees} eventId={event.id} currentUserId={user.id} />
     </div>

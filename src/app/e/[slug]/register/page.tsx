@@ -2,10 +2,21 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { RegisterPageClient } from './client'
 
-type Props = { params: Promise<{ slug: string }> }
+type Props = {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string>>
+}
 
-export default async function RegisterPage({ params }: Props) {
+export default async function RegisterPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const sp = await searchParams
+  const utmParams = {
+    utm_source:   sp.utm_source   ?? null,
+    utm_medium:   sp.utm_medium   ?? null,
+    utm_campaign: sp.utm_campaign ?? null,
+    utm_content:  sp.utm_content  ?? null,
+    utm_term:     sp.utm_term     ?? null,
+  }
   const supabase = await createClient()
 
   const { data: event } = await supabase
@@ -29,6 +40,7 @@ export default async function RegisterPage({ params }: Props) {
     <RegisterPageClient
       event={event as unknown as Parameters<typeof RegisterPageClient>[0]["event"]}
       tickets={(tickets ?? []) as Parameters<typeof RegisterPageClient>[0]['tickets']}
+      utmParams={utmParams}
     />
   )
 }

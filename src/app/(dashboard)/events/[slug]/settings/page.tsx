@@ -167,6 +167,16 @@ export default async function EventSettingsPage({ params }: Props) {
               />
               <span className="text-sm text-[#94A3B8]">Show public attendee list</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                name="pass_fees_to_registrant"
+                type="checkbox"
+                value="true"
+                defaultChecked={(event as Record<string, unknown>).pass_fees_to_registrant as boolean ?? false}
+                className="rounded"
+              />
+              <span className="text-sm text-[#94A3B8]">Pass processing fees to registrant</span>
+            </label>
           </div>
           <button
             type="submit"

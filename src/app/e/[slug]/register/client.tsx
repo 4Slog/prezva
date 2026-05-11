@@ -13,6 +13,8 @@ interface TicketType {
   quantity: number | null
   quantity_sold: number
   max_per_order: number
+  early_bird_price_cents: number | null
+  early_bird_ends_at: string | null
 }
 
 interface Event {
@@ -28,9 +30,18 @@ interface Event {
   organizations: { name: string } | null
 }
 
+interface UTMParams {
+  utm_source: string | null
+  utm_medium: string | null
+  utm_campaign: string | null
+  utm_content: string | null
+  utm_term: string | null
+}
+
 interface RegisterPageClientProps {
   event: Event
   tickets: TicketType[]
+  utmParams?: UTMParams
 }
 
 function fmtPrice(cents: number, currency: string) {
@@ -47,7 +58,7 @@ function fmtDate(iso: string, tz: string) {
   })
 }
 
-export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) {
+export function RegisterPageClient({ event, tickets, utmParams }: RegisterPageClientProps) {
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(
     tickets.length === 1 ? tickets[0] : null,
   )
@@ -89,15 +100,27 @@ export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) 
     fd.set('event_id', event.id)
     fd.set('ticket_type_id', selectedTicket.id)
     if (discount) fd.set('discount_code', discount.code)
+    if (utmParams) {
+      if (utmParams.utm_source)   fd.set('utm_source',   utmParams.utm_source)
+      if (utmParams.utm_medium)   fd.set('utm_medium',   utmParams.utm_medium)
+      if (utmParams.utm_campaign) fd.set('utm_campaign', utmParams.utm_campaign)
+      if (utmParams.utm_content)  fd.set('utm_content',  utmParams.utm_content)
+      if (utmParams.utm_term)     fd.set('utm_term',     utmParams.utm_term)
+    }
     const result = await startRegistration(fd)
     setPending(false)
     if (result?.error) setError(result.error)
     // on success: server redirects to /e/[slug]/confirmation
   }
 
-  const finalPrice = selectedTicket
-    ? Math.max(0, selectedTicket.price_cents - (discount?.discountAmountCents ?? 0))
+  const effectivePrice = selectedTicket
+    ? (selectedTicket.early_bird_price_cents !== null &&
+       selectedTicket.early_bird_ends_at &&
+       new Date(selectedTicket.early_bird_ends_at) > new Date()
+        ? selectedTicket.early_bird_price_cents
+        : selectedTicket.price_cents)
     : 0
+  const finalPrice = Math.max(0, effectivePrice - (discount?.discountAmountCents ?? 0))
 
   return (
     <div className="min-h-screen py-10 px-4" style={{ background: 'var(--pz-bg)' }}>
@@ -141,9 +164,21 @@ export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) 
                       <p className="font-medium text-[#F0F4F8]">{t.name}</p>
                       {t.description && <p className="text-xs text-[#94A3B8] mt-0.5">{t.description}</p>}
                       {soldOut && <p className="text-xs text-[#EF4444] mt-1">Sold out</p>}
+                      {!soldOut && t.early_bird_price_cents !== null && t.early_bird_ends_at && new Date(t.early_bird_ends_at) > new Date() && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--pz-warning)' }}>
+                          Early bird — ends {new Date(t.early_bird_ends_at).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right ml-4 flex-shrink-0">
-                      <p className="font-bold text-[#00BFA6]">{fmtPrice(t.price_cents, t.currency)}</p>
+                      {t.early_bird_price_cents !== null && t.early_bird_ends_at && new Date(t.early_bird_ends_at) > new Date() ? (
+                        <>
+                          <p className="font-bold text-[#00BFA6]">{fmtPrice(t.early_bird_price_cents, t.currency)}</p>
+                          <p className="text-xs line-through text-[#64748B]">{fmtPrice(t.price_cents, t.currency)}</p>
+                        </>
+                      ) : (
+                        <p className="font-bold text-[#00BFA6]">{fmtPrice(t.price_cents, t.currency)}</p>
+                      )}
                       {t.quantity !== null && (
                         <p className="text-xs text-[#64748B]">
                           {t.quantity - t.quantity_sold} left
@@ -170,7 +205,23 @@ export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) 
                 </div>
                 <div>
                   <label className={labelCls}>Email address *</label>
-                  <input name="attendee_email" type="email" required className={inputCls} placeholder="jane@example.com" />
+                  <input
+                    name="attendee_email"
+                    type="email"
+                    required
+                    className={inputCls}
+                    placeholder="jane@example.com"
+                    onBlur={(e) => {
+                      const email = e.target.value
+                      if (email && email.includes('@') && selectedTicket) {
+                        fetch('/api/cart/abandon', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ event_id: event.id, email, ticket_type_id: selectedTicket.id }),
+                        }).catch(() => {})
+                      }
+                    }}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -197,6 +248,7 @@ export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) 
                   <input
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyDiscount() } }}
                     placeholder="ENTER CODE"
                     className={`${inputCls} flex-1 font-mono tracking-wider`}
                   />
