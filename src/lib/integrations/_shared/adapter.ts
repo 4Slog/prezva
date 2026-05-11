@@ -8,4 +8,5 @@ export interface IntegrationAdapter {
   handleCallback(code: string, orgId: string, redirectUri: string): Promise<void>
   disconnect(orgId: string): Promise<void>
   getStatus(orgId: string): Promise<IntegrationStatus>
+  verifyMembership?(orgId: string, email: string): Promise<boolean>
 }
