@@ -16,20 +16,11 @@ create table if not exists attendee_profiles (
   website_url text,
   is_visible boolean not null default true,
   icebreaker_answers jsonb default '{}',
-  fts tsvector generated always as (
-    to_tsvector('english',
-      coalesce(bio, '') || ' ' ||
-      coalesce(company, '') || ' ' ||
-      coalesce(job_title, '') || ' ' ||
-      coalesce(array_to_string(interests, ' '), '')
-    )
-  ) stored,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
 create index if not exists attendee_profiles_event_idx on attendee_profiles(event_id);
-create index if not exists attendee_profiles_fts_idx on attendee_profiles using gin(fts);
 create index if not exists attendee_profiles_user_idx on attendee_profiles(user_id);
 
 -- Meeting requests (T-094a, T-094c)

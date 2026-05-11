@@ -95,7 +95,8 @@ export async function searchAttendeeProfiles(eventId: string, query: string, pag
     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
   if (query.trim()) {
-    q = q.textSearch('fts', query.trim().replace(/\s+/g, ' & '), { type: 'websearch' })
+    const term = `%${query.trim()}%`
+    q = q.or(`bio.ilike.${term},company.ilike.${term},job_title.ilike.${term}`)
   } else {
     q = q.order('created_at', { ascending: true })
   }
