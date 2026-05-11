@@ -53,7 +53,11 @@ export interface Session {
   is_published: boolean
   recording_url: string | null
   slides_url: string | null
+  video_url: string | null
   sort_order: number
+  tags: string[]
+  visible_from: string | null
+  visible_until: string | null
   speakers?: Pick<Speaker, 'id' | 'name' | 'job_title' | 'company' | 'photo_url'>[]
   track?: Pick<Track, 'id' | 'name' | 'color'> | null
   room?: Pick<Room, 'id' | 'name'> | null
@@ -261,7 +265,11 @@ const SessionSchema = z.object({
   is_published: z.boolean().default(true),
   recording_url: z.string().url().nullable().optional(),
   slides_url: z.string().url().nullable().optional(),
+  video_url: z.string().url().nullable().optional(),
   sort_order: z.number().int().default(0),
+  tags: z.array(z.string()).optional(),
+  visible_from: z.string().datetime().nullable().optional(),
+  visible_until: z.string().datetime().nullable().optional(),
   speaker_ids: z.array(z.string().uuid()).optional(),
 })
 
