@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { listAdapters } from '@/lib/integrations/_shared/registry'
+import { mailchimpAdapter } from '@/lib/integrations/mailchimp/adapter'
 import Link from 'next/link'
+import { IntegrationsClient } from './integrations-client'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -12,6 +14,37 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   awaiting_credentials: { label: 'Needs setup', bg: '#F59E0B', color: '#0D1B2A' },
   error: { label: 'Error', bg: '#EF4444', color: '#fff' },
 }
+
+const SECTION_MAP: Record<string, string> = {
+  mailchimp: 'Communications',
+  constant_contact: 'Communications',
+  outlook: 'Calendaring',
+  teams: 'Video Conferencing',
+  zoom: 'Video Conferencing',
+  google_drive: 'File Storage',
+  sharepoint: 'File Storage',
+  eventbrite: 'Event Import',
+  google_forms: 'Survey Import',
+  wildapricot: 'Member Associations',
+  imis: 'Member Associations',
+  memberclicks: 'Member Associations',
+  yourmembership: 'Member Associations',
+  glue_up: 'Member Associations',
+  neon: 'Member Associations',
+  novi: 'Member Associations',
+}
+
+const SECTION_ORDER = [
+  'Communications',
+  'Calendaring',
+  'Video Conferencing',
+  'File Storage',
+  'Event Import',
+  'Survey Import',
+  'Member Associations',
+]
+
+const ASSOCIATION_PROVIDERS = new Set(['wildapricot', 'imis', 'memberclicks', 'yourmembership', 'glue_up', 'neon', 'novi'])
 
 export default async function OrgIntegrationsPage({ params }: Props) {
   const { slug } = await params
@@ -27,17 +60,55 @@ export default async function OrgIntegrationsPage({ params }: Props) {
 
   if (!org) redirect('/dashboard')
 
+  const orgId = (org as any).id
+
   const adapters = listAdapters()
 
   const { data: orgIntegrations } = await supabase
     .from('org_integrations')
-    .select('provider, status')
-    .eq('org_id', (org as any).id)
+    .select('provider, status, last_synced_at, directionality_preferences')
+    .eq('org_id', orgId)
 
-  const statusMap: Record<string, string> = {}
+  const integrationMap: Record<string, { status: string; last_synced_at: string | null; directionality_preferences: unknown }> = {}
   for (const row of orgIntegrations ?? []) {
-    statusMap[row.provider] = row.status
+    integrationMap[row.provider] = row
   }
+
+  // Load Mailchimp lists if connected
+  let mailchimpLists: { id: string; name: string; memberCount: number }[] = []
+  let defaultMailchimpListId: string | null = null
+  if (integrationMap['mailchimp']?.status === 'connected') {
+    try { mailchimpLists = await mailchimpAdapter.getLists(orgId) } catch { /* non-fatal */ }
+    defaultMailchimpListId = (integrationMap['mailchimp']?.directionality_preferences as any)?.defaultListId ?? null
+  }
+
+  // Build rows grouped by section
+  const sectionMap: Record<string, typeof rows> = {}
+  const rows = adapters.map(adapter => {
+    const dbRow = integrationMap[adapter.provider]
+    const isConfigured = adapter.isConfigured()
+    const statusKey = dbRow?.status ?? (isConfigured ? 'available' : 'awaiting_credentials')
+    return {
+      provider: adapter.provider,
+      displayName: adapter.displayName,
+      statusKey,
+      badge: STATUS_BADGE[statusKey] ?? STATUS_BADGE.available,
+      isConfigured,
+      isConnected: statusKey === 'connected',
+      lastSyncedAt: dbRow?.last_synced_at ?? null,
+      hasVerifyMembership: ASSOCIATION_PROVIDERS.has(adapter.provider),
+    }
+  })
+
+  for (const row of rows) {
+    const section = SECTION_MAP[row.provider] ?? 'Other'
+    if (!sectionMap[section]) sectionMap[section] = []
+    sectionMap[section].push(row)
+  }
+
+  const sections = SECTION_ORDER
+    .filter(s => sectionMap[s]?.length)
+    .map(s => ({ title: s, integrations: sectionMap[s] }))
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -51,59 +122,17 @@ export default async function OrgIntegrationsPage({ params }: Props) {
 
       <h1 className="text-xl font-bold text-[#F0F4F8] mb-2">Integrations</h1>
       <p className="text-sm text-[#64748B] mb-6">
-        Connect external services to sync sessions, attendees, and more.
+        Connect external services to sync attendees, import events, and verify memberships.
         Credentials are managed via environment variables — contact your administrator to enable new integrations.
       </p>
 
-      <div className="space-y-3">
-        {adapters.map(adapter => {
-          const dbStatus = statusMap[adapter.provider]
-          const isConfigured = adapter.isConfigured()
-          const statusKey = dbStatus ?? (isConfigured ? 'available' : 'awaiting_credentials')
-          const badge = STATUS_BADGE[statusKey] ?? STATUS_BADGE.available
-          const isConnected = statusKey === 'connected'
-
-          return (
-            <div key={adapter.provider} className="pz-card p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[#F0F4F8]">{adapter.displayName}</p>
-                <span
-                  className="inline-block mt-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                  style={{ background: badge.bg, color: badge.color }}
-                >
-                  {badge.label}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {isConfigured && !isConnected && (
-                  <a
-                    href={`/api/integrations/${adapter.provider}/auth?org_id=${(org as any).id}`}
-                    className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-                    style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-                  >
-                    Connect
-                  </a>
-                )}
-                {isConnected && (
-                  <form action={async () => {
-                    'use server'
-                    const { getAdapter } = await import('@/lib/integrations/_shared/registry')
-                    const a = getAdapter(adapter.provider)
-                    await a.disconnect((org as any).id)
-                  }}>
-                    <button
-                      type="submit"
-                      className="rounded-lg border border-[#EF4444]/30 px-3 py-1.5 text-xs text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
-                    >
-                      Disconnect
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      <IntegrationsClient
+        sections={sections}
+        orgId={orgId}
+        orgSlug={slug}
+        mailchimpLists={mailchimpLists}
+        defaultMailchimpListId={defaultMailchimpListId}
+      />
     </div>
   )
 }
