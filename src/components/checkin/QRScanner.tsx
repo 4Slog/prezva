@@ -29,12 +29,8 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
         )
         scannerRef.current = scanner
         scanner.render(
-          (decodedText: string) => {
-            onScan(decodedText)
-          },
-          (err: any) => {
-            // scan failure — ignore, it fires on every frame without a QR
-          },
+          (decodedText: string) => { onScan(decodedText) },
+          (_err: any) => { /* scan failure — fires on every frame without a QR */ },
         )
         setReady(true)
       } catch (e: any) {
@@ -59,15 +55,18 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
   return (
     <div className="space-y-2">
       {error && (
-        <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-md">{error}</p>
+        <p className="rounded-md px-3 py-2 text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--pz-error)' }}>
+          {error}
+        </p>
       )}
       <div
         id="qr-reader"
         ref={divRef}
-        className="rounded-lg overflow-hidden border border-[var(--border)]"
+        className="overflow-hidden rounded-lg"
+        style={{ border: '1px solid var(--pz-border)' }}
       />
       {!ready && !error && (
-        <p className="text-sm text-[var(--text-muted)] text-center animate-pulse">
+        <p className="animate-pulse text-center text-sm" style={{ color: 'var(--pz-muted)' }}>
           Starting camera…
         </p>
       )}

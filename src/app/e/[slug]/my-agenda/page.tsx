@@ -13,24 +13,24 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
   const bookmarkedSet = new Set(bookmarkedIds)
   const mySessions = sessions.filter((s: any) => bookmarkedSet.has(s.id))
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      <div style={{ background: 'var(--color-navy)', color: '#fff', padding: '2rem 1.5rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
+      <div style={{ background: 'var(--pz-surface)', color: '#fff', padding: '2rem 1.5rem' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <Link href={'/e/' + slug + '/agenda'} style={{ color: 'var(--color-teal)', textDecoration: 'none', fontSize: 13 }}>Back to agenda</Link>
+          <Link href={'/e/' + slug + '/agenda'} style={{ color: 'var(--pz-teal)', textDecoration: 'none', fontSize: 13 }}>Back to agenda</Link>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>My Agenda</h1>
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
         {mySessions.length === 0
-          ? <p style={{ color: 'var(--color-text-muted)', padding: '3rem 0', textAlign: 'center' }}>
+          ? <p style={{ color: 'var(--pz-muted)', padding: '3rem 0', textAlign: 'center' }}>
               No bookmarks yet.{' '}
-              <Link href={'/e/' + slug + '/agenda'} style={{ color: 'var(--color-teal)' }}>Browse agenda</Link>
+              <Link href={'/e/' + slug + '/agenda'} style={{ color: 'var(--pz-teal)' }}>Browse agenda</Link>
             </p>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {mySessions.map((s: any) => (
-                <div key={s.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--color-surface)', borderLeft: '4px solid var(--color-teal)' }}>
+                <div key={s.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-surface)', borderLeft: '4px solid var(--pz-teal)' }}>
                   <p style={{ fontWeight: 600 }}>{s.title}</p>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                  <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginTop: 4 }}>
                     {new Date(s.starts_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                 </div>

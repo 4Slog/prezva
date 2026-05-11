@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { ConfirmationQR } from './qr-wrapper'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -46,25 +47,45 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     {(reg.events as { title: string } | null)?.title}
                   </p>
                   <p className="text-sm text-[#94A3B8] mb-6">
-                    A confirmation with your QR code has been emailed to{' '}
+                    A confirmation has been emailed to{' '}
                     <strong className="text-[#F0F4F8]">{reg.attendee_email}</strong>
                   </p>
-                  <div
-                    className="rounded-lg p-4 mb-6 font-mono text-sm text-center"
-                    style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)' }}
-                  >
-                    <p className="text-xs text-[#64748B] mb-1">Your QR code ID</p>
-                    <p className="text-[#00BFA6] tracking-wider">{reg.qr_code}</p>
-                  </div>
+                  <ConfirmationQR qrCode={reg.qr_code} />
                 </>
               )}
               <Link
                 href={`/e/${slug}`}
-                className="inline-block rounded-lg px-6 py-2 text-sm font-semibold"
+                className="inline-block rounded-lg px-6 py-2 text-sm font-semibold mb-4"
                 style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
               >
                 View event details
               </Link>
+
+              {reg && (
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--pz-border)' }}>
+                  <p className="text-xs mb-3" style={{ color: 'var(--pz-label)' }}>Share your registration</p>
+                  <div className="flex justify-center gap-3">
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I'm attending ${(reg.events as { title: string } | null)?.title ?? 'this event'}! Register at`)}&url=${encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL}/e/${slug}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg px-4 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
+                      style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)' }}
+                    >
+                      𝕏 Share
+                    </a>
+                    <a
+                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL}/e/${slug}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg px-4 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
+                      style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)' }}
+                    >
+                      LinkedIn
+                    </a>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -43,64 +43,64 @@ export default function AnnouncementsClient({ announcements: init, eventId }: {
   return (
     <div>
       {!showForm && (
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
+        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
           <Send size={16} /> New Announcement
         </button>
       )}
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
+        <form onSubmit={handleSubmit} style={{ border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--pz-surface)' }}>
           <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>New Announcement</h2>
           {error && <p style={{ color: '#ef4444', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Subject</label>
-              <input name="title" required maxLength={200} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, boxSizing: 'border-box' }} />
+              <input name="title" required maxLength={200} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Message</label>
-              <textarea name="body" required maxLength={2000} rows={4} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
+              <textarea name="body" required maxLength={2000} rows={4} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Channel</label>
-              <select name="channel" style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }}>
+              <select name="channel" style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14 }}>
                 <option value="email">Email only</option>
                 <option value="push">Push only</option>
                 <option value="both">Email + Push</option>
               </select>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
+              <button type="submit" disabled={isPending} style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
                 {isPending ? 'Sending...' : 'Send Now'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} style={{ background: 'var(--color-border)', color: 'var(--color-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} style={{ background: 'var(--pz-border)', color: 'var(--pz-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         </form>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {announcements.length === 0 && (
-          <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem 0' }}>No announcements sent yet.</p>
+          <p style={{ color: 'var(--pz-muted)', textAlign: 'center', padding: '3rem 0' }}>No announcements sent yet.</p>
         )}
         {announcements.map(a => {
           const Icon = CHANNEL_ICON[a.channel as keyof typeof CHANNEL_ICON] ?? Mail
           const color = CHANNEL_COLOR[a.channel] ?? '#0891b2'
           return (
-            <div key={a.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--color-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            <div key={a.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
               <div style={{ display: 'flex', gap: 12, flex: 1 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 8, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
                   <Icon size={18} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, marginBottom: 2 }}>{a.title}</p>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 6, lineHeight: 1.5 }}>{a.body}</p>
-                  <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                  <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginBottom: 6, lineHeight: 1.5 }}>{a.body}</p>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--pz-muted)' }}>
                     <span>{a.recipient_count} recipients</span>
                     <span>{a.sent_at ? new Date(a.sent_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Draft'}</span>
                     <span style={{ background: color + '22', color, padding: '1px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{a.channel}</span>
                   </div>
                 </div>
               </div>
-              <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4, flexShrink: 0 }}>
+              <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-muted)', padding: 4, flexShrink: 0 }}>
                 <Trash2 size={16} />
               </button>
             </div>

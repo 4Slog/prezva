@@ -101,9 +101,13 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#1E3A5F] px-6 py-6 flex items-center justify-between">
-        <p className="text-xs text-[#64748B]">© 2026 Prezva. All rights reserved.</p>
-        <p className="text-xs text-[#64748B]">Check in. Stand out.</p>
+      <footer className="flex items-center justify-between border-t px-6 py-6" style={{ borderColor: 'var(--pz-border)' }}>
+        <p className="text-xs" style={{ color: 'var(--pz-label)' }}>© {new Date().getFullYear()} Prezva. All rights reserved.</p>
+        <div className="flex gap-4 text-xs" style={{ color: 'var(--pz-label)' }}>
+          <a href="/privacy" className="hover:underline" style={{ color: 'var(--pz-muted)' }}>Privacy</a>
+          <a href="/terms" className="hover:underline" style={{ color: 'var(--pz-muted)' }}>Terms</a>
+          <span>Check in. Stand out.</span>
+        </div>
       </footer>
 
     </div>

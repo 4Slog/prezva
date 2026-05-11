@@ -7,6 +7,12 @@ interface InviteFormProps {
   orgId: string
 }
 
+const inputStyle = {
+  background: 'var(--pz-surface-2)',
+  border: '1px solid var(--pz-border)',
+  color: 'var(--pz-text)',
+}
+
 export function InviteForm({ orgId }: InviteFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -17,10 +23,8 @@ export function InviteForm({ orgId }: InviteFormProps) {
     setPending(true)
     setError(null)
     setSuccess(false)
-
     const fd = new FormData(e.currentTarget)
     const result = await inviteMember(orgId, fd)
-
     setPending(false)
     if (result?.error) {
       setError(result.error)
@@ -31,24 +35,32 @@ export function InviteForm({ orgId }: InviteFormProps) {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-base font-semibold text-gray-900">Invite a team member</h3>
+    <div
+      className="rounded-lg p-6"
+      style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)' }}
+    >
+      <h3 className="mb-4 text-base font-semibold" style={{ color: 'var(--pz-text)' }}>
+        Invite a team member
+      </h3>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Email address</label>
+          <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--pz-muted)' }}>
+            Email address
+          </label>
           <input
-            name="email"
-            type="email"
-            required
-            placeholder="colleague@example.com"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            name="email" type="email" required placeholder="colleague@example.com"
+            className="w-full rounded-md px-3 py-2 text-sm focus:outline-none"
+            style={inputStyle}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Role</label>
+          <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--pz-muted)' }}>
+            Role
+          </label>
           <select
             name="role"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-md px-3 py-2 text-sm focus:outline-none"
+            style={inputStyle}
           >
             <option value="admin">Admin</option>
             <option value="staff">Staff</option>
@@ -57,13 +69,14 @@ export function InviteForm({ orgId }: InviteFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
         >
           {pending ? 'Sending…' : 'Send invite'}
         </button>
       </form>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      {success && <p className="mt-2 text-sm text-green-600">Invite sent!</p>}
+      {error && <p className="mt-2 text-sm" style={{ color: 'var(--pz-error)' }}>{error}</p>}
+      {success && <p className="mt-2 text-sm" style={{ color: 'var(--pz-success)' }}>Invite sent!</p>}
     </div>
   )
 }

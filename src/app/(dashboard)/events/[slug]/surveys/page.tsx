@@ -15,7 +15,7 @@ export default async function SurveysPage({ params }: { params: Promise<{ slug: 
     <div style={{ padding: '2rem', maxWidth: 800 }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Surveys</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 4 }}>Collect post-event feedback from attendees</p>
+        <p style={{ color: 'var(--pz-muted)', fontSize: 14, marginTop: 4 }}>Collect post-event feedback from attendees</p>
       </div>
       <SurveysClient surveys={surveys} eventId={event.id} slug={slug} />
     </div>

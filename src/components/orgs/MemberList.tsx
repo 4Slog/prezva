@@ -23,6 +23,12 @@ interface MemberListProps {
   currentUserRole: string
 }
 
+const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
+  owner: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+  admin: { bg: 'rgba(0,191,166,0.15)', color: 'var(--pz-teal)' },
+  staff: { bg: 'rgba(148,163,184,0.15)', color: 'var(--pz-muted)' },
+}
+
 export function MemberList({ members, orgId, currentUserId, currentUserRole }: MemberListProps) {
   const [removing, setRemoving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -37,41 +43,52 @@ export function MemberList({ members, orgId, currentUserId, currentUserRole }: M
   }
 
   const roleBadge = (role: string) => {
-    const styles: Record<string, string> = {
-      owner: 'bg-purple-100 text-purple-700',
-      admin: 'bg-blue-100 text-blue-700',
-      staff: 'bg-gray-100 text-gray-700',
-    }
+    const c = ROLE_COLORS[role] ?? ROLE_COLORS.staff
     return (
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[role] ?? styles.staff}`}>
+      <span
+        className="rounded-full px-2 py-0.5 text-xs font-medium"
+        style={{ background: c.bg, color: c.color }}
+      >
         {role}
       </span>
     )
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
-      <div className="border-b border-gray-100 px-6 py-4">
-        <h3 className="text-base font-semibold text-gray-900">Team members ({members.length})</h3>
+    <div
+      className="rounded-lg"
+      style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)' }}
+    >
+      <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--pz-border)' }}>
+        <h3 className="text-base font-semibold" style={{ color: 'var(--pz-text)' }}>
+          Team members ({members.length})
+        </h3>
       </div>
-      {error && <p className="px-6 py-2 text-sm text-red-600">{error}</p>}
-      <ul className="divide-y divide-gray-100">
+      {error && <p className="px-6 py-2 text-sm" style={{ color: 'var(--pz-error)' }}>{error}</p>}
+      <ul>
         {members.map((m) => {
           const p = m.profiles
           return (
-            <li key={m.id} className="flex items-center justify-between px-6 py-4">
+            <li
+              key={m.id}
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: '1px solid var(--pz-border)' }}
+            >
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold uppercase text-gray-600">
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold uppercase"
+                  style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal)' }}
+                >
                   {p?.full_name?.[0] ?? p?.email?.[0] ?? '?'}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>
                     {p?.full_name ?? p?.email}
                     {p?.id === currentUserId && (
-                      <span className="ml-2 text-xs text-gray-400">(you)</span>
+                      <span className="ml-2 text-xs" style={{ color: 'var(--pz-label)' }}>(you)</span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-500">{p?.email}</p>
+                  <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>{p?.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -80,7 +97,8 @@ export function MemberList({ members, orgId, currentUserId, currentUserRole }: M
                   <button
                     onClick={() => handleRemove(p?.id ?? '')}
                     disabled={removing === p?.id}
-                    className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                    className="text-xs hover:underline disabled:opacity-50"
+                    style={{ color: 'var(--pz-error)' }}
                   >
                     {removing === p?.id ? 'Removing…' : 'Remove'}
                   </button>

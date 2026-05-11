@@ -47,12 +47,12 @@ export function AttendeesClient({ eventId, eventName, initialData, tickets }: At
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{eventName}</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">Attendee management</p>
+          <h1 className="text-2xl font-bold text-[var(--pz-text)]">{eventName}</h1>
+          <p className="text-sm text-[var(--pz-muted)] mt-1">Attendee management</p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="px-4 py-2 bg-[var(--brand-teal)] text-white rounded-lg hover:opacity-90 text-sm font-medium"
+          className="px-4 py-2 bg-[var(--pz-teal)] text-white rounded-lg hover:opacity-90 text-sm font-medium"
         >
           + Add Attendee
         </button>

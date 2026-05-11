@@ -274,3 +274,23 @@ export async function importAttendeesCSV(eventId: string, csv: string) {
   revalidatePath('/events')
   return { imported, errors }
 }
+
+export async function markPaidOffline(registrationId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const { error } = await supabase
+    .from('registrations')
+    .update({
+      status: 'confirmed',
+      payment_method: 'offline',
+      paid_offline_at: new Date().toISOString(),
+      paid_offline_by: user.id,
+    })
+    .eq('id', registrationId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/events')
+  return { success: true }
+}
