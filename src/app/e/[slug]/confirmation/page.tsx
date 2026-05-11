@@ -58,13 +58,26 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                   </div>
                 </>
               )}
-              <Link
-                href={`/e/${slug}`}
-                className="inline-block rounded-lg px-6 py-2 text-sm font-semibold"
-                style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-              >
-                View event details
-              </Link>
+              <div className="flex flex-col gap-3 items-center">
+                <Link
+                  href={`/e/${slug}`}
+                  className="inline-block rounded-lg px-6 py-2 text-sm font-semibold"
+                  style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                >
+                  View event details
+                </Link>
+                {reg && (reg as any).certificate_token && (
+                  <a
+                    href={`/api/certificates/${reg.id}?token=${(reg as any).certificate_token}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm"
+                    style={{ color: 'var(--pz-teal)' }}
+                  >
+                    Download certificate (PDF)
+                  </a>
+                )}
+              </div>
             </>
           )}
         </div>

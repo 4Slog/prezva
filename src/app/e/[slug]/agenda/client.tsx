@@ -10,13 +10,18 @@ interface Session {
   rooms?: { id: string; name: string } | null
   session_speakers?: { speakers: { id: string; name: string } | null }[]
 }
+type AgendaClientProps = {
+  sessions: Session[]
+  eventId: string
+  userId: string | null
+  handoutsBySession?: Record<string, any[]>
+  eventSlug?: string
+}
 const COLORS: Record<string,string> = {
   keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
   panel:'#059669', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
-export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {} }: {
-  sessions: Session[]; eventId: string; userId: string | null; handoutsBySession?: Record<string, any[]>
-}) {
+export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '' }: AgendaClientProps) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
   const grouped: Record<string,Session[]> = {}
@@ -71,9 +76,19 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                       </div>
                     )}
                   </div>
-                  <button onClick={() => handleBookmark(s.id)} style={{ background:'none', border:'none', cursor:'pointer', color: bookmarks.has(s.id) ? 'var(--color-teal)' : 'var(--color-text-muted)', padding:'4px', flexShrink:0 }}>
-                    {bookmarks.has(s.id) ? <BookmarkCheck size={18}/> : <Bookmark size={18}/>}
-                  </button>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                    {eventSlug && new Date(s.ends_at) < new Date() && (
+                      <a
+                        href={`/e/${eventSlug}/feedback/${s.id}`}
+                        style={{ fontSize:11, color:'var(--color-teal)', textDecoration:'none', background:'var(--color-teal)22', padding:'2px 8px', borderRadius:10, whiteSpace:'nowrap' }}
+                      >
+                        Rate
+                      </a>
+                    )}
+                    <button onClick={() => handleBookmark(s.id)} style={{ background:'none', border:'none', cursor:'pointer', color: bookmarks.has(s.id) ? 'var(--color-teal)' : 'var(--color-text-muted)', padding:'4px' }}>
+                      {bookmarks.has(s.id) ? <BookmarkCheck size={18}/> : <Bookmark size={18}/>}
+                    </button>
+                  </div>
                 </div>
               )
             })}

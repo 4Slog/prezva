@@ -35,7 +35,7 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
-        <AgendaClient sessions={sessions} eventId={event.id} userId={user?.id ?? null} handoutsBySession={handoutsBySession} />
+        <AgendaClient sessions={sessions} eventId={event.id} userId={user?.id ?? null} handoutsBySession={handoutsBySession} eventSlug={slug} />
       </div>
     </div>
   )

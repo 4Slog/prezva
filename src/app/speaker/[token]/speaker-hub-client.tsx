@@ -199,6 +199,19 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                   )}
                 </div>
 
+                {/* Session feedback (T-094) */}
+                {sd.feedback && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold mb-2" style={{ color: 'var(--pz-label)' }}>
+                      Session feedback ({sd.feedback.count} responses)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 20 }}>{'★'.repeat(Math.round(sd.feedback.avg))}{'☆'.repeat(5 - Math.round(sd.feedback.avg))}</span>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--pz-text)' }}>{sd.feedback.avg.toFixed(1)}/5</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Polls */}
                 <div>
                   <p className="text-xs font-semibold mb-2" style={{ color: 'var(--pz-label)' }}>

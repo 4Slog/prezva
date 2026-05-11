@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { validateSpeakerToken, getSpeakerSessionsWithQA, getSpeakerFormSchema, getSpeakerFormSubmission, getSessionHandouts } from '@/lib/speaker/speaker-actions'
+import { validateSpeakerToken, getSpeakerSessionsWithQA, getSpeakerFormSchema, getSpeakerFormSubmission, getSessionHandouts, getSessionFeedbackForSpeaker } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/server'
 import { SpeakerHubClient } from './speaker-hub-client'
 
@@ -31,10 +31,14 @@ export default async function SpeakerHubPage({ params }: Props) {
     getSpeakerFormSubmission(eventId, speakerId),
   ])
 
+  const sessionIds = sessionData.map((sd: any) => sd.session?.id).filter(Boolean)
+  const feedbackBySession = await getSessionFeedbackForSpeaker(sessionIds)
+
   const sessionsWithHandouts = await Promise.all(
     sessionData.map(async (sd: any) => ({
       ...sd,
       handouts: await getSessionHandouts(sd.session?.id),
+      feedback: feedbackBySession[sd.session?.id] ?? null,
     }))
   )
 

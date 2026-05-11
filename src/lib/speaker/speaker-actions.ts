@@ -168,6 +168,25 @@ export async function deleteHandout(handoutId: string) {
 
 // ── T-095g: polls ─────────────────────────────────────────────────────────────
 
+export async function getSessionFeedbackForSpeaker(sessionIds: string[]) {
+  if (sessionIds.length === 0) return {}
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('session_feedback')
+    .select('session_id, rating, comment')
+    .in('session_id', sessionIds)
+  const bySession: Record<string, { ratings: number[]; avg: number; count: number }> = {}
+  for (const fb of (data ?? []) as any[]) {
+    if (!bySession[fb.session_id]) bySession[fb.session_id] = { ratings: [], avg: 0, count: 0 }
+    bySession[fb.session_id].ratings.push(fb.rating)
+  }
+  for (const [sid, val] of Object.entries(bySession)) {
+    val.avg = val.ratings.reduce((s, r) => s + r, 0) / val.ratings.length
+    val.count = val.ratings.length
+  }
+  return bySession
+}
+
 export async function getSpeakerSessionsWithQA(speakerId: string, eventId: string) {
   const supabase = await createClient()
   const { data: sessionSpeakers } = await supabase
