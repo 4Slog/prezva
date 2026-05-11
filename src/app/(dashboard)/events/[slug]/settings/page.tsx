@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getEventBySlug, updateEvent, deleteEvent } from '@/lib/events/actions'
 import Link from 'next/link'
+import { EventSettingsClient } from './settings-client'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -177,6 +178,14 @@ export default async function EventSettingsPage({ params }: Props) {
           </button>
         </form>
       </section>
+
+      {/* T-119/T-120/T-121: Clone, Templates, Recurrence */}
+      <EventSettingsClient
+        eventId={(event as any).id}
+        eventSlug={slug}
+        orgId={(event as any).org_id}
+        currentRecurrence={(event as any).recurrence ?? null}
+      />
 
       {/* Danger zone */}
       {['draft', 'cancelled'].includes(event.status) && (
