@@ -2,52 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-// ── T-118: Smart CSV column auto-mapping ──────────────────────────────────────
-
-const FIELD_SYNONYMS: Record<string, string[]> = {
-  title: ['title', 'session title', 'session name', 'name', 'topic', 'subject'],
-  description: ['description', 'desc', 'details', 'abstract', 'summary', 'body'],
-  starts_at: ['starts at', 'start time', 'start', 'begins', 'begin', 'start date', 'from'],
-  ends_at: ['ends at', 'end time', 'end', 'finish', 'to', 'end date', 'until'],
-  session_type: ['type', 'session type', 'format', 'category', 'kind'],
-  track: ['track', 'track name', 'stream', 'room track'],
-  room: ['room', 'room name', 'location', 'venue', 'space', 'hall'],
-  speaker: ['speaker', 'speaker name', 'presenter', 'host', 'facilitator'],
-  capacity: ['capacity', 'seats', 'max attendees', 'limit', 'max'],
-  attendee_name: ['name', 'full name', 'attendee name', 'attendee', 'participant', 'first name'],
-  attendee_email: ['email', 'e-mail', 'email address', 'attendee email', 'mail'],
-  company: ['company', 'organization', 'organisation', 'employer', 'firm'],
-  job_title: ['job title', 'title', 'position', 'role', 'job role'],
-  phone: ['phone', 'telephone', 'mobile', 'cell', 'phone number'],
-}
-
-export function detectCsvColumns(headers: string[]): Record<string, { field: string; confidence: number }> {
-  const result: Record<string, { field: string; confidence: number }> = {}
-  const normalizedHeaders = headers.map(h => h.toLowerCase().trim())
-
-  for (let i = 0; i < headers.length; i++) {
-    const h = normalizedHeaders[i]
-    let bestField = ''
-    let bestConfidence = 0
-
-    for (const [field, synonyms] of Object.entries(FIELD_SYNONYMS)) {
-      if (synonyms[0] === h) {
-        if (1.0 > bestConfidence) { bestField = field; bestConfidence = 1.0 }
-      } else if (synonyms.includes(h)) {
-        if (0.8 > bestConfidence) { bestField = field; bestConfidence = 0.8 }
-      } else if (synonyms.some(s => h.includes(s) || s.includes(h))) {
-        if (0.5 > bestConfidence) { bestField = field; bestConfidence = 0.5 }
-      }
-    }
-
-    if (bestField) {
-      result[headers[i]] = { field: bestField, confidence: bestConfidence }
-    }
-  }
-
-  return result
-}
-
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
 export async function previewAgendaCsv(eventId: string, rows: Record<string, string>[], columnMap: Record<string, string>) {
@@ -109,10 +63,15 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
       title: newTitle,
       slug: newSlug,
       description: (sourceEvent as any).description,
-      location: (sourceEvent as any).location,
-      start_date: (sourceEvent as any).start_date,
-      end_date: (sourceEvent as any).end_date,
+      event_type: (sourceEvent as any).event_type,
       timezone: (sourceEvent as any).timezone,
+      start_at: (sourceEvent as any).start_at,
+      end_at: (sourceEvent as any).end_at,
+      venue_name: (sourceEvent as any).venue_name,
+      venue_address: (sourceEvent as any).venue_address,
+      venue_city: (sourceEvent as any).venue_city,
+      venue_state: (sourceEvent as any).venue_state,
+      virtual_url: (sourceEvent as any).virtual_url,
       cover_image_url: (sourceEvent as any).cover_image_url,
       speaker_form_schema: (sourceEvent as any).speaker_form_schema,
       pass_fees_to_registrant: (sourceEvent as any).pass_fees_to_registrant,
@@ -231,8 +190,8 @@ export async function setEventRecurrence(eventId: string, recurrence: 'annual' |
 
   let nextOccurrenceDate: string | null = null
   if (recurrence) {
-    const { data: event } = await supabase.from('events').select('end_date').eq('id', eventId).single()
-    const endDate = new Date((event as any)?.end_date ?? new Date())
+    const { data: event } = await supabase.from('events').select('end_at').eq('id', eventId).single()
+    const endDate = new Date((event as any)?.end_at ?? new Date())
     const daysBeforeEnd = recurrence === 'annual' ? 90 : recurrence === 'quarterly' ? 30 : 7
     const triggerDate = new Date(endDate)
     triggerDate.setDate(triggerDate.getDate() - daysBeforeEnd)
@@ -254,13 +213,13 @@ export async function createNextOccurrence(eventId: string) {
   if (!(event as any).recurrence) return { error: 'Event is not recurring' }
 
   const recurrence = (event as any).recurrence
-  const startDate = new Date((event as any).start_date)
-  const endDate = new Date((event as any).end_date)
+  const startAt = new Date((event as any).start_at)
+  const endAt = new Date((event as any).end_at)
   const daysToAdd = recurrence === 'annual' ? 365 : recurrence === 'quarterly' ? 91 : 30
 
-  const newStart = new Date(startDate)
+  const newStart = new Date(startAt)
   newStart.setDate(newStart.getDate() + daysToAdd)
-  const newEnd = new Date(endDate)
+  const newEnd = new Date(endAt)
   newEnd.setDate(newEnd.getDate() + daysToAdd)
 
   const nextYear = new Date().getFullYear() + 1
@@ -272,8 +231,8 @@ export async function createNextOccurrence(eventId: string) {
 
   // Update dates on new event
   await supabase.from('events').update({
-    start_date: newStart.toISOString().slice(0, 10),
-    end_date: newEnd.toISOString().slice(0, 10),
+    start_at: newStart.toISOString(),
+    end_at: newEnd.toISOString(),
     recurrence,
   }).eq('id', result.id)
 
