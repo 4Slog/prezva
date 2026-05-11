@@ -77,6 +77,22 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     Download certificate (PDF)
                   </a>
                 )}
+                {reg && (
+                  <div className="flex gap-2 justify-center flex-wrap mt-1">
+                    <a
+                      href={`/api/passes/apple/${reg.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                    >
+                      Add to Apple Wallet
+                    </a>
+                    <a
+                      href={`/api/passes/google/${reg.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                    >
+                      Add to Google Wallet
+                    </a>
+                  </div>
+                )}
               </div>
             </>
           )}
