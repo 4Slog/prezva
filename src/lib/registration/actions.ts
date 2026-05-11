@@ -56,6 +56,14 @@ export async function startRegistration(formData: FormData) {
   // Get current user if logged in (optional — guests can register)
   const { data: { user } } = await supabase.auth.getUser()
 
+  const utmData = {
+    utm_source:   (formData.get('utm_source')   as string) || null,
+    utm_medium:   (formData.get('utm_medium')   as string) || null,
+    utm_campaign: (formData.get('utm_campaign') as string) || null,
+    utm_content:  (formData.get('utm_content')  as string) || null,
+    utm_term:     (formData.get('utm_term')     as string) || null,
+  }
+
   const raw = {
     event_id:           formData.get('event_id'),
     ticket_type_id:     formData.get('ticket_type_id'),
@@ -91,6 +99,18 @@ export async function startRegistration(formData: FormData) {
     .maybeSingle()
 
   if (!ticket) return { error: 'Ticket type not found or unavailable' }
+
+  // Invite-only check (T-046)
+  if (ticket.invite_only) {
+    const { count } = await supabase
+      .from('ticket_invite_allowlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('ticket_type_id', ticket.id)
+      .eq('email', parsed.data.attendee_email.toLowerCase())
+    if (!count || count === 0) {
+      return { error: 'This ticket is invite-only. Your email is not on the allowlist.' }
+    }
+  }
 
   const now = new Date().toISOString()
   if (ticket.sale_starts_at && ticket.sale_starts_at > now) {
@@ -135,6 +155,7 @@ export async function startRegistration(formData: FormData) {
       ticket,
       user?.id,
       discountCodeId,
+      utmData,
     )
   }
 
@@ -154,6 +175,7 @@ export async function startRegistration(formData: FormData) {
     discountCodeId,
     discountAmountCents,
     org.stripe_account_id,
+    utmData,
   )
 }
 
@@ -165,6 +187,7 @@ async function confirmFreeRegistration(
   ticket: Record<string, unknown>,
   userId: string | undefined,
   discountCodeId: string | undefined,
+  utmData?: Record<string, string | null>,
 ) {
   const { data: reg, error } = await supabase
     .from('registrations')
@@ -181,6 +204,7 @@ async function confirmFreeRegistration(
       amount_paid_cents:   0,
       discount_code_id:    discountCodeId ?? null,
       confirmation_sent_at: new Date().toISOString(),
+      ...utmData,
     })
     .select()
     .single()
@@ -214,6 +238,7 @@ async function createPaidRegistration(
   discountCodeId: string | undefined,
   discountAmountCents: number,
   connectedAccountId: string,
+  utmData?: Record<string, string | null>,
 ) {
   // Create pending registration first
   const { data: reg, error } = await supabase
@@ -231,6 +256,7 @@ async function createPaidRegistration(
       amount_paid_cents:   (ticket.price_cents as number) - discountAmountCents,
       discount_code_id:    discountCodeId ?? null,
       discount_amount_cents: discountAmountCents,
+      ...utmData,
     })
     .select()
     .single()

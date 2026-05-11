@@ -17,6 +17,7 @@ const TicketSchema = z.object({
   sale_ends_at:   z.string().datetime().optional(),
   is_visible:     z.coerce.boolean().default(true),
   sort_order:     z.coerce.number().int().default(0),
+  invite_only:    z.coerce.boolean().default(false),
 })
 
 async function assertEventAccess(
