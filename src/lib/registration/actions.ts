@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createCheckoutSession } from '@/lib/stripe/checkout'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
+import { verifyMembership } from '@/lib/integrations/_shared/association-verify'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -73,7 +74,7 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, organizations(name, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, organizations(name, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -113,6 +114,14 @@ export async function startRegistration(formData: FormData) {
   // Ticket quantity check
   if (ticket.quantity !== null && ticket.quantity_sold >= ticket.quantity) {
     return { error: 'This ticket type is sold out' }
+  }
+
+  // Member-only ticket gating
+  if ((ticket as any).membership_required) {
+    const { verified } = await verifyMembership((event as any).org_id, parsed.data.attendee_email)
+    if (!verified) {
+      return { error: 'This ticket requires an active membership. Please verify your membership status or contact the organizer.' }
+    }
   }
 
   // Discount code

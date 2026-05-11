@@ -134,6 +134,12 @@ export function TicketManager({ eventId, tickets: initial }: TicketManagerProps)
               <label className={labelCls}>Description</label>
               <input name="description" placeholder="Optional details" className={inputCls} />
             </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <input id="membership_required" name="membership_required" type="checkbox" value="true" className="rounded" />
+              <label htmlFor="membership_required" className="text-sm text-[#94A3B8] cursor-pointer">
+                Membership required (verify via connected association integration)
+              </label>
+            </div>
           </div>
           <div className="flex gap-3">
             <button

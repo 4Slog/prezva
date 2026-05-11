@@ -6,17 +6,18 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 const TicketSchema = z.object({
-  name:           z.string().min(1).max(80),
-  description:    z.string().max(500).optional(),
-  type:           z.enum(['free', 'paid', 'donation']).default('free'),
-  price_cents:    z.coerce.number().int().min(0).default(0),
-  currency:       z.string().length(3).default('usd'),
-  quantity:       z.coerce.number().int().min(1).optional(),
-  max_per_order:  z.coerce.number().int().min(1).max(100).default(10),
-  sale_starts_at: z.string().datetime().optional(),
-  sale_ends_at:   z.string().datetime().optional(),
-  is_visible:     z.coerce.boolean().default(true),
-  sort_order:     z.coerce.number().int().default(0),
+  name:                z.string().min(1).max(80),
+  description:         z.string().max(500).optional(),
+  type:                z.enum(['free', 'paid', 'donation']).default('free'),
+  price_cents:         z.coerce.number().int().min(0).default(0),
+  currency:            z.string().length(3).default('usd'),
+  quantity:            z.coerce.number().int().min(1).optional(),
+  max_per_order:       z.coerce.number().int().min(1).max(100).default(10),
+  sale_starts_at:      z.string().datetime().optional(),
+  sale_ends_at:        z.string().datetime().optional(),
+  is_visible:          z.coerce.boolean().default(true),
+  sort_order:          z.coerce.number().int().default(0),
+  membership_required: z.preprocess(v => v === 'true' || v === true, z.boolean()).default(false),
 })
 
 async function assertEventAccess(
