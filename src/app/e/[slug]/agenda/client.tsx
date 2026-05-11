@@ -14,8 +14,8 @@ const COLORS: Record<string,string> = {
   keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
   panel:'#059669', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
-export default function AgendaClient({ sessions, eventId, userId }: {
-  sessions: Session[]; eventId: string; userId: string | null
+export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {} }: {
+  sessions: Session[]; eventId: string; userId: string | null; handoutsBySession?: Record<string, any[]>
 }) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
@@ -55,6 +55,21 @@ export default function AgendaClient({ sessions, eventId, userId }: {
                     </div>
                     <p style={{ fontWeight:600, marginBottom: spks.length > 0 ? 6 : 0 }}>{s.title}</p>
                     {spks.length > 0 && <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>{(spks as any[]).map(sp => sp.name).join(', ')}</p>}
+                    {(handoutsBySession[s.id]?.length ?? 0) > 0 && (
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {handoutsBySession[s.id].map((h: any) => (
+                          <a
+                            key={h.id}
+                            href={`/api/speaker/handouts/${h.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ fontSize: 11, color: 'var(--color-teal)', textDecoration: 'none', background: 'var(--color-teal)22', padding: '2px 8px', borderRadius: 10 }}
+                          >
+                            📎 {h.filename}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => handleBookmark(s.id)} style={{ background:'none', border:'none', cursor:'pointer', color: bookmarks.has(s.id) ? 'var(--color-teal)' : 'var(--color-text-muted)', padding:'4px', flexShrink:0 }}>
                     {bookmarks.has(s.id) ? <BookmarkCheck size={18}/> : <Bookmark size={18}/>}
