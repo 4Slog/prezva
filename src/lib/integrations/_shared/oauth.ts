@@ -2,12 +2,34 @@ const TOKEN_ENDPOINTS: Record<string, string> = {
   outlook: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
   teams: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
   zoom: 'https://zoom.us/oauth/token',
+  google_drive: 'https://oauth2.googleapis.com/token',
+  sharepoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+  mailchimp: 'https://login.mailchimp.com/oauth2/token',
+  constant_contact: 'https://authz.constantcontact.com/oauth2/default/v1/token',
+  google_forms: 'https://oauth2.googleapis.com/token',
+  eventbrite: 'https://www.eventbriteapi.com/v3/oauth/access_token',
+  imis: 'https://api.imis.com/api/oauth/token',
+  memberclicks: 'https://oauth.memberclicks.net/token',
+  yourmembership: 'https://api.yourmembership.com/oauth/token',
+  glue_up: 'https://app.glueup.com/oauth/token/',
+  neon: 'https://app.neoncrm.com/np/oauth/token',
 }
 
 const AUTH_ENDPOINTS: Record<string, string> = {
   outlook: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
   teams: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
   zoom: 'https://zoom.us/oauth/authorize',
+  google_drive: 'https://accounts.google.com/o/oauth2/v2/auth',
+  sharepoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+  mailchimp: 'https://login.mailchimp.com/oauth2/authorize',
+  constant_contact: 'https://authz.constantcontact.com/oauth2/default/v1/authorize',
+  google_forms: 'https://accounts.google.com/o/oauth2/v2/auth',
+  eventbrite: 'https://www.eventbrite.com/oauth/authorize',
+  imis: 'https://api.imis.com/api/oauth/authorize',
+  memberclicks: 'https://oauth.memberclicks.net/authorize',
+  yourmembership: 'https://api.yourmembership.com/oauth/authorize',
+  glue_up: 'https://app.glueup.com/oauth/authorize/',
+  neon: 'https://app.neoncrm.com/np/oauth/auth',
 }
 
 interface TokenResponse {
