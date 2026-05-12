@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPublicEvent, getPublicAgenda, getPublicSpeakers } from '@/lib/public/actions'
+import { ShareButtons } from '@/components/events/ShareButtons'
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
 
 export default async function PublicEventPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -16,8 +17,16 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const fmtDate = (d: Date) => d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
   const fmtTime = (d: Date) => d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})
   const location = event.venue_name ? (event.venue_city ? event.venue_name + ', ' + event.venue_city : event.venue_name) : null
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const eventUrl = `${appUrl}/e/${slug}`
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--color-bg)', color:'var(--color-text)' }}>
+      {/* Minimal nav header */}
+      <header style={{ background:'var(--color-navy)', borderBottom:'1px solid rgba(255,255,255,0.08)', padding:'0.75rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <Link href="/" style={{ fontWeight:800, fontSize:18, color:'var(--color-teal)', textDecoration:'none', letterSpacing:-0.5 }}>P Prezva</Link>
+        <Link href="/login" style={{ fontSize:13, color:'rgba(255,255,255,0.7)', textDecoration:'none' }}>Sign in</Link>
+      </header>
       <div style={{ background:'var(--color-navy)', color:'#fff', padding:'3rem 1.5rem' }}>
         <div style={{ maxWidth:800, margin:'0 auto' }}>
           <p style={{ color:'var(--color-teal)', fontWeight:600, marginBottom:'0.5rem', textTransform:'uppercase', letterSpacing:2, fontSize:12 }}>
@@ -35,6 +44,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <Link href={'/e/'+slug+'/register'} style={{ background:'var(--color-teal)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:700, textDecoration:'none', fontSize:15 }}>Register Now</Link>
             <Link href={'/e/'+slug+'/agenda'} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:15, border:'1px solid rgba(255,255,255,0.2)' }}>View Agenda</Link>
           </div>
+          <ShareButtons url={eventUrl} title={event.title} calendarHref={`/api/events/${slug}/calendar.ics`} />
         </div>
       </div>
       <div style={{ maxWidth:800, margin:'0 auto', padding:'0 1.5rem' }}>

@@ -42,4 +42,18 @@ export async function cleanupIntTestData() {
     .delete()
     .eq('org_id', DEMO.orgId)
     .neq('user_id', DEMO.userId) // never delete the demo owner
+
+  // Recalculate quantity_sold after deletes — DELETE trigger is absent, so the counter
+  // drifts upward with each test run until capacity enforcement blocks new inserts.
+  for (const ticketId of [DEMO.ticketFreeId, DEMO.ticketPaidId]) {
+    const { count } = await db
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('ticket_type_id', ticketId)
+      .eq('status', 'confirmed')
+    await db
+      .from('ticket_types')
+      .update({ quantity_sold: count ?? 0 })
+      .eq('id', ticketId)
+  }
 }

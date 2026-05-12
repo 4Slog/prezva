@@ -8,6 +8,7 @@ import type { Session, Track, Room, Speaker } from '@/lib/agenda/actions'
 
 interface AgendaClientProps {
   eventId: string
+  timezone: string
   initialSessions: Session[]
   tracks: Track[]
   rooms: Room[]
@@ -194,7 +195,7 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
   )
 }
 
-export function AgendaClient({ eventId, initialSessions, tracks, rooms, speakers }: AgendaClientProps) {
+export function AgendaClient({ eventId, timezone, initialSessions, tracks, rooms, speakers }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -300,6 +301,7 @@ export function AgendaClient({ eventId, initialSessions, tracks, rooms, speakers
         sessions={sessions}
         tracks={tracks}
         rooms={rooms}
+        timezone={timezone}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />

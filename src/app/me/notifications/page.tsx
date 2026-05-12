@@ -5,6 +5,8 @@ import Link from 'next/link'
 export default async function MyNotificationsPage() {
   await requireUser()
   const notifications = await getMyNotifications()
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '2rem 1.5rem' }}>
@@ -21,7 +23,7 @@ export default async function MyNotificationsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {notifications.map((n: any) => {
             const sentAt = n.sent_at ? new Date(n.sent_at) : null
-            const isRecent = sentAt && (Date.now() - sentAt.getTime()) < 7 * 24 * 60 * 60 * 1000
+            const isRecent = sentAt && (now - sentAt.getTime()) < 7 * 24 * 60 * 60 * 1000
             return (
               <div key={n.id} style={{ background: 'var(--pz-surface)', border: `1px solid ${isRecent ? 'var(--pz-teal)44' : 'var(--pz-border)'}`, borderRadius: 10, padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>

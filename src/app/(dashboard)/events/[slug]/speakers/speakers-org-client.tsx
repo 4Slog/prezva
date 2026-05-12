@@ -61,7 +61,7 @@ export function SpeakersOrgClient({ event, speakers }: Props) {
                 <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                   {sp.email ?? 'No email'}
                   {sp.job_title && ` · ${sp.job_title}`}
-                  {sp.company && `, ${sp.company}`}
+                  {sp.company && sp.company !== sp.job_title && `, ${sp.company}`}
                 </p>
                 {sp.confirmed_at && (
                   <p className="text-xs mt-0.5" style={{ color: 'var(--pz-success)' }}>

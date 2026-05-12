@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { AttendeeWithTicket, AttendeeFilters } from '@/lib/attendees/actions'
 
 interface AttendeeTableProps {
@@ -9,12 +10,13 @@ interface AttendeeTableProps {
   page: number
   totalPages: number
   eventId: string
+  eventSlug?: string
   onFilterChange: (f: Partial<AttendeeFilters>) => void
   onRemove: (id: string) => Promise<void>
 }
 
 export function AttendeeTable({
-  attendees, total, page, totalPages, eventId, onFilterChange, onRemove,
+  attendees, total, page, totalPages, eventId, eventSlug, onFilterChange, onRemove,
 }: AttendeeTableProps) {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
@@ -84,7 +86,13 @@ export function AttendeeTable({
             )}
             {attendees.map(a => (
               <tr key={a.id} className="hover:bg-[var(--bg-hover)] transition-colors">
-                <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{a.attendee_name}</td>
+                <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
+                  {eventSlug ? (
+                    <Link href={`/events/${eventSlug}/attendees/${a.id}`} style={{ color: 'var(--pz-teal)', textDecoration: 'none' }}>
+                      {a.attendee_name}
+                    </Link>
+                  ) : a.attendee_name}
+                </td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">{a.attendee_email}</td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">{a.ticket_name}</td>
                 <td className="px-4 py-3">

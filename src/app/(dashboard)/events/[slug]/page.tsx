@@ -4,6 +4,7 @@ import { EventStatusBadge } from '@/components/events/EventStatusBadge'
 import { EventStatusActions } from '@/components/events/EventStatusActions'
 import { AdminTileGrid } from '@/components/events/AdminTileGrid'
 import { getAdminTileBadges } from '@/lib/events/admin-tile-counts'
+import { getEventCounts } from '@/lib/registrations/counts'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
@@ -22,15 +23,16 @@ export default async function EventDetailPage({ params }: Props) {
   const event = await getEventBySlug(slug)
   if (!event) notFound()
 
-  // Admin client: fetch org slug for integration tile link + tile badges
+  // Admin client: fetch org slug for integration tile link + tile badges + live counts
   const admin = createAdminClient()
-  const [orgRes, badges] = await Promise.all([
+  const [orgRes, badges, counts] = await Promise.all([
     admin.from('organizations').select('slug').eq('id', (event as any).org_id).maybeSingle(),
     getAdminTileBadges((event as any).id),
+    getEventCounts((event as any).id),
   ])
   const orgSlug = orgRes.data?.slug
 
-  const notArrived = event.registration_count - event.checked_in_count
+  const notArrived = counts.confirmed - counts.checkedIn
 
   return (
     <div>
@@ -72,10 +74,10 @@ export default async function EventDetailPage({ params }: Props) {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
         {[
-          { label: 'Registered',     value: event.registration_count, color: 'text-[#F0F4F8]' },
-          { label: 'Checked In',     value: event.checked_in_count,   color: 'text-[#00BFA6]' },
-          { label: 'Not Arrived',    value: notArrived,               color: 'text-[#F59E0B]' },
-          { label: 'Active Sessions',value: 0,                        color: 'text-[#F0F4F8]' },
+          { label: 'Confirmed',   value: counts.confirmed,  color: 'text-[#F0F4F8]' },
+          { label: 'Checked In',  value: counts.checkedIn,  color: 'text-[#00BFA6]' },
+          { label: 'Not Arrived', value: notArrived,        color: 'text-[#F59E0B]' },
+          { label: 'Total Regs',  value: counts.total,      color: 'text-[#F0F4F8]' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">
             <p className="text-xs font-medium text-[#64748B] mb-2">{s.label}</p>

@@ -9,6 +9,7 @@ import type { AttendeeWithTicket, AttendeeFilters, AttendeePage } from '@/lib/at
 
 interface AttendeesClientProps {
   eventId: string
+  eventSlug: string
   eventName: string
   orgId: string
   initialData: AttendeePage
@@ -16,7 +17,7 @@ interface AttendeesClientProps {
   integrations: { mailchimp: boolean; constant_contact: boolean; eventbrite: boolean }
 }
 
-export function AttendeesClient({ eventId, eventName, orgId, initialData, tickets, integrations }: AttendeesClientProps) {
+export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialData, tickets, integrations }: AttendeesClientProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [data, setData] = useState<AttendeePage>(initialData)
@@ -132,6 +133,7 @@ export function AttendeesClient({ eventId, eventName, orgId, initialData, ticket
         page={data.page}
         totalPages={data.totalPages}
         eventId={eventId}
+        eventSlug={eventSlug}
         onFilterChange={applyFilters}
         onRemove={handleRemove}
       />

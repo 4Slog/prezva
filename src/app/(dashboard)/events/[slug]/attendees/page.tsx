@@ -38,6 +38,7 @@ export default async function AttendeesPage({ params }: Props) {
     <div className="max-w-6xl mx-auto p-6">
       <AttendeesClient
         eventId={(event as any).id}
+        eventSlug={slug}
         eventName={(event as any).title}
         orgId={(event as any).org_id}
         initialData={initialData}

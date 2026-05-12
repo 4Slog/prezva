@@ -133,6 +133,7 @@ export function Certificate(props: CertificateProps) {
         <View style={styles.border} />
 
         <View style={styles.header}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           {props.orgLogoUrl && <Image src={props.orgLogoUrl} style={styles.logo} />}
           <Text style={styles.title}>{template.title}</Text>
           <View style={styles.accentBar} />
@@ -147,6 +148,7 @@ export function Certificate(props: CertificateProps) {
 
         {template.signature_image_url && (
           <View style={styles.signatureArea}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={template.signature_image_url} style={styles.signatureImage} />
             <View style={styles.signatureLine} />
             <Text style={styles.signatureLabel}>Authorized Signature</Text>

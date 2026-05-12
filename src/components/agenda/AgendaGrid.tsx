@@ -6,15 +6,22 @@ interface AgendaGridProps {
   sessions: Session[]
   tracks: Track[]
   rooms: Room[]
+  timezone?: string
   onEdit: (session: Session) => void
   onDelete: (sessionId: string) => void
 }
 
-export function AgendaGrid({ sessions, tracks, rooms, onEdit, onDelete }: AgendaGridProps) {
-  // Group sessions by date
+export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete }: AgendaGridProps) {
+  const fmtDay = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-CA', { timeZone: timezone }) // YYYY-MM-DD in org tz
+
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' })
+
+  // Group sessions by date in org timezone
   const byDate: Record<string, Session[]> = {}
   for (const s of sessions) {
-    const day = s.starts_at.slice(0, 10)
+    const day = fmtDay(s.starts_at)
     if (!byDate[day]) byDate[day] = []
     byDate[day].push(s)
   }
@@ -43,7 +50,7 @@ export function AgendaGrid({ sessions, tracks, rooms, onEdit, onDelete }: Agenda
       {days.map(day => (
         <div key={day}>
           <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-3">
-            {new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            {new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </h3>
           <div className="space-y-2">
             {byDate[day].map(s => (
@@ -53,9 +60,9 @@ export function AgendaGrid({ sessions, tracks, rooms, onEdit, onDelete }: Agenda
               >
                 {/* Time */}
                 <div className="text-xs font-mono shrink-0 pt-0.5 opacity-80">
-                  {new Date(s.starts_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                  {fmtTime(s.starts_at)}
                   <br />
-                  {new Date(s.ends_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                  {fmtTime(s.ends_at)}
                 </div>
 
                 {/* Track color dot */}
