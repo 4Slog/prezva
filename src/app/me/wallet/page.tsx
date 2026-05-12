@@ -1,10 +1,14 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { getMyRegistrations } from '@/lib/attendees/profile-actions'
+import { getMyIssuedCertificates } from '@/lib/certificates/actions'
 import Link from 'next/link'
 
 export default async function MyWalletPage() {
   await requireUser()
-  const registrations = await getMyRegistrations()
+  const [registrations, certs] = await Promise.all([
+    getMyRegistrations(),
+    getMyIssuedCertificates(),
+  ])
 
   const now = new Date()
   const active = registrations.filter(
@@ -53,6 +57,53 @@ export default async function MyWalletPage() {
             {past.map((reg: any) => (
               <TicketCard key={reg.id} reg={reg} past />
             ))}
+          </div>
+        </>
+      )}
+
+      {/* Certificates */}
+      {certs.length > 0 && (
+        <>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12, marginTop: 28 }}>Certificates</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {certs.map((cert: any) => {
+              const ev = cert.events
+              return (
+                <div key={cert.id} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-teal)', borderRadius: 10, padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 3 }}>
+                        🎓 {ev?.title ?? 'Event'}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
+                        {ev?.start_at ? new Date(ev.start_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+                        {Number(cert.ce_credit_hours) > 0 ? ` · ${cert.ce_credit_hours} CE hours` : ''}
+                        {cert.sessions_attended > 0 ? ` · ${cert.sessions_attended} sessions` : ''}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: 11, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+                      EARNED
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {ev?.slug && (
+                      <Link
+                        href={`/e/${ev.slug}/certificate`}
+                        style={{ flex: 1, padding: '7px', textAlign: 'center', background: 'var(--pz-teal)', color: '#0D1B2A', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+                      >
+                        Download PDF
+                      </Link>
+                    )}
+                    <Link
+                      href={`/verify/${cert.verification_id}`}
+                      style={{ padding: '7px 14px', background: 'var(--pz-bg)', color: 'var(--pz-muted)', borderRadius: 6, fontSize: 12, fontWeight: 500, textDecoration: 'none', border: '1px solid var(--pz-border)', whiteSpace: 'nowrap' }}
+                    >
+                      Verify
+                    </Link>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </>
       )}

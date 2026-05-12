@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { getEventBySlug, updateEvent, deleteEvent } from '@/lib/events/actions'
 import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
+import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -179,6 +180,9 @@ export default async function EventSettingsPage({ params }: Props) {
         </form>
       </section>
 
+      {/* Sprint 22: Certificate settings */}
+      <CertificateSettingsSection event={event} inputCls={inputCls} labelCls={labelCls} />
+
       {/* T-119/T-120/T-121: Clone, Templates, Recurrence */}
       <EventSettingsClient
         eventId={(event as any).id}
@@ -188,6 +192,7 @@ export default async function EventSettingsPage({ params }: Props) {
       />
 
       {/* Danger zone */}
+
       {['draft', 'cancelled'].includes(event.status) && (
         <section className="rounded-lg border border-[#EF4444]/30 bg-[#EF4444]/5 p-6">
           <h2 className="text-sm font-semibold text-[#EF4444] mb-2">Danger zone</h2>
@@ -210,5 +215,77 @@ export default async function EventSettingsPage({ params }: Props) {
         </section>
       )}
     </div>
+  )
+}
+
+async function CertificateSettingsSection({
+  event,
+  inputCls,
+  labelCls,
+}: {
+  event: any
+  inputCls: string
+  labelCls: string
+}) {
+  const certTemplates = await listOrgCertificateTemplates(event.org_id)
+
+  return (
+    <section className="pz-card p-6 mb-6">
+      <h2 className="text-sm font-semibold text-[#F0F4F8] mb-1">Certificates</h2>
+      <p className="text-xs text-[#64748B] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
+      <form
+        action={async (fd: FormData) => {
+          'use server'
+          await updateEvent(event.id, fd)
+        }}
+        className="flex flex-col gap-4"
+      >
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            name="certificate_enabled"
+            type="checkbox"
+            value="true"
+            defaultChecked={event.certificate_enabled ?? false}
+            className="rounded"
+          />
+          <span className="text-sm text-[#94A3B8]">Enable certificates for this event</span>
+        </label>
+        <div>
+          <label className={labelCls}>Minimum session attendance %</label>
+          <input
+            name="certificate_min_session_attendance_pct"
+            type="number"
+            min="0"
+            max="100"
+            defaultValue={event.certificate_min_session_attendance_pct ?? 60}
+            className={inputCls}
+          />
+        </div>
+        {certTemplates.length > 0 && (
+          <div>
+            <label className={labelCls}>Certificate template</label>
+            <select name="certificate_template_id" defaultValue={event.certificate_template_id ?? ''} className={inputCls}>
+              <option value="">Use org default</option>
+              {certTemplates.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name}{t.is_default ? ' (default)' : ''}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {certTemplates.length === 0 && (
+          <p className="text-xs text-[#64748B]">
+            No certificate templates yet.{' '}
+            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[#00BFA6]">Create one in org settings →</a>
+          </p>
+        )}
+        <button
+          type="submit"
+          className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+        >
+          Save certificate settings
+        </button>
+      </form>
+    </section>
   )
 }

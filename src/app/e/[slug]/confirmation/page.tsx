@@ -20,7 +20,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { data: reg } = regId
     ? await admin
         .from('registrations')
-        .select('*, ticket_types(name, price_cents), events(title, start_at, timezone)')
+        .select('*, ticket_types(name, price_cents), events(title, start_at, timezone, certificate_enabled)')
         .eq('id', regId)
         .maybeSingle()
     : { data: null }
@@ -69,16 +69,14 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                 >
                   View event details
                 </Link>
-                {reg && (reg as any).certificate_token && (
-                  <a
-                    href={`/api/certificates/${reg.id}?token=${(reg as any).certificate_token}`}
-                    target="_blank"
-                    rel="noreferrer"
+                {reg && (reg.events as any)?.certificate_enabled && (
+                  <Link
+                    href={`/e/${slug}/certificate`}
                     className="text-sm"
                     style={{ color: 'var(--pz-teal)' }}
                   >
-                    Download certificate (PDF)
-                  </a>
+                    🎓 View certificate of attendance
+                  </Link>
                 )}
                 {reg && (
                   <div className="flex gap-2 justify-center flex-wrap mt-1">
