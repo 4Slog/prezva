@@ -1,12 +1,33 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { getUserOrgs } from '@/lib/orgs/actions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { SetupChecklist } from '@/components/dashboard/SetupChecklist'
+import { redirect } from 'next/navigation'
 
 export default async function DashboardPage() {
   const user = await requireUser()
   const supabase = await createClient()
   const orgs = await getUserOrgs()
+
+  // Sprint 19: users with no org membership are attendees, not organizers.
+  // Route them to their most recent confirmed event or to /onboarding.
+  if (orgs.length === 0) {
+    // Admin client: bypass RLS to look up registrations by email (anon registrants have no auth.uid)
+    const admin = createAdminClient()
+    const { data: recentReg } = await admin
+      .from('registrations')
+      .select('event_id, events(slug)')
+      .eq('attendee_email', user.email)
+      .eq('status', 'confirmed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const slug = (recentReg?.events as { slug?: string } | null)?.slug
+    if (slug) redirect(`/e/${slug}/my-agenda`)
+    redirect('/onboarding')
+  }
 
   // Compute checklist state for the first org (if any)
   let checklistItems = null
