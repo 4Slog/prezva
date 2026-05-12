@@ -6,7 +6,7 @@ import { transitionEventStatus } from '@/lib/events/actions'
 const NEXT_STATUS: Record<string, { label: string; status: string; style: string }[]> = {
   draft:     [{ label: 'Publish',   status: 'published', style: 'bg-[#00BFA6] text-[#0D1B2A]' },
               { label: 'Cancel',    status: 'cancelled', style: 'bg-[#EF4444]/10 text-[#EF4444]' }],
-  published: [{ label: 'Go Live',  status: 'live',      style: 'bg-[#F43F5E] text-white' },
+  published: [{ label: 'Go Live',  status: 'live',      style: 'bg-[#00BFA6] text-[#0D1B2A]' },
               { label: 'Cancel',   status: 'cancelled', style: 'bg-[#EF4444]/10 text-[#EF4444]' }],
   live:      [{ label: 'End Event', status: 'ended',     style: 'bg-[#1E3A5F] text-[#94A3B8]' }],
   ended:     [{ label: 'Archive',  status: 'archived',  style: 'bg-[#1E3A5F] text-[#64748B]' }],
