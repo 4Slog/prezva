@@ -17,7 +17,7 @@ export default async function GroupsPage({ params }: Props) {
 
   // Get current user if signed in — not required to view groups
   const { data: { user } } = await supabase.auth.getUser()
-  const conversations = await getGroupConversations(eventId)
+  const conversations = user ? await getGroupConversations(eventId) : []
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
