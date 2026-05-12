@@ -12,7 +12,7 @@ interface AttendeesClientProps {
   eventName: string
   orgId: string
   initialData: AttendeePage
-  tickets: { id: string; name: string }[]
+  tickets: { id: string; name: string; price_cents?: number }[]
   integrations: { mailchimp: boolean; constant_contact: boolean; eventbrite: boolean }
 }
 
