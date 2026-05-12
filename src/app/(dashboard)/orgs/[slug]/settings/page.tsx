@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { InviteForm } from '@/components/orgs/InviteForm'
 import { MemberList } from '@/components/orgs/MemberList'
 import { ConnectBankButton } from '@/components/connect/ConnectBankButton'
@@ -31,7 +32,9 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
   const canManage = ['owner', 'admin'].includes(myRole)
   const isOwner = myRole === 'owner'
 
-  const { data: members } = await supabase
+  // Admin client: fetch members bypassing RLS so owner always sees the full list
+  const admin = createAdminClient()
+  const { data: members } = await admin
     .from('org_members')
     .select('id, role, created_at, profiles(id, full_name, email, avatar_url, job_title)')
     .eq('org_id', org.id)
