@@ -2,56 +2,74 @@
 
 ## Last updated: 2026-05-11
 
-## Current state
+## Status: PHASE 1 COMPLETE ✅
 
-- **Branch:** `sprint16-pwa-expo` — COMPLETE, commit d70968a
-- **Tests:** 189/189 unit + 23/23 integration (gate: 12 PASS, 1 WARN = pre-existing npm vulns)
-- **Integration providers:** 16 total (Sprints 13-15)
-- **Expo wrapper:** ~/Prezva/expo/ (outside dev git repo, not tracked in GitHub)
+All 18 sprints done. Tag: `phase-1-complete-final` on branch `sprint18-admin`.
 
-## Sprint 16 — COMPLETE ✅
+---
 
-All Sprint 16 tasks done:
-- T-122: SyncHealthPill wired to navigator.onLine + Dexie pending count (lazy useState init)
-- T-123/a/b/c: next-pwa service worker, manifest.json, icons (192/512/maskable), iOS install prompt, Workbox caching
-- T-124: VAPID push subscriptions table (migration 0017), PushSubscriber component, sendAnnouncementPush
-- T-125: audit_logs table (migration 0017 combined), logAudit helper, writes in org/event/attendee actions
-- T-125a: OfflineIndicator fixed-top banner
-- T-140: Expo webview wrapper at ~/Prezva/expo/ (blank-typescript, react-native-webview)
-- T-140a: expo-notifications native push bridge with token injection into WebView
-- T-140b: eas.json with preview + production build profiles
-- T-140c/d: Store submission prep docs in ~/Prezva/docs/store-submissions/ (deferred — Paul enrollment needed)
+## Branch state
 
-## Sprint 16 — Critical build fixes
+- `sprint18-admin` — last working branch, pushed to origin, tagged `phase-1-complete-final`
+- `main` — needs merge from sprint18-admin
 
-- **next-pwa@5 + Next.js 16 Turbopack conflict:** Added `--webpack` to `package.json` build script. next-pwa v5 uses webpack plugins; Next.js 16 defaults to Turbopack for builds.
-- **Uint8Array<ArrayBuffer>:** Use `new Uint8Array(n)` + for-loop instead of `Uint8Array.from()` in PushSubscriber.
-- **Supabase `.in()` subquery:** Not type-safe — fetch IDs separately, then pass array.
-- **ESLint setState in useEffect:** Use lazy `useState(() => navigator.onLine)` instead of sync setState in effect.
-- **ESLint v9 ignores:** Use `globalIgnores([...])` in `eslint.config.mjs` — `.eslintignore` is deprecated.
-- **Generated SW files:** Add `public/sw.js` etc. to both `.gitignore` AND `eslint.config.mjs` ignores.
+## What was built in final session (Sprint 18)
 
-## Next action: Sprint 17
+Platform admin dashboard (`/admin/*`):
 
-**Brief:** `~/.claude/projects/-home-paul/memory/prezva_sprint_17_brief.md`
+- `src/lib/admin/gate.ts` — `requireAdmin()` using `ADMIN_EMAILS` env var
+- `src/lib/supabase/admin.ts` — `createAdminClient()` service role client
+- `src/app/(admin)/layout.tsx` — admin sidebar layout
+- `src/app/(admin)/admin/page.tsx` — overview (orgs, events, revenue stats)
+- `src/app/(admin)/admin/orgs/page.tsx` — org list with search, pagination, suspend action
+- `src/app/(admin)/admin/orgs/[id]/page.tsx` — org detail (members, events, revenue, actions)
+- `src/app/(admin)/admin/events/page.tsx` — platform-wide event list with status filter
+- `src/app/(admin)/admin/audit/page.tsx` — audit log viewer with action filter
+- `src/app/(admin)/admin/revenue/page.tsx` — monthly revenue + top orgs breakdown
+- `src/app/(admin)/admin/users/new/page.tsx` — onboard new planner form
+- `src/app/api/admin/orgs/[id]/suspend/route.ts`
+- `src/app/api/admin/orgs/[id]/unsuspend/route.ts`
+- `src/app/api/admin/orgs/[id]/offboard/route.ts` — cancel events, anonymize PII, set deleted_at
+- `src/app/api/admin/users/onboard/route.ts` — create org + send Supabase invite email
 
-**Branch to create:** `sprint17-security-polish` from `sprint16-pwa-expo`
+Gate check: PASS (12 ✅, 1 ⚠️ — pre-existing high vulns, 0 ❌)
 
-**Tasks:**
-- T-126: 2FA for organizers (Supabase Auth MFA TOTP)
-- T-126a: 2FA for attendees (optional/skip if tight)
-- T-128: GDPR data export endpoint (GET /api/gdpr/export)
-- T-129: GDPR data deletion endpoint (POST /api/gdpr/delete)
-- T-130: Survey guest responses via token link (qr_code as token)
-- T-131: Survey response CSV export (GET /api/events/[id]/surveys/[surveyId]/export)
-- T-132: Duplicate of T-130 — mark ✅ when T-130 done
-- T-133: In-app help center /help page (shadcn Accordion, static content)
-- T-134: Setup checklist component on dashboard (new org / 0 events)
-- T-135: Uptime monitoring doc (~Prezva/docs/ops/uptime-monitoring.md)
-- T-136: SOC 2 prep doc (~Prezva/docs/ops/soc2-prep.md)
-- T-137: SPF/DKIM/DMARC doc (~Prezva/docs/ops/email-authentication.md)
-- T-138: E2E Playwright tests (e2e/ — 9 tests E2E-01 through E2E-09)
-- T-139: Seed script (scripts/seed.ts — uses service role key to bypass RLS)
+---
+
+## Critical build facts (carry forward)
+
+- Build command: `next build --webpack` (Turbopack incompatible with next-pwa@5)
+- No shadcn/ui — plain HTML + Tailwind only
+- Zod uses `.issues` not `.errors` on ZodError
+- Admin pages: `createAdminClient()` server-side only, never browser
+- `requireAdmin()` reads `ADMIN_EMAILS` env var — must be set in Vercel
+- `organizations.suspended` + `organizations.deleted_at` added in migration 0018
+- Dev server: `npm run dev -- -p 3100`
+
+---
+
+## Next steps (deployment)
+
+1. **Merge sprint18-admin → main:**
+   ```
+   git checkout main && git merge sprint18-admin && git push origin main
+   ```
+2. **Vercel environment variables to add:**
+   - `ADMIN_EMAILS` = comma-separated admin email list
+   - `NEXT_PUBLIC_APP_URL` = https://prezva.app
+3. **Run migration 0018 on staging Supabase first**, verify, then prod
+4. **App Store / Play Store** — deferred until Apple/Google enrollment complete
+
+---
+
+## Phase 1 summary
+
+- 18 sprints, all complete
+- 189 unit/integration tests passing
+- Playwright E2E: 9 critical path tests
+- Gate checks: all sprints ended PASS/WARN, 0 FAIL
+- GitHub: github.com/4Slog/prezva (private)
+- Tags: `phase-1-complete` (after Sprint 8), `phase-1-complete-final` (after Sprint 18, 2026-05-11)
 
 ## Completed sprints
 - S1: Schema reconciliation | S2: Integration test gate | S3: Feature delivery
@@ -61,3 +79,5 @@ All Sprint 16 tasks done:
 - S13: Integrations P1 (Outlook, Zoom, Teams) | S14: Integrations P2 (Drive, SP, Mailchimp, CC, GForms, EB)
 - S15: Integrations P3 (7 association adapters + mgmt UI + member gating)
 - S16: PWA + Expo (service worker, VAPID push, audit log, offline indicators, Expo wrapper)
+- S17: Security polish (2FA/TOTP, GDPR export/delete, survey guest tokens, help center, E2E, seed script)
+- S18: Platform admin dashboard (/admin layer, org/event/audit/revenue management)
