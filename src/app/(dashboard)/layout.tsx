@@ -3,6 +3,7 @@ import { getUserOrgs } from '@/lib/orgs/actions'
 import Link from 'next/link'
 import { OrgSwitcher } from '@/components/orgs/OrgSwitcher'
 import { SyncHealthPill } from '@/components/layout/SyncHealthPill'
+import { UserMenu } from '@/components/auth/UserMenu'
 
 const NAV = [
   { href: '/dashboard',        label: 'Dashboard',     icon: '⊞' },
@@ -75,12 +76,7 @@ export default async function DashboardLayout({
         >
           <div />
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-            >
-              {(user.email ?? 'U')[0].toUpperCase()}
-            </div>
+            <UserMenu email={user.email ?? ''} name={(user.user_metadata as { full_name?: string } | null)?.full_name ?? null} />
           </div>
         </header>
 

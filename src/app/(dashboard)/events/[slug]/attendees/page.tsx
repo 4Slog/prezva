@@ -28,7 +28,7 @@ export default async function AttendeesPage({ params }: Props) {
 
   const [initialData, ticketsResult, integrationsResult] = await Promise.all([
     getAttendees((event as any).id),
-    supabase.from('ticket_types').select('id, name').eq('event_id', (event as any).id).eq('is_active', true),
+    supabase.from('ticket_types').select('id, name, price_cents').eq('event_id', (event as any).id).eq('is_active', true),
     supabase.from('org_integrations').select('provider, status').eq('org_id', (event as any).org_id).in('provider', ['mailchimp', 'constant_contact', 'eventbrite']),
   ])
 
@@ -41,7 +41,7 @@ export default async function AttendeesPage({ params }: Props) {
         eventName={(event as any).title}
         orgId={(event as any).org_id}
         initialData={initialData}
-        tickets={(ticketsResult.data ?? []) as { id: string; name: string }[]}
+        tickets={(ticketsResult.data ?? []) as { id: string; name: string; price_cents?: number }[]}
         integrations={{ mailchimp: connectedProviders.has('mailchimp'), constant_contact: connectedProviders.has('constant_contact'), eventbrite: connectedProviders.has('eventbrite') }}
       />
     </div>

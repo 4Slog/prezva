@@ -21,21 +21,21 @@ interface ConnectBankButtonProps {
 const STATUS_CONFIG = {
   not_connected: {
     label:  'Connect bank account',
-    detail: 'Required to accept ticket payments',
-    dot:    'pz-dot-offline',
-    text:   'text-[#EF4444]',
+    detail: 'Connect your bank account to enable paid ticket sales',
+    dot:    'pz-dot-warning',
+    text:   'text-[#F59E0B]',
   },
   pending: {
     label:  'Finish setup',
-    detail: 'Complete your Stripe onboarding',
+    detail: 'Complete your Stripe onboarding to accept payments',
     dot:    'pz-dot-warning',
     text:   'text-[#F59E0B]',
   },
   restricted: {
     label:  'Action required',
-    detail: 'Your account has restrictions',
-    dot:    'pz-dot-warning',
-    text:   'text-[#F59E0B]',
+    detail: 'Your account has restrictions — review required',
+    dot:    'pz-dot-offline',
+    text:   'text-[#EF4444]',
   },
   active: {
     label:  'Payouts active',
@@ -52,7 +52,6 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
   const [pending, setPending] = useState(false)
 
   useEffect(() => {
-    // Refresh status on mount
     fetch(`/api/connect/status?org_id=${orgId}`)
       .then((r) => r.json())
       .then((d) => setStatus(d))
@@ -80,9 +79,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <span
-            className={`mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full ${cfg.dot}`}
-          />
+          <span className={`mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full ${cfg.dot}`} />
           <div>
             <p className="font-semibold text-[#F0F4F8] text-sm">Stripe Payouts</p>
             <p className={`text-xs mt-0.5 ${cfg.text}`}>{cfg.detail}</p>
@@ -91,11 +88,11 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
                 Attendee payments go directly to your bank account — Prezva never touches the money.
               </p>
             )}
-            {status.requirementsCount ? (
+            {!!status.requirementsCount && (
               <p className="text-xs text-[#F59E0B] mt-1">
                 {status.requirementsCount} requirement{status.requirementsCount > 1 ? 's' : ''} pending
               </p>
-            ) : null}
+            )}
           </div>
         </div>
 

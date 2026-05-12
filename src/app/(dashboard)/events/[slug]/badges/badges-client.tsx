@@ -14,11 +14,12 @@ interface BadgeTemplate {
 interface Props {
   eventId: string
   orgId: string
+  eventSlug: string
   eventTemplates: BadgeTemplate[]
   orgTemplates: BadgeTemplate[]
 }
 
-export function BadgesClient({ eventId, orgId, eventTemplates: initial, orgTemplates: initialOrg }: Props) {
+export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg }: Props) {
   const [eventTpls, setEventTpls] = useState(initial)
   const [orgTpls] = useState(initialOrg)
   const [saving, setSaving] = useState<string | null>(null)
@@ -66,7 +67,18 @@ export function BadgesClient({ eventId, orgId, eventTemplates: initial, orgTempl
       <section>
         <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">This event&apos;s templates</h2>
         {eventTpls.length === 0 ? (
-          <p className="text-sm text-[#64748B]">No badge templates for this event yet.</p>
+          <div className="pz-card p-6 text-center space-y-3">
+            <p className="text-sm text-[#64748B]">No badge templates for this event yet.</p>
+            <div className="flex justify-center gap-3">
+              <a
+                href={`/events/${eventSlug}/badges/new`}
+                className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+                style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              >
+                + New badge template
+              </a>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
             {eventTpls.map(t => (
