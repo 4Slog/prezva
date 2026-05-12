@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createCheckoutSession } from '@/lib/stripe/checkout'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
 import { verifyMembership } from '@/lib/integrations/_shared/association-verify'
@@ -175,7 +176,12 @@ async function confirmFreeRegistration(
   userId: string | undefined,
   discountCodeId: string | undefined,
 ) {
-  const { data: reg, error } = await supabase
+  // Use admin client for the insert so anonymous/guest registrations bypass RLS.
+  // (Sprint 19) Server action above has already validated event status, ticket
+  // availability, capacity, sale windows, discount codes and membership gates,
+  // so an unauthenticated write here is safe.
+  const admin = createAdminClient()
+  const { data: reg, error } = await admin
     .from('registrations')
     .insert({
       event_id:       data.event_id,
@@ -195,6 +201,7 @@ async function confirmFreeRegistration(
     .single()
 
   if (error) return { error: error.message }
+  void supabase
 
   // Enqueue confirmation email (non-blocking)
   const org = event.organizations as { name: string } | null
@@ -224,8 +231,9 @@ async function createPaidRegistration(
   discountAmountCents: number,
   connectedAccountId: string,
 ) {
-  // Create pending registration first
-  const { data: reg, error } = await supabase
+  // Create pending registration first (admin client bypasses RLS for guests)
+  const admin = createAdminClient()
+  const { data: reg, error } = await admin
     .from('registrations')
     .insert({
       event_id:       data.event_id,
@@ -245,6 +253,7 @@ async function createPaidRegistration(
     .single()
 
   if (error) return { error: error.message }
+  void supabase
 
   // Create Stripe Checkout session
   try {
@@ -273,7 +282,7 @@ async function createPaidRegistration(
     })
 
     // Store session ID on the registration
-    await supabase
+    await admin
       .from('registrations')
       .update({ stripe_payment_intent_id: session.payment_intent as string ?? session.id })
       .eq('id', reg.id)
@@ -281,7 +290,7 @@ async function createPaidRegistration(
     redirect(session.url!)
   } catch {
     // Clean up pending registration if Stripe fails
-    await supabase.from('registrations').delete().eq('id', reg.id)
+    await admin.from('registrations').delete().eq('id', reg.id)
     return { error: 'Payment setup failed — please try again' }
   }
 }
@@ -294,8 +303,9 @@ async function addToWaitlist(
   ticket: Record<string, unknown>,
   userId: string | undefined,
 ) {
-  // Get current waitlist count for position
-  const { count } = await supabase
+  // Get current waitlist count for position (admin client — guest-friendly)
+  const admin = createAdminClient()
+  const { count } = await admin
     .from('registrations')
     .select('*', { count: 'exact', head: true })
     .eq('event_id', data.event_id)
@@ -303,7 +313,7 @@ async function addToWaitlist(
 
   const position = (count ?? 0) + 1
 
-  const { data: reg, error } = await supabase
+  const { data: reg, error } = await admin
     .from('registrations')
     .insert({
       event_id:        data.event_id,
@@ -320,5 +330,6 @@ async function addToWaitlist(
     .single()
 
   if (error) return { error: error.message }
+  void supabase
   redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}&waitlist=true`)
 }

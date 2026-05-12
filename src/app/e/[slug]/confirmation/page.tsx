@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
 type Props = {
@@ -10,9 +11,13 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { slug } = await params
   const { reg: regId, waitlist } = await searchParams
 
-  const supabase = await createClient()
+  // Use admin client so guest registrations (user_id is null) can still
+  // display their confirmation page. Reg ID is an unguessable UUID and is the
+  // de-facto bearer token here, mirroring Eventbrite/Whova confirmation links.
+  const admin = createAdminClient()
+  void createClient
   const { data: reg } = regId
-    ? await supabase
+    ? await admin
         .from('registrations')
         .select('*, ticket_types(name, price_cents), events(title, start_at, timezone)')
         .eq('id', regId)

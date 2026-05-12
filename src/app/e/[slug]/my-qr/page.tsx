@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import QRDisplay from './qr-display'
 import Link from 'next/link'
 
@@ -28,9 +29,13 @@ export default async function MyQRPage({ params, searchParams }: Props) {
     )
   }
 
-  // Look up confirmed registration by email
+  // Look up confirmed registration by email — use admin client so guests
+  // who registered without an auth account can still retrieve their QR.
+  // Strict status='confirmed' + event_id + email guard prevents enumeration.
+  const admin = createAdminClient()
+  void supabase
   const { data: reg } = email
-    ? await supabase
+    ? await admin
         .from('registrations')
         .select('id, attendee_name, attendee_email, qr_code, status')
         .eq('event_id', event.id)
