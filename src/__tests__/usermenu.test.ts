@@ -11,7 +11,7 @@ describe('UserMenu component', () => {
 
   it('is a client component', () => {
     const src = readFileSync(join(SRC, 'components/auth/UserMenu.tsx'), 'utf-8')
-    expect(src).toContain("'use client'")
+    expect(src).toMatch(/["']use client["']/)
   })
 
   it('exports UserMenu function', () => {
