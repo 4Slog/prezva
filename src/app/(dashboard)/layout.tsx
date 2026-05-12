@@ -8,9 +8,18 @@ import { UserMenu } from '@/components/auth/UserMenu'
 const NAV = [
   { href: '/dashboard',        label: 'Dashboard',     icon: '⊞' },
   { href: '/events',           label: 'Events',        icon: '📅' },
-  { href: '/attendees',        label: 'Attendees',     icon: '👥' },
-  { href: '/agenda',           label: 'Agenda',        icon: '📋' },
-  { href: '/announcements',    label: 'Announcements', icon: '📣' },
+]
+
+const NAV_ORG = [
+  { href: '/orgs',             label: 'My Org',        icon: '🏢' },
+  { href: '/orgs/settings',    label: 'Settings',      icon: '⚙️' },
+  { href: '/orgs/templates',   label: 'Templates',     icon: '📐' },
+  { href: '/orgs/integrations',label: 'Integrations',  icon: '🔌' },
+  { href: '/orgs/audit-log',   label: 'Audit Log',     icon: '🔍' },
+]
+
+const NAV_BOTTOM = [
+  { href: '/help',             label: 'Help',          icon: '❓' },
 ]
 
 export default async function DashboardLayout({
@@ -48,8 +57,21 @@ export default async function DashboardLayout({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-2 py-2 space-y-0.5">
+        <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
           {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="pz-nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all"
+            >
+              <span className="text-base">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+          <div className="pt-2 pb-1">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-[#475569]">Organization</p>
+          </div>
+          {NAV_ORG.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -61,7 +83,19 @@ export default async function DashboardLayout({
           ))}
         </nav>
 
-        {/* Offline Sync Health */}
+        {/* Bottom nav + Offline Sync Health */}
+        <div className="px-2 pb-2 space-y-0.5">
+          {NAV_BOTTOM.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="pz-nav-item flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all"
+            >
+              <span className="text-base">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+        </div>
         <div className="px-3 pb-5">
           <SyncHealthPill />
         </div>
