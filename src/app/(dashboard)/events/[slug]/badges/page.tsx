@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgBadgeTemplates } from '@/lib/productivity/sprint11-actions'
 import { BadgesClient } from './badges-client'
+import Link from 'next/link'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -35,10 +36,31 @@ export default async function BadgesPage({ params }: Props) {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-6">Badge templates</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold text-[#F0F4F8]">Badge templates</h1>
+        <div className="flex items-center gap-3">
+          <a
+            href={`/api/events/${(event as any).id}/badges/print`}
+            className="rounded-lg border px-3 py-2 text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+            title="Print all confirmed attendee badges as PDF (coming in Sprint 22)"
+          >
+            Print all (PDF)
+          </a>
+          <Link
+            href={`/events/${slug}/badges/new`}
+            className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          >
+            + New badge template
+          </Link>
+        </div>
+      </div>
+
       <BadgesClient
         eventId={(event as any).id}
         orgId={(event as any).org_id}
+        eventSlug={slug}
         eventTemplates={(eventTemplates ?? []) as any[]}
         orgTemplates={orgTemplates}
       />
