@@ -7,7 +7,7 @@ export async function requireAdmin(): Promise<string> {
   if (!user?.email) redirect('/login')
 
   const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
-  if (!adminEmails.includes(user.email)) redirect('/')
+  if (!adminEmails.includes(user.email)) redirect('/dashboard?error=admin_required')
 
   return user.email
 }
