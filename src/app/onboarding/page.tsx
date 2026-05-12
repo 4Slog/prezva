@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth/get-user'
+import { OnboardingAttendeeInput } from './client'
 
 export const metadata = { title: 'Welcome to Prezva' }
 
@@ -21,7 +22,7 @@ export default async function OnboardingPage() {
         <h1 className="text-3xl font-bold" style={{ color: 'var(--pz-text)' }}>
           Welcome to Prezva
         </h1>
-        <p className="mt-2 text-sm" style={{ color: 'var(--pz-text-muted)' }}>
+        <p className="mt-2 text-sm" style={{ color: 'var(--pz-muted)' }}>
           How will you be using Prezva?
         </p>
       </div>
@@ -36,29 +37,27 @@ export default async function OnboardingPage() {
           <h2 className="text-lg font-semibold mb-1 group-hover:text-[var(--pz-teal)] transition-colors" style={{ color: 'var(--pz-text)' }}>
             I&apos;m an event organizer
           </h2>
-          <p className="text-sm" style={{ color: 'var(--pz-text-muted)' }}>
+          <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
             Create and manage events, tickets, speakers, and more.
           </p>
         </Link>
 
         <div
-          className="pz-card block p-6 text-center"
+          className="pz-card block p-6"
           style={{ border: '1px solid var(--pz-border)' }}
         >
-          <div className="text-3xl mb-3">🎟️</div>
-          <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--pz-text)' }}>
+          <div className="text-3xl mb-3 text-center">🎟️</div>
+          <h2 className="text-lg font-semibold mb-1 text-center" style={{ color: 'var(--pz-text)' }}>
             I&apos;m attending an event
           </h2>
-          <p className="text-sm mb-4" style={{ color: 'var(--pz-text-muted)' }}>
-            Find your event by entering the link or code provided by your organizer.
+          <p className="text-sm mb-4 text-center" style={{ color: 'var(--pz-muted)' }}>
+            Enter the event link or code your organizer shared with you.
           </p>
-          <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>
-            Visit <span style={{ color: 'var(--pz-teal)' }}>prezva.app/e/your-event-name</span> to register and access your event.
-          </p>
+          <OnboardingAttendeeInput />
         </div>
       </div>
 
-      <p className="mt-8 text-xs" style={{ color: 'var(--pz-text-muted)' }}>
+      <p className="mt-8 text-xs" style={{ color: 'var(--pz-muted)' }}>
         Need help?{' '}
         <Link href="/help" style={{ color: 'var(--pz-teal)' }}>
           Visit our Help Center

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -54,12 +55,9 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     A confirmation with your QR code has been emailed to{' '}
                     <strong className="text-[#F0F4F8]">{reg.attendee_email}</strong>
                   </p>
-                  <div
-                    className="rounded-lg p-4 mb-6 font-mono text-sm text-center"
-                    style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)' }}
-                  >
-                    <p className="text-xs text-[#64748B] mb-1">Your QR code ID</p>
-                    <p className="text-[#00BFA6] tracking-wider">{reg.qr_code}</p>
+                  <div className="mb-6">
+                    <QRDisplay qrCode={reg.qr_code} />
+                    <p className="text-xs text-[#64748B] mt-2">Show this at check-in</p>
                   </div>
                 </>
               )}
