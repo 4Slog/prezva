@@ -8,7 +8,7 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
   const { slug } = await params
   await requireUser()
   const supabase = await createClient()
-  const { data: event } = await supabase.from('events').select('id,title').eq('slug', slug).single()
+  const { data: event } = await supabase.from('events').select('id,title,org_id').eq('slug', slug).single()
   if (!event) notFound()
   const announcements = await getAnnouncements(event.id)
   return (
@@ -17,7 +17,7 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Announcements</h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 4 }}>Send email or push notifications to attendees</p>
       </div>
-      <AnnouncementsClient announcements={announcements} eventId={event.id} slug={slug} />
+      <AnnouncementsClient announcements={announcements} eventId={event.id} slug={slug} orgId={(event as any).org_id} />
     </div>
   )
 }

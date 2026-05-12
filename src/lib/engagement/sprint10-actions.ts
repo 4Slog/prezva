@@ -308,3 +308,30 @@ export async function checkInPassportLocation(eventId: string, code: string) {
   await awardPoints(eventId, user.data.user.id, 'passport_visit')
   return { ok: true, location: (loc as any).name, points: (loc as any).points }
 }
+
+export async function seedIcebreakerPrompts(eventId: string, prompts: { text: string; tags: string[] }[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const rows = prompts.map((p) => ({ event_id: eventId, question_text: p.text }))
+  const { error } = await supabase.from('icebreaker_questions').insert(rows)
+  if (error) return { error: error.message }
+  return { count: rows.length }
+}
+
+export async function seedTriviaQuestions(eventId: string, questions: { q: string; options: string[]; correct: number; category: string; difficulty: string }[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const rows = questions.map((q) => ({
+    event_id: eventId,
+    question_text: q.q,
+    options: q.options,
+    correct_index: q.correct,
+    category: q.category,
+    difficulty: q.difficulty,
+  }))
+  const { error } = await supabase.from('trivia_questions').insert(rows)
+  if (error) return { error: error.message }
+  return { count: rows.length }
+}

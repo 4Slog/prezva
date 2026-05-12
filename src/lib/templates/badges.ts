@@ -1,0 +1,66 @@
+import type { BadgeTemplate } from './types'
+
+export const BADGE_TEMPLATES: BadgeTemplate[] = [
+  {
+    id: 'standard-qr',
+    name: 'Standard with QR',
+    description: 'Name, title/company, QR code in lower-right',
+    layout: 'portrait',
+    size: { width_mm: 89, height_mm: 102 },
+    fields: [
+      { type: 'text', binding: 'attendee_name', x: 5, y: 30, w: 79, h: 12, font_size: 22, weight: 'bold' },
+      { type: 'text', binding: 'attendee_title', x: 5, y: 45, w: 79, h: 8, font_size: 11 },
+      { type: 'text', binding: 'attendee_company', x: 5, y: 53, w: 79, h: 8, font_size: 11 },
+      { type: 'qr', binding: 'qr_code', x: 60, y: 70, w: 25, h: 25 },
+      { type: 'text', binding: 'event_title', x: 5, y: 5, w: 79, h: 10, font_size: 14, weight: 'bold', align: 'center' },
+    ],
+    accent_color_var: 'attendee_ticket_color',
+  },
+  {
+    id: 'vip-with-photo',
+    name: 'VIP with photo',
+    description: 'Photo + name + role + gold accent — for VIP-tier badges',
+    layout: 'portrait',
+    size: { width_mm: 89, height_mm: 102 },
+    fields: [
+      { type: 'text', binding: 'event_title', x: 5, y: 5, w: 79, h: 10, font_size: 14, weight: 'bold', align: 'center' },
+      { type: 'image', binding: 'attendee_photo_url', x: 30, y: 18, w: 30, h: 30, shape: 'circle' },
+      { type: 'text', binding: 'attendee_name', x: 5, y: 52, w: 79, h: 12, font_size: 22, weight: 'bold', align: 'center' },
+      { type: 'text', binding: 'attendee_title', x: 5, y: 66, w: 79, h: 8, font_size: 11, align: 'center' },
+      { type: 'text', binding: 'attendee_company', x: 5, y: 74, w: 79, h: 8, font_size: 11, align: 'center' },
+      { type: 'text', static: 'VIP', x: 5, y: 87, w: 79, h: 10, font_size: 16, weight: 'bold', align: 'center', color: '#D4AF37' },
+      { type: 'qr', binding: 'qr_code', x: 65, y: 87, w: 20, h: 20 },
+    ],
+    accent_color: '#D4AF37',
+  },
+  {
+    id: 'speaker-with-bio',
+    name: 'Speaker with bio',
+    description: 'Name + title + 2-line bio + Speaker accent + larger size',
+    layout: 'portrait',
+    size: { width_mm: 102, height_mm: 127 },
+    fields: [
+      { type: 'text', static: 'SPEAKER', x: 5, y: 5, w: 92, h: 10, font_size: 16, weight: 'bold', align: 'center', color: '#00BFA6' },
+      { type: 'image', binding: 'speaker_photo_url', x: 36, y: 18, w: 30, h: 30, shape: 'circle' },
+      { type: 'text', binding: 'speaker_name', x: 5, y: 52, w: 92, h: 12, font_size: 24, weight: 'bold', align: 'center' },
+      { type: 'text', binding: 'speaker_role', x: 5, y: 66, w: 92, h: 8, font_size: 12, align: 'center' },
+      { type: 'text', binding: 'speaker_company', x: 5, y: 74, w: 92, h: 8, font_size: 12, align: 'center' },
+      { type: 'text', binding: 'speaker_bio_short', x: 5, y: 88, w: 92, h: 24, font_size: 10, align: 'center', wrap: true },
+      { type: 'qr', binding: 'speaker_qr', x: 78, y: 110, w: 20, h: 20 },
+    ],
+    accent_color: '#00BFA6',
+  },
+  {
+    id: 'staff-minimal',
+    name: 'Staff',
+    description: 'Minimal staff badge with role',
+    layout: 'portrait',
+    size: { width_mm: 89, height_mm: 102 },
+    fields: [
+      { type: 'text', static: 'STAFF', x: 5, y: 5, w: 79, h: 14, font_size: 22, weight: 'bold', align: 'center', color: '#ef4444' },
+      { type: 'text', binding: 'attendee_name', x: 5, y: 40, w: 79, h: 14, font_size: 24, weight: 'bold', align: 'center' },
+      { type: 'text', binding: 'attendee_role', x: 5, y: 55, w: 79, h: 8, font_size: 12, align: 'center' },
+    ],
+    accent_color: '#ef4444',
+  },
+]

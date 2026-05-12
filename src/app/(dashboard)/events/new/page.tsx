@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createEvent } from '@/lib/events/actions'
 import { getEventTemplates, createEventFromTemplate } from '@/lib/productivity/sprint11-actions'
+import { TemplatePicker } from '@/components/templates/TemplatePicker'
+import type { EventTemplate as StarterEventTemplate } from '@/lib/templates/types'
 
 interface Org { id: string; name: string; slug: string }
 interface Membership {
@@ -26,6 +28,8 @@ export default function NewEventPage() {
   const [selectedOrgId, setSelectedOrgId] = useState('')
   const [useTemplate, setUseTemplate] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [showStarterPicker, setShowStarterPicker] = useState(false)
+  const [starterTemplate, setStarterTemplate] = useState<StarterEventTemplate | null>(null)
 
   useEffect(() => {
     fetch('/api/orgs')
@@ -71,10 +75,36 @@ export default function NewEventPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#F0F4F8]">Create a new event</h1>
-        <p className="text-sm text-[#94A3B8] mt-1">Fill in the details to get started.</p>
+      {showStarterPicker && (
+        <TemplatePicker
+          surface="event"
+          orgId={selectedOrgId || 'none'}
+          onPick={(raw) => { setShowStarterPicker(false); if (raw) setStarterTemplate(raw as StarterEventTemplate) }}
+          onClose={() => setShowStarterPicker(false)}
+        />
+      )}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#F0F4F8]">Create a new event</h1>
+          <p className="text-sm text-[#94A3B8] mt-1">Fill in the details to get started.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowStarterPicker(true)}
+          className="rounded-lg px-3 py-2 text-sm font-medium border"
+          style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-teal)', background: 'none' }}
+        >
+          Use starter template
+        </button>
       </div>
+      {starterTemplate && (
+        <div className="pz-card p-4 mb-4 flex items-center justify-between" style={{ borderColor: 'var(--pz-teal)', borderWidth: 1 }}>
+          <p className="text-sm" style={{ color: 'var(--pz-text)' }}>
+            Template: <strong>{starterTemplate.name}</strong> — {starterTemplate.description}
+          </p>
+          <button type="button" onClick={() => setStarterTemplate(null)} style={{ background: 'none', border: 'none', color: 'var(--pz-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+        </div>
+      )}
 
       {orgs.length === 0 && (
         <div className="pz-card p-6 mb-6 text-center">
@@ -172,6 +202,7 @@ export default function NewEventPage() {
                 name="description"
                 rows={3}
                 maxLength={5000}
+                defaultValue={starterTemplate?.description ?? ''}
                 placeholder="What is this event about?"
                 className={`${inputCls} resize-none`}
               />

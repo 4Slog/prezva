@@ -1,0 +1,85 @@
+import type { SurveyTemplate } from './types'
+
+export const SURVEY_TEMPLATES: SurveyTemplate[] = [
+  {
+    id: 'post-event-nps-plus-3',
+    name: 'Post-Event NPS+3',
+    description: 'Quick post-event pulse: 1 NPS + 3 follow-up questions',
+    tags: ['post-event', 'nps', 'quick'],
+    duration_estimate_seconds: 90,
+    questions: [
+      { type: 'nps', label: 'On a scale of 0-10, how likely are you to recommend this event to a colleague?', required: true },
+      { type: 'multi_choice', label: 'What did you find most valuable?',
+        options: ['Sessions / content', 'Networking', 'Speakers', 'Vendor booths', 'Hands-on workshops', 'Food & venue'],
+        multi: true, required: false },
+      { type: 'long_text', label: 'What is one thing we should improve next year?', required: false },
+      { type: 'boolean', label: 'May we contact you for a brief follow-up interview?', required: false },
+    ],
+  },
+  {
+    id: 'session-feedback',
+    name: 'Session Feedback',
+    description: 'Quick per-session feedback',
+    tags: ['session', 'feedback', 'quick'],
+    duration_estimate_seconds: 30,
+    questions: [
+      { type: 'rating', label: 'Rate this session', scale: 5, required: true },
+      { type: 'multi_choice', label: 'Would you attend a follow-up on this topic?',
+        options: ['Yes', 'Maybe', 'No'], required: false },
+      { type: 'short_text', label: 'One word that describes this session', required: false },
+    ],
+  },
+  {
+    id: 'speaker-review',
+    name: 'Speaker Review',
+    description: 'Per-speaker feedback to share with speakers',
+    tags: ['speaker', 'review'],
+    duration_estimate_seconds: 60,
+    questions: [
+      { type: 'rating', label: 'Rate the speaker', scale: 5, required: true },
+      { type: 'rating', label: 'Rate the content depth', scale: 5, required: true },
+      { type: 'rating', label: 'Rate the engagement', scale: 5, required: true },
+      { type: 'long_text', label: 'Any specific feedback for the speaker?', required: false },
+      { type: 'boolean', label: 'Would you attend a session by this speaker again?', required: false },
+    ],
+  },
+  {
+    id: 'sponsor-pulse',
+    name: 'Sponsor Pulse',
+    description: 'Post-event satisfaction check from sponsors',
+    tags: ['sponsor', 'post-event'],
+    audience: 'sponsors',
+    questions: [
+      { type: 'rating', label: 'Rate your overall sponsorship experience', scale: 5, required: true },
+      { type: 'number', label: 'How many qualified leads did you capture?', required: false },
+      { type: 'multi_choice', label: 'Which activations worked best?',
+        options: ['Booth traffic', 'Passport scans', 'Sponsored session', 'Email blast', 'Banner ads'], multi: true, required: false },
+      { type: 'long_text', label: 'How can we improve sponsor value next year?', required: false },
+    ],
+  },
+  {
+    id: 'registration-intake',
+    name: 'Registration Intake',
+    description: 'Extra fields beyond standard name/email — dietary, accessibility, expectations',
+    tags: ['registration', 'intake'],
+    questions: [
+      { type: 'multi_choice', label: 'Dietary restrictions',
+        options: ['None', 'Vegetarian', 'Vegan', 'Gluten-free', 'Halal', 'Kosher', 'Other'], required: false },
+      { type: 'short_text', label: 'Other dietary or accessibility needs', required: false },
+      { type: 'multi_choice', label: 'What do you most hope to gain from attending?',
+        options: ['Learn new skills', 'Network', 'Find clients/customers', 'Find vendors/partners', 'Just curious'], required: false },
+      { type: 'short_text', label: 'How did you hear about us?', required: false },
+    ],
+  },
+  {
+    id: 'pre-event-prep',
+    name: 'Pre-Event Prep',
+    description: 'Sent 1 week before — set expectations and capture interests',
+    tags: ['pre-event', 'prep'],
+    questions: [
+      { type: 'long_text', label: 'What questions do you most want answered at this event?', required: false },
+      { type: 'multi_choice', label: 'Which sessions are you most interested in?', options: 'AUTOPOPULATE_SESSIONS', multi: true, required: false },
+      { type: 'boolean', label: 'Will you attend the networking reception on Day 1?', required: false },
+    ],
+  },
+]

@@ -1,0 +1,100 @@
+import type { EventTemplate } from './types'
+
+export const EVENT_TEMPLATES: EventTemplate[] = [
+  {
+    id: 'annual-conference',
+    name: 'Annual Conference (2-day)',
+    description: 'Multi-track conference — keynote + tracks + networking',
+    tags: ['conference', 'multi-day', 'multi-track'],
+    duration_days: 2,
+    capacity_default: 500,
+    ticket_types: [
+      { name: 'Free RSVP', type: 'free', price_cents: 0, quantity: 200, description: 'General admission, no cost' },
+      { name: 'General Admission', type: 'paid', price_cents: 2500, quantity: 250, description: 'Full 2-day access including meals' },
+      { name: 'VIP Pass', type: 'paid', price_cents: 7500, quantity: 50, description: 'GA plus VIP lounge, reserved seating, networking dinner' },
+    ],
+    sessions: [
+      { day: 1, hours_offset: 0, duration: 60, type: 'keynote', title: 'Day 1 — Opening Keynote' },
+      { day: 1, hours_offset: 1.5, duration: 60, type: 'talk', title: 'Track Session 1' },
+      { day: 1, hours_offset: 3, duration: 60, type: 'workshop', title: 'Track Session 2' },
+      { day: 1, hours_offset: 4.5, duration: 90, type: 'networking', title: 'Lunch + Networking' },
+      { day: 1, hours_offset: 6, duration: 60, type: 'panel', title: 'Track Session 3' },
+      { day: 2, hours_offset: 0, duration: 45, type: 'keynote', title: 'Day 2 — Opening Keynote' },
+    ],
+    tracks: [
+      { name: 'Business Strategy', color: '#00BFA6' },
+      { name: 'Tech & Tools', color: '#3b82f6' },
+    ],
+    starter_announcements: ['welcome', 'day-of-reminder'],
+    starter_survey: 'post-event-nps-plus-3',
+    leaderboard_enabled: true,
+    icebreakers_enabled: true,
+  },
+  {
+    id: 'workshop',
+    name: 'Workshop',
+    description: 'Single-day intensive workshop',
+    tags: ['workshop', 'single-day'],
+    duration_days: 1,
+    capacity_default: 50,
+    ticket_types: [
+      { name: 'Workshop Pass', type: 'paid', price_cents: 14900, quantity: 50, description: 'Includes materials and lunch' },
+    ],
+    sessions: [
+      { day: 1, hours_offset: 0, duration: 30, type: 'introduction', title: 'Introductions' },
+      { day: 1, hours_offset: 0.5, duration: 90, type: 'workshop', title: 'Module 1' },
+      { day: 1, hours_offset: 2.5, duration: 60, type: 'workshop', title: 'Module 2' },
+      { day: 1, hours_offset: 4, duration: 60, type: 'networking', title: 'Lunch' },
+      { day: 1, hours_offset: 5, duration: 90, type: 'workshop', title: 'Module 3' },
+      { day: 1, hours_offset: 7, duration: 30, type: 'wrap', title: 'Wrap-up & Q&A' },
+    ],
+  },
+  {
+    id: 'networking-mixer',
+    name: 'Networking Mixer',
+    description: 'Single-evening networking event',
+    tags: ['networking', 'evening', 'casual'],
+    duration_days: 1,
+    capacity_default: 100,
+    ticket_types: [
+      { name: 'Free RSVP', type: 'free', price_cents: 0, quantity: 80 },
+      { name: 'Member ticket', type: 'paid', price_cents: 1500, quantity: 100, membership_required: true },
+    ],
+    sessions: [
+      { day: 1, hours_offset: 0, duration: 30, type: 'networking', title: 'Doors open + drinks' },
+      { day: 1, hours_offset: 0.5, duration: 30, type: 'introduction', title: 'Welcome + intros' },
+      { day: 1, hours_offset: 1, duration: 60, type: 'networking', title: 'Open networking' },
+      { day: 1, hours_offset: 2, duration: 30, type: 'wrap', title: 'Close out' },
+    ],
+    icebreakers_enabled: true,
+  },
+  {
+    id: 'trade-show',
+    name: 'Trade Show',
+    description: 'Exhibition-driven event with sponsors as primary draw',
+    tags: ['trade-show', 'sponsors'],
+    duration_days: 2,
+    capacity_default: 1000,
+    ticket_types: [
+      { name: 'Free Visitor', type: 'free', price_cents: 0, quantity: 800 },
+      { name: 'Trade Pro', type: 'paid', price_cents: 4900, quantity: 200, description: 'Includes B2B-only sessions' },
+    ],
+    sponsor_tiers_enabled: ['diamond', 'platinum', 'gold', 'silver', 'community'],
+    passport_enabled: true,
+  },
+  {
+    id: 'webinar-series',
+    name: 'Webinar Series',
+    description: 'Recurring online sessions over multiple weeks',
+    tags: ['virtual', 'webinar', 'series'],
+    duration_days: 1,
+    capacity_default: 500,
+    is_virtual: true,
+    ticket_types: [
+      { name: 'Series Pass', type: 'paid', price_cents: 9900, quantity: 500, description: 'Access to all 8 weekly sessions' },
+    ],
+    sessions: [
+      { day: 1, hours_offset: 0, duration: 60, type: 'webinar', title: 'Week 1', recurrence: 'weekly_for_8_weeks' },
+    ],
+  },
+]

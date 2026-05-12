@@ -147,3 +147,49 @@ export async function getSurveyResults(surveyId: string) {
   const { data: answers } = await supabase.from('survey_answers').select('*, survey_questions(question_text, question_type)').eq('survey_questions.survey_id', surveyId)
   return { responseCount: responses?.length ?? 0, answers: answers ?? [] }
 }
+
+interface TemplateQuestion {
+  type: string
+  label: string
+  options?: string[] | string
+  required?: boolean
+  scale?: number
+}
+
+export async function createSurveyFromTemplate(
+  eventId: string,
+  title: string,
+  description: string,
+  questions: TemplateQuestion[]
+): Promise<{ data?: Survey; error?: string }> {
+  const supabase = await createClient()
+  const user = await requireUser()
+
+  const { data: survey, error: surveyErr } = await supabase
+    .from('surveys')
+    .insert({ event_id: eventId, created_by: user.id, title, description: description || null, status: 'draft' })
+    .select()
+    .single()
+  if (surveyErr) return { error: surveyErr.message }
+
+  const surveyId = (survey as Survey).id
+  const typeMap: Record<string, string> = {
+    nps: 'rating', rating: 'rating', multi_choice: 'multiple_choice',
+    short_text: 'text', long_text: 'text', boolean: 'boolean', number: 'text',
+  }
+  const rows = questions.map((q, i) => ({
+    survey_id: surveyId,
+    question_text: q.label,
+    question_type: typeMap[q.type] ?? 'text',
+    options: Array.isArray(q.options) ? q.options : null,
+    is_required: q.required ?? false,
+    sort_order: i,
+  }))
+
+  if (rows.length > 0) {
+    await supabase.from('survey_questions').insert(rows)
+  }
+
+  revalidatePath('/dashboard')
+  return { data: survey as Survey }
+}

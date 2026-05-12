@@ -2,21 +2,43 @@
 import { useState, useTransition } from 'react'
 import { Send, Trash2, Mail, Bell, BellRing } from 'lucide-react'
 import { createAnnouncement, deleteAnnouncement } from '@/lib/announcements/actions'
+import { TemplatePicker } from '@/components/templates/TemplatePicker'
+import type { AnnouncementTemplate } from '@/lib/templates/types'
 
 interface Announcement {
   id: string; title: string; body: string; channel: string
   sent_at: string | null; recipient_count: number; segment: string | null
 }
 const CHANNEL_ICON = { email: Mail, push: Bell, both: BellRing }
-const CHANNEL_COLOR: Record<string,string> = { email: '#0891b2', push: '#7c3aed', both: '#059669' }
+const CHANNEL_COLOR: Record<string, string> = { email: '#0891b2', push: '#7c3aed', both: '#059669' }
 
-export default function AnnouncementsClient({ announcements: init, eventId }: {
-  announcements: Announcement[]; eventId: string; slug: string
+export default function AnnouncementsClient({ announcements: init, eventId, orgId }: {
+  announcements: Announcement[]; eventId: string; slug: string; orgId: string
 }) {
   const [announcements, setAnnouncements] = useState(init)
+  const [showPicker, setShowPicker] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [titleDefault, setTitleDefault] = useState('')
+  const [bodyDefault, setBodyDefault] = useState('')
+  const [channelDefault, setChannelDefault] = useState('email')
+
+  function handleTemplatePick(raw: unknown) {
+    setShowPicker(false)
+    if (raw !== null) {
+      const tpl = raw as AnnouncementTemplate
+      setTitleDefault(tpl.subject ?? '')
+      setBodyDefault(tpl.body ?? '')
+      const ch = tpl.channels?.length === 2 ? 'both' : (tpl.channels?.[0] ?? 'email')
+      setChannelDefault(ch)
+    } else {
+      setTitleDefault('')
+      setBodyDefault('')
+      setChannelDefault('email')
+    }
+    setShowForm(true)
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -42,8 +64,16 @@ export default function AnnouncementsClient({ announcements: init, eventId }: {
 
   return (
     <div>
+      {showPicker && (
+        <TemplatePicker
+          surface="announcement"
+          orgId={orgId}
+          onPick={handleTemplatePick}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
       {!showForm && (
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
+        <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
           <Send size={16} /> New Announcement
         </button>
       )}
@@ -54,15 +84,15 @@ export default function AnnouncementsClient({ announcements: init, eventId }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Subject</label>
-              <input name="title" required maxLength={200} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, boxSizing: 'border-box' }} />
+              <input name="title" required maxLength={200} defaultValue={titleDefault} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Message</label>
-              <textarea name="body" required maxLength={2000} rows={4} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
+              <textarea name="body" required maxLength={2000} rows={4} defaultValue={bodyDefault} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Channel</label>
-              <select name="channel" style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }}>
+              <select name="channel" defaultValue={channelDefault} style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }}>
                 <option value="email">Email only</option>
                 <option value="push">Push only</option>
                 <option value="both">Email + Push</option>

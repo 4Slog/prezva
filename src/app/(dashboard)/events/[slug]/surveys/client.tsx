@@ -1,16 +1,19 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { Plus, ChevronDown, ChevronUp, BarChart2, Send, Lock } from 'lucide-react'
-import { createSurvey, addQuestion, publishSurvey, closeSurvey } from '@/lib/surveys/actions'
+import { Plus, ChevronDown, ChevronUp, Send, Lock } from 'lucide-react'
+import { createSurvey, createSurveyFromTemplate, publishSurvey, closeSurvey } from '@/lib/surveys/actions'
+import { TemplatePicker } from '@/components/templates/TemplatePicker'
+import type { SurveyTemplate } from '@/lib/templates/types'
 
 interface Survey { id: string; title: string; description: string | null; status: string; created_at: string }
 
 const STATUS_COLOR: Record<string, string> = { draft: '#6b7280', active: '#059669', closed: '#7c3aed' }
 
-export default function SurveysClient({ surveys: init, eventId, slug, orgId, googleFormsConnected }: {
+export default function SurveysClient({ surveys: init, eventId, orgId, googleFormsConnected }: {
   surveys: Survey[]; eventId: string; slug: string; orgId: string; googleFormsConnected: boolean
 }) {
   const [surveys, setSurveys] = useState(init)
+  const [showPicker, setShowPicker] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -19,6 +22,24 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
   const [gfFormId, setGfFormId] = useState('')
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState('')
+  const [titleDefault, setTitleDefault] = useState('')
+  const [descDefault, setDescDefault] = useState('')
+  const [templateQuestions, setTemplateQuestions] = useState<SurveyTemplate['questions'] | null>(null)
+
+  function handleTemplatePick(raw: unknown) {
+    setShowPicker(false)
+    if (raw === null) {
+      setTitleDefault('')
+      setDescDefault('')
+      setTemplateQuestions(null)
+    } else {
+      const tpl = raw as SurveyTemplate
+      setTitleDefault(tpl.name)
+      setDescDefault(tpl.description)
+      setTemplateQuestions(tpl.questions ?? null)
+    }
+    setShowCreate(true)
+  }
 
   async function handleGFImport() {
     if (!gfFormId.trim()) return
@@ -32,7 +53,6 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
       const json = await res.json()
       if (json.surveyId) {
         setImportMsg(`Imported ${json.questionCount} questions`)
-        // reload surveys from server — use a lightweight re-fetch
         const surveyRes = await fetch(`/api/events/${eventId}/surveys`)
         if (surveyRes.ok) { const d = await surveyRes.json(); setSurveys(d) }
       } else {
@@ -45,12 +65,20 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
     e.preventDefault()
     setError('')
     const fd = new FormData(e.currentTarget)
+    const title = fd.get('title') as string
+    const desc = (fd.get('description') as string) ?? ''
     startTransition(async () => {
-      const res = await createSurvey(eventId, fd)
-      if ('error' in res && res.error) { setError(res.error); return }
-      if ('data' in res && res.data) {
+      let res
+      if (templateQuestions && templateQuestions.length > 0) {
+        res = await createSurveyFromTemplate(eventId, title, desc, templateQuestions)
+      } else {
+        res = await createSurvey(eventId, fd)
+      }
+      if (res.error) { setError(res.error); return }
+      if (res.data) {
         setSurveys(prev => [res.data as Survey, ...prev])
         setShowCreate(false)
+        setTemplateQuestions(null)
       }
     })
   }
@@ -71,10 +99,18 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
 
   return (
     <div>
+      {showPicker && (
+        <TemplatePicker
+          surface="survey"
+          orgId={orgId}
+          onPick={handleTemplatePick}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
       {importMsg && <p style={{ color: '#059669', fontSize: 14, marginBottom: '1rem' }}>{importMsg}</p>}
       {!showCreate && (
         <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
-          <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
             <Plus size={16} /> New Survey
           </button>
           {googleFormsConnected && (
@@ -101,13 +137,18 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
       {showCreate && (
         <form onSubmit={handleCreate} style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
           <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>New Survey</h2>
+          {templateQuestions && templateQuestions.length > 0 && (
+            <p style={{ color: '#059669', fontSize: 13, marginBottom: '0.75rem' }}>
+              Template loaded — {templateQuestions.length} question{templateQuestions.length !== 1 ? 's' : ''} will be added automatically.
+            </p>
+          )}
           {error && <p style={{ color: '#ef4444', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-            <input name="title" required placeholder="Survey title..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
-            <textarea name="description" rows={2} placeholder="Optional description..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical' }} />
+            <input name="title" required defaultValue={titleDefault} placeholder="Survey title..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
+            <textarea name="description" rows={2} defaultValue={descDefault} placeholder="Optional description..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical' }} />
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Create</button>
-              <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'var(--color-border)', color: 'var(--color-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button type="button" onClick={() => { setShowCreate(false); setTemplateQuestions(null) }} style={{ background: 'var(--color-border)', color: 'var(--color-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         </form>
