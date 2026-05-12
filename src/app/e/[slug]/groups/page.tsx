@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/auth/get-user'
 import { getGroupConversations } from '@/lib/networking/sprint8-group-actions'
 import { GroupsClient } from './groups-client'
 
@@ -8,7 +7,6 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function GroupsPage({ params }: Props) {
   const { slug } = await params
-  const user = await requireUser()
   const supabase = await createClient()
 
   const { data: event } = await supabase
@@ -16,6 +14,9 @@ export default async function GroupsPage({ params }: Props) {
   if (!event) notFound()
 
   const eventId = (event as any).id
+
+  // Get current user if signed in — not required to view groups
+  const { data: { user } } = await supabase.auth.getUser()
   const conversations = await getGroupConversations(eventId)
 
   return (
@@ -32,7 +33,7 @@ export default async function GroupsPage({ params }: Props) {
         <GroupsClient
           eventSlug={slug}
           eventId={eventId}
-          userId={user.id}
+          userId={user?.id ?? null}
           initialConversations={conversations}
         />
       </div>

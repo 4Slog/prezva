@@ -19,7 +19,7 @@ export function GroupsClient({
 }: {
   eventSlug: string
   eventId: string
-  userId: string
+  userId: string | null
   initialConversations: Conversation[]
 }) {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
