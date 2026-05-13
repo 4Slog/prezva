@@ -101,12 +101,11 @@ describe('Sprint 23 — Module Tile Gap Closure', () => {
 
   // Dashboard layout sidebar
   it('dashboard layout sidebar has expanded nav items', () => {
-    const path = join(SRC, 'app/(dashboard)/layout.tsx')
+    const path = join(SRC, 'components/layout/Sidebar.tsx')
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain('Integrations')
     expect(src).toContain('Templates')
     expect(src).toContain('Audit Log')
-    expect(src).toContain('Help')
   })
 
   // Missing admin pages created

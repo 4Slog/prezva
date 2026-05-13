@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createEvent } from '@/lib/events/actions'
+import Link from 'next/link'
+import { createEvent, applyStarterAction } from '@/lib/events/actions'
 import { getEventTemplates, createEventFromTemplate } from '@/lib/productivity/sprint11-actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { EventTemplate as StarterEventTemplate } from '@/lib/templates/types'
@@ -65,9 +66,15 @@ export default function NewEventPage() {
     }
 
     const result = await createEvent(fd)
+    if (result?.error) { setError(result.error); setPending(false); return }
+
+    if (starterTemplate && result.id) {
+      const startAtStr = fd.get('start_at') as string
+      await applyStarterAction(result.id, starterTemplate, startAtStr ?? new Date().toISOString())
+    }
+
     setPending(false)
-    if (result?.error) setError(result.error)
-    // on success: createEvent redirects to /events/[slug]
+    window.location.href = `/events/${result.slug}`
   }
 
   const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
@@ -110,7 +117,7 @@ export default function NewEventPage() {
         <div className="pz-card p-6 mb-6 text-center">
           <p className="text-sm text-[#94A3B8]">
             You need an organization to create events.{' '}
-            <a href="/orgs/new" className="text-[#00BFA6] hover:underline">Create one</a>
+            <Link href="/orgs/new" className="text-[#00BFA6] hover:underline">Create one</Link>
           </p>
         </div>
       )}

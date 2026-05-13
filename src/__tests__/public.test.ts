@@ -5,7 +5,8 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 import { createClient } from '@/lib/supabase/server'
-import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getBookmarks, toggleBookmark } from '@/lib/public/actions'
+import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getBookmarks } from '@/lib/public/actions'
+import { toggleBookmark } from '@/lib/public/bookmark-actions'
 
 // A chainable mock where every method returns the chain AND
 // the chain itself is a Promise (resolves to { data, error })

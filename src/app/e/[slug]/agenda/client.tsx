@@ -1,7 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { Bookmark, BookmarkCheck } from 'lucide-react'
-import { toggleBookmark } from '@/lib/public/actions'
+import { toggleBookmark } from '@/lib/public/bookmark-actions'
 
 interface Session {
   id: string; title: string; session_type: string

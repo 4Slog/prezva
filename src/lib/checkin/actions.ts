@@ -197,12 +197,17 @@ export async function getCheckInStats(eventId: string): Promise<CheckInStats> {
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
 
-  const [eventResult, recentResult] = await Promise.all([
+  const [confirmedResult, checkedResult, recentResult] = await Promise.all([
     supabase
-      .from('events')
-      .select('registration_count, checked_in_count')
-      .eq('id', eventId)
-      .single(),
+      .from('registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .eq('status', 'confirmed'),
+    supabase
+      .from('check_ins')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .is('session_id', null),
     supabase
       .from('check_ins')
       .select('id, checked_in_at, method, registrations(attendee_name, attendee_email, ticket_types(name))')
@@ -212,9 +217,8 @@ export async function getCheckInStats(eventId: string): Promise<CheckInStats> {
       .limit(20),
   ])
 
-  const ev = eventResult.data as any
-  const total = ev?.registration_count ?? 0
-  const checked = ev?.checked_in_count ?? 0
+  const total = confirmedResult.count ?? 0
+  const checked = checkedResult.count ?? 0
 
   const recent: RecentCheckIn[] = ((recentResult.data ?? []) as any[]).map(c => ({
     id: c.id,

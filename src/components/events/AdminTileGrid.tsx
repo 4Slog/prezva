@@ -17,7 +17,7 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
         const isCore = cat === 'core'
 
         return (
-          <details key={cat} open={isCore || expandAll} style={{ marginBottom: 24 }}>
+          <details key={cat} open={isCore || cat === 'engagement' || expandAll} style={{ marginBottom: 24 }}>
             <summary style={{
               cursor: isCore ? 'default' : 'pointer',
               listStyle: 'none',

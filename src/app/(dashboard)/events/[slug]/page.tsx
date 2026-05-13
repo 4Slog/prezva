@@ -10,9 +10,19 @@ import Link from 'next/link'
 
 type Props = { params: Promise<{ slug: string }> }
 
+const TIMEZONE_MAP: Record<string, string> = {
+  'Eastern (ET)':  'America/New_York',
+  'Central (CT)':  'America/Chicago',
+  'Mountain (MT)': 'America/Denver',
+  'Pacific (PT)':  'America/Los_Angeles',
+  'Alaska (AKT)':  'America/Anchorage',
+  'Hawaii (HT)':   'Pacific/Honolulu',
+}
+
 function fmt(iso: string, tz: string) {
+  const ianaZone = TIMEZONE_MAP[tz] ?? tz
   return new Date(iso).toLocaleString('en-US', {
-    timeZone: tz,
+    timeZone: ianaZone,
     weekday: 'short', month: 'short', day: 'numeric',
     year: 'numeric', hour: 'numeric', minute: '2-digit',
   })

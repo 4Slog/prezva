@@ -36,6 +36,14 @@ export default async function DashboardPage({ searchParams }: Props) {
   const orgId = orgData?.id
   const orgSlug = orgData?.slug
 
+  // Fetch profile for greeting
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .maybeSingle()
+  const displayName = (profile as any)?.full_name ?? user.email?.split('@')[0] ?? 'there'
+
   // Fetch real dashboard stats + checklist state in parallel
   const [eventsResult, membersResult, integrationsResult, registeredResult, checkedInResult] =
     await Promise.all([
@@ -94,7 +102,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           Organizer Dashboard
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--pz-muted)' }}>
-          Welcome back, {user.email}
+          Welcome back, {displayName}
         </p>
       </div>
 
@@ -102,7 +110,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         {[
           { label: 'Registered',      value: confirmedCount.toString() },
           { label: 'Checked In',      value: checkedInCount.toString() },
-          { label: 'Active Sessions', value: '—' },
+          { label: 'Active Sessions', value: '0' },
           { label: 'System Health',   value: '100%' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">

@@ -21,9 +21,10 @@ interface OrgSwitcherProps {
 
 export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
   const [open, setOpen] = useState(false)
+  const [activeSlug, setActiveSlug] = useState(currentSlug)
   const router = useRouter()
 
-  const current = orgs.find((m) => m.organizations?.slug === currentSlug)
+  const current = orgs.find((m) => m.organizations?.slug === activeSlug)
   const display = current?.organizations?.name ?? 'Select organization'
 
   return (
@@ -48,11 +49,12 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
                 <button
                   key={org.id}
                   onClick={() => {
+                    setActiveSlug(org.slug)
                     setOpen(false)
                     router.push(`/dashboard`)
                   }}
                   className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left hover:bg-gray-50 ${
-                    org.slug === currentSlug ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                    org.slug === activeSlug ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
                   }`}
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-200 text-xs font-bold uppercase">

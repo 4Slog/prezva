@@ -1,5 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { Send, Trash2, Mail, Bell, BellRing } from 'lucide-react'
 import { createAnnouncement, deleteAnnouncement } from '@/lib/announcements/actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
@@ -12,7 +13,7 @@ interface Announcement {
 const CHANNEL_ICON = { email: Mail, push: Bell, both: BellRing }
 const CHANNEL_COLOR: Record<string, string> = { email: '#0891b2', push: '#7c3aed', both: '#059669' }
 
-export default function AnnouncementsClient({ announcements: init, eventId, orgId }: {
+export default function AnnouncementsClient({ announcements: init, eventId, slug, orgId }: {
   announcements: Announcement[]; eventId: string; slug: string; orgId: string
 }) {
   const [announcements, setAnnouncements] = useState(init)
@@ -115,8 +116,8 @@ export default function AnnouncementsClient({ announcements: init, eventId, orgI
           const Icon = CHANNEL_ICON[a.channel as keyof typeof CHANNEL_ICON] ?? Mail
           const color = CHANNEL_COLOR[a.channel] ?? '#0891b2'
           return (
-            <div key={a.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--color-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 12, flex: 1 }}>
+            <div key={a.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, background: 'var(--color-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <Link href={`/events/${slug}/announcements/${a.id}`} style={{ display: 'flex', gap: 12, flex: 1, padding: '1rem 1.25rem', textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ width: 36, height: 36, borderRadius: 8, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
                   <Icon size={18} />
                 </div>
@@ -129,8 +130,8 @@ export default function AnnouncementsClient({ announcements: init, eventId, orgI
                     <span style={{ background: color + '22', color, padding: '1px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{a.channel}</span>
                   </div>
                 </div>
-              </div>
-              <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4, flexShrink: 0 }}>
+              </Link>
+              <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '1rem', flexShrink: 0 }}>
                 <Trash2 size={16} />
               </button>
             </div>

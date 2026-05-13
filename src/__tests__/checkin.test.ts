@@ -168,14 +168,26 @@ describe('undoCheckIn', () => {
 
 describe('getCheckInStats', () => {
   it('returns correct stats and recent check-ins', async () => {
+    let checkInsCallCount = 0
     mockFromImpl = (t) => {
-      if (t === 'events') {
-        const c = makeChain()
-        c.single = vi.fn().mockResolvedValue({ data: { registration_count: 50, checked_in_count: 23 }, error: null })
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'registrations') {
+        // count query: .select().eq().eq() — need chaining + final resolve
+        let eqCount = 0
+        const c: any = { select: vi.fn().mockReturnThis() }
+        c.eq = vi.fn(() => { eqCount++; return eqCount >= 2 ? Promise.resolve({ count: 50, data: null, error: null }) : c })
         return c
       }
-      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
       if (t === 'check_ins') {
+        checkInsCallCount++
+        if (checkInsCallCount === 1) {
+          // count query: .select().eq().is()
+          const c: any = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() }
+          c.is = vi.fn(() => Promise.resolve({ count: 23, data: null, error: null }))
+          return c
+        }
+        // recent query: ends with .limit(20)
         const c = makeChain()
         c.limit = vi.fn().mockResolvedValue({
           data: [{
@@ -197,10 +209,25 @@ describe('getCheckInStats', () => {
   })
 
   it('returns 0% when no registrations', async () => {
+    let checkInsCallCount = 0
     mockFromImpl = (t) => {
-      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: { registration_count: 0, checked_in_count: 0 }, error: null }) })
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
       if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
-      if (t === 'check_ins') { const c = makeChain(); c.limit = vi.fn().mockResolvedValue({ data: [], error: null }); return c }
+      if (t === 'registrations') {
+        let eqCount = 0
+        const c: any = { select: vi.fn().mockReturnThis() }
+        c.eq = vi.fn(() => { eqCount++; return eqCount >= 2 ? Promise.resolve({ count: 0, data: null, error: null }) : c })
+        return c
+      }
+      if (t === 'check_ins') {
+        checkInsCallCount++
+        if (checkInsCallCount === 1) {
+          const c: any = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() }
+          c.is = vi.fn(() => Promise.resolve({ count: 0, data: null, error: null }))
+          return c
+        }
+        const c = makeChain(); c.limit = vi.fn().mockResolvedValue({ data: [], error: null }); return c
+      }
       return makeChain()
     }
     const stats = await getCheckInStats(EVENT_ID)

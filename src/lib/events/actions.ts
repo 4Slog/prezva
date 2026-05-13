@@ -139,7 +139,7 @@ export async function createEvent(formData: FormData) {
   if (error || !event) return { error: error?.message ?? 'Failed to create event' }
 
   revalidatePath('/events')
-  redirect(`/events/${event.slug}`)
+  return { id: event.id, slug: event.slug }
 }
 
 // ── Update event ─────────────────────────────────────────────────────────────
@@ -301,4 +301,15 @@ export async function deleteEvent(eventId: string) {
 
   revalidatePath('/events')
   return { success: true }
+}
+
+// ── Apply starter template (server action wrapper) ───────────────────────────
+
+export async function applyStarterAction(
+  eventId: string,
+  template: import('@/lib/templates/types').EventTemplate,
+  startAtIso: string,
+) {
+  const { applyStarterTemplate } = await import('@/lib/templates/apply-starter')
+  await applyStarterTemplate(eventId, template, new Date(startAtIso))
 }

@@ -77,14 +77,25 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
           </div>
         </div>
         <div className="flex gap-2 shrink-0 ml-3">
-          {row.isConfigured && !row.isConnected && (
-            <a
-              href={`/api/integrations/${row.provider}/auth?org_id=${orgId}`}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-            >
-              {row.statusKey === 'error' ? 'Reconnect' : 'Connect'}
-            </a>
+          {!row.isConnected && (
+            row.isConfigured ? (
+              <a
+                href={`/api/integrations/${row.provider}/auth?org_id=${orgId}`}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              >
+                {row.statusKey === 'error' ? 'Reconnect' : 'Connect'}
+              </a>
+            ) : (
+              <button
+                disabled
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold opacity-40 cursor-not-allowed"
+                style={{ background: 'var(--pz-border)', color: 'var(--pz-muted)' }}
+                title="Integration credentials not yet configured"
+              >
+                Coming soon
+              </button>
+            )
           )}
           {row.isConnected && (
             <form action={`/api/integrations/${row.provider}/disconnect`} method="POST">

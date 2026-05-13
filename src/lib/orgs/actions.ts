@@ -89,7 +89,12 @@ export async function createOrg(formData: FormData) {
     .select()
     .single()
 
-  if (orgErr || !org) return { error: orgErr?.message ?? 'Failed to create organization' }
+  if (orgErr || !org) {
+    if ((orgErr as any)?.code === '23505') {
+      return { error: 'That URL is already taken. Please choose a different one.', field: 'slug' }
+    }
+    return { error: orgErr?.message ?? 'Failed to create organization' }
+  }
 
   // Add creator as owner
   const { error: memberErr } = await admin.from('org_members').insert({

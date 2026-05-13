@@ -17,7 +17,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   }
 
   if (!adapter.isConfigured()) {
-    return NextResponse.json({ error: `${adapter.displayName} credentials not configured` }, { status: 501 })
+    const returnUrl = req.nextUrl.searchParams.get('return_to') ?? `/orgs/${orgId}/integrations`
+    const msg = encodeURIComponent(`${adapter.displayName} is not yet configured. Contact your Prezva admin to add credentials.`)
+    return NextResponse.redirect(new URL(`${returnUrl}?error=${msg}`, req.nextUrl.origin))
   }
 
   const redirectUri = `${req.nextUrl.origin}/api/integrations/${provider}/callback`

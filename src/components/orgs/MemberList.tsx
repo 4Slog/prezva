@@ -116,6 +116,7 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
 
           {pendingInvites.map((invite) => {
             const role = ROLE_STYLE[invite.role] ?? ROLE_STYLE.staff
+            // eslint-disable-next-line react-hooks/purity
             const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)
             return (
               <li key={invite.id} className="flex items-center justify-between px-5 py-4"
