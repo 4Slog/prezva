@@ -49,7 +49,7 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
                   key={org.id}
                   onClick={() => {
                     setOpen(false)
-                    router.push(`/orgs/${org.slug}/settings`)
+                    router.push(`/dashboard`)
                   }}
                   className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left hover:bg-gray-50 ${
                     org.slug === currentSlug ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'

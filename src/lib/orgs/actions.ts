@@ -303,17 +303,15 @@ export async function getOrgBySlug(slug: string) {
 
 export async function getUserOrgs() {
   const user = await requireUser()
-  const supabase = await createClient()
+  // Admin client: avoids RLS lag for new OAuth users
+  const admin = createAdminClient()
 
-  const { data, error } = await supabase
-    .from('org_members')
-    .select(`
-      role,
-      organizations(id, name, slug, logo_url, timezone)
-    `)
-    .eq('user_id', user.id)
-    .order('joined_at', { ascending: true })
+  const { data, error } = await admin
+    .from("org_members")
+    .select("org_id, role, organizations(id, name, slug, logo_url, timezone)")
+    .eq("user_id", user.id)
+    .order("joined_at", { ascending: true })
 
   if (error) return []
-  return data
+  return data ?? []
 }

@@ -53,17 +53,19 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const user = await requireUser()
-    const supabase = await createClient()
+    // Admin client: org_members RLS can miss new OAuth users before profile creates
+    const { createAdminClient } = await import("@/lib/supabase/admin")
+    const admin = createAdminClient()
 
-    const { data, error } = await supabase
-      .from('org_members')
-      .select('role, organizations(id, name, slug, logo_url, timezone)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
+    const { data, error } = await admin
+      .from("org_members")
+      .select("org_id, role, organizations(id, name, slug, logo_url, timezone)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data)
+    return NextResponse.json(data ?? [])
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 }
