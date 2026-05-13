@@ -57,7 +57,7 @@ export function InviteForm({ orgId }: InviteFormProps) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-[var(--pz-teal)] px-4 py-2 text-sm font-medium text-[var(--pz-bg)] hover:bg-[var(--pz-teal-light)] disabled:opacity-50"
         >
           {pending ? 'Sending…' : 'Send invite'}
         </button>

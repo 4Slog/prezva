@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
             placeholder="you@example.com" />
         </div>
         <button type="submit"
-          className="w-full py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm">
+          className="w-full py-2 px-4 bg-[var(--pz-teal)] text-[var(--pz-bg)] font-medium rounded-lg hover:bg-[var(--pz-teal-light)] transition-colors text-sm">
           Send reset link
         </button>
       </form>

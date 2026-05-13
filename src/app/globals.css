@@ -23,6 +23,10 @@
   --pz-warning:     #F59E0B;   /* caution / pending*/
   --pz-error:       #EF4444;   /* error / offline  */
   --pz-live:        #F43F5E;   /* LIVE badge       */
+  --pz-red:         #EF4444;   /* destructive      */
+  --pz-amber:       #F59E0B;   /* warning action   */
+  --pz-success-bg:  rgba(34, 197, 94, 0.12);
+  --pz-success-fg:  #22C55E;
 
   /* Shadows */
   --pz-shadow:      0 4px 24px rgba(0, 0, 0, 0.4);
