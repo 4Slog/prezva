@@ -2,39 +2,56 @@
 
 ## Last updated: 2026-05-13
 
-## Status: PHASE 1 V2 LAUNCH-READY ✅
+## Status: Sprint 27 complete ✅ | Branch: feature/ghl-integration | Tag: sprint27-complete
 
-Tag: `phase-1-v2-launch-ready` (commit `5e80ba3`)
-293 unit + 23 integration + 63 E2E tests. Smoke 27/27.
+322 unit tests passing. Gate: 12 PASS 0 FAIL 1 WARN. Commit: d804f55 (.gitignore fix: 0e8a8b8)
 
 ---
 
-## What was just completed (Sprint 26)
+## What was just completed (Sprint 27 — Hardening + Bug Fixes + Volunteer Module)
 
-### T-340: 4 E2E specs (63 tests)
-- `e2e/full-organizer-journey.spec.ts` — 20 tests: auth gates, form rendering, auth-required pages
-- `e2e/full-attendee-journey.spec.ts` — 23 tests: all public /e/[slug] surfaces, ICS download, anon behavior
-- `e2e/full-sponsor-journey.spec.ts` — 10 tests: sponsors on public page, API protection, new tables don't crash
-- `e2e/check-in-day.spec.ts` — 20 tests: check-in gates, API rejection, manifest, no JS errors
+### Migration 0028 (supabase/migrations/0028_sprint27_hardening.sql)
+- `public.volunteers` table: portal_access_token, role enum, unique(event_id, email)
+- `get_volunteer_by_token(p_token text)` — SECURITY DEFINER function for token-gated portal
+- `registrations_no_duplicate_idx` — unique index guards double-registration
+- `org_members_role_idx` — perf index on (org_id, user_id, role)
+- `public.dead_letter_items` table with RLS
 
-### T-341: Migration 0027
-- `supabase/migrations/0027_sprint26_civitas_seed_reset.sql`
-- Cleans audit test registrations, preserves stable IDs (org `4ab17b77`, event `a8a984c8`, user `639b6098`, ticket IDs)
-- Seeds: 5 speakers, 15 sessions (3 days), 8 attendees (3 checked in), NPS survey, community post, tracks + rooms
-- Safe to re-run (ON CONFLICT DO NOTHING throughout)
+### Migration 0029 (GHL integration — also in this branch)
 
-### T-344: Tags
-- `sprint26-complete` (not tagged, used `phase-1-v2-launch-ready` directly)
-- `phase-1-v2-launch-ready` → commit `5e80ba3` pushed to origin
+### Volunteer module
+- Admin page: `/events/[slug]/volunteers` (table + invite form + filter tabs)
+- Portal: `/volunteer/[token]` — no-auth, token-gated
+- Clock-in/out: `/api/volunteer/[token]/clock-in|clock-out`
+- Invite email: `src/trigger/jobs/volunteer-invite.ts` (Trigger.dev schemaTask)
+- Admin tile registered, volunteer badge template in badges.ts (#dc2626)
+- CheckInDashboard shows volunteerStatus panel
 
-### T-345: Launch report
-- `~/Prezva/docs/PHASE_1_V2_LAUNCH_REPORT.md`
+### Hardening
+- Stripe checkout: `idempotencyKey: registrationId` prevents duplicate charges
+- Registration actions: `charges_enabled + details_submitted` check before paid checkout
+- Dead-letter admin page + API route (`/api/dead-letter`)
+
+### Bug fixes
+- B-01: AttendeeTable rows clickable (router.push to detail page)
+- B-04: Certificates tile href → `/certificates` (was `/settings`)
+- Attendee detail page: `starts_at` (was `start_time` → 500 error)
+- Public sponsors page: created missing `/e/[slug]/sponsors/page.tsx`
+- Sidebar: dynamic org slug injection via `usePathname()`
+- Dashboard: real confirmed/checked-in stats
+- Public checkin redirect: `/e/[slug]/checkin → /events/[slug]/checkin`
+
+### DB operations (prod)
+- Applied migration 0028 via psql
+- Updated birmingham-sbw-2026 event timestamps (start: 2026-06-09, end: 2026-06-11)
+- Deleted test survey (title='ed', description='dedf')
+- Created 23 attendee_profiles for confirmed registrations (is_visible=true)
 
 ---
 
 ## PAUL-REQUIRED before Civitas demo
 
-1. ~~**`supabase db push`**~~ — **DONE 2026-05-13**: migrations 0019–0027 applied to prod via psql, 27/27 smoke green
+1. ~~**`supabase db push`**~~ — **DONE 2026-05-13**: migrations 0019–0028 applied to prod via psql
    - Note: .env.local URL is malformed (`$@` shell-expanded) — use: `PGPASSWORD='ERg*?Z6grtE5nH$' psql -h db.jmhxyyrleipcorvkmxfk.supabase.co -p 5432 -U postgres -d postgres`
 2. **Vercel env vars:**
    - `ADMIN_EMAILS` = `sowu.paul@gmail.com,paul@prezva.app`
@@ -44,6 +61,12 @@ Tag: `phase-1-v2-launch-ready` (commit `5e80ba3`)
 5. **Apple Developer enrollment** (D-U-N-S 127451051) — unlocks Wallet + App Store
 6. **Google Play Console enrollment** — unlocks Google Wallet + Play Store
 7. **Push integration env vars** — Zoom, Mailchimp, Eventbrite, CC (in credentials.md)
+
+---
+
+## Next sprint options (decide)
+- **Sprint 28A: Operational visibility** — email confirmations (Resend), billing UI, Supabase Realtime
+- **Sprint 28B: GHL branch** — continue feature/ghl-integration (contact sync, tag triggers, deal pipeline)
 
 ---
 
@@ -63,14 +86,3 @@ Tag: `phase-1-v2-launch-ready` (commit `5e80ba3`)
   - ticketPaidId: `fc0dc49e-54ae-4297-a913-3d621c3bfd04`
 - Stripe SDK v22, API `2026-04-22.dahlia`
 - Supabase project: `jmhxyyrleipcorvkmxfk`
-
----
-
-## Next: Phase 2 scope (TBD after Civitas onboarding call)
-
-- Resend email notifications (confirmations, reminders)
-- Stripe billing / subscription management UI
-- Native Expo mobile app (full rebuild from webview wrapper)
-- Sponsor portal (guest-facing: magic link, booth, leads)
-- Real-time updates (Supabase Realtime)
-- Public event marketplace / discovery
