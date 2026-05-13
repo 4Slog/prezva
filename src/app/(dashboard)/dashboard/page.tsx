@@ -13,8 +13,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const supabase = await createClient()
   const orgs = await getUserOrgs()
 
-  // Sprint 19: users with no org membership are attendees, not organizers.
-  // Route them to their most recent confirmed event or to /onboarding.
+  // Users with no org membership are attendees — route them to their event or onboarding.
   if (orgs.length === 0) {
     // Admin client: bypass RLS to look up registrations by email (anon registrants have no auth.uid)
     const admin = createAdminClient()
@@ -32,33 +31,53 @@ export default async function DashboardPage({ searchParams }: Props) {
     redirect('/onboarding')
   }
 
-  // Compute checklist state for the first org (if any)
-  let checklistItems = null
-  if (orgs.length > 0) {
-    const orgData = (orgs[0] as any).organizations
-    const orgId = orgData?.id
+  // Auto-select: use first org (single-org owners get stats immediately)
+  const orgData = (orgs[0] as any).organizations
+  const orgId = orgData?.id
+  const orgSlug = orgData?.slug
 
-    const [eventsResult, membersResult, integrationsResult] = await Promise.all([
+  // Fetch real dashboard stats + checklist state in parallel
+  const [eventsResult, membersResult, integrationsResult, registeredResult, checkedInResult] =
+    await Promise.all([
       supabase.from('events').select('id').eq('org_id', orgId).limit(1),
       supabase.from('org_members').select('id').eq('org_id', orgId).limit(2),
       supabase.from('org_integrations').select('id').eq('org_id', orgId).eq('status', 'active').limit(1),
+      // Confirmed registrations across all org events
+      supabase
+        .from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'confirmed')
+        .in(
+          'event_id',
+          (await supabase.from('events').select('id').eq('org_id', orgId)).data?.map((e: any) => e.id) ?? [],
+        ),
+      // Checked-in registrations across all org events
+      supabase
+        .from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('checked_in', true)
+        .in(
+          'event_id',
+          (await supabase.from('events').select('id').eq('org_id', orgId)).data?.map((e: any) => e.id) ?? [],
+        ),
     ])
 
-    const hasEvent = (eventsResult.data?.length ?? 0) > 0
-    const hasMultipleMembers = (membersResult.data?.length ?? 0) > 1
-    const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
-    const orgSlug = orgData?.slug
+  const confirmedCount = registeredResult.count ?? 0
+  const checkedInCount = checkedInResult.count ?? 0
 
-    checklistItems = [
-      { label: 'Create your organization', done: true },
-      { label: 'Create your first event', done: hasEvent, href: '/events/new' },
-      { label: 'Invite a team member', done: hasMultipleMembers, href: `/orgs/${orgSlug}/settings` },
-      { label: 'Connect an integration (optional)', done: hasIntegration, href: `/orgs/${orgSlug}/integrations` },
-      { label: 'Publish your event', done: false, href: '/events' },
-    ]
-  }
+  const hasEvent = (eventsResult.data?.length ?? 0) > 0
+  const hasMultipleMembers = (membersResult.data?.length ?? 0) > 1
+  const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
 
-  const showChecklist = checklistItems && checklistItems.filter(i => !i.done).length > 0
+  const checklistItems = [
+    { label: 'Create your organization',            done: true },
+    { label: 'Create your first event',             done: hasEvent,            href: '/events/new' },
+    { label: 'Invite a team member',                done: hasMultipleMembers,  href: `/orgs/${orgSlug}/settings` },
+    { label: 'Connect an integration (optional)',   done: hasIntegration,      href: `/orgs/${orgSlug}/integrations` },
+    { label: 'Publish your event',                  done: false,               href: '/events' },
+  ]
+
+  const showChecklist = checklistItems.filter(i => !i.done).length > 0
 
   return (
     <div>
@@ -81,10 +100,10 @@ export default async function DashboardPage({ searchParams }: Props) {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
         {[
-          { label: 'Registered',       value: '—' },
-          { label: 'Checked In',       value: '—' },
-          { label: 'Active Sessions',  value: '—' },
-          { label: 'System Health',    value: '100%' },
+          { label: 'Registered',      value: confirmedCount.toString() },
+          { label: 'Checked In',      value: checkedInCount.toString() },
+          { label: 'Active Sessions', value: '—' },
+          { label: 'System Health',   value: '100%' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">
             <p className="text-xs font-medium mb-2" style={{ color: 'var(--pz-muted)' }}>{s.label}</p>
@@ -94,19 +113,9 @@ export default async function DashboardPage({ searchParams }: Props) {
         ))}
       </div>
 
-      {showChecklist && checklistItems && (
+      {showChecklist && (
         <div className="mb-8">
           <SetupChecklist items={checklistItems} />
-        </div>
-      )}
-
-      {orgs.length === 0 && (
-        <div className="pz-card p-8 text-center">
-          <p className="text-lg font-semibold mb-2" style={{ color: 'var(--pz-text)' }}>No events yet</p>
-          <p className="text-sm mb-4" style={{ color: 'var(--pz-muted)' }}>Create an organization first, then add your first event.</p>
-          <a href="/orgs/new" className="inline-block rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
-            Create organization
-          </a>
         </div>
       )}
     </div>

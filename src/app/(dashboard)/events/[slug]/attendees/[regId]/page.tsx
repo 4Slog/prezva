@@ -44,7 +44,7 @@ export default async function AttendeeDetailPage({ params }: Props) {
       .order('checked_in_at', { ascending: true }),
     admin
       .from('session_bookmarks')
-      .select('session_id, sessions(title, start_time)')
+      .select('session_id, sessions(title, starts_at)')
       .eq('user_id', reg.user_id ?? '')
       .order('created_at' as any, { ascending: true }),
   ])
