@@ -77,7 +77,7 @@ export const sendAnnouncement = schemaTask({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `Prezva <events@prezva.app>`,
+          from: `Prezva <noreply@prezva.app>`,
           to: reg.attendee_email,
           subject: `📢 ${ann.title}`,
           html,

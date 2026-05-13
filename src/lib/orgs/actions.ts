@@ -190,7 +190,7 @@ export async function inviteMember(orgId: string, formData: FormData) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Prezva <events@prezva.app>',
+      from: 'Prezva <noreply@prezva.app>',
       to: parsed.data.email,
       subject: `You're invited to join ${org?.name ?? 'an organization'} on Prezva`,
       html,

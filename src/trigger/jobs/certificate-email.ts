@@ -21,7 +21,7 @@ export const sendCertificateEmail = schemaTask({
       : ''
 
     await resend.emails.send({
-      from: 'Prezva <certificates@prezva.app>',
+      from: 'Prezva <noreply@prezva.app>',
       to: payload.attendeeEmail,
       subject: `Your certificate for ${payload.eventTitle}`,
       html: `

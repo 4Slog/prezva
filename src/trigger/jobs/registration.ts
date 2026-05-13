@@ -51,7 +51,7 @@ export const sendConfirmationEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    `${payload.orgName} <events@prezva.app>`,
+        from:    `${payload.orgName} <noreply@prezva.app>`,
         to:      payload.attendeeEmail,
         subject: `✅ You're registered for ${payload.eventTitle}`,
         html,
@@ -131,7 +131,7 @@ export const processWaitlist = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `Prezva <events@prezva.app>`,
+        from: `Prezva <noreply@prezva.app>`,
         to: next.attendee_email,
         subject: `🎉 You're in! Spot confirmed for ${payload.eventTitle}`,
         html,
