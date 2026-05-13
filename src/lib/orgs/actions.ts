@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
@@ -74,7 +75,10 @@ export async function createOrg(formData: FormData) {
     .maybeSingle()
   if (existing) return { error: 'That slug is already taken — choose another' }
 
-  const { data: org, error: orgErr } = await supabase
+  // Admin client: org + first owner member require service role (chicken-and-egg RLS)
+  const admin = createAdminClient()
+
+  const { data: org, error: orgErr } = await admin
     .from('organizations')
     .insert({
       name: parsed.data.name,
@@ -88,7 +92,7 @@ export async function createOrg(formData: FormData) {
   if (orgErr || !org) return { error: orgErr?.message ?? 'Failed to create organization' }
 
   // Add creator as owner
-  const { error: memberErr } = await supabase.from('org_members').insert({
+  const { error: memberErr } = await admin.from('org_members').insert({
     org_id: org.id,
     user_id: user.id,
     role: 'owner',
