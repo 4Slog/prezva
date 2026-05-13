@@ -16,8 +16,8 @@ const CreateEventSchema = z.object({
   description: z.string().max(5000).optional(),
   event_type:  z.enum(['in_person', 'virtual', 'hybrid']).default('in_person'),
   timezone:    z.string().min(1).default('America/Chicago'),
-  start_at:    z.string().datetime(),
-  end_at:      z.string().datetime(),
+  start_at:    z.string().min(1).transform(v => v.includes("Z") || v.includes("+") ? v : new Date(v).toISOString()),
+  end_at:      z.string().min(1).transform(v => v.includes("Z") || v.includes("+") ? v : new Date(v).toISOString()),
   // venue
   venue_name:    z.string().max(120).optional(),
   venue_address: z.string().max(200).optional(),
