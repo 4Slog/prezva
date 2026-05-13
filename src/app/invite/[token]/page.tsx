@@ -49,6 +49,19 @@ export default async function InvitePage({ params }: Props) {
     'use server'
     const result = await acceptInvite(token)
     if ('error' in result && result.error) return
+    // Redirect to the specific org so multi-org users land in the right place
+    if ('orgId' in result && result.orgId) {
+      const service2 = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      )
+      const { data: org } = await service2
+        .from('organizations')
+        .select('slug')
+        .eq('id', result.orgId)
+        .single()
+      if (org?.slug) redirect(`/orgs/${org.slug}/settings`)
+    }
     redirect('/dashboard')
   }
 
