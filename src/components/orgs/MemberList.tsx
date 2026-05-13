@@ -16,53 +16,67 @@ interface Member {
   } | null
 }
 
+interface PendingInvite {
+  id: string
+  email: string
+  role: string
+  created_at: string
+  expires_at: string
+}
+
 interface MemberListProps {
   members: Member[]
+  pendingInvites?: PendingInvite[]
   orgId: string
   currentUserId: string
   currentUserRole: string
 }
 
 const ROLE_STYLE: Record<string, { bg: string; text: string }> = {
-  owner: { bg: 'rgba(139,92,246,0.15)', text: '#a78bfa' },
-  admin: { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa' },
-  staff: { bg: 'rgba(100,116,139,0.15)', text: '#94a3b8' },
+  owner:  { bg: 'rgba(139,92,246,0.15)', text: '#a78bfa' },
+  admin:  { bg: 'rgba(59,130,246,0.15)',  text: '#60a5fa' },
+  staff:  { bg: 'rgba(100,116,139,0.15)', text: '#94a3b8' },
 }
 
-export function MemberList({ members, orgId, currentUserId, currentUserRole }: MemberListProps) {
-  const [removing, setRemoving] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const canManage = ['owner', 'admin'].includes(currentUserRole)
+export function MemberList({ members, pendingInvites = [], orgId, currentUserId, currentUserRole }: MemberListProps) {
+  const [removing, setRemoving]   = useState<string | null>(null)
+  const [revoking, setRevoking]   = useState<string | null>(null)
+  const [error,    setError]      = useState<string | null>(null)
+  const canManage  = ['owner', 'admin'].includes(currentUserRole)
+  const totalCount = members.length + pendingInvites.length
 
   async function handleRemove(profileId: string) {
-    setRemoving(profileId)
-    setError(null)
+    setRemoving(profileId); setError(null)
     const result = await removeMember(orgId, profileId)
     setRemoving(null)
     if (result?.error) setError(result.error)
   }
 
+  async function handleRevoke(inviteId: string) {
+    setRevoking(inviteId); setError(null)
+    const res = await fetch(`/api/orgs/${orgId}/invites/${inviteId}`, { method: 'DELETE' })
+    if (!res.ok) { setError('Failed to revoke invite'); setRevoking(null); return }
+    window.location.reload()
+  }
+
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: '1px solid var(--pz-border)' }}
-    >
-      <div
-        className="px-5 py-4"
-        style={{ borderBottom: '1px solid var(--pz-border)', background: 'var(--pz-surface)' }}
-      >
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--pz-border)' }}>
+      <div className="px-5 py-4 flex items-center justify-between"
+        style={{ borderBottom: '1px solid var(--pz-border)', background: 'var(--pz-surface)' }}>
         <h3 className="text-sm font-semibold" style={{ color: 'var(--pz-text)' }}>
-          Team members ({members.length})
+          Team members ({totalCount})
         </h3>
+        {pendingInvites.length > 0 && (
+          <span className="rounded-full px-2 py-0.5 text-xs font-medium"
+            style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            {pendingInvites.length} pending invite{pendingInvites.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
-      {error && (
-        <p className="px-5 py-2 text-sm" style={{ color: '#FCA5A5', background: '#3B0000' }}>
-          {error}
-        </p>
-      )}
+      {error && <p className="px-5 py-2 text-sm" style={{ color: '#FCA5A5', background: '#3B0000' }}>{error}</p>}
 
-      {members.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="px-5 py-6 text-sm text-center" style={{ color: 'var(--pz-text-muted)', background: 'var(--pz-surface)' }}>
           No team members found.
         </div>
@@ -74,45 +88,58 @@ export function MemberList({ members, orgId, currentUserId, currentUserRole }: M
             const initial = displayName.trim().charAt(0).toUpperCase()
             const role = ROLE_STYLE[m.role] ?? ROLE_STYLE.staff
             return (
-              <li
-                key={m.id}
-                className="flex items-center justify-between px-5 py-4"
-                style={{ borderTop: '1px solid var(--pz-border)' }}
-              >
+              <li key={m.id} className="flex items-center justify-between px-5 py-4"
+                style={{ borderTop: '1px solid var(--pz-border)' }}>
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold"
-                    style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-text)' }}
-                  >
-                    {initial}
-                  </div>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold"
+                    style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-text)' }}>{initial}</div>
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>
                       {displayName}
-                      {p?.id === currentUserId && (
-                        <span className="ml-2 text-xs" style={{ color: 'var(--pz-text-muted)' }}>(you)</span>
-                      )}
+                      {p?.id === currentUserId && <span className="ml-2 text-xs" style={{ color: 'var(--pz-text-muted)' }}>(you)</span>}
                     </p>
-                    {p?.email && (
-                      <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>{p.email}</p>
-                    )}
+                    {p?.email && <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>{p.email}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span
-                    className="rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: role.bg, color: role.text }}
-                  >
-                    {m.role}
-                  </span>
+                  <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: role.bg, color: role.text }}>{m.role}</span>
                   {canManage && p?.id !== currentUserId && m.role !== 'owner' && (
-                    <button
-                      onClick={() => handleRemove(p?.id ?? '')}
-                      disabled={removing === p?.id}
-                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity"
-                      style={{ color: '#EF4444' }}
-                    >
+                    <button onClick={() => handleRemove(p?.id ?? '')} disabled={removing === p?.id}
+                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: '#EF4444' }}>
                       {removing === p?.id ? 'Removing…' : 'Remove'}
+                    </button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+
+          {pendingInvites.map((invite) => {
+            const role = ROLE_STYLE[invite.role] ?? ROLE_STYLE.staff
+            const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)
+            return (
+              <li key={invite.id} className="flex items-center justify-between px-5 py-4"
+                style={{ borderTop: '1px solid var(--pz-border)', opacity: 0.85 }}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold"
+                    style={{ border: '2px dashed var(--pz-border)', color: 'var(--pz-text-muted)', background: 'transparent' }}>
+                    {invite.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>{invite.email}</p>
+                    <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>
+                      Invite expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: role.bg, color: role.text }}>{invite.role}</span>
+                  <span className="rounded-full px-2 py-0.5 text-xs font-medium"
+                    style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>Pending</span>
+                  {canManage && (
+                    <button onClick={() => handleRevoke(invite.id)} disabled={revoking === invite.id}
+                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: '#EF4444' }}>
+                      {revoking === invite.id ? 'Revoking…' : 'Revoke'}
                     </button>
                   )}
                 </div>

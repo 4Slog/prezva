@@ -40,6 +40,15 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
     .eq('org_id', org.id)
     .order('created_at', { ascending: true })
 
+  // Fetch pending invites so the team section shows invite status
+  const { data: pendingInvites } = await admin
+    .from("org_member_invites")
+    .select("id, email, role, created_at, expires_at, accepted_at")
+    .eq("org_id", org.id)
+    .is("accepted_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+
   // Fetch Connect status server-side for initial render
   const connectStatus = isOwner ? await getConnectStatus(org.id) : null
 
