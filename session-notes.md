@@ -1,83 +1,63 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-11
+## Last updated: 2026-05-12
 
-## Status: PHASE 1 COMPLETE ✅
+## Status: SPRINT 25 COMPLETE ✅
 
-All 18 sprints done. Tag: `phase-1-complete-final` on branch `sprint18-admin`.
+293 unit tests + 23 integration tests. Smoke 27/27. Tag: `sprint25-complete`.
 
 ---
 
 ## Branch state
 
-- `sprint18-admin` — last working branch, pushed to origin, tagged `phase-1-complete-final`
-- `main` — needs merge from sprint18-admin
-
-## What was built in final session (Sprint 18)
-
-Platform admin dashboard (`/admin/*`):
-
-- `src/lib/admin/gate.ts` — `requireAdmin()` using `ADMIN_EMAILS` env var
-- `src/lib/supabase/admin.ts` — `createAdminClient()` service role client
-- `src/app/(admin)/layout.tsx` — admin sidebar layout
-- `src/app/(admin)/admin/page.tsx` — overview (orgs, events, revenue stats)
-- `src/app/(admin)/admin/orgs/page.tsx` — org list with search, pagination, suspend action
-- `src/app/(admin)/admin/orgs/[id]/page.tsx` — org detail (members, events, revenue, actions)
-- `src/app/(admin)/admin/events/page.tsx` — platform-wide event list with status filter
-- `src/app/(admin)/admin/audit/page.tsx` — audit log viewer with action filter
-- `src/app/(admin)/admin/revenue/page.tsx` — monthly revenue + top orgs breakdown
-- `src/app/(admin)/admin/users/new/page.tsx` — onboard new planner form
-- `src/app/api/admin/orgs/[id]/suspend/route.ts`
-- `src/app/api/admin/orgs/[id]/unsuspend/route.ts`
-- `src/app/api/admin/orgs/[id]/offboard/route.ts` — cancel events, anonymize PII, set deleted_at
-- `src/app/api/admin/users/onboard/route.ts` — create org + send Supabase invite email
-
-Gate check: PASS (12 ✅, 1 ⚠️ — pre-existing high vulns, 0 ❌)
+- `main` — current, up to date with origin, tag `sprint25-complete` on commit `6d35f8b`
 
 ---
 
-## Critical build facts (carry forward)
+## Sprint 25 summary (just completed)
 
-- Build command: `next build --webpack` (Turbopack incompatible with next-pwa@5)
-- No shadcn/ui — plain HTML + Tailwind only
-- Zod uses `.issues` not `.errors` on ZodError
-- Admin pages: `createAdminClient()` server-side only, never browser
-- `requireAdmin()` reads `ADMIN_EMAILS` env var — must be set in Vercel
-- `organizations.suspended` + `organizations.deleted_at` added in migration 0018
-- Dev server: `npm run dev -- -p 3100`
+**Sponsor Module + Seed Data + Public Page Polish**
 
----
-
-## Next steps (deployment)
-
-1. **Merge sprint18-admin → main:**
-   ```
-   git checkout main && git merge sprint18-admin && git push origin main
-   ```
-2. **Vercel environment variables to add:**
-   - `ADMIN_EMAILS` = comma-separated admin email list
-   - `NEXT_PUBLIC_APP_URL` = https://prezva.app
-3. **Run migration 0018 on staging Supabase first**, verify, then prod
-4. **App Store / Play Store** — deferred until Apple/Google enrollment complete
+Files added/modified:
+- `supabase/migrations/0025_sprint25_sponsors.sql` — event_sponsors, attendee_points, community_photos, icebreaker prompt column
+- `supabase/migrations/0026_sprint25_seed.sql` — trivia, passport locations, demo sponsors for Birmingham SBW
+- `src/lib/sponsors/actions.ts` — getSponsors, createSponsor, updateSponsor, deleteSponsor (Zod + assertOrgAdmin)
+- `src/app/(dashboard)/events/[slug]/sponsors/page.tsx` — replaced stub with real page
+- `src/app/(dashboard)/events/[slug]/sponsors/sponsors-client.tsx` — full tier CRUD UI
+- `src/lib/public/actions.ts` — added getPublicSponsors
+- `src/app/e/[slug]/page.tsx` — added sponsors section (tier-grouped, #sponsors anchor)
+- `src/__tests__/sprint25.test.ts` — 13 tests
 
 ---
 
-## Phase 1 summary
+## Key build facts (carry forward)
 
-- 18 sprints, all complete
-- 189 unit/integration tests passing
-- Playwright E2E: 9 critical path tests
-- Gate checks: all sprints ended PASS/WARN, 0 FAIL
-- GitHub: github.com/4Slog/prezva (private)
-- Tags: `phase-1-complete` (after Sprint 8), `phase-1-complete-final` (after Sprint 18, 2026-05-11)
+- **Build command:** `next build` (no --webpack flag; Turbopack used via next.config.ts)
+- No shadcn/ui — plain HTML + Tailwind + inline styles with CSS vars
+- Zod uses `.issues[0].message` not `.errors[0].message`
+- Admin client: `createAdminClient()` server-side only — comment `// Admin client: <reason>`
+- `requireUser()` returns user directly (not `{ user }`)
+- `params` in pages/routes: `Promise<{ slug: string }>` — always `await params`
+- Stripe SDK v22, API `2026-04-22.dahlia`
+- CSS custom properties: `--pz-bg`, `--pz-surface`, `--pz-teal`, `--pz-border`, `--pz-text`, `--pz-muted`
+- Supabase project: `jmhxyyrleipcorvkmxfk`
+- DB push: `supabase db push --db-url 'postgresql://postgres:ERg%2A%3FZ6grtE5nH%24@db.jmhxyyrleipcorvkmxfk.supabase.co:5432/postgres'`
 
-## Completed sprints
-- S1: Schema reconciliation | S2: Integration test gate | S3: Feature delivery
-- S4: UX polish | S5: Registration depth | S6: Agenda depth
-- S7: Check-in depth | S8: Speakers + networking | S9: Email + notifications
-- S10: Survey depth | S11: Productivity tools | S12: Apple/Google Wallet
-- S13: Integrations P1 (Outlook, Zoom, Teams) | S14: Integrations P2 (Drive, SP, Mailchimp, CC, GForms, EB)
-- S15: Integrations P3 (7 association adapters + mgmt UI + member gating)
-- S16: PWA + Expo (service worker, VAPID push, audit log, offline indicators, Expo wrapper)
-- S17: Security polish (2FA/TOTP, GDPR export/delete, survey guest tokens, help center, E2E, seed script)
-- S18: Platform admin dashboard (/admin layer, org/event/audit/revenue management)
+---
+
+## Pending deployment follow-ups (Paul-required)
+
+1. Run migrations 0019-0026 on **production** Supabase
+2. Add `ADMIN_EMAILS` env var to Vercel
+3. Add `NEXT_PUBLIC_APP_URL=https://prezva.app` to Vercel
+4. Fix `/sw.js` 404 — migrate to `@serwist/next` or commit manual `public/sw.js`
+5. Push integration env vars to Vercel (Zoom, Mailchimp, Eventbrite, Constant Contact)
+6. Apple Developer enrollment (D-U-N-S 127451051)
+7. Google Play Console enrollment
+
+---
+
+## Next sprint candidates (Sprint 26)
+
+- T-301: Button component + color system consolidation (low priority, deferred)
+- Sprint 26 scope TBD — likely: email notifications (Resend), Stripe billing UI, or mobile Expo depth
