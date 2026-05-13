@@ -8,10 +8,17 @@ import { checkInByQR, checkInBySearch, getCheckInStats } from '@/lib/checkin/act
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
 import { queueCheckIn, getPendingCount, syncPending } from '@/lib/checkin/offline-db'
 
+interface VolunteerStatus {
+  total: number
+  checked_in: number
+  clocked_in_names: string[]
+}
+
 interface CheckInClientProps {
   eventId: string
   eventName: string
   initialStats: CheckInStats
+  volunteerStatus?: VolunteerStatus | null
 }
 
 type Tab = 'qr' | 'search' | 'stats'
@@ -27,7 +34,7 @@ function getDeviceId(): string {
   return id
 }
 
-export function CheckInClient({ eventId, eventName, initialStats }: CheckInClientProps) {
+export function CheckInClient({ eventId, eventName, initialStats, volunteerStatus }: CheckInClientProps) {
   const [tab, setTab] = useState<Tab>('qr')
   const [stats, setStats] = useState<CheckInStats>(initialStats)
   const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
@@ -205,7 +212,7 @@ export function CheckInClient({ eventId, eventName, initialStats }: CheckInClien
           <ManualSearch eventId={eventId} onCheckIn={handleManualCheckIn} />
         )}
         {tab === 'stats' && (
-          <CheckInDashboard stats={stats} onRefresh={refreshStats} />
+          <CheckInDashboard stats={stats} onRefresh={refreshStats} volunteerStatus={volunteerStatus} />
         )}
       </div>
     </div>

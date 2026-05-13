@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { AttendeeWithTicket, AttendeeFilters } from '@/lib/attendees/actions'
 
@@ -18,6 +19,7 @@ interface AttendeeTableProps {
 export function AttendeeTable({
   attendees, total, page, totalPages, eventId, eventSlug, onFilterChange, onRemove,
 }: AttendeeTableProps) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
 
@@ -85,12 +87,20 @@ export function AttendeeTable({
               </tr>
             )}
             {attendees.map(a => (
-              <tr key={a.id} className="hover:bg-[var(--bg-hover)] transition-colors">
+              <tr
+                key={a.id}
+                className="hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ cursor: eventSlug ? 'pointer' : 'default' }}
+                onClick={(e) => {
+                  if (!eventSlug) return
+                  // Don't navigate if clicking a button or link within the row
+                  if ((e.target as HTMLElement).closest('button, a')) return
+                  router.push(`/events/${eventSlug}/attendees/${a.id}`)
+                }}
+              >
                 <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
                   {eventSlug ? (
-                    <Link href={`/events/${eventSlug}/attendees/${a.id}`} style={{ color: 'var(--pz-teal)', textDecoration: 'none' }}>
-                      {a.attendee_name}
-                    </Link>
+                    <span style={{ color: 'var(--pz-teal)' }}>{a.attendee_name}</span>
                   ) : a.attendee_name}
                 </td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">{a.attendee_email}</td>
