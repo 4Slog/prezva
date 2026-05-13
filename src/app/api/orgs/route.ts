@@ -61,7 +61,7 @@ export async function GET() {
       .from("org_members")
       .select("org_id, role, organizations(id, name, slug, logo_url, timezone)")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
+      .order("joined_at", { ascending: true })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data ?? [])
