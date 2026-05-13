@@ -40,3 +40,6 @@ next-env.d.ts
 .env.local
 .env*.local
 .env.test
+.playwright-mcp/
+# Root-level screenshot PNGs (not public/ icons)
+/*.png
