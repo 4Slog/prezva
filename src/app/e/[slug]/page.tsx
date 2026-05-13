@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getPublicEvent, getPublicAgenda, getPublicSpeakers } from '@/lib/public/actions'
+import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getPublicSponsors } from '@/lib/public/actions'
 import { ShareButtons } from '@/components/events/ShareButtons'
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
 
@@ -8,9 +8,10 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { slug } = await params
   const event = await getPublicEvent(slug)
   if (!event) notFound()
-  const [sessions, speakers] = await Promise.all([
+  const [sessions, speakers, sponsors] = await Promise.all([
     getPublicAgenda(event.id),
     getPublicSpeakers(event.id),
+    getPublicSponsors(event.id),
   ])
   const start = new Date(event.start_at)
   const end = new Date(event.end_at)
@@ -86,6 +87,45 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+        {sponsors.length > 0 && (
+          <section id="sponsors" style={{ marginBottom:'3rem' }}>
+            <h2 style={{ fontSize:'1.25rem', fontWeight:700, marginBottom:'1.5rem' }}>Sponsors</h2>
+            {(['title','gold','silver','bronze'] as const).map(tier => {
+              const group = sponsors.filter((s: any) => s.tier === tier)
+              if (group.length === 0) return null
+              const tierLabel: Record<string, string> = { title:'Title Sponsor', gold:'Gold', silver:'Silver', bronze:'Bronze' }
+              const tierSize: Record<string, number> = { title:120, gold:90, silver:70, bronze:54 }
+              return (
+                <div key={tier} style={{ marginBottom:'1.5rem' }}>
+                  <p style={{ fontSize:11, fontWeight:700, color:'var(--color-text-muted)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12 }}>
+                    {tierLabel[tier]}
+                  </p>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:16, alignItems:'center' }}>
+                    {group.map((sp: any) => (
+                      <a
+                        key={sp.id}
+                        href={sp.website_url ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          width: tierSize[tier] * 1.8, height: tierSize[tier],
+                          border:'1px solid var(--color-border)', borderRadius:10,
+                          background:'var(--color-surface)', padding:'0.5rem 1rem',
+                          textDecoration:'none', overflow:'hidden',
+                        }}
+                      >
+                        {sp.logo_url
+                          ? <img src={sp.logo_url} alt={sp.name} style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />
+                          : <span style={{ fontSize:13, fontWeight:700, color:'var(--color-text)', textAlign:'center' }}>{sp.name}</span>}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </section>
         )}
       </div>

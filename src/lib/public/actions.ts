@@ -55,6 +55,17 @@ export async function getPublicSpeaker(eventId: string, speakerId: string) {
   return data
 }
 
+export async function getPublicSponsors(eventId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('event_sponsors')
+    .select('id, name, website_url, logo_url, tier, sort_order, is_featured')
+    .eq('event_id', eventId)
+    .order('tier')
+    .order('sort_order')
+  return data ?? []
+}
+
 export async function getBookmarks(userId: string, eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase

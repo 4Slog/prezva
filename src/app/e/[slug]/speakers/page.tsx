@@ -27,7 +27,7 @@ export default async function PublicSpeakersPage({ params }: { params: Promise<{
                     </div>
                     <p style={{ fontWeight:700 }}>{sp.name}</p>
                     {sp.job_title && <p style={{ fontSize:13, color:'var(--color-text-muted)', marginTop:3 }}>{sp.job_title}</p>}
-                    {sp.company && <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>{sp.company}</p>}
+                    {sp.company && sp.company !== sp.job_title && <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>{sp.company}</p>}
                   </div>
                 </Link>
               ))}
