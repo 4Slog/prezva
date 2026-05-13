@@ -155,6 +155,13 @@ export async function startRegistration(formData: FormData) {
     return { error: 'This organization has not connected a bank account yet. Contact the event organizer.' }
   }
 
+  // Verify the organizer's Stripe Connect account can accept payments
+  const { stripe } = await import('@/lib/stripe/client')
+  const account = await stripe.accounts.retrieve(org.stripe_account_id)
+  if (!account.charges_enabled || !account.details_submitted) {
+    return { error: 'This event is not currently accepting payments. Please contact the organizer.' }
+  }
+
   return await createPaidRegistration(
     supabase,
     parsed.data,
@@ -259,6 +266,7 @@ async function createPaidRegistration(
   try {
     const org = event.organizations as { name: string } | null
     const session = await createCheckoutSession({
+      registrationId:     reg.id,
       eventId:            data.event_id,
       eventTitle:         event.title as string,
       eventSlug:          event.slug as string,

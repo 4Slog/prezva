@@ -2,12 +2,19 @@
 
 import type { CheckInStats } from '@/lib/checkin/actions'
 
+interface VolunteerStatus {
+  total: number
+  checked_in: number
+  clocked_in_names: string[]
+}
+
 interface CheckInDashboardProps {
   stats: CheckInStats
   onRefresh: () => void
+  volunteerStatus?: VolunteerStatus | null
 }
 
-export function CheckInDashboard({ stats, onRefresh }: CheckInDashboardProps) {
+export function CheckInDashboard({ stats, onRefresh, volunteerStatus }: CheckInDashboardProps) {
   const { total_registered, total_checked_in, percent, recent } = stats
 
   return (
@@ -41,6 +48,31 @@ export function CheckInDashboard({ stats, onRefresh }: CheckInDashboardProps) {
           />
         </div>
       </div>
+
+      {/* Volunteer status */}
+      {volunteerStatus && volunteerStatus.total > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Volunteer Status</h3>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3">
+            <p className="text-sm text-[var(--text-muted)]">
+              <span className="font-semibold text-[var(--brand-teal)]">{volunteerStatus.checked_in}</span>
+              {' '}of{' '}
+              <span className="font-semibold text-[var(--text-primary)]">{volunteerStatus.total}</span>
+              {' '}volunteers clocked in
+            </p>
+            {volunteerStatus.clocked_in_names.length > 0 && (
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                {volunteerStatus.clocked_in_names.join(', ')}
+              </p>
+            )}
+            {volunteerStatus.total > volunteerStatus.checked_in && (
+              <p className="text-xs text-amber-400 mt-1">
+                {volunteerStatus.total - volunteerStatus.checked_in} volunteer{volunteerStatus.total - volunteerStatus.checked_in !== 1 ? 's' : ''} not yet checked in
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Recent activity */}
       <div className="space-y-2">

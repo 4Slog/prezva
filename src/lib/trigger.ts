@@ -6,6 +6,7 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import type { sendConfirmationEmail, processWaitlist } from '@/trigger/jobs/registration'
 import type { sendAnnouncement } from '@/trigger/jobs/announcement'
+import type { sendVolunteerInviteEmail } from '@/trigger/jobs/volunteer-invite'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -54,6 +55,25 @@ export async function enqueueAnnouncementDelivery(payload: AnnouncementPayload) 
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue announcement delivery:', err)
+    return null
+  }
+}
+
+type VolunteerInvitePayload = Parameters<typeof sendVolunteerInviteEmail.trigger>[0]
+
+export async function sendVolunteerInvite(payload: VolunteerInvitePayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping volunteer invite')
+    return null
+  }
+  try {
+    const handle = await tasks.trigger<typeof sendVolunteerInviteEmail>(
+      'send-volunteer-invite',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue volunteer invite:', err)
     return null
   }
 }

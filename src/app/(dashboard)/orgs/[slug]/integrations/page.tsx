@@ -16,6 +16,7 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
 }
 
 const SECTION_MAP: Record<string, string> = {
+  ghl: 'CRM',
   mailchimp: 'Communications',
   constant_contact: 'Communications',
   outlook: 'Calendaring',
@@ -35,6 +36,7 @@ const SECTION_MAP: Record<string, string> = {
 }
 
 const SECTION_ORDER = [
+  'CRM',
   'Communications',
   'Calendaring',
   'Video Conferencing',

@@ -51,6 +51,20 @@ export const BADGE_TEMPLATES: BadgeTemplate[] = [
     accent_color: '#00BFA6',
   },
   {
+    id: 'volunteer',
+    name: 'Volunteer',
+    description: 'Volunteer badge with role designation and red accent',
+    layout: 'portrait',
+    size: { width_mm: 89, height_mm: 102 },
+    fields: [
+      { type: 'text', static: 'VOLUNTEER', x: 5, y: 5, w: 79, h: 14, font_size: 22, weight: 'bold', align: 'center', color: '#dc2626' },
+      { type: 'text', binding: 'volunteer_name', x: 5, y: 40, w: 79, h: 14, font_size: 24, weight: 'bold', align: 'center' },
+      { type: 'text', binding: 'volunteer_role', x: 5, y: 55, w: 79, h: 8, font_size: 12, align: 'center' },
+      { type: 'text', binding: 'shift_time', x: 5, y: 65, w: 79, h: 8, font_size: 10, align: 'center', color: '#666' },
+    ],
+    accent_color: '#dc2626',
+  },
+  {
     id: 'staff-minimal',
     name: 'Staff',
     description: 'Minimal staff badge with role',

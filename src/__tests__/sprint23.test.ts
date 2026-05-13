@@ -99,14 +99,19 @@ describe('Sprint 23 — Module Tile Gap Closure', () => {
     expect(src).toContain('Promise.allSettled')
   })
 
-  // Dashboard layout sidebar
+  // Dashboard layout sidebar (nav items moved to Sidebar.tsx in Sprint 27)
   it('dashboard layout sidebar has expanded nav items', () => {
-    const path = join(SRC, 'app/(dashboard)/layout.tsx')
-    const src = readFileSync(path, 'utf-8')
-    expect(src).toContain('Integrations')
-    expect(src).toContain('Templates')
-    expect(src).toContain('Audit Log')
-    expect(src).toContain('Help')
+    const layoutPath = join(SRC, 'app/(dashboard)/layout.tsx')
+    const sidebarPath = join(SRC, 'components/layout/Sidebar.tsx')
+    const layoutSrc = readFileSync(layoutPath, 'utf-8')
+    // Layout references the Sidebar component
+    expect(layoutSrc).toContain('Sidebar')
+    // Nav items live in Sidebar.tsx since Sprint 27 refactor
+    const sidebarSrc = readFileSync(sidebarPath, 'utf-8')
+    expect(sidebarSrc).toContain('Integrations')
+    expect(sidebarSrc).toContain('Templates')
+    expect(sidebarSrc).toContain('Audit Log')
+    expect(sidebarSrc).toContain('Help')
   })
 
   // Missing admin pages created

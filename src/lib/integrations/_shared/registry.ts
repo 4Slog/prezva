@@ -15,6 +15,7 @@ import { yourMembershipAdapter } from '../yourmembership/adapter'
 import { glueUpAdapter } from '../glue-up/adapter'
 import { neonAdapter } from '../neon/adapter'
 import { noviAdapter } from '../novi/adapter'
+import { ghlAdapter } from '../ghl/adapter'
 
 const registry = new Map<string, IntegrationAdapter>([
   ['outlook', outlookAdapter],
@@ -33,6 +34,7 @@ const registry = new Map<string, IntegrationAdapter>([
   ['glue_up', glueUpAdapter],
   ['neon', neonAdapter],
   ['novi', noviAdapter],
+  ['ghl', ghlAdapter],
 ])
 
 export function getAdapter(provider: string): IntegrationAdapter {

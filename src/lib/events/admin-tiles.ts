@@ -16,6 +16,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'agenda',         label: 'Agenda',          icon: '📋', category: 'core',        description: 'Sessions, schedule, session documents, check-ins',   href: s => `/events/${s}/agenda` },
   { key: 'speakers',       label: 'Speakers',        icon: '🎤', category: 'core',        description: 'Invite speakers, manage bios, handouts, portal',     href: s => `/events/${s}/speakers` },
   { key: 'checkin',        label: 'Check-in',        icon: '✅', category: 'core',        description: 'QR scanner, kiosk mode, walk-in registrations',      href: s => `/events/${s}/checkin` },
+  { key: 'volunteers',     label: 'Volunteers',      icon: '🙋', category: 'core',        description: 'Manage event volunteers, shifts, and check-in access', href: s => `/events/${s}/volunteers` },
   { key: 'badges',         label: 'Badges',          icon: '🏷️', category: 'core',        description: 'Design and print attendee name badges',              href: s => `/events/${s}/badges` },
 
   // Engagement
@@ -30,9 +31,10 @@ export const ADMIN_TILES: AdminTile[] = [
 
   // Advanced
   { key: 'sponsors',       label: 'Sponsors',        icon: '🏢', category: 'advanced',    description: 'Sponsor tiers, logos, exhibitor directory',         href: s => `/events/${s}/sponsors` },
-  { key: 'certificates',   label: 'Certificates',    icon: '🎓', category: 'advanced',    description: 'CE certificates, eligibility rules, email delivery', href: s => `/events/${s}/settings` },
+  { key: 'certificates',   label: 'Certificates',    icon: '🎓', category: 'advanced',    description: 'CE certificates, eligibility rules, email delivery', href: s => `/events/${s}/certificates` },
   { key: 'analytics',      label: 'Analytics',       icon: '📈', category: 'advanced',    description: 'Registration trends, engagement, survey results',    href: s => `/events/${s}/analytics` },
   { key: 'audit-log',      label: 'Audit Log',       icon: '🔍', category: 'advanced',    description: 'Track all admin actions, exports, and changes',      href: s => `/events/${s}/audit-log` },
+  { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and replay failed background sync jobs',        href: s => `/events/${s}/dead-letters` },
 
   // Integration
   { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: _s => '/orgs/[slug]/integrations' },

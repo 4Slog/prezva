@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getCheckInStats } from '@/lib/checkin/actions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { CheckInClient } from './client'
 
 interface Props { params: Promise<{ slug: string }> }
@@ -20,7 +21,29 @@ export default async function CheckInPage({ params }: Props) {
     .eq('org_id', (event as any).org_id).eq('user_id', user.id).single()
   if (!member) notFound()
 
-  const initialStats = await getCheckInStats((event as any).id)
+  const [initialStats, volunteersResult] = await Promise.all([
+    getCheckInStats((event as any).id),
+    // Admin client: read volunteer status for this event
+    createAdminClient()
+      .from('volunteers')
+      .select('name, status, clocked_in_at, clocked_out_at')
+      .eq('event_id', (event as any).id),
+  ])
+
+  const volunteers = (volunteersResult.data ?? []) as {
+    name: string
+    status: string
+    clocked_in_at: string | null
+    clocked_out_at: string | null
+  }[]
+
+  const volunteerStatus = volunteers.length > 0 ? {
+    total: volunteers.length,
+    checked_in: volunteers.filter(v => v.status === 'checked_in').length,
+    clocked_in_names: volunteers
+      .filter(v => v.clocked_in_at && !v.clocked_out_at)
+      .map(v => v.name.split(' ')[0]),
+  } : null
 
   return (
     <div className="p-6">
@@ -28,6 +51,7 @@ export default async function CheckInPage({ params }: Props) {
         eventId={(event as any).id}
         eventName={(event as any).title}
         initialStats={initialStats}
+        volunteerStatus={volunteerStatus}
       />
     </div>
   )
