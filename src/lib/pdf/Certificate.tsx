@@ -64,7 +64,7 @@ export function Certificate(props: CertificateProps) {
       marginBottom: 16,
     },
     title: {
-      fontSize: 28,
+      fontSize: accent === '#B8860B' ? 32 : 28,
       fontFamily: 'Helvetica-Bold',
       color: '#1a202c',
       textAlign: 'center',
@@ -122,6 +122,35 @@ export function Certificate(props: CertificateProps) {
       fontSize: 10,
       color: '#718096',
     },
+    ceBlock: {
+      alignItems: 'center',
+      marginVertical: 12,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: accent,
+      borderStyle: 'solid',
+      marginHorizontal: 60,
+    },
+    ceLabel: {
+      fontSize: 10,
+      color: '#718096',
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+    ceValue: {
+      fontSize: 20,
+      fontFamily: 'Helvetica-Bold',
+      color: accent,
+      textAlign: 'center',
+    },
+    licensingNote: {
+      fontSize: 9,
+      color: '#718096',
+      textAlign: 'center',
+      fontStyle: 'italic',
+      marginHorizontal: 60,
+      marginBottom: 8,
+    },
   })
 
   const footerText = renderBody(template.footer, props)
@@ -146,6 +175,13 @@ export function Certificate(props: CertificateProps) {
 
         <Text style={styles.body}>{bodyText}</Text>
 
+        {template.ce_credits_field && props.ceCredits > 0 && (
+          <View style={styles.ceBlock}>
+            <Text style={styles.ceLabel}>Continuing Education Credit Hours</Text>
+            <Text style={styles.ceValue}>{props.ceCredits}</Text>
+          </View>
+        )}
+
         {template.signature_image_url && (
           <View style={styles.signatureArea}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -153,6 +189,10 @@ export function Certificate(props: CertificateProps) {
             <View style={styles.signatureLine} />
             <Text style={styles.signatureLabel}>Authorized Signature</Text>
           </View>
+        )}
+
+        {template.licensing_body_note && (
+          <Text style={styles.licensingNote}>{template.licensing_body_note}</Text>
         )}
 
         <Text style={styles.footer}>{footerText}</Text>

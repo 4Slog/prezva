@@ -5,6 +5,7 @@ export { EVENT_TEMPLATES } from './events'
 export { ANNOUNCEMENT_TEMPLATES } from './announcements'
 export { ICEBREAKER_PROMPTS } from './icebreakers'
 export { TRIVIA_QUESTIONS } from './trivia'
+export { CERTIFICATE_TEMPLATES } from './certificates'
 
 import type { TemplateSurface } from './types'
 import { SURVEY_TEMPLATES } from './surveys'
@@ -13,6 +14,7 @@ import { EVENT_TEMPLATES } from './events'
 import { ANNOUNCEMENT_TEMPLATES } from './announcements'
 import { ICEBREAKER_PROMPTS } from './icebreakers'
 import { TRIVIA_QUESTIONS } from './trivia'
+import { CERTIFICATE_TEMPLATES } from './certificates'
 
 const GLOBAL_TEMPLATES: Record<TemplateSurface, unknown[]> = {
   survey: SURVEY_TEMPLATES,
@@ -21,6 +23,7 @@ const GLOBAL_TEMPLATES: Record<TemplateSurface, unknown[]> = {
   announcement: ANNOUNCEMENT_TEMPLATES,
   icebreaker: ICEBREAKER_PROMPTS,
   trivia: TRIVIA_QUESTIONS,
+  certificate: CERTIFICATE_TEMPLATES,
 }
 
 export function getGlobalTemplates(surface: TemplateSurface) {

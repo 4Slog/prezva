@@ -1,4 +1,4 @@
-export type TemplateSurface = 'survey' | 'badge' | 'event' | 'announcement' | 'icebreaker' | 'trivia'
+export type TemplateSurface = 'survey' | 'badge' | 'event' | 'announcement' | 'icebreaker' | 'trivia' | 'certificate'
 
 export interface SurveyQuestion {
   type: 'nps' | 'rating' | 'multi_choice' | 'short_text' | 'long_text' | 'boolean' | 'number'

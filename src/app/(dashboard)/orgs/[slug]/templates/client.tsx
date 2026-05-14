@@ -11,6 +11,7 @@ const SURFACE_LABELS: Record<TemplateSurface, string> = {
   announcement: 'Announcement',
   icebreaker: 'Icebreaker',
   trivia: 'Trivia',
+  certificate: 'Certificate',
 }
 
 const SURFACE_COLOR: Record<TemplateSurface, string> = {
@@ -20,6 +21,7 @@ const SURFACE_COLOR: Record<TemplateSurface, string> = {
   announcement: '#f59e0b',
   icebreaker: '#ec4899',
   trivia: '#ef4444',
+  certificate: '#B8860B',
 }
 
 interface Props {
