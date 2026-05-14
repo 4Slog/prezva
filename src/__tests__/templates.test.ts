@@ -43,18 +43,18 @@ describe('Template library', () => {
     expect(src).toContain("'last-call'")
   })
 
-  it('icebreaker prompts file exists with 10 prompts', () => {
+  it('icebreaker prompts file exists with 50 prompts', () => {
     const src = readFileSync(join(SRC, 'lib/templates/icebreakers.ts'), 'utf-8')
     expect(src).toContain('ICEBREAKER_PROMPTS')
-    const matches = src.match(/id: 'ib-/g)
-    expect(matches?.length).toBe(10)
+    const matches = src.match(/id: 'ice-/g)
+    expect(matches?.length).toBe(50)
   })
 
-  it('trivia questions file exists with 10 questions', () => {
+  it('trivia questions file exists with 55 questions', () => {
     const src = readFileSync(join(SRC, 'lib/templates/trivia.ts'), 'utf-8')
     expect(src).toContain('TRIVIA_QUESTIONS')
-    const matches = src.match(/id: 'tq-/g)
-    expect(matches?.length).toBe(10)
+    const matches = src.match(/id: 'trv-/g)
+    expect(matches?.length).toBe(55)
   })
 
   it('index.ts re-exports all surfaces', () => {
