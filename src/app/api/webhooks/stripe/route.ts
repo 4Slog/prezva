@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
       attendeeName:   reg.attendee_name,
       eventTitle:     ev?.title as string ?? '',
       eventStartAt:   ev?.start_at as string ?? '',
+      eventSlug:      ev?.slug as string ?? '',
       eventVenue:     [ev?.venue_name, ev?.venue_city, ev?.venue_state]
         .filter(Boolean).join(', ') || undefined,
       qrCode:  reg.qr_code,

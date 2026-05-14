@@ -25,6 +25,17 @@ export const sendAnnouncement = schemaTask({
     const audienceTypes: string[] = ann.audience_filter?.types ?? []
     const excludeTypes: string[] = ann.exclude_filter?.types ?? []
 
+    const { data: ev } = await supabase
+      .from('events')
+      .select('title, slug, organizations(name)')
+      .eq('id', ann.event_id)
+      .maybeSingle()
+
+    const eventTitle = (ev as any)?.title ?? 'your event'
+    const eventSlug  = (ev as any)?.slug ?? ''
+    const orgName    = ((ev as any)?.organizations as { name: string } | null)?.name ?? 'Your organizer'
+    const eventUrl   = eventSlug ? `https://prezva.app/e/${eventSlug}` : ''
+
     const regQuery = supabase
       .from('registrations')
       .select('attendee_email, attendee_name, ticket_type_id')
@@ -33,43 +44,41 @@ export const sendAnnouncement = schemaTask({
 
     const { data: regsRaw } = await regQuery
 
-    // Apply audience filter (include only specified ticket types, if any)
     let regs = regsRaw ?? []
     if (audienceTypes.length > 0) {
       regs = regs.filter((r: any) => audienceTypes.includes(r.ticket_type_id))
     }
-    // Apply exclusion filter
     if (excludeTypes.length > 0) {
       regs = regs.filter((r: any) => !excludeTypes.includes(r.ticket_type_id))
     }
 
     if (regs.length === 0) return { sent: 0, failed: 0 }
 
-    const { data: ev } = await supabase
-      .from('events')
-      .select('title')
-      .eq('id', ann.event_id)
-      .maybeSingle()
-
-    const eventTitle = ev?.title ?? 'your event'
-
-    const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-        <div style="background:#0D1B2A;padding:24px;border-radius:12px 12px 0 0;">
-          <h1 style="color:#00BFA6;margin:0;font-size:1.5rem;">${ann.title}</h1>
-        </div>
-        <div style="background:#112240;padding:24px;border-radius:0 0 12px 12px;color:#F0F4F8;">
-          <p style="white-space:pre-line;">${ann.body}</p>
-          <hr style="border:none;border-top:1px solid #1E3A5F;margin:16px 0;" />
-          <p style="color:#94A3B8;font-size:0.875rem;">Powered by Prezva · ${eventTitle}</p>
-        </div>
-      </div>
-    `
-
     let sent = 0
     let failed = 0
 
     for (const reg of regs) {
+      const html = `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
+            <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+              <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
+            </div>
+            <h1 style="color:#F0F4F8;font-size:20px;margin:0;">${ann.title}</h1>
+          </div>
+          <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
+            <p style="font-size:15px;">Hi ${reg.attendee_name},</p>
+            <p style="white-space:pre-line;font-size:15px;line-height:1.6;">${ann.body}</p>
+            ${eventUrl ? `<p style="margin:16px 0;"><a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;font-size:14px;">→ View event page</a></p>` : ''}
+            <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
+            <p style="color:#475569;font-size:12px;margin:0;">
+              Sent by ${orgName} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a> · ${eventTitle}<br/>
+              You received this because you are registered for this event.
+            </p>
+          </div>
+        </div>
+      `
+
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -77,9 +86,9 @@ export const sendAnnouncement = schemaTask({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `Prezva <noreply@prezva.app>`,
+          from: `${orgName} <noreply@prezva.app>`,
           to: reg.attendee_email,
-          subject: `📢 ${ann.title}`,
+          subject: `${orgName}: ${ann.title}`,
           html,
         }),
       })

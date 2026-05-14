@@ -218,6 +218,7 @@ async function confirmFreeRegistration(
     attendeeName:   data.attendee_name,
     eventTitle:     event.title as string,
     eventStartAt:   event.start_at as string,
+    eventSlug:      event.slug as string,
     eventVenue:     [event.venue_name, event.venue_city, event.venue_state]
       .filter(Boolean).join(', ') || undefined,
     qrCode:  reg.qr_code,

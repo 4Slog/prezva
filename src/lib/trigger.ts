@@ -8,6 +8,7 @@ import type { sendConfirmationEmail, processWaitlist } from '@/trigger/jobs/regi
 import type { sendAnnouncement } from '@/trigger/jobs/announcement'
 import type { sendVolunteerInviteEmail } from '@/trigger/jobs/volunteer-invite'
 import type { sendCertificateEmail } from '@/trigger/jobs/certificate-email'
+import type { sendSpeakerInviteEmail } from '@/trigger/jobs/speaker-invite'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -95,16 +96,12 @@ export async function enqueueCertificateEmail(payload: CertificateEmailPayload) 
   }
 }
 
-export async function enqueueSpeakerInviteEmail(payload: {
-  speakerName: string
-  speakerEmail: string
-  eventTitle: string
-  eventDate: string
-  portalUrl: string
-}) {
+type SpeakerInvitePayload = Parameters<typeof sendSpeakerInviteEmail.trigger>[0]
+
+export async function enqueueSpeakerInviteEmail(payload: SpeakerInvitePayload) {
   if (!process.env.TRIGGER_SECRET_KEY) return null
   try {
-    const handle = await tasks.trigger('send-speaker-invite', payload)
+    const handle = await tasks.trigger<typeof sendSpeakerInviteEmail>('send-speaker-invite', payload)
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue speaker invite email:', err)
