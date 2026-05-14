@@ -24,6 +24,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
   const [titleDefault, setTitleDefault] = useState('')
   const [bodyDefault, setBodyDefault] = useState('')
   const [channelDefault, setChannelDefault] = useState('email')
+  const [subjectOptions, setSubjectOptions] = useState<string[]>([])
 
   function handleTemplatePick(raw: unknown) {
     setShowPicker(false)
@@ -31,11 +32,13 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
       const tpl = raw as AnnouncementTemplate
       setTitleDefault(tpl.subject ?? '')
       setBodyDefault(tpl.body ?? '')
+      setSubjectOptions(tpl.subjects ?? [])
       const ch = tpl.channels?.length === 2 ? 'both' : (tpl.channels?.[0] ?? 'email')
       setChannelDefault(ch)
     } else {
       setTitleDefault('')
       setBodyDefault('')
+      setSubjectOptions([])
       setChannelDefault('email')
     }
     setShowForm(true)
@@ -86,6 +89,18 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Subject</label>
               <input name="title" required maxLength={200} defaultValue={titleDefault} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, boxSizing: 'border-box' }} />
+              {subjectOptions.length > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)', alignSelf: 'center', marginRight: 2 }}>Subject options:</span>
+                  {subjectOptions.map((s, i) => (
+                    <button key={i} type="button"
+                      onClick={e => { const inp = (e.currentTarget.closest('div')?.previousElementSibling as HTMLInputElement); if (inp) inp.value = s; setTitleDefault(s) }}
+                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid var(--color-teal)', color: 'var(--color-teal)', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {s.length > 40 ? s.slice(0, 40) + '…' : s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Message</label>

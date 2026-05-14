@@ -90,6 +90,7 @@ export interface AnnouncementTemplate {
   channels: string[]
   audience: string
   subject: string
+  subjects?: string[]
   body: string
   trigger?: string
 }
