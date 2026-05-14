@@ -33,6 +33,8 @@ export interface BadgeField {
   color?: string
   shape?: string
   wrap?: boolean
+  invert?: boolean
+  rotation?: number
 }
 
 export interface BadgeTemplate {
@@ -44,6 +46,9 @@ export interface BadgeTemplate {
   fields: BadgeField[]
   accent_color?: string
   accent_color_var?: string
+  color_required?: boolean
+  zpl_supported?: boolean
+  orientation_note?: string
 }
 
 export interface TicketTypeTemplate {
