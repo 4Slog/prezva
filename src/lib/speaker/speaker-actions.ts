@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { enqueueSpeakerInviteEmail } from '@/lib/trigger'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
 
@@ -60,6 +61,12 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string, appU
 
   const portalUrl = `${appUrl}/speaker/${token}`
 
+  const { data: eventRow } = await supabase
+    .from('events')
+    .select('title, start_at')
+    .eq('id', eventId)
+    .single()
+
   const service = createServiceClient()
   const { error } = await service.auth.admin.generateLink({
     type: 'magiclink',
@@ -67,6 +74,15 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string, appU
     options: {
       redirectTo: portalUrl,
     },
+  })
+
+  // Enqueue branded invite email via Trigger.dev (non-blocking)
+  void enqueueSpeakerInviteEmail({
+    speakerName:  (speaker as any).name,
+    speakerEmail: (speaker as any).email,
+    eventTitle:   (eventRow as any)?.title ?? '',
+    eventDate:    (eventRow as any)?.start_at ?? '',
+    portalUrl,
   })
 
   if (error) {

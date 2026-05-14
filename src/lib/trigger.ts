@@ -7,6 +7,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import type { sendConfirmationEmail, processWaitlist } from '@/trigger/jobs/registration'
 import type { sendAnnouncement } from '@/trigger/jobs/announcement'
 import type { sendVolunteerInviteEmail } from '@/trigger/jobs/volunteer-invite'
+import type { sendCertificateEmail } from '@/trigger/jobs/certificate-email'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -74,6 +75,39 @@ export async function sendVolunteerInvite(payload: VolunteerInvitePayload) {
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue volunteer invite:', err)
+    return null
+  }
+}
+
+type CertificateEmailPayload = Parameters<typeof sendCertificateEmail.trigger>[0]
+
+export async function enqueueCertificateEmail(payload: CertificateEmailPayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) return null
+  try {
+    const handle = await tasks.trigger<typeof sendCertificateEmail>(
+      'send-certificate-email',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue certificate email:', err)
+    return null
+  }
+}
+
+export async function enqueueSpeakerInviteEmail(payload: {
+  speakerName: string
+  speakerEmail: string
+  eventTitle: string
+  eventDate: string
+  portalUrl: string
+}) {
+  if (!process.env.TRIGGER_SECRET_KEY) return null
+  try {
+    const handle = await tasks.trigger('send-speaker-invite', payload)
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue speaker invite email:', err)
     return null
   }
 }

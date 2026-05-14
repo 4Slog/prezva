@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { DEFAULT_CERTIFICATE_TEMPLATE } from '@/lib/templates/certificates'
 import { checkEligibility } from './eligibility'
+import { enqueueCertificateEmail } from '@/lib/trigger'
 
 export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
   // Admin client: template management bypasses RLS for server-side cert generation
@@ -56,7 +57,7 @@ export async function issueOrGetCertificate(registrationId: string) {
 
   const { data: reg } = await admin
     .from('registrations')
-    .select('event_id, events(org_id)')
+    .select('event_id, attendee_name, attendee_email, events(org_id, title, slug)')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -79,6 +80,20 @@ export async function issueOrGetCertificate(registrationId: string) {
     .single()
 
   if (error) return { error: error.message }
+
+  // Enqueue certificate delivery email (non-blocking)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const eventSlug = (reg.events as any)?.slug ?? ''
+  void enqueueCertificateEmail({
+    registrationId,
+    attendeeEmail:   (reg as any).attendee_email,
+    attendeeName:    (reg as any).attendee_name,
+    eventTitle:      (reg.events as any)?.title ?? '',
+    certDownloadUrl: `${appUrl}/api/certificates/${registrationId}`,
+    verifyUrl:       `${appUrl}/e/${eventSlug}/certificate?id=${cert.id}`,
+    ceCredits:       eligibility.ceCredits ?? undefined,
+  })
+
   return { data: cert }
 }
 
