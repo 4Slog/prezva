@@ -1,4 +1,6 @@
-import { HelpAccordion } from '@/components/help/HelpAccordion'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Help Center' }
 
 const SECTIONS = [
   {
@@ -24,6 +26,14 @@ const SECTIONS = [
       { q: 'How does QR code check-in work?', a: "Each confirmed registration gets a unique QR code. On event day, open the Check-In tab — it activates the camera scanner. Scan the attendee's QR code to check them in instantly." },
       { q: 'Does check-in work offline?', a: 'Yes. The check-in scanner stores scans locally (IndexedDB) if you lose internet, then syncs automatically when reconnected. The sync health pill in the sidebar shows pending syncs.' },
       { q: 'Can multiple staff scan at the same time?', a: 'Yes — multiple check-in stations can run simultaneously. They all sync to the same event in real time.' },
+    ],
+  },
+  {
+    heading: 'Badges & certificates',
+    items: [
+      { q: 'How do I print badges?', a: 'Go to your event → Badges, choose a template (portrait, landscape, or thermal ZPL), and click Print All or reprint individual badges. Thermal-compatible templates work with Zebra ZPL printers. Color templates require a standard inkjet or laser printer.' },
+      { q: 'How do I issue CE credit certificates?', a: 'Enable CE Credits on your event settings page, set the credit hours, and certificates are generated automatically for attendees who met the attendance threshold. Each certificate includes a public verification URL.' },
+      { q: 'Can I add a signature or logo to certificates?', a: 'Yes — upload your organization logo under Org Settings → Branding. For signatures, upload a signature image when configuring the certificate template for the event.' },
     ],
   },
   {
@@ -65,10 +75,28 @@ export default function HelpPage() {
         <h1 className="text-2xl font-bold text-[#F0F4F8]">Help Center</h1>
         <p className="text-sm text-[#64748B] mt-1">Answers to common questions about using Prezva.</p>
       </div>
-      {SECTIONS.map(section => (
+      {SECTIONS.map((section) => (
         <div key={section.heading}>
-          <h2 className="text-sm font-semibold text-[#00BFA6] uppercase tracking-wider mb-3">{section.heading}</h2>
-          <HelpAccordion items={section.items} />
+          <h2 className="text-xs font-semibold text-[#00BFA6] uppercase tracking-wider mb-3">
+            {section.heading}
+          </h2>
+          <div className="space-y-2">
+            {section.items.map(({ q, a }) => (
+              <details
+                key={q}
+                className="rounded-lg overflow-hidden"
+                style={{ border: '1px solid #1E3A5F', background: '#112240' }}
+              >
+                <summary
+                  className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[#F0F4F8] text-left hover:bg-[#1E3A5F]/40 transition-colors list-none"
+                >
+                  {q}
+                  <span className="ml-4 text-[#64748B] text-lg leading-none flex-shrink-0 select-none">+</span>
+                </summary>
+                <p className="px-4 pb-4 text-xs text-[#94A3B8] leading-relaxed">{a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       ))}
     </div>

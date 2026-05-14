@@ -74,7 +74,7 @@ export default function HomePage() {
 
         <p className="text-lg text-[#94A3B8] max-w-xl mb-10 leading-relaxed">
           From registration to check-in to certificate delivery — in one platform built
-          for organizers who don't have time for complexity.
+          for organizers who don&apos;t have time for complexity.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
