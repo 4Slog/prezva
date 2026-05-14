@@ -62,4 +62,21 @@ export async function applyStarterTemplate(
       }),
     )
   }
+
+  // Apply feature flags to the event record
+  const flags: Record<string, unknown> = {}
+  if (template.is_hybrid !== undefined)          flags.is_hybrid           = template.is_hybrid
+  if (template.is_virtual !== undefined)         flags.is_virtual          = template.is_virtual
+  if (template.ce_credits_enabled !== undefined) flags.ce_credits_enabled  = template.ce_credits_enabled
+  if (template.member_gating !== undefined)      flags.member_gating       = template.member_gating
+  if (template.fundraising_enabled !== undefined)flags.fundraising_enabled = template.fundraising_enabled
+  if (template.leaderboard_enabled !== undefined)flags.leaderboard_enabled = template.leaderboard_enabled
+  if (template.icebreakers_enabled !== undefined)flags.icebreakers_enabled = template.icebreakers_enabled
+  if (template.passport_enabled !== undefined)   flags.passport_enabled    = template.passport_enabled
+  if (Object.keys(flags).length > 0) {
+    await supabase.from('events').update(flags).eq('id', eventId)
+  }
+
+  // Starter announcements and survey are informational — no DB writes needed here
+  // (organizer sees them pre-selected in the announcements UI after event creation)
 }

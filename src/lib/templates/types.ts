@@ -72,6 +72,8 @@ export interface EventTemplate {
   duration_days: number
   capacity_default: number
   is_virtual?: boolean
+  is_hybrid?: boolean
+  hybrid_capacity_default?: number
   ticket_types: TicketTypeTemplate[]
   sessions?: SessionTemplate[]
   tracks?: { name: string; color: string }[]
@@ -81,6 +83,9 @@ export interface EventTemplate {
   icebreakers_enabled?: boolean
   passport_enabled?: boolean
   sponsor_tiers_enabled?: string[]
+  ce_credits_enabled?: boolean
+  member_gating?: boolean
+  fundraising_enabled?: boolean
 }
 
 export interface AnnouncementTemplate {
