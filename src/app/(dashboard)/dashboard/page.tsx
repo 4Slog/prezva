@@ -78,11 +78,12 @@ export default async function DashboardPage({ searchParams }: Props) {
   const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
 
   const checklistItems = [
-    { label: 'Create your organization',            done: true },
+    { label: 'Organization created',                done: true },
     { label: 'Create your first event',             done: hasEvent,            href: '/events/new' },
+    { label: 'Add a ticket type',                   done: hasEvent,            href: '/events' },
     { label: 'Invite a team member',                done: hasMultipleMembers,  href: `/orgs/${orgSlug}/settings` },
+    { label: 'Publish your event page',             done: false,               href: '/events' },
     { label: 'Connect an integration (optional)',   done: hasIntegration,      href: `/orgs/${orgSlug}/integrations` },
-    { label: 'Publish your event',                  done: false,               href: '/events' },
   ]
 
   const showChecklist = checklistItems.filter(i => !i.done).length > 0

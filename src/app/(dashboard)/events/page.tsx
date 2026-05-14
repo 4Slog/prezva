@@ -64,13 +64,15 @@ export default async function EventsPage() {
       {hasOrgs && (!events || events.length === 0) && (
         <div className="pz-card p-8 text-center">
           <p className="text-lg font-semibold text-[#F0F4F8] mb-2">No events yet</p>
-          <p className="text-sm text-[#94A3B8] mb-4">Create your first event to get started.</p>
+          <p className="text-sm text-[#94A3B8] mb-4">
+            Create your first event in under 2 minutes — add ticket types, a public page, and go live.
+          </p>
           <Link
             href="/events/new"
             className="inline-block rounded-lg px-4 py-2 text-sm font-semibold"
             style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
           >
-            Create event
+            Create your first event
           </Link>
         </div>
       )}

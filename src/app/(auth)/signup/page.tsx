@@ -18,7 +18,7 @@ export default function SignupPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--pz-text)' }}>Create your account</h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--pz-text-muted)' }}>
-          Start managing events with Prezva — free during beta
+          Set up in minutes. No credit card required.
         </p>
       </div>
 

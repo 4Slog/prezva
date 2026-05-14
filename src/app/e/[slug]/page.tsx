@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getPublicSponsors } from '@/lib/public/actions'
+import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getPublicSponsors, getPublicTicketTypes } from '@/lib/public/actions'
 import { ShareButtons } from '@/components/events/ShareButtons'
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
 
@@ -8,10 +8,11 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { slug } = await params
   const event = await getPublicEvent(slug)
   if (!event) notFound()
-  const [sessions, speakers, sponsors] = await Promise.all([
+  const [sessions, speakers, sponsors, ticketTypes] = await Promise.all([
     getPublicAgenda(event.id),
     getPublicSpeakers(event.id),
     getPublicSponsors(event.id),
+    getPublicTicketTypes(event.id),
   ])
   const start = new Date(event.start_at)
   const end = new Date(event.end_at)
@@ -20,6 +21,10 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const location = event.venue_name ? (event.venue_city ? event.venue_name + ', ' + event.venue_city : event.venue_name) : null
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
   const eventUrl = `${appUrl}/e/${slug}`
+
+  const hasInvite = (event as any).member_gating === true
+  const hasPaid   = (ticketTypes as any[]).some((t) => t.type === 'paid' && t.price_cents > 0)
+  const ctaLabel  = hasInvite ? 'Request Access' : hasPaid ? 'Get Tickets' : 'Reserve Your Spot'
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--color-bg)', color:'var(--color-text)' }}>
@@ -42,7 +47,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             {event.capacity && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Users size={16} style={{ color:'var(--color-teal)' }}/>{event.registration_count} / {event.capacity} registered</span>}
           </div>
           <div style={{ marginTop:'2rem', display:'flex', gap:'1rem', flexWrap:'wrap' }}>
-            <Link href={'/e/'+slug+'/register'} style={{ background:'var(--color-teal)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:700, textDecoration:'none', fontSize:15 }}>Register Now</Link>
+            <Link href={'/e/'+slug+'/register'} style={{ background:'var(--color-teal)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:700, textDecoration:'none', fontSize:15 }}>{ctaLabel}</Link>
             <Link href={'/e/'+slug+'/agenda'} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:15, border:'1px solid rgba(255,255,255,0.2)' }}>View Agenda</Link>
           </div>
           <ShareButtons url={eventUrl} title={event.title} calendarHref={`/api/events/${slug}/calendar.ics`} />

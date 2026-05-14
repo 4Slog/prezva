@@ -64,6 +64,15 @@ export async function getPublicSponsors(eventId: string) {
   return data ?? []
 }
 
+export async function getPublicTicketTypes(eventId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('ticket_types')
+    .select('type, price_cents')
+    .eq('event_id', eventId)
+  return data ?? []
+}
+
 export async function getBookmarks(userId: string, eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
