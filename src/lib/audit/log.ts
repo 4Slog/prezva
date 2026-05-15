@@ -14,9 +14,9 @@ export async function logAudit(
       org_id: orgId,
       user_id: userId,
       action,
-      entity_type: entityType ?? null,
-      entity_id: entityId ?? null,
-      metadata: metadata ?? null,
+      table_name: entityType ?? null,
+      record_id: entityId ? entityId as unknown as string : null,
+      new_data: metadata ? metadata as unknown as Record<string, unknown> : null,
     })
   } catch { /* audit failures must never surface to the user */ }
 }
