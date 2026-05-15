@@ -4,6 +4,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mockRequireUser = vi.fn().mockResolvedValue({ id: 'user-1', email: 'paul@test.com' })
 vi.mock('@/lib/auth/get-user', () => ({ requireUser: mockRequireUser }))
 
+// ── Mock inviteMember (so route tests don't depend on inviteMember internals) ─
+const mockInviteMember = vi.fn()
+vi.mock('@/lib/orgs/actions', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/orgs/actions')>('@/lib/orgs/actions')
+  return { ...actual, inviteMember: mockInviteMember }
+})
+
 // ── Supabase mock factory ────────────────────────────────────────────────────
 const mockSingle = vi.fn()
 const mockMaybeSingle = vi.fn()
@@ -53,6 +60,7 @@ beforeEach(() => {
   mockOrder.mockReset().mockReturnThis()
   mockFrom.mockReset().mockImplementation(() => makeChain())
   mockRequireUser.mockResolvedValue({ id: 'user-1', email: 'paul@test.com' })
+  mockInviteMember.mockReset()
 })
 
 // ── POST /api/orgs ────────────────────────────────────────────────────────────
@@ -179,10 +187,9 @@ describe('Orgs API — POST /api/orgs/[id]/invite', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 404 when invitee has no Prezva account', async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { role: 'owner' }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null })
+  it('sends invite to non-Prezva user and returns 201', async () => {
+    mockMaybeSingle.mockResolvedValueOnce({ data: { role: 'owner' }, error: null })
+    mockInviteMember.mockResolvedValueOnce({ success: true })
     const { POST } = await import('@/app/api/orgs/[id]/invite/route')
     const req = new Request('http://localhost/api/orgs/org-1/invite', {
       method: 'POST',
@@ -191,14 +198,12 @@ describe('Orgs API — POST /api/orgs/[id]/invite', () => {
     const res = await POST(req as Parameters<typeof POST>[0], {
       params: Promise.resolve({ id: 'org-1' }),
     })
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(201)
   })
 
   it('returns 409 when already a member', async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { role: 'owner' }, error: null })
-      .mockResolvedValueOnce({ data: { id: 'profile-2' }, error: null })
-      .mockResolvedValueOnce({ data: { id: 'member-1' }, error: null })
+    mockMaybeSingle.mockResolvedValueOnce({ data: { role: 'owner' }, error: null })
+    mockInviteMember.mockResolvedValueOnce({ error: 'Already a member of this organization' })
     const { POST } = await import('@/app/api/orgs/[id]/invite/route')
     const req = new Request('http://localhost/api/orgs/org-1/invite', {
       method: 'POST',
