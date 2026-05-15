@@ -19,3 +19,17 @@ STRIPE_SECRET_KEY must be sk_live_... (full secret key).
 rk_live_... is a restricted key and CANNOT create Connect accounts or generate Account Links.
 Already fixed in Vercel by Paul on May 15 2026.
 If it ever breaks again: Stripe Dashboard -> Developers -> API Keys -> Standard keys -> sk_live_
+
+## Stripe Connect
+STRIPE_SECRET_KEY must be sk_live_... (full secret key).
+rk_live_... is a restricted key and cannot create Connect accounts or Account Links.
+Fixed in Vercel on May 15 2026.
+
+STRIPE_CLIENT_ID is the Connect platform OAuth client ID.
+Find it at: dashboard.stripe.com/settings/connect
+Add to Vercel as STRIPE_CLIENT_ID when you complete Stripe Connect platform profile setup.
+
+Verify Connect is working end-to-end:
+1. Go to prezva.app, log in, go to org settings
+2. Click "Connect bank account"
+3. Should redirect to Stripe Connect Express onboarding (not show an error)
