@@ -9,6 +9,7 @@ const Schema = z.object({ confirm: z.literal(true) })
 export async function POST(req: NextRequest) {
   const user = await requireUser()
   const supabase = await createClient()
+  const adminClient = createAdminClient()
 
   const body = await req.json()
   const parsed = Schema.safeParse(body)
@@ -30,12 +31,12 @@ export async function POST(req: NextRequest) {
 
   // 2. Delete all user-generated content and activity
   await Promise.allSettled([
-    supabase.from('messages').delete().eq('sender_id', userId),
-    supabase.from('group_messages').delete().eq('sender_id', userId),
-    supabase.from('community_posts').delete().eq('author_id', userId),
-    supabase.from('community_replies').delete().eq('author_id', userId),
-    supabase.from('community_upvotes').delete().eq('user_id', userId),
-    supabase.from('survey_responses').delete().eq('user_id', userId),
+    adminClient.from('messages').delete().eq('sender_id', userId),
+    adminClient.from('group_messages').delete().eq('sender_id', userId),
+    adminClient.from('community_posts').delete().eq('author_id', userId),
+    adminClient.from('community_replies').delete().eq('author_id', userId),
+    adminClient.from('community_upvotes').delete().eq('user_id', userId),
+    adminClient.from('survey_responses').delete().eq('user_id', userId),
     supabase.from('leaderboard_points').delete().eq('user_id', userId),
     supabase.from('session_feedback').delete().eq('user_id', userId),
     supabase.from('session_bookmarks').delete().eq('user_id', userId),
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     supabase.from('passport_visits').delete().eq('user_id', userId),
     supabase.from('photo_contest_entries').delete().eq('user_id', userId),
     supabase.from('photo_contest_votes').delete().eq('user_id', userId),
-    supabase.from('attendee_profiles').delete().eq('user_id', userId),
+    adminClient.from('attendee_profiles').delete().eq('user_id', userId),
     supabase.from('push_subscriptions').delete().in(
       'registration_id',
       (await supabase
@@ -58,10 +59,9 @@ export async function POST(req: NextRequest) {
   ])
 
   // 3. Delete the profile row
-  await supabase.from('profiles').delete().eq('id', userId)
+  await adminClient.from('profiles').delete().eq('id', userId)
 
   // 4. Delete the Supabase auth account — GDPR-required hard delete
-  const adminClient = createAdminClient()
   await adminClient.auth.admin.deleteUser(userId)
 
   // 5. Sign out current session
