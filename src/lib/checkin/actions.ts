@@ -60,7 +60,7 @@ export async function checkInByQR(
 
   const { data: reg, error: regErr } = await supabase
     .from('registrations')
-    .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+    .select('id, user_id, attendee_name, attendee_email, status, ticket_types(name)')
     .eq('event_id', eventId)
     .eq('qr_code', qrCode)
     .single()
@@ -99,6 +99,12 @@ export async function checkInByQR(
   })
 
   if (ciErr) return { success: false, error: ciErr.message }
+
+  if ((reg as any).user_id) {
+    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    await awardPoints(eventId, (reg as any).user_id, 'checkin').catch(() => {})
+  }
+
   revalidatePath('/events')
   return {
     success: true,
@@ -123,7 +129,7 @@ export async function checkInBySearch(
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+    .select('id, user_id, attendee_name, attendee_email, status, ticket_types(name)')
     .eq('id', registrationId)
     .eq('event_id', eventId)
     .single()
@@ -162,6 +168,12 @@ export async function checkInBySearch(
   })
 
   if (error) return { success: false, error: error.message }
+
+  if ((reg as any).user_id) {
+    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    await awardPoints(eventId, (reg as any).user_id, 'checkin').catch(() => {})
+  }
+
   revalidatePath('/events')
   return {
     success: true,
