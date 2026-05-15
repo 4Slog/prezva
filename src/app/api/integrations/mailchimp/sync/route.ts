@@ -12,10 +12,15 @@ export async function POST(req: Request) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('registrations')
-    .select('email, first_name, last_name')
+    .select('attendee_email, attendee_name')
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
-  const members = (data ?? []).map(r => ({ email: r.email, firstName: r.first_name ?? undefined, lastName: r.last_name ?? undefined }))
+  const members = (data ?? []).map(r => {
+    const parts = (r.attendee_name ?? '').trim().split(/\s+/)
+    const firstName = parts[0] ?? ''
+    const lastName = parts.slice(1).join(' ') || ''
+    return { email: r.attendee_email, firstName, lastName }
+  })
   const result = await mailchimpAdapter.syncAudience(orgId, listId, members)
   return NextResponse.json(result)
 }

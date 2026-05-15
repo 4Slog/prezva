@@ -74,10 +74,10 @@ class MailchimpAdapter implements IntegrationAdapter {
         merge_fields: { FNAME: m.firstName ?? '', LNAME: m.lastName ?? '' },
       }))
       try {
-        const res = await fetch(`https://${creds.dc}.api.mailchimp.com/3.0/lists/${listId}/members/batch`, {
+        const res = await fetch(`https://${creds.dc}.api.mailchimp.com/3.0/lists/${listId}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${creds.token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ members: batch }),
+          body: JSON.stringify({ members: batch, update_existing: true }),
         })
         if (res.ok) {
           const data = await res.json()
