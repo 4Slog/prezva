@@ -24,19 +24,19 @@ class GoogleFormsAdapter implements IntegrationAdapter {
   readonly displayName = 'Google Forms'
 
   isConfigured(): boolean {
-    return !!(process.env.GOOGLE_FORMS_CLIENT_ID && process.env.GOOGLE_FORMS_CLIENT_SECRET)
+    return !!((process.env.GOOGLE_FORMS_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID) && (process.env.GOOGLE_FORMS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET))
   }
 
   getAuthUrl(orgId: string, redirectUri: string, state: string): string {
     if (!this.isConfigured()) throw new Error('Google Forms not configured')
-    const url = getAuthUrl(PROVIDER, process.env.GOOGLE_FORMS_CLIENT_ID!, redirectUri, SCOPES, state)
+    const url = getAuthUrl(PROVIDER, (process.env.GOOGLE_FORMS_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID)!, redirectUri, SCOPES, state)
     return url + '&access_type=offline&prompt=consent'
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
     const supabase = await createClient()
     try {
-      const tokens = await exchangeCodeForTokens(PROVIDER, code, redirectUri, process.env.GOOGLE_FORMS_CLIENT_ID!, process.env.GOOGLE_FORMS_CLIENT_SECRET!)
+      const tokens = await exchangeCodeForTokens(PROVIDER, code, redirectUri, (process.env.GOOGLE_FORMS_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID)!, (process.env.GOOGLE_FORMS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET)!)
       const encryptedToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
       await supabase.from('org_integrations').upsert({ org_id: orgId, provider: PROVIDER, status: 'connected', encrypted_refresh_token: encryptedToken, scopes: SCOPES, last_synced_at: new Date().toISOString() }, { onConflict: 'org_id,provider' })
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'handleCallback', err); throw err }
@@ -59,7 +59,7 @@ class GoogleFormsAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return null
     try {
-      return refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), process.env.GOOGLE_FORMS_CLIENT_ID!, process.env.GOOGLE_FORMS_CLIENT_SECRET!)
+      return refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), (process.env.GOOGLE_FORMS_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID)!, (process.env.GOOGLE_FORMS_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET)!)
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err); return null }
   }
 

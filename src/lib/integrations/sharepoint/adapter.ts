@@ -12,18 +12,18 @@ class SharePointAdapter implements IntegrationAdapter {
   readonly displayName = 'SharePoint / OneDrive'
 
   isConfigured(): boolean {
-    return !!(process.env.SHAREPOINT_CLIENT_ID && process.env.SHAREPOINT_CLIENT_SECRET)
+    return !!((process.env.SHAREPOINT_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID) && (process.env.SHAREPOINT_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET))
   }
 
   getAuthUrl(orgId: string, redirectUri: string, state: string): string {
     if (!this.isConfigured()) throw new Error('SharePoint not configured')
-    return getAuthUrl(PROVIDER, process.env.SHAREPOINT_CLIENT_ID!, redirectUri, SCOPES, state)
+    return getAuthUrl(PROVIDER, (process.env.SHAREPOINT_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, redirectUri, SCOPES, state)
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
     const supabase = await createClient()
     try {
-      const tokens = await exchangeCodeForTokens(PROVIDER, code, redirectUri, process.env.SHAREPOINT_CLIENT_ID!, process.env.SHAREPOINT_CLIENT_SECRET!)
+      const tokens = await exchangeCodeForTokens(PROVIDER, code, redirectUri, (process.env.SHAREPOINT_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, (process.env.SHAREPOINT_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!)
       const encryptedToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
       await supabase.from('org_integrations').upsert({ org_id: orgId, provider: PROVIDER, status: 'connected', encrypted_refresh_token: encryptedToken, scopes: tokens.scope?.split(' ') ?? SCOPES, last_synced_at: new Date().toISOString() }, { onConflict: 'org_id,provider' })
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'handleCallback', err); throw err }
@@ -46,7 +46,7 @@ class SharePointAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return null
     try {
-      return refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), process.env.SHAREPOINT_CLIENT_ID!, process.env.SHAREPOINT_CLIENT_SECRET!)
+      return refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), (process.env.SHAREPOINT_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, (process.env.SHAREPOINT_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!)
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err); return null }
   }
 

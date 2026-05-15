@@ -12,12 +12,12 @@ class TeamsAdapter implements IntegrationAdapter {
   readonly displayName = 'Microsoft Teams'
 
   isConfigured(): boolean {
-    return !!(process.env.TEAMS_CLIENT_ID && process.env.TEAMS_CLIENT_SECRET)
+    return !!((process.env.TEAMS_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID) && (process.env.TEAMS_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET))
   }
 
   getAuthUrl(orgId: string, redirectUri: string, state: string): string {
     if (!this.isConfigured()) throw new Error('Teams not configured')
-    return getAuthUrl(PROVIDER, process.env.TEAMS_CLIENT_ID!, redirectUri, SCOPES, state)
+    return getAuthUrl(PROVIDER, (process.env.TEAMS_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, redirectUri, SCOPES, state)
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
@@ -25,8 +25,8 @@ class TeamsAdapter implements IntegrationAdapter {
     try {
       const tokens = await exchangeCodeForTokens(
         PROVIDER, code, redirectUri,
-        process.env.TEAMS_CLIENT_ID!,
-        process.env.TEAMS_CLIENT_SECRET!,
+        (process.env.TEAMS_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!,
+        (process.env.TEAMS_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!,
       )
       const encryptedToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
       await supabase.from('org_integrations').upsert({
@@ -61,7 +61,7 @@ class TeamsAdapter implements IntegrationAdapter {
     if (!data?.encrypted_refresh_token) return null
     try {
       const refreshToken = decryptToken(data.encrypted_refresh_token)
-      return refreshAccessToken(PROVIDER, refreshToken, process.env.TEAMS_CLIENT_ID!, process.env.TEAMS_CLIENT_SECRET!)
+      return refreshAccessToken(PROVIDER, refreshToken, (process.env.TEAMS_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, (process.env.TEAMS_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!)
     } catch (err: any) {
       await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err)
       return null
