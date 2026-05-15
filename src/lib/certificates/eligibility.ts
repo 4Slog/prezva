@@ -30,7 +30,10 @@ export async function checkEligibility(registrationId: string): Promise<Eligibil
 
   const [{ count: totalCount }, { data: checkins }] = await Promise.all([
     admin.from('sessions').select('*', { count: 'exact', head: true }).eq('event_id', reg.event_id).eq('is_published', true),
-    admin.from('session_check_ins').select('session_id, sessions(ce_credit_hours)').eq('registration_id', registrationId),
+    admin.from('check_ins')
+      .select('session_id, sessions(ce_credit_hours)')
+      .eq('registration_id', registrationId)
+      .not('session_id', 'is', null),
   ])
 
   const total = totalCount ?? 0
