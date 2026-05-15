@@ -144,7 +144,13 @@ const POINT_VALUES: Record<string, number> = {
 export async function awardPoints(eventId: string, userId: string, action: string) {
   const points = POINT_VALUES[action] ?? 1
   const supabase = await createClient()
-  await supabase.from('leaderboard_points').insert({ event_id: eventId, user_id: userId, action, points })
+  const { error } = await supabase
+    .from('leaderboard_points')
+    .insert({ event_id: eventId, user_id: userId, action, points })
+  // Ignore unique constraint violations (23505) — duplicate award attempt, silently skip
+  if (error && !error.code?.includes('23505')) {
+    console.error('[leaderboard] awardPoints error:', error.message)
+  }
 }
 
 export async function getLeaderboard(eventId: string, limit = 50) {
