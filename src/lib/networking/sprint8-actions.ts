@@ -42,6 +42,10 @@ export async function upsertAttendeeProfile(registrationId: string, raw: unknown
     }, { onConflict: 'registration_id' })
 
   if (error) return { error: error.message }
+
+  const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+  await awardPoints((reg as any).event_id, user.id, 'profile_complete').catch(() => {})
+
   revalidatePath('/e')
   return { success: true }
 }

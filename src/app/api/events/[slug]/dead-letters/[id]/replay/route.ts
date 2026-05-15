@@ -21,8 +21,9 @@ export async function POST(
   // For check_in_sync type: re-attempt the sync via the check-in API
   if (item.type === 'check_in_sync') {
     const payload = item.payload as { registration_id?: string; event_id?: string }
-    if (payload.registration_id && payload.event_id) {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/checkin`, {
+    const eventId = item.event_id ?? payload.event_id
+    if (payload.registration_id && eventId) {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/events/${eventId}/checkin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

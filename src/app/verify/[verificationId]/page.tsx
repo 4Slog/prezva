@@ -11,7 +11,7 @@ export default async function VerifyCertificatePage({ params }: Props) {
   const admin = createAdminClient()
   const { data: cert } = await admin
     .from('issued_certificates')
-    .select('id, ce_credit_hours, sessions_attended, created_at, events(title, start_at, slug), registrations(attendee_name, attendee_email)')
+    .select('id, ce_credit_hours, sessions_attended, created_at, events(title, start_at, slug), registrations(attendee_name)')
     .eq('verification_id', verificationId)
     .maybeSingle()
 
@@ -37,7 +37,7 @@ export default async function VerifyCertificatePage({ params }: Props) {
               <span style={{ fontSize: 15, fontWeight: 700, color: '#0D1B2A' }}>Valid Certificate</span>
             </div>
             <div style={{ padding: '1.5rem' }}>
-              <Row label="Issued to" value={reg?.attendee_name ?? reg?.attendee_email ?? 'Attendee'} />
+              <Row label="Issued to" value={reg?.attendee_name ?? 'Attendee'} />
               <Row label="Event" value={ev?.title ?? 'Event'} />
               {ev?.start_at && (
                 <Row label="Date" value={new Date(ev.start_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} />

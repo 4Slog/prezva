@@ -37,5 +37,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     return NextResponse.redirect(`${req.nextUrl.origin}/dashboard?integration_error=${encodeURIComponent(err.message)}`)
   }
 
-  return NextResponse.redirect(`${req.nextUrl.origin}/dashboard?integration_connected=${provider}`)
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  const { data: org } = await admin
+    .from('organizations')
+    .select('slug')
+    .eq('id', state.orgId)
+    .maybeSingle()
+
+  const orgSlug = org?.slug ?? state.orgId
+  return NextResponse.redirect(`${req.nextUrl.origin}/orgs/${orgSlug}/integrations?connected=${provider}`)
 }

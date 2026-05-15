@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/client'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
 
 export async function POST(req: NextRequest) {
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
@@ -37,6 +36,7 @@ export async function POST(req: NextRequest) {
       .update({
         status:               'confirmed',
         stripe_charge_id:     session.payment_intent as string,
+        stripe_session_id:    session.id,
         amount_paid_cents:    session.amount_total ?? 0,
         confirmation_sent_at: new Date().toISOString(),
       })

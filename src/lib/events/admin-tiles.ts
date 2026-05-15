@@ -37,7 +37,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and replay failed background sync jobs',        href: s => `/events/${s}/dead-letters` },
 
   // Integration
-  { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: _s => '/orgs/[slug]/integrations' },
+  { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: _s => '/dashboard' },
 ]
 
 export const TILE_CATEGORIES: { key: TileCategory; label: string }[] = [

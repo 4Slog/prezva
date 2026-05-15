@@ -17,7 +17,7 @@ export async function GET() {
       .eq('sender_id', user.id),
     supabase
       .from('survey_responses')
-      .select('id, survey_id, answers, created_at')
+      .select('id, survey_id, created_at, survey_answers(question_id, answer_text)')
       .eq('user_id', user.id),
   ])
 

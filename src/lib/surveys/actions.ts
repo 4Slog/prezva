@@ -97,6 +97,9 @@ export async function closeSurvey(surveyId: string) {
 export async function submitSurveyResponse(surveyId: string, answers: Record<string, string>) {
   const supabase = await createClient()
   const user = await requireUser()
+
+  const { data: survey } = await supabase.from('surveys').select('event_id').eq('id', surveyId).maybeSingle()
+
   const { data: resp, error: respErr } = await supabase
     .from('survey_responses').insert({ survey_id: surveyId, user_id: user.id }).select().single()
   if (respErr) return { error: respErr.message }
@@ -107,6 +110,12 @@ export async function submitSurveyResponse(surveyId: string, answers: Record<str
     const { error: ansErr } = await supabase.from('survey_answers').insert(answerRows)
     if (ansErr) return { error: ansErr.message }
   }
+
+  if (survey?.event_id) {
+    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    await awardPoints(survey.event_id, user.id, 'survey_complete').catch(() => {})
+  }
+
   return { success: true }
 }
 
