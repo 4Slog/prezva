@@ -1,3 +1,14 @@
+/**
+ * Eventbrite Integration Adapter
+ *
+ * OAuth App Registration Steps:
+ * 1. Go to https://www.eventbrite.com/account-settings/apps
+ * 2. Click "Create App", name it "Prezva"
+ * 3. Set OAuth Redirect URI to: https://prezva.app/api/integrations/eventbrite/callback
+ * 4. Required scopes: event_access, organizer_access
+ * 5. Copy Client ID -> add EVENTBRITE_CLIENT_ID to Vercel env vars
+ * 6. Copy Client Secret -> already in Vercel as EVENTBRITE_CLIENT_SECRET
+ */
 import type { IntegrationAdapter, IntegrationStatus } from '../_shared/adapter'
 import { getAuthUrl, exchangeCodeForTokens } from '../_shared/oauth'
 import { encryptToken, decryptToken } from '../_shared/encryption'
@@ -11,12 +22,17 @@ class EventbriteAdapter implements IntegrationAdapter {
   readonly displayName = 'Eventbrite'
 
   isConfigured(): boolean {
-    return !!(process.env.EVENTBRITE_CLIENT_ID && process.env.EVENTBRITE_CLIENT_SECRET)
+    const id = process.env.EVENTBRITE_CLIENT_ID
+    const secret = process.env.EVENTBRITE_CLIENT_SECRET
+    return !!(id && id !== 'NEEDS_REGISTRATION' && secret && secret !== 'NEEDS_REGISTRATION')
   }
 
   getAuthUrl(orgId: string, redirectUri: string, state: string): string {
-    if (!this.isConfigured()) throw new Error('Eventbrite not configured')
-    return getAuthUrl(PROVIDER, process.env.EVENTBRITE_CLIENT_ID!, redirectUri, [], state)
+    const clientId = process.env.EVENTBRITE_CLIENT_ID
+    if (!clientId || clientId === 'NEEDS_REGISTRATION') {
+      throw new Error('Eventbrite CLIENT_ID not configured — see docs/production-secrets.md')
+    }
+    return getAuthUrl(PROVIDER, clientId, redirectUri, [], state)
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
