@@ -16,7 +16,7 @@ export const BRAND = {
     surface:    '#112240',
     surface2:   '#1A2F4A',
     border:     '#1E3A5F',
-    teal:       '#00BFA6',
+    teal:       '#2DD4BF',
     tealLight:  '#00E5CC',
     tealDim:    '#007A6B',
     text:       '#F0F4F8',
