@@ -12,12 +12,12 @@ class OutlookAdapter implements IntegrationAdapter {
   readonly displayName = 'Outlook Calendar'
 
   isConfigured(): boolean {
-    return !!(process.env.OUTLOOK_CLIENT_ID && process.env.OUTLOOK_CLIENT_SECRET)
+    return !!((process.env.OUTLOOK_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID) && (process.env.OUTLOOK_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET))
   }
 
   getAuthUrl(orgId: string, redirectUri: string, state: string): string {
     if (!this.isConfigured()) throw new Error('Outlook not configured')
-    return getAuthUrl(PROVIDER, process.env.OUTLOOK_CLIENT_ID!, redirectUri, SCOPES, state)
+    return getAuthUrl(PROVIDER, (process.env.OUTLOOK_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, redirectUri, SCOPES, state)
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
@@ -25,8 +25,8 @@ class OutlookAdapter implements IntegrationAdapter {
     try {
       const tokens = await exchangeCodeForTokens(
         PROVIDER, code, redirectUri,
-        process.env.OUTLOOK_CLIENT_ID!,
-        process.env.OUTLOOK_CLIENT_SECRET!,
+        (process.env.OUTLOOK_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!,
+        (process.env.OUTLOOK_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!,
       )
       const encryptedToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
       await supabase.from('org_integrations').upsert({
@@ -61,7 +61,7 @@ class OutlookAdapter implements IntegrationAdapter {
     if (!data?.encrypted_refresh_token) return null
     try {
       const refreshToken = decryptToken(data.encrypted_refresh_token)
-      return refreshAccessToken(PROVIDER, refreshToken, process.env.OUTLOOK_CLIENT_ID!, process.env.OUTLOOK_CLIENT_SECRET!)
+      return refreshAccessToken(PROVIDER, refreshToken, (process.env.OUTLOOK_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, (process.env.OUTLOOK_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!)
     } catch (err: any) {
       await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err)
       return null

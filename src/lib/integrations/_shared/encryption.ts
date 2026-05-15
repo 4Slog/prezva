@@ -6,6 +6,13 @@ function getKey(): Buffer {
   return Buffer.from(key, 'base64').subarray(0, 32)
 }
 
+export function validateEncryptionKey(): void {
+  const key = getKey()
+  if (key.length < 32) {
+    throw new Error('INTEGRATION_ENCRYPTION_KEY must decode to >= 32 bytes, got ' + key.length)
+  }
+}
+
 export function encryptToken(plaintext: string): string {
   const key = getKey()
   const iv = randomBytes(12)
