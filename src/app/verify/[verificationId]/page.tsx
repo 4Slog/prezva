@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
@@ -22,11 +23,8 @@ export default async function VerifyCertificatePage({ params }: Props) {
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ maxWidth: 500, width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--pz-teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#0D1B2A', fontWeight: 900, fontSize: 14 }}>P</span>
-            </div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text)' }}>Prezva</span>
+          <Link href="/" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 16 }}>
+            <Image src="/logo.svg" alt="Prezva" width={108} height={20} />
           </Link>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 4 }}>Certificate Verification</h1>
           <p style={{ fontSize: 13, color: 'var(--pz-muted)' }}>Verification ID: {verificationId}</p>

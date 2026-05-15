@@ -55,7 +55,7 @@ describe('Sprint 22 — Certificate Engine', () => {
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain('checkEligibility')
     expect(src).toContain('certificate_enabled')
-    expect(src).toContain('session_check_ins')
+    expect(src).toContain('check_ins')
     expect(src).toContain('EligibilityResult')
   })
 

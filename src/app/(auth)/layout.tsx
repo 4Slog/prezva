@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -7,14 +8,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       style={{ background: 'var(--pz-bg)' }}
     >
       <header className="flex items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            P
-          </div>
-          <span className="text-lg font-bold" style={{ color: 'var(--pz-text)' }}>Prezva</span>
+        <Link href="/">
+          <Image src="/logo.svg" alt="Prezva" width={148} height={28} />
         </Link>
         <Link
           href="/"

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function NotFound() {
@@ -13,21 +14,8 @@ export default function NotFound() {
       }}
     >
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            background: '#00BFA6',
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px',
-          }}
-        >
-          <span style={{ color: '#0D1B2A', fontWeight: 900, fontSize: 26 }}>P</span>
-        </div>
-        <p style={{ fontSize: 72, fontWeight: 900, color: '#00BFA6', lineHeight: 1, margin: '0 0 8px' }}>
+        <Image src="/logo-mark.svg" alt="Prezva" width={48} height={40} style={{ margin: '0 auto 24px', display: 'block' }} />
+        <p style={{ fontSize: 72, fontWeight: 900, color: '#2DD4BF', lineHeight: 1, margin: '0 0 8px' }}>
           404
         </p>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#F0F4F8', margin: '0 0 12px' }}>
@@ -40,7 +28,7 @@ export default function NotFound() {
           href="/dashboard"
           style={{
             display: 'inline-block',
-            background: '#00BFA6',
+            background: '#2DD4BF',
             color: '#0D1B2A',
             padding: '10px 24px',
             borderRadius: 8,
