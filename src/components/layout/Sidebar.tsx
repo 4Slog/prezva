@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { SyncHealthPill } from '@/components/layout/SyncHealthPill'
 
@@ -66,7 +67,7 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
     textDecoration: 'none',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
-    background: active ? 'rgba(0,191,166,0.15)' : 'transparent',
+    background: active ? 'rgba(45,212,191,0.15)' : 'transparent',
     color: active ? 'var(--pz-teal)' : 'var(--pz-text)',
     marginBottom: 2,
   })
@@ -86,19 +87,11 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
       }}
     >
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '20px 12px 12px', flexShrink: 0 }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: 'var(--pz-teal)', color: '#0D1B2A',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 14,
-        }}>
-          P
-        </div>
-        {!collapsed && (
-          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--pz-text)', whiteSpace: 'nowrap' }}>
-            Prezva
-          </span>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 12px 12px', flexShrink: 0 }}>
+        {collapsed ? (
+          <Image src="/logo-mark.svg" alt="Prezva" width={32} height={27} style={{ flexShrink: 0 }} />
+        ) : (
+          <Image src="/logo.svg" alt="Prezva" width={148} height={28} style={{ flexShrink: 0 }} />
         )}
       </div>
 

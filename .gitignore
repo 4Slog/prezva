@@ -11,11 +11,8 @@ coverage
 out/
 build
 
-# next-pwa generated service worker (built at compile time)
-public/sw.js
-public/sw.js.map
-public/workbox-*.js
-public/workbox-*.js.map
+# sw.js committed intentionally — see docs/pwa-notes.md
+# DO NOT re-add sw.js to .gitignore
 
 # misc
 .DS_Store
