@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/admin/gate'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { randomUUID } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -44,6 +45,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: orgErr?.message ?? 'Failed to create organization' }, { status: 500 })
   }
 
+  // Create a pending org_member_invites row so the org always has an owner reference
+  // even before the invite is accepted. accepted_at is null = pending.
+  await admin.from('org_member_invites').insert({
+    org_id: org.id,
+    email: email.toLowerCase(),
+    role: 'owner',
+    token: randomUUID(),
+    invited_by: null,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  })
+
   // Invite the user via Supabase auth (sends magic link email)
   const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName, org_id: org.id },
@@ -51,7 +63,7 @@ export async function POST(req: NextRequest) {
   })
 
   if (inviteErr) {
-    // Rollback org creation
+    // Rollback org creation and invite row
     await admin.from('organizations').delete().eq('id', org.id)
     return NextResponse.json({ error: inviteErr.message }, { status: 500 })
   }
