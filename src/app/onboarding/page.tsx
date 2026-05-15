@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth/get-user'
 import { OnboardingAttendeeInput } from './client'
@@ -13,12 +14,7 @@ export default async function OnboardingPage() {
       style={{ background: 'var(--pz-bg)' }}
     >
       <div className="mb-10 text-center">
-        <div
-          className="inline-flex h-12 w-12 items-center justify-center rounded-xl text-xl font-black mb-4"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-        >
-          P
-        </div>
+        <Image src="/logo-mark.svg" alt="Prezva" width={48} height={40} className="mb-4" />
         <h1 className="text-3xl font-bold" style={{ color: 'var(--pz-text)' }}>
           Welcome to Prezva
         </h1>

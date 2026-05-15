@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
@@ -39,15 +40,7 @@ export default function HomePage() {
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1E3A5F]">
-        <div className="flex items-center gap-2">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            P
-          </div>
-          <span className="text-lg font-bold text-[#F0F4F8]">Prezva</span>
-        </div>
+        <Image src="/logo.svg" alt="Prezva" width={148} height={28} />
         <div className="flex items-center gap-3">
           <Link
             href="/login"

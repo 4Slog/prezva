@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { requireUser } from '@/lib/auth/get-user'
 import { UserMenu } from '@/components/auth/UserMenu'
 import Link from 'next/link'
@@ -18,10 +19,8 @@ export default async function MeLayout({ children }: { children: React.ReactNode
       <header style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
-          <Link href="/me" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--pz-teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#0D1B2A', fontWeight: 900, fontSize: 14 }}>P</span>
-            </div>
+          <Link href="/me" style={{ textDecoration: 'none' }}>
+            <Image src="/logo-mark.svg" alt="Prezva" width={28} height={23} />
           </Link>
 
           {/* Nav — desktop */}
