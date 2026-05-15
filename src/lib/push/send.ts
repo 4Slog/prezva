@@ -10,7 +10,10 @@ if (process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
 }
 
 export async function sendAnnouncementPush(eventId: string, title: string, body: string): Promise<void> {
-  if (!process.env.VAPID_PRIVATE_KEY) return
+  if (!process.env.VAPID_PRIVATE_KEY) {
+    console.warn('[push] VAPID_PRIVATE_KEY not set — push notifications disabled. Add to Vercel env vars.')
+    return
+  }
 
   const supabase = await createClient()
   const { data: regs } = await supabase
