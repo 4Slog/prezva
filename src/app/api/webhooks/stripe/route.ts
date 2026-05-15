@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/client'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
 
@@ -96,9 +97,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Connect account updated — sync capability flags to org row
+  // Must use admin client: no user session in webhook context, orgs_update_owner RLS would block
   if (event.type === 'account.updated') {
     const account = event.data.object
-    await supabase
+    const admin = createAdminClient()
+    await admin
       .from('organizations')
       .update({
         charges_enabled: account.charges_enabled,
@@ -110,7 +113,8 @@ export async function POST(req: NextRequest) {
   // Connect account deauthorized — clear stripe_account_id from org
   if (event.type === 'account.application.deauthorized') {
     const account = event.data.object as { id: string }
-    await supabase
+    const admin = createAdminClient()
+    await admin
       .from('organizations')
       .update({ stripe_account_id: null })
       .eq('stripe_account_id', account.id)
