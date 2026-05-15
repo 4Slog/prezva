@@ -5,23 +5,37 @@ import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
 type Props = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ reg?: string; waitlist?: string }>
+  searchParams: Promise<{ reg?: string; session_id?: string; waitlist?: string }>
 }
 
 export default async function ConfirmationPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const { reg: regId, waitlist } = await searchParams
+  const { reg: regId, session_id, waitlist } = await searchParams
 
   // Use admin client so guest registrations (user_id is null) can still
   // display their confirmation page. Reg ID is an unguessable UUID and is the
   // de-facto bearer token here, mirroring Eventbrite/Whova confirmation links.
   const admin = createAdminClient()
   void createClient
-  const { data: reg } = regId
+
+  let resolvedRegId = regId
+
+  // Paid checkout: Stripe redirects with ?session_id= instead of ?reg=
+  // Look up the registration by stripe_session_id matching the Stripe session
+  if (!resolvedRegId && session_id) {
+    const { data: stripeReg } = await admin
+      .from('registrations')
+      .select('id')
+      .eq('stripe_session_id', session_id)
+      .maybeSingle()
+    resolvedRegId = stripeReg?.id ?? undefined
+  }
+
+  const { data: reg } = resolvedRegId
     ? await admin
         .from('registrations')
         .select('*, ticket_types(name, price_cents), events(title, start_at, timezone, certificate_enabled)')
-        .eq('id', regId)
+        .eq('id', resolvedRegId)
         .maybeSingle()
     : { data: null }
 

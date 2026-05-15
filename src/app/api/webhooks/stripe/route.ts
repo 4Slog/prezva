@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       .update({
         status:               'confirmed',
         stripe_charge_id:     session.payment_intent as string,
+        stripe_session_id:    session.id,
         amount_paid_cents:    session.amount_total ?? 0,
         confirmation_sent_at: new Date().toISOString(),
       })
