@@ -2,11 +2,41 @@
 
 ## Last updated: 2026-05-15
 
-## Status: Brand assets complete ✅ | Branch: bundle2-db-migrations | Next: sprint 30 brief
+## Status: Bundle 3 complete ✅ | Branch: bundle3-backend-wiring | PR #6 open — do not merge yet
 
 ---
 
-## This Session — Brand Asset Wiring
+## This Session — Bundle 3 Backend Wiring (B3-1 through B3-11)
+
+### What was done
+- B3-1: Stripe webhook — removed last createClient(), now fully uses createAdminClient()
+- B3-2: Confirmation page — resolves reg from ?session_id= after paid checkout; added stripe_session_id column (migration 0036)
+- B3-3: Org invite API — delegates to inviteMember() so non-Prezva users can be invited
+- B3-4: Dead letter replay — fixed URL from /api/checkin to /api/events/{id}/checkin
+- B3-5: awardPoints() wired into checkin + survey submit + profile save; added survey_complete:5 to POINT_VALUES
+- B3-6: GDPR export — fixed survey data join (survey_answers not nonexistent answers column)
+- B3-7: GDPR delete — added all PII tables + auth.admin.deleteUser() call
+- B3-8: Mailchimp sync — fixed column names (attendee_email/name) + fixed API endpoint URL
+- B3-9: OAuth callback — redirects to /orgs/{slug}/integrations not /dashboard
+- B3-10: Integrations tile — fallback is /dashboard not literal /orgs/[slug]/integrations
+- B3-11: Certificate verify — removed attendee_email from public response (PII leak)
+- Tests updated for B3-3's new inviteMember delegation behavior (318/318 pass)
+
+### Branch state
+- `bundle3-backend-wiring`: 12 commits ahead of main, PR #6 open
+- Local `main`: in sync with origin/main (bundle3 commits NOT on main yet)
+
+### Gate results
+- npm run build: PASS
+- npx vitest run: 318/318 PASS
+- npm run type-check: PASS (only pre-existing .next/types/validator.ts errors)
+- npx eslint . --max-warnings=0: PASS
+
+### Next
+- Review and merge PR #6 when ready
+- Read next bundle brief before starting next build session
+
+## Previous Session — Brand Asset Wiring
 
 ### What was done
 1. Copied finalized SVGs from `design/brand/arc-check-v1/` into `public/`:
