@@ -158,19 +158,19 @@ export async function disconnectConnectAccount(orgId: string) {
     return { ok: true, message: 'No connected account to disconnect' }
   }
 
-  try {
-    await stripe.accounts.del(org.stripe_account_id)
-  } catch (err: any) {
-    // Account already deleted or not found — still clear our DB
-    if (err?.code !== 'resource_missing') {
-      return { error: `Stripe account removal failed: ${err.message}` }
-    }
-  }
+  // Do NOT delete the Stripe account and do NOT clear stripe_account_id.
+  // - Deleting destroys the organizer's payout history permanently.
+  // - Clearing the ID means reconnect creates a new Express account,
+  //   forcing them through full onboarding again from scratch.
+  // Instead: just clear the capability flags so the UI shows disconnected.
+  // On reconnect, startConnectOnboarding finds the existing account ID
+  // and generates a new account link for the same account — no new account,
+  // no fresh onboarding.
 
   const adminClient = createAdminClient()
   await adminClient
     .from('organizations')
-    .update({ stripe_account_id: null, charges_enabled: false, payouts_enabled: false })
+    .update({ charges_enabled: false, payouts_enabled: false })
     .eq('id', orgId)
 
   return { ok: true }
