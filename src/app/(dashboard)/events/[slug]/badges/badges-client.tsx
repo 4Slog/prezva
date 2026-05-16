@@ -87,13 +87,24 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                   <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
                   <p className="text-xs text-[#64748B]">{t.paper_size}</p>
                 </div>
-                <button
-                  onClick={() => handleSaveToOrg(t.id)}
-                  disabled={saving === t.id}
-                  className="text-xs text-[#00BFA6] hover:underline disabled:opacity-50"
-                >
-                  {saving === t.id ? 'Saving…' : 'Save to org library'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`/api/events/${eventId}/badges/print?templateId=${t.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
+                    style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                  >
+                    Print badges
+                  </a>
+                  <button
+                    onClick={() => handleSaveToOrg(t.id)}
+                    disabled={saving === t.id}
+                    className="text-xs text-[#00BFA6] hover:underline disabled:opacity-50"
+                  >
+                    {saving === t.id ? 'Saving…' : 'Save to org library'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
