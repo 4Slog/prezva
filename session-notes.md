@@ -2,7 +2,7 @@
 
 ## Last updated: 2026-05-15
 
-## Status: Bundle 3 complete ✅ | Branch: bundle3-backend-wiring | PR #6 open — do not merge yet
+## Status: Bundle 3 merged ✅ | On main | Next: read next bundle brief
 
 ---
 
@@ -23,8 +23,9 @@
 - Tests updated for B3-3's new inviteMember delegation behavior (318/318 pass)
 
 ### Branch state
-- `bundle3-backend-wiring`: 12 commits ahead of main, PR #6 open
-- Local `main`: in sync with origin/main (bundle3 commits NOT on main yet)
+- PR #6 squash-merged to main 2026-05-15 (commit 3180ad1)
+- GDPR follow-up fix also merged (adminClient for service_role tables)
+- Local `main`: in sync with origin/main (HEAD: 4d9bd83)
 
 ### Gate results
 - npm run build: PASS
