@@ -39,14 +39,7 @@ export default async function BadgesPage({ params }: Props) {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-[#F0F4F8]">Badge templates</h1>
         <div className="flex items-center gap-3">
-          <a
-            href={`/api/events/${(event as any).id}/badges/print`}
-            className="rounded-lg border px-3 py-2 text-sm font-medium transition-opacity hover:opacity-70"
-            style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
-            title="Print all confirmed attendee badges as PDF (coming in Sprint 22)"
-          >
-            Print all (PDF)
-          </a>
+          {/* Print all only makes sense once a default template is selected — handled in BadgesClient */}
           <Link
             href={`/events/${slug}/badges/new`}
             className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"

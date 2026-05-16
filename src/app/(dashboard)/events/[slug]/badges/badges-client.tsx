@@ -26,6 +26,9 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   const [copying, setCopying] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(
+    initial.length > 0 ? initial[0].id : null
+  )
 
   async function handleSaveToOrg(templateId: string) {
     setSaving(templateId)
@@ -52,11 +55,13 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
     }).select('id, name, paper_size, is_template').single()
     setCopying(null)
     if (err) { setError(err.message); return }
-    setEventTpls(prev => [...prev, inserted as BadgeTemplate])
+    const newTpl = inserted as BadgeTemplate
+    setEventTpls(prev => [...prev, newTpl])
+    if (!defaultTemplateId) setDefaultTemplateId(newTpl.id)
     setSuccess('Template copied to this event.')
   }
 
-  const cardCls = 'pz-card p-4 flex items-center justify-between'
+  const cardCls = 'pz-card p-4'
 
   return (
     <div className="space-y-6">
@@ -65,7 +70,23 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
 
       {/* Event templates */}
       <section>
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">This event&apos;s templates</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-[#F0F4F8]">This event&apos;s templates</h2>
+          {defaultTemplateId && (
+            <div className="flex items-center gap-2">
+              <a
+                href={`/api/events/${eventId}/badges/print?templateId=${defaultTemplateId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
+                style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+              >
+                Print all attendees
+              </a>
+            </div>
+          )}
+        </div>
+
         {eventTpls.length === 0 ? (
           <div className="pz-card p-6 text-center space-y-3">
             <p className="text-sm text-[#64748B]">No badge templates for this event yet.</p>
@@ -83,30 +104,60 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
           <div className="space-y-2">
             {eventTpls.map(t => (
               <div key={t.id} className={cardCls}>
-                <div>
-                  <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
-                  <p className="text-xs text-[#64748B]">{t.paper_size}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <a
-                    href={`/api/events/${eventId}/badges/print?templateId=${t.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
-                    style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-                  >
-                    Print badges
-                  </a>
-                  <button
-                    onClick={() => handleSaveToOrg(t.id)}
-                    disabled={saving === t.id}
-                    className="text-xs text-[#00BFA6] hover:underline disabled:opacity-50"
-                  >
-                    {saving === t.id ? 'Saving…' : 'Save to org library'}
-                  </button>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Default indicator */}
+                    <button
+                      onClick={() => setDefaultTemplateId(t.id)}
+                      title={defaultTemplateId === t.id ? 'Default template for printing' : 'Set as default'}
+                      className="flex-shrink-0"
+                    >
+                      <span className={`inline-block w-2.5 h-2.5 rounded-full border-2 ${
+                        defaultTemplateId === t.id
+                          ? 'bg-[#2DD4BF] border-[#2DD4BF]'
+                          : 'bg-transparent border-[#475569]'
+                      }`} />
+                    </button>
+                    <div>
+                      <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
+                      <p className="text-xs text-[#64748B]">{t.paper_size}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Preview */}
+                    <a
+                      href={`/api/events/${eventId}/badges/print?templateId=${t.id}&preview=1`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-70"
+                      style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+                    >
+                      Preview
+                    </a>
+                    {/* Print all attendees */}
+                    <a
+                      href={`/api/events/${eventId}/badges/print?templateId=${t.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
+                      style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                    >
+                      Print all
+                    </a>
+                    <button
+                      onClick={() => handleSaveToOrg(t.id)}
+                      disabled={saving === t.id}
+                      className="text-xs text-[#00BFA6] hover:underline disabled:opacity-50"
+                    >
+                      {saving === t.id ? 'Saving…' : 'Save to org library'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
+            <p className="text-xs text-[#475569] mt-1 px-1">
+              ● = default template used for &quot;Print all attendees&quot; above. Click a dot to change it.
+            </p>
           </div>
         )}
       </section>
@@ -120,18 +171,20 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
           <div className="space-y-2">
             {orgTpls.map(t => (
               <div key={t.id} className={cardCls}>
-                <div>
-                  <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
-                  <p className="text-xs text-[#64748B]">{t.paper_size}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
+                    <p className="text-xs text-[#64748B]">{t.paper_size}</p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyToEvent(t.id)}
+                    disabled={copying === t.id}
+                    className="rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
+                    style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                  >
+                    {copying === t.id ? 'Copying…' : 'Use template'}
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleCopyToEvent(t.id)}
-                  disabled={copying === t.id}
-                  className="rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
-                  style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-                >
-                  {copying === t.id ? 'Copying…' : 'Use template'}
-                </button>
               </div>
             ))}
           </div>

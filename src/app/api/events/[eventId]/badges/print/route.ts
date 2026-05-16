@@ -129,6 +129,7 @@ export async function GET(
   const templateId = searchParams.get('templateId')
   const registrationId = searchParams.get('registrationId')
   const format = searchParams.get('format') ?? 'html'
+  const preview = searchParams.get('preview') === '1' // Show only first badge as preview
 
   if (!templateId) {
     return NextResponse.json({ error: 'templateId is required' }, { status: 400 })
@@ -181,6 +182,7 @@ export async function GET(
     .eq('status', 'confirmed')
 
   if (registrationId) query = query.eq('id', registrationId)
+  if (preview) query = query.limit(1) // Preview: show just the first badge
 
   const { data: regs } = await query
   if (!regs || regs.length === 0) {
