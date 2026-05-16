@@ -40,11 +40,8 @@ export const scheduledAnnouncementsTask = schedules.task({
           })
         }
 
-        await admin
-          .from('announcements')
-          .update({ status: 'sent', sent_at: new Date().toISOString() })
-          .eq('id', announcement.id)
-
+        // NOTE: status is updated to 'sent' by the send-announcement task
+        // after successful email delivery. We only set 'sending' here as a lock.
         enqueued++
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
