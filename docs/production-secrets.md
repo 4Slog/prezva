@@ -114,3 +114,8 @@ Steps:
 4. Add to GitHub: Settings -> Secrets -> Actions -> TRIGGER_SECRET_KEY = tr_live_...
 
 Without the production key, jobs are deployed but run against the dev environment.
+
+## CRON_SECRET
+Secret for Vercel cron route authentication (/api/cron/scheduled-announcements).
+Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+Add to Vercel: CRON_SECRET = <generated value> (production environment)
