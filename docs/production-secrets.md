@@ -49,3 +49,32 @@ Google OAuth redirect URIs (both must exist in Google Cloud Console):
   https://jmhxyyrleipcorvkmxfk.supabase.co/auth/v1/callback  ← old, keep as fallback
 
 Once custom domain is confirmed working in production, the old URI can be removed.
+
+## Google OAuth Consent Screen — Configured May 16 2026
+App name: Prezva
+Support email: ssss.logistics.llc@gmail.com
+App domain: https://prezva.app
+Logo: uploaded (512x512 PNG, teal square with white arc mark)
+Publishing status: Testing (submit for verification before public launch)
+
+Authorized redirect URIs (in Google Cloud Console, project 1064124487557):
+  https://prezva.app/auth/callback
+  https://prezva.app/api/integrations/google/callback
+  https://auth.prezva.app/auth/v1/callback
+  https://jmhxyyrleipcorvkmxfk.supabase.co/auth/v1/callback  ← remove after custom domain confirmed
+
+Scopes configured (non-sensitive, no verification required):
+  openid
+  .../auth/userinfo.email
+  .../auth/userinfo.profile
+
+What these give you from every Google sign-in:
+  profiles.email       = Google account email
+  profiles.full_name   = Google display name
+  profiles.avatar_url  = Google profile photo URL (lh3.googleusercontent.com/...)
+  All populated automatically via handle_new_user() trigger on auth.users INSERT.
+
+Before public launch — submit app for Google verification:
+  Required when app has 100+ users OR exits Testing status
+  Go to: console.cloud.google.com/auth/overview?project=1064124487557
+  Click Publish app then Prepare for verification
