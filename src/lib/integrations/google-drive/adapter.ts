@@ -5,7 +5,7 @@ import { logIntegrationError } from '../_shared/sync-errors'
 import { createClient } from '@/lib/supabase/server'
 
 const PROVIDER = 'google_drive'
-const SCOPES = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.readonly', 'offline_access']
+const SCOPES = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.readonly']
 
 class GoogleDriveAdapter implements IntegrationAdapter {
   readonly provider = PROVIDER
