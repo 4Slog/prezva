@@ -7,10 +7,11 @@ import { requireUser } from '@/lib/auth/get-user'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
-// ── Generate Stripe Connect OAuth URL (organizer connects their existing account) ──
-export async function getConnectOAuthUrl(orgId: string): Promise<{ url: string } | { error: string }> {
+// ── Start Connect Onboarding (creates Express account, returns account link) ──
+export async function startConnectOnboarding(orgId: string): Promise<{ url: string } | { error: string }> {
   const user = await requireUser()
   const supabase = await createClient()
+  const admin = createAdminClient()
 
   const { data: member } = await supabase
     .from('org_members')
@@ -23,21 +24,38 @@ export async function getConnectOAuthUrl(orgId: string): Promise<{ url: string }
     return { error: 'Only org owners can connect a Stripe account' }
   }
 
-  if (!process.env.STRIPE_CLIENT_ID) {
-    console.error('[connect] STRIPE_CLIENT_ID not set')
-    return { error: 'Payment processing is not fully configured. Please contact support.' }
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('stripe_account_id, name')
+    .eq('id', orgId)
+    .maybeSingle()
+
+  let accountId = org?.stripe_account_id
+
+  if (!accountId) {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      capabilities: {
+        card_payments: { requested: true },
+        transfers:     { requested: true },
+      },
+      metadata: { org_id: orgId, platform: 'prezva' },
+    })
+    accountId = account.id
+    await admin
+      .from('organizations')
+      .update({ stripe_account_id: accountId })
+      .eq('id', orgId)
   }
 
-  const state = Buffer.from(JSON.stringify({ orgId, userId: user.id })).toString('base64url')
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id:     process.env.STRIPE_CLIENT_ID,
-    scope:         'read_write',
-    redirect_uri:  `${APP_URL}/api/connect/callback`,
-    state,
+  const accountLink = await stripe.accountLinks.create({
+    account:     accountId,
+    refresh_url: `${APP_URL}/api/connect/onboard?org_id=${orgId}`,
+    return_url:  `${APP_URL}/orgs/${orgId}/settings?connect=success`,
+    type:        'account_onboarding',
   })
 
-  return { url: `https://connect.stripe.com/oauth/authorize?${params.toString()}` }
+  return { url: accountLink.url }
 }
 
 // ── Generate login link (to access their Stripe dashboard) ───────────────────
@@ -140,20 +158,13 @@ export async function disconnectConnectAccount(orgId: string) {
     return { ok: true, message: 'No connected account to disconnect' }
   }
 
-  if (process.env.STRIPE_CLIENT_ID) {
-    try {
-      await stripe.oauth.deauthorize({
-        client_id:      process.env.STRIPE_CLIENT_ID,
-        stripe_user_id: org.stripe_account_id,
-      })
-    } catch (err: any) {
-      // Already disconnected on Stripe side — still clear our DB
-      if (!err?.message?.includes('No such') && !err?.code?.includes('oauth')) {
-        return { error: `Stripe deauthorization failed: ${err.message}` }
-      }
+  try {
+    await stripe.accounts.del(org.stripe_account_id)
+  } catch (err: any) {
+    // Account already deleted or not found — still clear our DB
+    if (err?.code !== 'resource_missing') {
+      return { error: `Stripe account removal failed: ${err.message}` }
     }
-  } else {
-    console.warn('[connect] STRIPE_CLIENT_ID not set — skipping Stripe deauth, clearing DB only')
   }
 
   const adminClient = createAdminClient()
