@@ -9,6 +9,11 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
 // ── Create or retrieve a Connect account for an org ───────────────────────────
 export async function getOrCreateConnectAccount(orgId: string) {
+  if (!process.env.STRIPE_CLIENT_ID) {
+    console.error('[connect] STRIPE_CLIENT_ID not set — cannot create Connect accounts. Add to Vercel env vars.')
+    return { error: 'Payment processing is not fully configured. Please contact support.' }
+  }
+
   const user = await requireUser()
   const supabase = await createClient()
 
