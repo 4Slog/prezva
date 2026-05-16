@@ -86,6 +86,7 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
       segment: parsed.data.segment,
       audience_filter: { types: audienceTypes, tags: [] },
       exclude_filter: { types: excludeTypes, tags: [] },
+      status: isScheduled ? 'scheduled' : 'pending',
       scheduled_for: scheduledFor,
       sent_at: isScheduled ? null : new Date().toISOString(),
       recipient_count: recipientCount,

@@ -102,3 +102,20 @@ Webhook secret: in Vercel as STRIPE_WEBHOOK_SECRET
 Required events: checkout.session.completed, checkout.session.expired,
 payment_intent.payment_failed, account.updated, account.application.deauthorized
 Without "Events from: Connected accounts" paid registrations will never be confirmed.
+
+## Trigger.dev Production Key
+The TRIGGER_SECRET_KEY in .env.local is a DEV key (tr_dev_...).
+Production deployments need a LIVE key (tr_live_...).
+
+Steps:
+1. Go to cloud.trigger.dev -> your project -> API Keys
+2. Create or copy the production key (tr_live_...)
+3. Add to Vercel: TRIGGER_SECRET_KEY = tr_live_... (production + preview environments)
+4. Add to GitHub: Settings -> Secrets -> Actions -> TRIGGER_SECRET_KEY = tr_live_...
+
+Without the production key, jobs are deployed but run against the dev environment.
+
+## CRON_SECRET
+Secret for Vercel cron route authentication (/api/cron/scheduled-announcements).
+Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+Add to Vercel: CRON_SECRET = <generated value> (production environment)

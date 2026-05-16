@@ -96,6 +96,23 @@ export const sendAnnouncement = schemaTask({
       else failed++
     }
 
+    // Update announcement status based on delivery outcome
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    if (sent > 0) {
+      await admin
+        .from('announcements')
+        .update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: sent })
+        .eq('id', payload.announcementId)
+    } else if (failed > 0 && sent === 0) {
+      await admin
+        .from('announcements')
+        .update({ status: 'failed' })
+        .eq('id', payload.announcementId)
+    }
+
     return { sent, failed }
   },
 })

@@ -50,3 +50,20 @@ jobs:
           base: HEAD~1
           head: HEAD
           extra_args: --only-verified
+
+  deploy-trigger:
+    name: Deploy Trigger.dev Jobs
+    runs-on: ubuntu-latest
+    needs: [lint-and-type-check, unit-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Deploy Trigger.dev jobs
+        run: npx trigger deploy --project prezva
+        env:
+          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
