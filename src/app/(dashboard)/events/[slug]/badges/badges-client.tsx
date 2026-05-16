@@ -24,6 +24,8 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   const [orgTpls] = useState(initialOrg)
   const [saving, setSaving] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(
@@ -59,6 +61,22 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
     setEventTpls(prev => [...prev, newTpl])
     if (!defaultTemplateId) setDefaultTemplateId(newTpl.id)
     setSuccess('Template copied to this event.')
+  }
+
+  async function handleDelete(templateId: string) {
+    setDeleting(templateId)
+    setError('')
+    const supabase = createClient()
+    const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
+    setDeleting(null)
+    setConfirmDelete(null)
+    if (err) { setError(err.message); return }
+    setEventTpls(prev => prev.filter(t => t.id !== templateId))
+    if (defaultTemplateId === templateId) {
+      const remaining = eventTpls.filter(t => t.id !== templateId)
+      setDefaultTemplateId(remaining.length > 0 ? remaining[0].id : null)
+    }
+    setSuccess('Template deleted.')
   }
 
   const cardCls = 'pz-card p-4'
@@ -151,6 +169,31 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     >
                       {saving === t.id ? 'Saving…' : 'Save to org library'}
                     </button>
+                    {confirmDelete === t.id ? (
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs text-[#94A3B8]">Delete?</span>
+                        <button
+                          onClick={() => handleDelete(t.id)}
+                          disabled={deleting === t.id}
+                          className="text-xs text-[#EF4444] hover:underline disabled:opacity-50"
+                        >
+                          {deleting === t.id ? 'Deleting…' : 'Yes'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          className="text-xs text-[#94A3B8] hover:underline"
+                        >
+                          No
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDelete(t.id)}
+                        className="text-xs text-[#EF4444] hover:underline opacity-50 hover:opacity-100"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
