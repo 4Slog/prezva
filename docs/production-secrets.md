@@ -93,3 +93,12 @@ If you add more Google integrations in future, add their callback URI here too:
 
 Note: google_drive and google_forms both fall back to GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 since no provider-specific vars are set. This is intentional — see Bundle 1 B1-4.
+
+## Stripe Webhook — Connected Account Events
+Webhook: https://prezva.app/api/webhooks/stripe
+Configured: May 16 2026
+Events from: Connected accounts (set in Stripe Dashboard)
+Webhook secret: in Vercel as STRIPE_WEBHOOK_SECRET
+Required events: checkout.session.completed, checkout.session.expired,
+payment_intent.payment_failed, account.updated, account.application.deauthorized
+Without "Events from: Connected accounts" paid registrations will never be confirmed.
