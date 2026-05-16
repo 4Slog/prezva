@@ -1,3 +1,10 @@
+// IMPORTANT: This webhook endpoint must be registered in Stripe Dashboard
+// with "Events from: Connected accounts" enabled (already done May 16 2026).
+// Required events: checkout.session.completed, checkout.session.expired,
+// payment_intent.payment_failed, account.updated, account.application.deauthorized
+// Stripe sends a Stripe-Account header identifying which connected account
+// triggered the event. We capture it below for logging purposes.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/client'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -5,7 +12,8 @@ import { enqueueConfirmationEmail } from '@/lib/trigger'
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
-  const sig  = req.headers.get('stripe-signature')
+  const sig                = req.headers.get('stripe-signature')
+  const connectedAccountId = req.headers.get('stripe-account') ?? undefined
 
   if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })

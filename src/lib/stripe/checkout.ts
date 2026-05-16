@@ -13,7 +13,7 @@ interface CreateCheckoutParams {
   attendeeEmail:      string
   attendeeName:       string
   discountAmountCents?: number
-  connectedAccountId: string   // Stripe Connect account — money goes here
+  connectedAccountId: string  // Organizer's Stripe account — charge created directly here
   metadata:           Record<string, string>
 }
 
@@ -39,21 +39,14 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
           quantity: params.quantity,
         },
       ],
-      payment_intent_data: {
-        // Route 100% of payment to the event planner's connected account
-        // Prezva takes $0 — revenue comes from the $2,000 SaaS fee
-        transfer_data: {
-          destination: params.connectedAccountId,
-        },
-        metadata: params.metadata,
-      },
       metadata:    params.metadata,
       success_url: `${appUrl}/e/${params.eventSlug}/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${appUrl}/e/${params.eventSlug}/register?cancelled=true`,
       expires_at:  Math.floor(Date.now() / 1000) + 30 * 60,
     },
     {
-      idempotencyKey: params.registrationId,
+      idempotencyKey: `checkout-${params.registrationId}`,
+      stripeAccount:  params.connectedAccountId,
     },
   )
 

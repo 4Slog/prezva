@@ -1,17 +1,17 @@
 'use server'
 
 import { stripe } from '@/lib/stripe/client'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
-// ── Create or retrieve a Connect account for an org ───────────────────────────
-export async function getOrCreateConnectAccount(orgId: string) {
+// ── Generate Stripe Connect OAuth URL (organizer connects their existing account) ──
+export async function getConnectOAuthUrl(orgId: string): Promise<{ url: string } | { error: string }> {
   const user = await requireUser()
   const supabase = await createClient()
 
-  // Must be org owner
   const { data: member } = await supabase
     .from('org_members')
     .select('role')
@@ -20,65 +20,24 @@ export async function getOrCreateConnectAccount(orgId: string) {
     .maybeSingle()
 
   if (!member || member.role !== 'owner') {
-    return { error: 'Only org owners can connect a bank account' }
+    return { error: 'Only org owners can connect a Stripe account' }
   }
 
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, email, stripe_account_id')
-    .eq('id', orgId)
-    .maybeSingle()
-
-  if (!org) return { error: 'Organization not found' }
-
-  // Already has a Connect account
-  if (org.stripe_account_id) {
-    return { accountId: org.stripe_account_id, existing: true }
+  if (!process.env.STRIPE_CLIENT_ID) {
+    console.error('[connect] STRIPE_CLIENT_ID not set')
+    return { error: 'Payment processing is not fully configured. Please contact support.' }
   }
 
-  // Create new Express account
-  const account = await stripe.accounts.create({
-    type: 'express',
-    country: 'US',
-    email: org.email ?? undefined,
-    capabilities: {
-      card_payments: { requested: true },
-      transfers:     { requested: true },
-    },
-    business_profile: {
-      name: org.name,
-      product_description: 'Event ticketing and registration',
-      mcc: '7941', // Ticket agencies / theatrical producers
-    },
-    metadata: {
-      org_id:    orgId,
-      org_name:  org.name,
-      platform:  'prezva',
-    },
+  const state = Buffer.from(JSON.stringify({ orgId, userId: user.id })).toString('base64url')
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id:     process.env.STRIPE_CLIENT_ID,
+    scope:         'read_write',
+    redirect_uri:  `${APP_URL}/api/connect/callback`,
+    state,
   })
 
-  // Store the account ID on the org
-  await supabase
-    .from('organizations')
-    .update({ stripe_account_id: account.id })
-    .eq('id', orgId)
-
-  return { accountId: account.id, existing: false }
-}
-
-// ── Generate onboarding link ──────────────────────────────────────────────────
-export async function createOnboardingLink(orgId: string) {
-  const result = await getOrCreateConnectAccount(orgId)
-  if ('error' in result) return { error: result.error }
-
-  const link = await stripe.accountLinks.create({
-    account:     result.accountId,
-    refresh_url: `${APP_URL}/api/connect/onboard?org_id=${orgId}&refresh=true`,
-    return_url:  `${APP_URL}/api/connect/callback?org_id=${orgId}`,
-    type:        'account_onboarding',
-  })
-
-  return { url: link.url }
+  return { url: `https://connect.stripe.com/oauth/authorize?${params.toString()}` }
 }
 
 // ── Generate login link (to access their Stripe dashboard) ───────────────────
@@ -177,21 +136,31 @@ export async function disconnectConnectAccount(orgId: string) {
     .eq('id', orgId)
     .maybeSingle()
 
-  if (!org?.stripe_account_id) return { error: 'No connected account found' }
-
-  try {
-    await stripe.oauth?.deauthorize?.({
-      client_id:  process.env.STRIPE_CLIENT_ID ?? '',
-      stripe_user_id: org.stripe_account_id,
-    })
-  } catch {
-    // Account may already be deauthorized — clear it anyway
+  if (!org?.stripe_account_id) {
+    return { ok: true, message: 'No connected account to disconnect' }
   }
 
-  await supabase
+  if (process.env.STRIPE_CLIENT_ID) {
+    try {
+      await stripe.oauth.deauthorize({
+        client_id:      process.env.STRIPE_CLIENT_ID,
+        stripe_user_id: org.stripe_account_id,
+      })
+    } catch (err: any) {
+      // Already disconnected on Stripe side — still clear our DB
+      if (!err?.message?.includes('No such') && !err?.code?.includes('oauth')) {
+        return { error: `Stripe deauthorization failed: ${err.message}` }
+      }
+    }
+  } else {
+    console.warn('[connect] STRIPE_CLIENT_ID not set — skipping Stripe deauth, clearing DB only')
+  }
+
+  const adminClient = createAdminClient()
+  await adminClient
     .from('organizations')
-    .update({ stripe_account_id: null })
+    .update({ stripe_account_id: null, charges_enabled: false, payouts_enabled: false })
     .eq('id', orgId)
 
-  return { success: true }
+  return { ok: true }
 }
