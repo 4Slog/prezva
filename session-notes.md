@@ -1,22 +1,37 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-15
+## Last updated: 2026-05-16
 
-## Status: Bundle 4 complete ✅ | PR #7 open | On bundle4-stripe-connect
+## Status: Bundle 4 merged ✅ | On main | Next: read next bundle brief
 
 ---
 
-## This Session — Bundle 4 Stripe Connect (B4-1 through B4-4)
+## This Session — Bundle 4 Stripe Connect (B4-1 through B4-4 + rewrites)
 
 ### What was done
-- B4-1: disconnectConnectAccount — fixed error handling, deauthorizes on Stripe, uses adminClient, clears charges_enabled+payouts_enabled
-- B4-2: Added STRIPE_CLIENT_ID guard to getOrCreateConnectAccount(); created /api/connect/health endpoint
-- B4-3: Checkout idempotency key format updated to `checkout-${registrationId}` (was bare registrationId)
-- B4-4: STRIPE_CLIENT_ID documented in docs/production-secrets.md with full setup steps
+- B4-1: disconnectConnectAccount — proper error handling, uses adminClient, clears capability flags
+- B4-2: STRIPE_CLIENT_ID guard + /api/connect/health endpoint
+- B4-3: Checkout idempotency key → `checkout-${registrationId}`
+- B4-4: STRIPE_CLIENT_ID documented in docs/production-secrets.md
+- Rewrite 1: Replaced Express account creation with Stripe Connect OAuth (getConnectOAuthUrl)
+- Rewrite 2: Replaced broken OAuth (ca_ IDs rejected) with Connect Onboarding (startConnectOnboarding + stripe.accountLinks.create)
+- disconnectConnectAccount: clears capability flags only — does NOT delete Express account or clear stripe_account_id (preserves payout history, allows seamless reconnect)
+- Webhook: added Stripe-Account header capture + connected accounts docs
+- Checkout: charges go direct to connected account via stripeAccount header (no transfer_data)
+- PR #7 squash-merged to main (commit 745dc42) — required manual conflict resolution on merge
 
 ### Branch state
-- PR #7 open against main — do NOT merge, waiting for Paul review
-- Paul manual step: add STRIPE_CLIENT_ID to Vercel, then verify with curl https://prezva.app/api/connect/health
+- main: 745dc42 (Bundle 4 squash merge)
+- bundle4-stripe-connect: closed/merged
+
+### Gate results (at merge)
+- npm run build: PASS
+- npx vitest run: 318/318 PASS
+- npm run type-check: PASS
+- npx eslint . --max-warnings=0: PASS
+
+### Next
+- Read next bundle brief before starting next build session
 
 ### Gate results
 - npm run build: PASS
