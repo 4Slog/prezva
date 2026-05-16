@@ -21,11 +21,13 @@ interface Props {
 
 export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg }: Props) {
   const [eventTpls, setEventTpls] = useState(initial)
-  const [orgTpls] = useState(initialOrg)
   const [saving, setSaving] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deletingOrg, setDeletingOrg] = useState<string | null>(null)
+  const [confirmDeleteOrg, setConfirmDeleteOrg] = useState<string | null>(null)
+  const [orgTpls, setOrgTpls] = useState(initialOrg)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(
@@ -77,6 +79,18 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
       setDefaultTemplateId(remaining.length > 0 ? remaining[0].id : null)
     }
     setSuccess('Template deleted.')
+  }
+
+  async function handleDeleteOrg(templateId: string) {
+    setDeletingOrg(templateId)
+    setError('')
+    const supabase = createClient()
+    const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
+    setDeletingOrg(null)
+    setConfirmDeleteOrg(null)
+    if (err) { setError(err.message); return }
+    setOrgTpls(prev => prev.filter(t => t.id !== templateId))
+    setSuccess('Org template deleted.')
   }
 
   const cardCls = 'pz-card p-4'
@@ -219,14 +233,41 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
                     <p className="text-xs text-[#64748B]">{t.paper_size}</p>
                   </div>
-                  <button
-                    onClick={() => handleCopyToEvent(t.id)}
-                    disabled={copying === t.id}
-                    className="rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
-                    style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-                  >
-                    {copying === t.id ? 'Copying…' : 'Use template'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleCopyToEvent(t.id)}
+                      disabled={copying === t.id}
+                      className="rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
+                      style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                    >
+                      {copying === t.id ? 'Copying…' : 'Use template'}
+                    </button>
+                    {confirmDeleteOrg === t.id ? (
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs text-[#94A3B8]">Delete?</span>
+                        <button
+                          onClick={() => handleDeleteOrg(t.id)}
+                          disabled={deletingOrg === t.id}
+                          className="text-xs text-[#EF4444] hover:underline disabled:opacity-50"
+                        >
+                          {deletingOrg === t.id ? 'Deleting…' : 'Yes'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteOrg(null)}
+                          className="text-xs text-[#94A3B8] hover:underline"
+                        >
+                          No
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteOrg(t.id)}
+                        className="text-xs text-[#EF4444] hover:underline opacity-50 hover:opacity-100"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
