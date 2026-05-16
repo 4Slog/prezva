@@ -78,3 +78,18 @@ Before public launch — submit app for Google verification:
   Required when app has 100+ users OR exits Testing status
   Go to: console.cloud.google.com/auth/overview?project=1064124487557
   Click Publish app then Prepare for verification
+
+## Google OAuth — Integration Redirect URIs (added May 16 2026)
+The Prezva Web OAuth client (project 1064124487557) has these redirect URIs:
+  https://prezva.app/auth/callback                              ← sign-in
+  https://prezva.app/api/integrations/google/callback           ← legacy (keep)
+  https://auth.prezva.app/auth/v1/callback                      ← Supabase custom domain
+  https://prezva.app/api/integrations/google_drive/callback     ← Google Drive integration
+  https://prezva.app/api/integrations/google_forms/callback     ← Google Forms integration
+
+If you add more Google integrations in future, add their callback URI here too:
+  Pattern: https://prezva.app/api/integrations/{provider}/callback
+  Where {provider} matches the PROVIDER constant in the adapter file.
+
+Note: google_drive and google_forms both fall back to GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+since no provider-specific vars are set. This is intentional — see Bundle 1 B1-4.
