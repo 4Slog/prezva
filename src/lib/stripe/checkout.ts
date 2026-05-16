@@ -53,7 +53,7 @@ export async function createCheckoutSession(params: CreateCheckoutParams) {
       expires_at:  Math.floor(Date.now() / 1000) + 30 * 60,
     },
     {
-      idempotencyKey: params.registrationId,
+      idempotencyKey: `checkout-${params.registrationId}`,
     },
   )
 
