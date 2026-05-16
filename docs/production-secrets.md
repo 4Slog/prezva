@@ -33,3 +33,14 @@ Verify Connect is working end-to-end:
 1. Go to prezva.app, log in, go to org settings
 2. Click "Connect bank account"
 3. Should redirect to Stripe Connect Express onboarding (not show an error)
+
+## Supabase Custom Domain
+auth.prezva.app is the custom auth domain — activated May 16 2026.
+NEXT_PUBLIC_SUPABASE_URL must be https://auth.prezva.app (already set in Vercel).
+SUPABASE_DB_URL stays as the raw postgres URL — that is NOT affected by the custom domain.
+
+Google OAuth redirect URIs (both must exist in Google Cloud Console):
+  https://auth.prezva.app/auth/v1/callback        ← new, uses custom domain
+  https://jmhxyyrleipcorvkmxfk.supabase.co/auth/v1/callback  ← old, keep as fallback
+
+Once custom domain is confirmed working in production, the old URI can be removed.
