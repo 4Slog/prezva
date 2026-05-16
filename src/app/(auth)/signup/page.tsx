@@ -18,7 +18,7 @@ export default function SignupPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--pz-text)' }}>Create your account</h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--pz-text-muted)' }}>
-          Set up in minutes. No credit card required.
+          Prezva is currently invite-only. Enter your invite code to get started.
         </p>
       </div>
 
@@ -48,6 +48,22 @@ export default function SignupPage() {
       )}
 
       <form action={formAction} className="space-y-4">
+        <div>
+          <label htmlFor="invite_code" className="block text-sm font-medium mb-1" style={{ color: 'var(--pz-text)' }}>
+            Invite code <span style={{ color: 'var(--pz-teal)' }}>*</span>
+          </label>
+          <input
+            id="invite_code" name="invite_code" type="text" required
+            placeholder="PREZVA-XXXX-XXXX"
+            autoCapitalize="characters"
+            className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 font-mono tracking-widest"
+            style={{
+              background: 'var(--pz-surface-2)',
+              border: '1px solid var(--pz-border)',
+              color: 'var(--pz-text)',
+            }}
+          />
+        </div>
         <div>
           <label htmlFor="full_name" className="block text-sm font-medium mb-1" style={{ color: 'var(--pz-text)' }}>
             Full name
@@ -106,6 +122,12 @@ export default function SignupPage() {
         Already have an account?{' '}
         <a href="/login" className="font-medium hover:underline" style={{ color: 'var(--pz-teal)' }}>
           Sign in
+        </a>
+      </p>
+      <p className="mt-3 text-center text-xs" style={{ color: 'var(--pz-text-muted)' }}>
+        Don&apos;t have an invite code?{' '}
+        <a href="https://prezva.app#waitlist" className="hover:underline" style={{ color: 'var(--pz-text-muted)' }}>
+          Join the waitlist
         </a>
       </p>
     </div>
