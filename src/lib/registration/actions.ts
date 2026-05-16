@@ -293,7 +293,10 @@ async function createPaidRegistration(
     // Store session ID on the registration
     await admin
       .from('registrations')
-      .update({ stripe_payment_intent_id: session.payment_intent as string ?? session.id })
+      .update({
+        stripe_payment_intent_id: session.payment_intent as string ?? session.id,
+        stripe_session_id:        session.id,
+      })
       .eq('id', reg.id)
 
     redirect(session.url!)
