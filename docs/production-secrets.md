@@ -20,19 +20,24 @@ rk_live_... is a restricted key and CANNOT create Connect accounts or generate A
 Already fixed in Vercel by Paul on May 15 2026.
 If it ever breaks again: Stripe Dashboard -> Developers -> API Keys -> Standard keys -> sk_live_
 
-## Stripe Connect
-STRIPE_SECRET_KEY must be sk_live_... (full secret key).
-rk_live_... is a restricted key and cannot create Connect accounts or Account Links.
-Fixed in Vercel on May 15 2026.
+## STRIPE_CLIENT_ID (Required for Connect)
 
-STRIPE_CLIENT_ID is the Connect platform OAuth client ID.
-Find it at: dashboard.stripe.com/settings/connect
-Add to Vercel as STRIPE_CLIENT_ID when you complete Stripe Connect platform profile setup.
+The Connect platform client ID from: dashboard.stripe.com/settings/connect
 
-Verify Connect is working end-to-end:
-1. Go to prezva.app, log in, go to org settings
-2. Click "Connect bank account"
-3. Should redirect to Stripe Connect Express onboarding (not show an error)
+Steps to get it:
+1. Go to dashboard.stripe.com/settings/connect
+2. Complete the platform profile if not done (business name, website, description)
+3. Find "Client ID" under "Live mode credentials" — looks like: ca_XXXXXXXX
+4. Add to Vercel: STRIPE_CLIENT_ID = ca_XXXXXXXX (all 3 environments)
+
+Without STRIPE_CLIENT_ID:
+- Organizers cannot connect bank accounts
+- disconnect flow skips Stripe deauth (only clears DB)
+- Connect health check will show: stripe_client_id_set: false
+
+Verify Connect is fully operational:
+  curl https://prezva.app/api/connect/health
+  # Should return: {"stripe_key_type":"full_key_ok","stripe_client_id_set":true,"platform_account_accessible":true,"connect_ready":true}
 
 ## Supabase Custom Domain
 auth.prezva.app is the custom auth domain — activated May 16 2026.
