@@ -2,11 +2,35 @@
 
 ## Last updated: 2026-05-15
 
-## Status: Bundle 3 merged ✅ | On main | Next: read next bundle brief
+## Status: Bundle 4 complete ✅ | PR #7 open | On bundle4-stripe-connect
 
 ---
 
-## This Session — Bundle 3 Backend Wiring (B3-1 through B3-11)
+## This Session — Bundle 4 Stripe Connect (B4-1 through B4-4)
+
+### What was done
+- B4-1: disconnectConnectAccount — fixed error handling, deauthorizes on Stripe, uses adminClient, clears charges_enabled+payouts_enabled
+- B4-2: Added STRIPE_CLIENT_ID guard to getOrCreateConnectAccount(); created /api/connect/health endpoint
+- B4-3: Checkout idempotency key format updated to `checkout-${registrationId}` (was bare registrationId)
+- B4-4: STRIPE_CLIENT_ID documented in docs/production-secrets.md with full setup steps
+
+### Branch state
+- PR #7 open against main — do NOT merge, waiting for Paul review
+- Paul manual step: add STRIPE_CLIENT_ID to Vercel, then verify with curl https://prezva.app/api/connect/health
+
+### Gate results
+- npm run build: PASS
+- npx vitest run: 318/318 PASS
+- npm run type-check: PASS
+- npx eslint . --max-warnings=0: PASS
+
+### Next
+- Paul merges PR #7, adds STRIPE_CLIENT_ID to Vercel
+- Read next bundle brief before starting next build session
+
+---
+
+## Previous Session — Bundle 3 Backend Wiring (B3-1 through B3-11)
 
 ### What was done
 - B3-1: Stripe webhook — removed last createClient(), now fully uses createAdminClient()
