@@ -5,7 +5,7 @@ import { logIntegrationError } from '../_shared/sync-errors'
 import { createClient } from '@/lib/supabase/server'
 
 const PROVIDER = 'google_forms'
-const SCOPES = ['https://www.googleapis.com/auth/forms.body.readonly', 'offline_access']
+const SCOPES = ['https://www.googleapis.com/auth/forms.body.readonly']
 
 const QUESTION_TYPE_MAP: Record<string, string> = {
   RADIO: 'multiple_choice',

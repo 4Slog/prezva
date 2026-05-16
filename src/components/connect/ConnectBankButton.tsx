@@ -20,8 +20,8 @@ interface ConnectBankButtonProps {
 
 const STATUS_CONFIG = {
   not_connected: {
-    label:  'Connect bank account',
-    detail: 'Connect your bank account to enable paid ticket sales',
+    label:  'Connect Stripe account',
+    detail: 'Connect your Stripe account to enable paid ticket sales',
     dot:    'pz-dot-warning',
     text:   'text-[#F59E0B]',
   },
@@ -39,7 +39,7 @@ const STATUS_CONFIG = {
   },
   active: {
     label:  'Payouts active',
-    detail: 'Ticket payments go directly to your bank',
+    detail: 'Ticket payments go directly to your Stripe account',
     dot:    'pz-dot-online',
     text:   'text-[#22C55E]',
   },
@@ -81,11 +81,11 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
         <div className="flex items-start gap-3">
           <span className={`mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full ${cfg.dot}`} />
           <div>
-            <p className="font-semibold text-[#F0F4F8] text-sm">Stripe Payouts</p>
+            <p className="font-semibold text-[#F0F4F8] text-sm">Stripe Payments</p>
             <p className={`text-xs mt-0.5 ${cfg.text}`}>{cfg.detail}</p>
             {status.status === 'active' && (
               <p className="text-xs text-[#64748B] mt-1">
-                Attendee payments go directly to your bank account — Prezva never touches the money.
+                Attendee payments go directly to your Stripe account — Prezva never touches the money.
               </p>
             )}
             {!!status.requirementsCount && (
