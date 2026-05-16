@@ -1,6 +1,7 @@
 'use server'
 
 import { stripe } from '@/lib/stripe/client'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 
@@ -177,21 +178,31 @@ export async function disconnectConnectAccount(orgId: string) {
     .eq('id', orgId)
     .maybeSingle()
 
-  if (!org?.stripe_account_id) return { error: 'No connected account found' }
-
-  try {
-    await stripe.oauth?.deauthorize?.({
-      client_id:  process.env.STRIPE_CLIENT_ID ?? '',
-      stripe_user_id: org.stripe_account_id,
-    })
-  } catch {
-    // Account may already be deauthorized — clear it anyway
+  if (!org?.stripe_account_id) {
+    return { ok: true, message: 'No connected account to disconnect' }
   }
 
-  await supabase
+  if (process.env.STRIPE_CLIENT_ID) {
+    try {
+      await stripe.oauth.deauthorize({
+        client_id:      process.env.STRIPE_CLIENT_ID,
+        stripe_user_id: org.stripe_account_id,
+      })
+    } catch (err: any) {
+      // Already disconnected on Stripe side — still clear our DB
+      if (!err?.message?.includes('No such') && !err?.code?.includes('oauth')) {
+        return { error: `Stripe deauthorization failed: ${err.message}` }
+      }
+    }
+  } else {
+    console.warn('[connect] STRIPE_CLIENT_ID not set — skipping Stripe deauth, clearing DB only')
+  }
+
+  const adminClient = createAdminClient()
+  await adminClient
     .from('organizations')
-    .update({ stripe_account_id: null })
+    .update({ stripe_account_id: null, charges_enabled: false, payouts_enabled: false })
     .eq('id', orgId)
 
-  return { success: true }
+  return { ok: true }
 }
