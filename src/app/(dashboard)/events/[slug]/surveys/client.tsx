@@ -1,13 +1,18 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { Plus, ChevronDown, ChevronUp, Send, Lock } from 'lucide-react'
-import { createSurvey, createSurveyFromTemplate, publishSurvey, closeSurvey } from '@/lib/surveys/actions'
+import { Plus, ChevronDown, ChevronUp, Send, Lock, Link, Mail } from 'lucide-react'
+import { createSurvey, createSurveyFromTemplate, publishSurvey, closeSurvey, sendSurveyToAllAttendees } from '@/lib/surveys/actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { SurveyTemplate } from '@/lib/templates/types'
 
 interface Survey { id: string; title: string; description: string | null; status: string; created_at: string }
 
 const STATUS_COLOR: Record<string, string> = { draft: '#6b7280', active: '#059669', closed: '#7c3aed' }
+
+function extractGFormId(input: string): string {
+  const match = input.match(/\/forms\/d\/([a-zA-Z0-9_-]+)/)
+  return match ? match[1] : input.trim()
+}
 
 export default function SurveysClient({ surveys: init, eventId, orgId, googleFormsConnected }: {
   surveys: Survey[]; eventId: string; slug: string; orgId: string; googleFormsConnected: boolean
@@ -19,12 +24,17 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
   const [showGFImport, setShowGFImport] = useState(false)
-  const [gfFormId, setGfFormId] = useState('')
+  const [gfFormInput, setGfFormInput] = useState('')
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState('')
   const [titleDefault, setTitleDefault] = useState('')
   const [descDefault, setDescDefault] = useState('')
   const [templateQuestions, setTemplateQuestions] = useState<SurveyTemplate['questions'] | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [sendMsg, setSendMsg] = useState<Record<string, string>>({})
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://prezva.app'
 
   function handleTemplatePick(raw: unknown) {
     setShowPicker(false)
@@ -42,13 +52,14 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
   }
 
   async function handleGFImport() {
-    if (!gfFormId.trim()) return
+    if (!gfFormInput.trim()) return
+    const formId = extractGFormId(gfFormInput)
     setImporting(true)
     try {
       const res = await fetch('/api/integrations/google-forms/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgId, eventId, formId: gfFormId }),
+        body: JSON.stringify({ orgId, eventId, formId }),
       })
       const json = await res.json()
       if (json.surveyId) {
@@ -97,6 +108,27 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
     })
   }
 
+  function handleCopyLink(surveyId: string) {
+    const url = `${appUrl}/survey/${surveyId}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(surveyId)
+      setTimeout(() => setCopiedId(null), 2000)
+    })
+  }
+
+  function handleSendToAll(surveyId: string) {
+    setSendingId(surveyId)
+    startTransition(async () => {
+      const result = await sendSurveyToAllAttendees(surveyId, eventId)
+      if (result.error) {
+        setSendMsg(prev => ({ ...prev, [surveyId]: result.error! }))
+      } else {
+        setSendMsg(prev => ({ ...prev, [surveyId]: `Sent to ${result.sent}/${result.total} attendees` }))
+      }
+      setSendingId(null)
+    })
+  }
+
   return (
     <div>
       {showPicker && (
@@ -124,7 +156,13 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: '1.5rem', width: '100%', maxWidth: 440 }}>
             <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Import from Google Forms</h2>
-            <input value={gfFormId} onChange={e => setGfFormId(e.target.value)} placeholder="Google Form ID" style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
+            <input
+              value={gfFormInput}
+              onChange={e => setGfFormInput(e.target.value)}
+              placeholder="Paste Google Form URL or ID"
+              style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }}
+            />
+            <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>Accepts full URL or bare Form ID</p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: '1rem' }}>
               <button onClick={() => setShowGFImport(false)} style={{ padding: '0.5rem 1rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'none', cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleGFImport} disabled={importing} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', cursor: 'pointer', opacity: importing ? 0.5 : 1 }}>
@@ -158,6 +196,7 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
         {surveys.map(s => {
           const color = STATUS_COLOR[s.status] ?? '#6b7280'
           const isOpen = expanded === s.id
+          const isPublished = s.status === 'active'
           return (
             <div key={s.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, background: 'var(--color-surface)' }}>
               <div style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -167,10 +206,28 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
                     <span style={{ fontSize: 11, fontWeight: 600, background: color + '22', color, padding: '2px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{s.status}</span>
                   </div>
                   {s.description && <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>{s.description}</p>}
+                  {sendMsg[s.id] && <p style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>{sendMsg[s.id]}</p>}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#059669', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
                   {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
+                  {isPublished && (
+                    <button
+                      onClick={() => handleCopyLink(s.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      <Link size={12} /> {copiedId === s.id ? 'Copied!' : 'Copy Link'}
+                    </button>
+                  )}
+                  {isPublished && (
+                    <button
+                      onClick={() => handleSendToAll(s.id)}
+                      disabled={sendingId === s.id || isPending}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: sendingId === s.id ? 0.6 : 1 }}
+                    >
+                      <Mail size={12} /> {sendingId === s.id ? 'Sending…' : 'Send to Attendees'}
+                    </button>
+                  )}
                   <button onClick={() => setExpanded(isOpen ? null : s.id)} style={{ background: 'var(--color-border)', color: 'var(--color-text)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}>
                     {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { assertOrgRole } from '@/lib/orgs/actions'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -201,4 +202,50 @@ export async function createSurveyFromTemplate(
 
   revalidatePath('/dashboard')
   return { data: survey as Survey }
+}
+
+export async function sendSurveyToAllAttendees(surveyId: string, eventId: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('id, slug, title, organizations(id)')
+    .eq('id', eventId)
+    .maybeSingle()
+  if (!event) return { error: 'Event not found' }
+  const orgId = (event.organizations as any)?.id
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+
+  const { data: regs } = await supabase
+    .from('registrations')
+    .select('id, attendee_email, attendee_name, qr_code')
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed')
+
+  if (!regs?.length) return { error: 'No confirmed registrations found' }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const { Resend } = await import('resend')
+  const resend = new Resend(process.env.RESEND_API_KEY)
+
+  let sent = 0, errors = 0
+  for (const reg of regs) {
+    const surveyUrl = `${appUrl}/survey/${surveyId}?token=${reg.qr_code}`
+    try {
+      await resend.emails.send({
+        from: 'noreply@prezva.app',
+        to: reg.attendee_email,
+        subject: `Your feedback matters — ${event.title}`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <p>Hi ${reg.attendee_name},</p>
+          <p>Thank you for attending <strong>${event.title}</strong>. We'd love your feedback.</p>
+          <p><a href="${surveyUrl}" style="background:#00BFA6;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">Take the survey</a></p>
+          <p style="font-size:12px;color:#888;">Or copy: ${surveyUrl}</p>
+        </div>`,
+      })
+      sent++
+    } catch { errors++ }
+  }
+  return { ok: true, sent, errors, total: regs.length }
 }
