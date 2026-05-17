@@ -28,6 +28,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'leaderboard',    label: 'Leaderboard',     icon: '🏆', category: 'engagement',  description: 'Gamification points, badges, and rankings',          href: s => `/events/${s}/leaderboard` },
   { key: 'icebreakers',    label: 'Icebreakers',     icon: '🧊', category: 'engagement',  description: 'Conversation starters and group activities',         href: s => `/events/${s}/icebreakers` },
   { key: 'trivia',         label: 'Trivia',          icon: '🧠', category: 'engagement',  description: 'Live trivia game with scoring and leaderboard',      href: s => `/events/${s}/trivia` },
+  { key: 'passport',       label: 'Passport',        icon: '📍', category: 'engagement',  description: 'Booth passport game — locations, codes, analytics',  href: s => `/events/${s}/passport` },
 
   // Advanced
   { key: 'sponsors',       label: 'Sponsors',        icon: '🏢', category: 'advanced',    description: 'Sponsor tiers, logos, exhibitor directory',         href: s => `/events/${s}/sponsors` },
