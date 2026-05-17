@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getMyProfile, upsertAttendeeProfile, getIcebreakerQuestions } from '@/lib/networking/sprint8-actions'
+import { AvatarUpload } from '@/components/upload/AvatarUpload'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -103,8 +104,8 @@ export default async function ProfileEditPage({ params }: Props) {
           <div className="pz-card p-5 space-y-4">
             <h2 className="text-sm font-semibold" style={{ color: 'var(--pz-label)' }}>Links</h2>
             <div>
-              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Avatar URL</label>
-              <input name="avatar_url" type="url" defaultValue={p.avatar_url ?? ''} placeholder="https://…" className={inputCls} style={inputStyle} />
+              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Profile photo</label>
+              <AvatarUpload currentUrl={p.avatar_url ?? ''} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>LinkedIn URL</label>
