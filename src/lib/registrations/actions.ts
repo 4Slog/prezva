@@ -27,10 +27,16 @@ export async function refundRegistration(registrationId: string) {
 
   const { stripe } = await import('@/lib/stripe/client')
   try {
-    const refund = await stripe.refunds.create({
-      payment_intent: reg.stripe_charge_id,
-      reason: 'requested_by_customer',
-    })
+    // stripe_charge_id may store either a payment_intent (pi_...) or charge (ch_...) ID
+    // depending on how the payment was captured. Handle both.
+    const chargeId = reg.stripe_charge_id as string
+    const refundParams: Record<string, string> = { reason: 'requested_by_customer' }
+    if (chargeId.startsWith('pi_')) {
+      refundParams.payment_intent = chargeId
+    } else {
+      refundParams.charge = chargeId
+    }
+    const refund = await stripe.refunds.create(refundParams as any)
     if (refund.status !== 'succeeded' && refund.status !== 'pending') {
       return { error: `Refund failed with status: ${refund.status}` }
     }
@@ -78,7 +84,7 @@ export async function resendConfirmation(registrationId: string) {
       to: reg.attendee_email,
       subject: `Your registration for ${ev.title}`,
       html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-        <p>Hi ${reg.attendee_name},</p>
+        <p>Hi ${reg.attendee_name.trim().split(/\s+/)[0]},</p>
         <p>This is your confirmation for <strong>${ev.title}</strong>.</p>
         <p><a href="${appUrl}/e/${ev.slug}/confirmation?token=${reg.qr_code}" style="background:#00BFA6;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">View Ticket</a></p>
       </div>`,

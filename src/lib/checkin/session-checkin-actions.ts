@@ -16,8 +16,18 @@ export async function markSessionAttendance(sessionId: string, eventId: string) 
 
   if (!reg) return { error: 'No confirmed registration found for this event' }
 
+  // Also verify the session belongs to this event (security: prevent cross-event spoofing)
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .eq('event_id', eventId)
+    .maybeSingle()
+
+  if (!session) return { error: 'Session not found for this event' }
+
   const { data: existing } = await supabase
-    .from('check_ins')
+    .from('session_attendance')
     .select('id')
     .eq('registration_id', reg.id)
     .eq('session_id', sessionId)
@@ -26,13 +36,12 @@ export async function markSessionAttendance(sessionId: string, eventId: string) 
   if (existing) return { ok: true, alreadyMarked: true }
 
   const { error } = await supabase
-    .from('check_ins')
+    .from('session_attendance')
     .insert({
       registration_id: reg.id,
       event_id: eventId,
       session_id: sessionId,
-      user_id: user.id,
-      method: 'self',
+      checked_in_by: user.id,
     })
 
   if (error) return { error: error.message }

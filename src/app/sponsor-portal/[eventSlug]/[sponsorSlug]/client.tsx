@@ -40,11 +40,11 @@ export default function SponsorPortalClient({ event, sponsor, leads, eventSlug, 
   const tabStyle = (active: boolean) => ({
     padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
     background: active ? 'var(--color-teal, #00BFA6)' : 'transparent',
-    color: active ? '#fff' : '#6B7280',
+    color: active ? '#0D1B2A' : 'var(--pz-muted, #94A3B8)',
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB', fontFamily: 'sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--pz-bg, #0D1B2A)', fontFamily: 'sans-serif', color: 'var(--pz-text, #F0F4F8)' }}>
       {/* Header */}
       <div style={{ background: '#0D1B2A', color: '#fff', padding: '1.5rem 2rem' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -67,7 +67,7 @@ export default function SponsorPortalClient({ event, sponsor, leads, eventSlug, 
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem' }}>
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: '#E5E7EB', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--pz-surface, #112240)', borderRadius: 10, padding: 4, width: 'fit-content', border: '1px solid var(--pz-border, #1E3A5F)' }}>
           <button style={tabStyle(tab === 'overview')} onClick={() => setTab('overview')}><Package size={13} style={{ display: 'inline', marginRight: 6 }} />Overview</button>
           <button style={tabStyle(tab === 'leads')} onClick={() => setTab('leads')}><Users size={13} style={{ display: 'inline', marginRight: 6 }} />Leads ({leads.length})</button>
           <button style={tabStyle(tab === 'analytics')} onClick={() => setTab('analytics')}><BarChart3 size={13} style={{ display: 'inline', marginRight: 6 }} />Analytics</button>
@@ -75,21 +75,21 @@ export default function SponsorPortalClient({ event, sponsor, leads, eventSlug, 
 
         {tab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ background: '#fff', borderRadius: 12, padding: '1.5rem', border: '1px solid #E5E7EB' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 16 }}>Sponsor Information</h2>
+            <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)', marginBottom: 16 }}>Sponsor Information</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
                 {sponsor.website_url && (
-                  <div><p style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Website</p><a href={sponsor.website_url} target="_blank" rel="noreferrer" style={{ color: '#00BFA6', fontSize: 14 }}>{sponsor.website_url}</a></div>
+                  <div><p style={{ fontSize: 11, color: 'var(--pz-muted, #94A3B8)', marginBottom: 2 }}>Website</p><a href={sponsor.website_url} target="_blank" rel="noreferrer" style={{ color: '#00BFA6', fontSize: 14 }}>{sponsor.website_url}</a></div>
                 )}
                 {sponsor.contact_email && (
-                  <div><p style={{ fontSize: 11, color: '#6B7280', marginBottom: 2 }}>Contact</p><p style={{ fontSize: 14 }}>{sponsor.contact_email}</p></div>
+                  <div><p style={{ fontSize: 11, color: 'var(--pz-muted, #94A3B8)', marginBottom: 2 }}>Contact</p><p style={{ fontSize: 14 }}>{sponsor.contact_email}</p></div>
                 )}
               </div>
-              {sponsor.description && <p style={{ marginTop: 12, fontSize: 14, color: '#374151', lineHeight: 1.6 }}>{sponsor.description}</p>}
+              {sponsor.description && <p style={{ marginTop: 12, fontSize: 14, color: 'var(--pz-text, #F0F4F8)', lineHeight: 1.6 }}>{sponsor.description}</p>}
             </div>
             {sponsor.materials.length > 0 && (
-              <div style={{ background: '#fff', borderRadius: 12, padding: '1.5rem', border: '1px solid #E5E7EB' }}>
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 16 }}>Materials</h2>
+              <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)', marginBottom: 16 }}>Materials</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {(sponsor.materials as any[]).map((m, i) => (
                     <a key={i} href={m.url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#00BFA6', textDecoration: 'none' }}>
@@ -103,25 +103,25 @@ export default function SponsorPortalClient({ event, sponsor, leads, eventSlug, 
         )}
 
         {tab === 'leads' && (
-          <div style={{ background: '#fff', borderRadius: 12, padding: '1.5rem', border: '1px solid #E5E7EB' }}>
+          <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>Registered Attendees ({leads.length})</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)' }}>Registered Attendees ({leads.length})</h2>
               <button onClick={handleExport} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#00BFA6', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exporting ? 0.6 : 1 }}>
                 <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
               </button>
             </div>
             {leads.length === 0 ? (
-              <p style={{ color: '#6B7280', fontSize: 14 }}>No confirmed registrations yet.</p>
+              <p style={{ color: 'var(--pz-muted, #94A3B8)', fontSize: 14 }}>No confirmed registrations yet.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #E5E7EB', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--pz-border, #1E3A5F)', fontSize: 11, fontWeight: 700, color: 'var(--pz-muted, #94A3B8)', textTransform: 'uppercase' }}>
                   <span>Name</span><span>Email</span><span>Company</span>
                 </div>
                 {leads.map(lead => (
                   <div key={lead.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6', fontSize: 13 }}>
                     <span style={{ fontWeight: 500 }}>{lead.attendee_name}</span>
-                    <span style={{ color: '#6B7280' }}>{lead.attendee_email}</span>
-                    <span style={{ color: '#6B7280' }}>{lead.attendee_company ?? '—'}</span>
+                    <span style={{ color: 'var(--pz-muted, #94A3B8)' }}>{lead.attendee_email}</span>
+                    <span style={{ color: 'var(--pz-muted, #94A3B8)' }}>{lead.attendee_company ?? '—'}</span>
                   </div>
                 ))}
               </div>
@@ -136,8 +136,8 @@ export default function SponsorPortalClient({ event, sponsor, leads, eventSlug, 
               { label: 'Companies', value: new Set(leads.map(l => l.attendee_company).filter(Boolean)).size },
               { label: 'Tier', value: sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1) },
             ].map(stat => (
-              <div key={stat.label} style={{ background: '#fff', borderRadius: 12, padding: '1.5rem', border: '1px solid #E5E7EB', textAlign: 'center' }}>
-                <p style={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.5, marginBottom: 8 }}>{stat.label}</p>
+              <div key={stat.label} style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)', textAlign: 'center' }}>
+                <p style={{ fontSize: 11, color: 'var(--pz-muted, #94A3B8)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.5, marginBottom: 8 }}>{stat.label}</p>
                 <p style={{ fontSize: 32, fontWeight: 700, color: '#0D1B2A' }}>{stat.value}</p>
               </div>
             ))}
