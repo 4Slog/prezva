@@ -14,10 +14,23 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     getPublicSponsors(event.id),
     getPublicTicketTypes(event.id),
   ])
+  const tz = (event as any).timezone || 'UTC'
   const start = new Date(event.start_at)
   const end = new Date(event.end_at)
-  const fmtDate = (d: Date) => d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
-  const fmtTime = (d: Date) => d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})
+  const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz })
+  const fmtTime = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz })
+  // Format date range: "Monday, June 15 – Wednesday, June 17, 2026"
+  const startDay = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz })
+  const endDay   = end.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: tz })
+  const isSameDay = start.toDateString() === end.toDateString()
+  const dateLabel = isSameDay ? fmtDate(start) : `${startDay} – ${endDay}`
+  // Friendly timezone abbreviation
+  const tzLabel = (() => {
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+        .formatToParts(start).find(p => p.type === 'timeZoneName')?.value ?? tz
+    } catch { return tz }
+  })()
   const location = event.venue_name ? (event.venue_city ? event.venue_name + ', ' + event.venue_city : event.venue_name) : null
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
   const eventUrl = `${appUrl}/e/${slug}`
@@ -26,8 +39,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const hasPaid   = (ticketTypes as any[]).some((t) => t.type === 'paid' && t.price_cents > 0)
   const ctaLabel  = hasInvite ? 'Request Access' : hasPaid ? 'Get Tickets' : 'Reserve Your Spot'
 
+  const isDraftPreview = (event as any)._isDraftPreview === true
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--color-bg)', color:'var(--color-text)' }}>
+      {isDraftPreview && (
+        <div style={{ background:'#92400e', color:'#fef3c7', padding:'0.5rem 1.5rem', textAlign:'center', fontSize:13, fontWeight:600 }}>
+          ⚠ Draft preview — this event is not yet published. Only org members can see this page.
+        </div>
+      )}
       {/* Minimal nav header */}
       <header style={{ background:'var(--color-navy)', borderBottom:'1px solid rgba(255,255,255,0.08)', padding:'0.75rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <Link href="/" style={{ fontWeight:800, fontSize:18, color:'var(--color-teal)', textDecoration:'none', letterSpacing:-0.5 }}>P Prezva</Link>
@@ -41,8 +61,8 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <h1 style={{ fontSize:'clamp(1.75rem,4vw,2.75rem)', fontWeight:800, marginBottom:'1rem' }}>{event.title}</h1>
           {event.description && <p style={{ opacity:0.85, lineHeight:1.7, maxWidth:600 }}>{event.description}</p>}
           <div style={{ display:'flex', flexWrap:'wrap', gap:'1.5rem', marginTop:'1.5rem', fontSize:14 }}>
-            <span style={{ display:'flex', alignItems:'center', gap:6 }}><Calendar size={16} style={{ color:'var(--color-teal)' }}/>{fmtDate(start)}</span>
-            <span style={{ display:'flex', alignItems:'center', gap:6 }}><Clock size={16} style={{ color:'var(--color-teal)' }}/>{fmtTime(start)} - {fmtTime(end)} {event.timezone}</span>
+            <span style={{ display:'flex', alignItems:'center', gap:6 }}><Calendar size={16} style={{ color:'var(--color-teal)' }}/>{dateLabel}</span>
+            <span style={{ display:'flex', alignItems:'center', gap:6 }}><Clock size={16} style={{ color:'var(--color-teal)' }}/>{fmtTime(start)} – {fmtTime(end)} {tzLabel}</span>
             {location && <span style={{ display:'flex', alignItems:'center', gap:6 }}><MapPin size={16} style={{ color:'var(--color-teal)' }}/>{location}</span>}
             {event.capacity && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Users size={16} style={{ color:'var(--color-teal)' }}/>{event.registration_count} / {event.capacity} registered</span>}
           </div>
@@ -67,7 +87,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div key={s.id} style={{ border:'1px solid var(--color-border)', borderRadius:10, padding:'1rem 1.25rem', background:'var(--color-surface)', borderLeft:'4px solid '+(s.tracks?.color ?? 'var(--color-teal)') }}>
                   <p style={{ fontWeight:600, marginBottom:4 }}>{s.title}</p>
                   <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>
-                    {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+                    {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz})}
                     {s.tracks?.name ? ' · '+s.tracks.name : ''}
                   </p>
                 </div>

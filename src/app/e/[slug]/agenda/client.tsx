@@ -17,6 +17,7 @@ type AgendaClientProps = {
   userId: string | null
   handoutsBySession?: Record<string, any[]>
   eventSlug?: string
+  timezone?: string
 }
 const COLORS: Record<string,string> = {
   keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
@@ -52,12 +53,12 @@ function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: strin
   )
 }
 
-export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '' }: AgendaClientProps) {
+export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '', timezone = 'UTC' }: AgendaClientProps) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
   const grouped: Record<string,Session[]> = {}
   for (const s of sessions) {
-    const day = new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
+    const day = new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:timezone})
     if (!grouped[day]) grouped[day] = []
     grouped[day].push(s)
   }
