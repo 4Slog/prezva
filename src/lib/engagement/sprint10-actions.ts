@@ -3,23 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
 
-// ── T-100: email campaigns ─────────────────────────────────────────────────────
-
-export async function createEmailCampaign(eventId: string, subject: string, body: string, audienceFilter: Record<string, string[]> = {}) {
-  const supabase = await createClient()
-  const user = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('email_campaigns').insert({
-    event_id: eventId,
-    subject,
-    body,
-    audience_filter: audienceFilter,
-    status: 'pending',
-    created_by: user.data.user?.id,
-  }).select('id').single()
-  if (error) return { error: error.message }
-  return { id: (data as any).id }
-}
-
 export async function getEmailCampaigns(eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
