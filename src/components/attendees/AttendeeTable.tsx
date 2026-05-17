@@ -121,7 +121,7 @@ export function AttendeeTable({
                     : '—'}
                 </td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">
-                  {a.amount_paid_cents > 0 ? '$' + (a.amount_paid_cents / 100).toFixed(2) : 'Free'}
+                  {(a.amount_paid_cents ?? 0) > 0 ? '$' + ((a.amount_paid_cents ?? 0) / 100).toFixed(2) : 'Free'}
                 </td>
                 <td className="px-4 py-3">
                   <button

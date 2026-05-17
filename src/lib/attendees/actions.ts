@@ -229,10 +229,10 @@ export async function exportAttendeesCSV(eventId: string): Promise<string> {
   const headers = ['Name', 'Email', 'Ticket', 'Status', 'Amount Paid', 'Checked In', 'Check-In Time', 'Registered At']
   const rows = attendees.map(a => [
     a.attendee_name, a.attendee_email, a.ticket_name, a.status,
-    (a.amount_paid_cents / 100).toFixed(2),
+    ((a.amount_paid_cents ?? 0) / 100).toFixed(2),
     a.checked_in ? 'Yes' : 'No',
     a.check_in_time ? new Date(a.check_in_time).toLocaleString() : '',
-    new Date(a.created_at).toLocaleString(),
+    new Date(a.created_at ?? '').toLocaleString(),
   ])
   return [headers, ...rows]
     .map(row => row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(','))
