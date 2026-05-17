@@ -3,6 +3,7 @@ import { getEventBySlug, updateEvent, deleteEvent } from '@/lib/events/actions'
 import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
+import { createClient } from '@/lib/supabase/server'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -10,6 +11,15 @@ export default async function EventSettingsPage({ params }: Props) {
   const { slug } = await params
   const event = await getEventBySlug(slug)
   if (!event) notFound()
+
+  const supabase = await createClient()
+  const { data: integrationRows } = await supabase
+    .from('org_integrations')
+    .select('provider, status')
+    .eq('org_id', (event as any).org_id)
+    .in('provider', ['outlook', 'google_drive', 'sharepoint'])
+  const integrationMap: Record<string, string> = {}
+  for (const row of integrationRows ?? []) integrationMap[row.provider] = row.status
 
   const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
@@ -189,6 +199,9 @@ export default async function EventSettingsPage({ params }: Props) {
         eventSlug={slug}
         orgId={(event as any).org_id}
         currentRecurrence={(event as any).recurrence ?? null}
+        outlookConnected={integrationMap['outlook'] === 'connected'}
+        driveConnected={integrationMap['google_drive'] === 'connected'}
+        sharepointConnected={integrationMap['sharepoint'] === 'connected'}
       />
 
       {/* Danger zone */}

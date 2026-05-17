@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import { AttendeeActions } from './actions-client'
 
 type Props = { params: Promise<{ slug: string; regId: string }> }
 
@@ -85,6 +86,17 @@ export default async function AttendeeDetailPage({ params }: Props) {
         }}>
           {((reg as any).status as string).charAt(0).toUpperCase() + ((reg as any).status as string).slice(1)}
         </span>
+      </div>
+
+      {/* Actions */}
+      <div className="pz-card p-6 mb-4">
+        <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 16 }}>Actions</h2>
+        <AttendeeActions
+          registrationId={regId}
+          status={(reg as any).status}
+          amountPaidCents={(reg as any).amount_paid_cents ?? null}
+          stripeChargeId={(reg as any).stripe_charge_id ?? null}
+        />
       </div>
 
       {/* Details grid */}

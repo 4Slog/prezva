@@ -25,8 +25,12 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
   const [showAdd, setShowAdd] = useState(false)
   const [showEBImport, setShowEBImport] = useState(false)
   const [ebEventId, setEbEventId] = useState('')
+  const [ebEvents, setEbEvents] = useState<{ id: string; name: string; startDate: string }[]>([])
+  const [ebLoading, setEbLoading] = useState(false)
   const [syncTarget, setSyncTarget] = useState<'mailchimp' | 'constant_contact' | null>(null)
   const [syncListId, setSyncListId] = useState('')
+  const [mailchimpLists, setMailchimpLists] = useState<{ id: string; name: string; memberCount: number }[]>([])
+  const [mailchimpLoading, setMailchimpLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
 
@@ -103,12 +107,32 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
         </div>
         <div className="flex items-center gap-2">
           {integrations.eventbrite && (
-            <button onClick={() => setShowEBImport(true)} className="px-3 py-2 border border-[var(--border)] text-sm rounded-lg hover:bg-[var(--surface-hover)]">
+            <button
+              onClick={async () => {
+                setEbLoading(true)
+                setShowEBImport(true)
+                const res = await fetch(`/api/integrations/eventbrite/list-events?orgId=${orgId}`)
+                const json = await res.json()
+                setEbEvents(json.events ?? [])
+                setEbLoading(false)
+              }}
+              className="px-3 py-2 border border-[var(--border)] text-sm rounded-lg hover:bg-[var(--surface-hover)]"
+            >
               Import from Eventbrite
             </button>
           )}
           {integrations.mailchimp && (
-            <button onClick={() => setSyncTarget('mailchimp')} className="px-3 py-2 border border-[var(--border)] text-sm rounded-lg hover:bg-[var(--surface-hover)]">
+            <button
+              onClick={async () => {
+                setMailchimpLoading(true)
+                setSyncTarget('mailchimp')
+                const res = await fetch(`/api/integrations/mailchimp/lists?orgId=${orgId}`)
+                const json = await res.json()
+                setMailchimpLists(json.lists ?? [])
+                setMailchimpLoading(false)
+              }}
+              className="px-3 py-2 border border-[var(--border)] text-sm rounded-lg hover:bg-[var(--surface-hover)]"
+            >
               Sync to Mailchimp
             </button>
           )}
@@ -151,10 +175,23 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[var(--surface)] rounded-xl p-6 w-full max-w-md space-y-4">
             <h2 className="font-semibold text-lg">Import from Eventbrite</h2>
-            <input value={ebEventId} onChange={e => setEbEventId(e.target.value)} placeholder="Eventbrite Event ID" className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm" />
+            {ebLoading ? (
+              <p className="text-sm text-[var(--text-secondary)]">Loading events…</p>
+            ) : ebEvents.length > 0 ? (
+              <select value={ebEventId} onChange={e => setEbEventId(e.target.value)} className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-[var(--surface)]">
+                <option value="">Select an event…</option>
+                {ebEvents.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} ({new Date(ev.startDate).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input value={ebEventId} onChange={e => setEbEventId(e.target.value)} placeholder="Eventbrite Event ID" className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm" />
+            )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setShowEBImport(false)} className="px-4 py-2 text-sm border border-[var(--border)] rounded-lg">Cancel</button>
-              <button onClick={handleEBImport} disabled={syncing} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
+              <button onClick={handleEBImport} disabled={syncing || !ebEventId} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
                 {syncing ? 'Importing...' : 'Import'}
               </button>
             </div>
@@ -166,10 +203,21 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[var(--surface)] rounded-xl p-6 w-full max-w-md space-y-4">
             <h2 className="font-semibold text-lg">Sync to Mailchimp</h2>
-            <input value={syncListId} onChange={e => setSyncListId(e.target.value)} placeholder="Mailchimp List/Audience ID" className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm" />
+            {mailchimpLoading ? (
+              <p className="text-sm text-[var(--text-secondary)]">Loading lists…</p>
+            ) : mailchimpLists.length > 0 ? (
+              <select value={syncListId} onChange={e => setSyncListId(e.target.value)} className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm bg-[var(--surface)]">
+                <option value="">Select an audience…</option>
+                {mailchimpLists.map(l => (
+                  <option key={l.id} value={l.id}>{l.name} ({l.memberCount.toLocaleString()} members)</option>
+                ))}
+              </select>
+            ) : (
+              <input value={syncListId} onChange={e => setSyncListId(e.target.value)} placeholder="Mailchimp List/Audience ID" className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm" />
+            )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setSyncTarget(null)} className="px-4 py-2 text-sm border border-[var(--border)] rounded-lg">Cancel</button>
-              <button onClick={handleMailchimpSync} disabled={syncing} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
+              <button onClick={handleMailchimpSync} disabled={syncing || !syncListId} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
                 {syncing ? 'Syncing...' : 'Sync'}
               </button>
             </div>

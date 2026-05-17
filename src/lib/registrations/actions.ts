@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-// import {
+import { assertOrgRole } from '@/lib/orgs/actions'
 
 export async function refundRegistration(registrationId: string) {
   const user = await requireUser()
@@ -23,12 +23,20 @@ export async function refundRegistration(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+
   const { stripe } = await import('@/lib/stripe/client')
   try {
-    const refund = await stripe.refunds.create({
-      payment_intent: reg.stripe_charge_id,
-      reason: 'requested_by_customer',
-    })
+    // stripe_charge_id may store either a payment_intent (pi_...) or charge (ch_...) ID
+    // depending on how the payment was captured. Handle both.
+    const chargeId = reg.stripe_charge_id as string
+    const refundParams: Record<string, string> = { reason: 'requested_by_customer' }
+    if (chargeId.startsWith('pi_')) {
+      refundParams.payment_intent = chargeId
+    } else {
+      refundParams.charge = chargeId
+    }
+    const refund = await stripe.refunds.create(refundParams as any)
     if (refund.status !== 'succeeded' && refund.status !== 'pending') {
       return { error: `Refund failed with status: ${refund.status}` }
     }
@@ -63,6 +71,8 @@ export async function resendConfirmation(registrationId: string) {
   const ev = reg.events as any
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
+
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
 
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
@@ -102,6 +112,8 @@ export async function cancelRegistration(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+
   const admin = createAdminClient()
   const { error } = await admin
     .from('registrations')
@@ -127,6 +139,8 @@ export async function manualCheckIn(registrationId: string) {
   const ev = reg.events as any
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
+
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
 
   const { data: existing } = await supabase
     .from('check_ins')

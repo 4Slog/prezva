@@ -54,6 +54,8 @@ export interface Session {
   recording_url: string | null
   slides_url: string | null
   sort_order: number
+  ce_credit_hours: number | null
+  virtual_url: string | null
   speakers?: Pick<Speaker, 'id' | 'name' | 'job_title' | 'company' | 'photo_url'>[]
   track?: Pick<Track, 'id' | 'name' | 'color'> | null
   room?: Pick<Room, 'id' | 'name'> | null
@@ -262,6 +264,8 @@ const SessionSchema = z.object({
   recording_url: z.string().url().nullable().optional(),
   slides_url: z.string().url().nullable().optional(),
   sort_order: z.number().int().default(0),
+  ce_credit_hours: z.number().min(0).max(24).nullable().optional(),
+  virtual_url: z.string().url().nullable().optional(),
   speaker_ids: z.array(z.string().uuid()).optional(),
 })
 

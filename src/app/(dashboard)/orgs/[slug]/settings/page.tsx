@@ -5,8 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { InviteForm } from '@/components/orgs/InviteForm'
 import { MemberList } from '@/components/orgs/MemberList'
 import { ConnectBankButton } from '@/components/connect/ConnectBankButton'
-import { updateOrg } from '@/lib/orgs/actions'
 import { getConnectStatus } from '@/lib/connect/actions'
+import { OrgSettingsForm } from './OrgSettingsForm'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -52,9 +52,6 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
   // Fetch Connect status server-side for initial render
   const connectStatus = isOwner ? await getConnectStatus(org.id) : null
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
-
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="mb-8">
@@ -94,35 +91,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
       {canManage && (
         <section className="mb-8 rounded-xl border border-[#1E3A5F] bg-[#112240] p-6">
           <h2 className="text-base font-semibold text-[#F0F4F8] mb-4">General</h2>
-          <form
-            action={async (fd: FormData) => {
-              'use server'
-              await updateOrg(org.id, fd)
-            }}
-            className="flex flex-col gap-4"
-          >
-            <div>
-              <label className={labelCls}>Name</label>
-              <input name="name" defaultValue={org.name} required className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Timezone</label>
-              <select name="timezone" defaultValue={org.timezone} className={inputCls}>
-                <option value="America/New_York">Eastern (ET)</option>
-                <option value="America/Chicago">Central (CT)</option>
-                <option value="America/Denver">Mountain (MT)</option>
-                <option value="America/Los_Angeles">Pacific (PT)</option>
-                <option value="UTC">UTC</option>
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-            >
-              Save changes
-            </button>
-          </form>
+          <OrgSettingsForm org={org as Parameters<typeof OrgSettingsForm>[0]['org']} />
         </section>
       )}
 

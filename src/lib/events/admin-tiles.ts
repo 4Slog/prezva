@@ -28,6 +28,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'leaderboard',    label: 'Leaderboard',     icon: '🏆', category: 'engagement',  description: 'Gamification points, badges, and rankings',          href: s => `/events/${s}/leaderboard` },
   { key: 'icebreakers',    label: 'Icebreakers',     icon: '🧊', category: 'engagement',  description: 'Conversation starters and group activities',         href: s => `/events/${s}/icebreakers` },
   { key: 'trivia',         label: 'Trivia',          icon: '🧠', category: 'engagement',  description: 'Live trivia game with scoring and leaderboard',      href: s => `/events/${s}/trivia` },
+  { key: 'passport',       label: 'Passport',        icon: '📍', category: 'engagement',  description: 'Booth passport game — locations, codes, analytics',  href: s => `/events/${s}/passport` },
 
   // Advanced
   { key: 'sponsors',       label: 'Sponsors',        icon: '🏢', category: 'advanced',    description: 'Sponsor tiers, logos, exhibitor directory',         href: s => `/events/${s}/sponsors` },
@@ -37,7 +38,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and replay failed background sync jobs',        href: s => `/events/${s}/dead-letters` },
 
   // Integration
-  { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: _s => '/dashboard' },
+  { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: s => `/events/${s}/integrations` },
 ]
 
 export const TILE_CATEGORIES: { key: TileCategory; label: string }[] = [
