@@ -10,7 +10,9 @@ async function getOrgId(supabase: any, eventId: string) {
 }
 
 function randomCode(len = 6) {
-  return Math.random().toString(36).toUpperCase().slice(2, 2 + len)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no ambiguous chars (0/O, 1/I)
+  const bytes = crypto.getRandomValues(new Uint8Array(len))
+  return Array.from(bytes).map(b => chars[b % chars.length]).join('')
 }
 
 export async function getPassportAdmin(eventId: string) {

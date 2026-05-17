@@ -40,3 +40,5 @@ next-env.d.ts
 .playwright-mcp/
 # Root-level screenshot PNGs (not public/ icons)
 /*.png
+.claude/worktrees/
+docs/production-secrets.md

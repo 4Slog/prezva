@@ -122,6 +122,33 @@ export default function NewEventPage() {
         </div>
       )}
 
+      {templates.length > 0 && (
+        <div
+          style={{ border: '1px solid var(--pz-teal)', borderRadius: 8, padding: 16, marginBottom: 24 }}
+          className="flex items-center justify-between gap-4"
+        >
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#F0F4F8' }}>
+              You have {templates.length} saved template{templates.length !== 1 ? 's' : ''}. Skip the setup?
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+              Start from a template — never configure from scratch again.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setUseTemplate(true)
+              document.getElementById('template-section')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="flex-shrink-0 rounded-lg px-4 py-2 text-sm font-semibold"
+            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          >
+            Browse templates
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
         {/* Organization */}
@@ -146,7 +173,7 @@ export default function NewEventPage() {
 
         {/* T-120: Create from template */}
         {templates.length > 0 && (
-          <div className="pz-card p-5">
+          <div id="template-section" className="pz-card p-5">
             <div className="flex items-center gap-3 mb-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} className="rounded" />

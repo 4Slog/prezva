@@ -3,6 +3,7 @@ import { getEventBySlug } from '@/lib/events/actions'
 import { EventStatusBadge } from '@/components/events/EventStatusBadge'
 import { EventStatusActions } from '@/components/events/EventStatusActions'
 import { AdminTileGrid } from '@/components/events/AdminTileGrid'
+import { SaveAsTemplateButton } from '@/components/events/SaveAsTemplateButton'
 import { getAdminTileBadges } from '@/lib/events/admin-tile-counts'
 import { getEventCounts } from '@/lib/registrations/counts'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -63,7 +64,8 @@ export default async function EventDetailPage({ params }: Props) {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          <SaveAsTemplateButton eventId={event.id} defaultName={event.title} />
           <Link
             href={`/e/${slug}`}
             target="_blank"

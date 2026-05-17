@@ -1,23 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-
-// ── T-100: email campaigns ─────────────────────────────────────────────────────
-
-export async function createEmailCampaign(eventId: string, subject: string, body: string, audienceFilter: Record<string, string[]> = {}) {
-  const supabase = await createClient()
-  const user = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('email_campaigns').insert({
-    event_id: eventId,
-    subject,
-    body,
-    audience_filter: audienceFilter,
-    status: 'pending',
-    created_by: user.data.user?.id,
-  }).select('id').single()
-  if (error) return { error: error.message }
-  return { id: (data as any).id }
-}
+import { POINT_VALUES } from '@/lib/engagement/point-values'
 
 export async function getEmailCampaigns(eventId: string) {
   const supabase = await createClient()
@@ -129,22 +113,25 @@ export async function getSessionFeedback(sessionId: string) {
 
 // ── T-104: leaderboard ────────────────────────────────────────────────────────
 
-const POINT_VALUES: Record<string, number> = {
-  checkin: 10,
-  session_attend: 5,
-  survey_complete: 5,
-  profile_complete: 15,
-  community_post: 3,
-  qa_upvote: 2,
-  icebreaker: 5,
-  passport_visit: 5,
-  trivia_correct: 10,
-  photo_upload: 3,
-}
-
 export async function awardPoints(eventId: string, userId: string, action: string) {
-  const points = POINT_VALUES[action] ?? 1
   const supabase = await createClient()
+
+  // Try to get event-specific config, fall back to defaults
+  let points = POINT_VALUES[action] ?? 1
+  try {
+    const { data: event } = await supabase
+      .from('events')
+      .select('leaderboard_point_config')
+      .eq('id', eventId)
+      .single()
+    if (event?.leaderboard_point_config) {
+      const config = event.leaderboard_point_config as Record<string, number>
+      if (typeof config[action] === 'number') points = config[action]
+    }
+  } catch {
+    // fall back to default
+  }
+
   const { error } = await supabase
     .from('leaderboard_points')
     .insert({ event_id: eventId, user_id: userId, action, points })
@@ -152,6 +139,16 @@ export async function awardPoints(eventId: string, userId: string, action: strin
   if (error && !error.code?.includes('23505')) {
     console.error('[leaderboard] awardPoints error:', error.message)
   }
+}
+
+export async function updateLeaderboardPointConfig(eventId: string, config: Record<string, number>) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('events')
+    .update({ leaderboard_point_config: config })
+    .eq('id', eventId)
+  if (error) return { error: error.message }
+  return { ok: true }
 }
 
 export async function getLeaderboard(eventId: string, limit = 50) {

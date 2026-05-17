@@ -8,6 +8,15 @@ import { checkInByQR, checkInBySearch, getCheckInStats } from '@/lib/checkin/act
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
 import { queueCheckIn, getPendingCount, syncPending } from '@/lib/checkin/offline-db'
 
+function KioskClock() {
+  const [time, setTime] = useState(() => new Date().toLocaleTimeString())
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return <span>{time}</span>
+}
+
 interface VolunteerStatus {
   total: number
   checked_in: number
@@ -43,6 +52,9 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
   const [pendingCount, setPendingCount] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [kioskMode, setKioskMode] = useState(false)
+  const [escCount, setEscCount] = useState(0)
+  const escTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refreshPending = useCallback(async () => {
     const count = await getPendingCount(eventId)
@@ -84,6 +96,37 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Kiosk: auto-reset 30s after successful check-in
+  useEffect(() => {
+    if (!kioskMode || !lastResult?.success) return
+    const t = setTimeout(() => {
+      setLastResult(null)
+      setTab('qr')
+    }, 30000)
+    return () => clearTimeout(t)
+  }, [kioskMode, lastResult])
+
+  // Kiosk: Esc ×3 to exit
+  useEffect(() => {
+    if (!kioskMode) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setEscCount(n => {
+        const next = n + 1
+        if (next >= 3) {
+          setKioskMode(false)
+          setEscCount(0)
+          return 0
+        }
+        if (escTimerRef.current) clearTimeout(escTimerRef.current)
+        escTimerRef.current = setTimeout(() => setEscCount(0), 3000)
+        return next
+      })
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [kioskMode])
 
   const handleQRScan = useCallback(async (code: string) => {
     if (scanning) return
@@ -158,22 +201,33 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
         </div>
       )}
 
-      {/* Tab switcher */}
-      <div className="flex gap-1 bg-[var(--bg-subtle)] p-1 rounded-lg">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={
-              'flex-1 py-2 text-sm font-medium rounded-md transition-colors ' +
-              (tab === t.id
-                ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]')
-            }
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Tab switcher + kiosk button */}
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 gap-1 bg-[var(--bg-subtle)] p-1 rounded-lg">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={
+                'flex-1 py-2 text-sm font-medium rounded-md transition-colors ' +
+                (tab === t.id
+                  ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]')
+              }
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setKioskMode(true)}
+          className="flex-shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
+          style={{ borderColor: 'var(--color-teal)', color: 'var(--color-teal)', background: 'none' }}
+          title="Enter fullscreen kiosk mode"
+        >
+          Kiosk mode
+        </button>
       </div>
 
       {/* Scan result toast */}
@@ -215,6 +269,70 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           <CheckInDashboard stats={stats} onRefresh={refreshStats} volunteerStatus={volunteerStatus} />
         )}
       </div>
+
+      {/* Kiosk overlay */}
+      {kioskMode && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: '#0D1B2A', color: '#F0F4F8',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '2rem',
+            overflowY: 'auto',
+          }}
+        >
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>{eventName}</h1>
+            <p style={{ fontSize: '1.25rem', color: '#94A3B8' }}>
+              <KioskClock /> &nbsp;·&nbsp; {stats.total_checked_in}/{stats.total_registered} checked in
+            </p>
+          </div>
+
+          {/* Check-in result */}
+          {lastResult && (
+            <div
+              style={{
+                width: '100%', maxWidth: 560, marginBottom: '1rem',
+                padding: '1rem', borderRadius: 12, textAlign: 'center',
+                fontSize: '1.1rem', fontWeight: 600,
+                ...(lastResult.success
+                  ? lastResult.registration?.already_checked_in
+                    ? { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#FCD34D' }
+                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: '#00BFA6' }
+                  : { background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#FCA5A5' }),
+              }}
+            >
+              {lastResult.success && lastResult.registration ? (
+                lastResult.registration.already_checked_in
+                  ? `Already checked in: ${lastResult.registration.attendee_name}`
+                  : `Checked in: ${lastResult.registration.attendee_name} — ${lastResult.registration.ticket_name}`
+              ) : (
+                `Error: ${lastResult.error}`
+              )}
+            </div>
+          )}
+
+          {/* QR Scanner */}
+          <div style={{ width: '100%', maxWidth: 560, marginBottom: '1.5rem' }}>
+            <QRScanner onScan={handleQRScan} active={kioskMode} />
+          </div>
+
+          {/* Manual search */}
+          <div style={{ width: '100%', maxWidth: 560, marginBottom: '2rem' }}>
+            <ManualSearch eventId={eventId} onCheckIn={handleManualCheckIn} />
+          </div>
+
+          {/* Exit hint */}
+          <div style={{ position: 'absolute', bottom: '1rem', right: '1.5rem', textAlign: 'right' }}>
+            <p style={{ fontSize: '0.7rem', color: '#475569' }}>
+              {escCount > 0
+                ? `Esc ×${escCount}/3 to exit kiosk`
+                : 'Press Esc × 3 to exit kiosk mode'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

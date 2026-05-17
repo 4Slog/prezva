@@ -121,11 +121,14 @@ export async function getConnectStatus(orgId: string) {
     return {
       connected: true,
       status,
-      accountId:        account.id,
+      accountId:                account.id,
       chargesEnabled,
       payoutsEnabled,
       detailsSubmitted,
-      requirementsCount: account.requirements?.currently_due?.length ?? 0,
+      requirementsCount:        account.requirements?.currently_due?.length ?? 0,
+      requirementsDue:          account.requirements?.currently_due ?? [],
+      requirementsEventuallyDue: account.requirements?.eventually_due ?? [],
+      disabledReason:           account.requirements?.disabled_reason ?? null,
     }
   } catch {
     return { connected: false, status: 'not_connected' as const }

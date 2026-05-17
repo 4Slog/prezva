@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -72,6 +73,7 @@ export async function createTicketType(eventId: string, formData: FormData) {
     .single()
 
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'ticket.create', 'ticket_types', data.id, { name: parsed.data.name })
   revalidatePath(`/events/[slug]/tickets`)
   return { data }
 }
@@ -101,6 +103,7 @@ export async function updateTicketType(ticketId: string, eventId: string, formDa
     .single()
 
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'ticket.update', 'ticket_types', ticketId)
   revalidatePath(`/events/[slug]/tickets`)
   return { data }
 }
@@ -130,6 +133,7 @@ export async function deleteTicketType(ticketId: string, eventId: string) {
     .eq('event_id', eventId)
 
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'ticket.delete', 'ticket_types', ticketId)
   revalidatePath(`/events/[slug]/tickets`)
   return { success: true }
 }

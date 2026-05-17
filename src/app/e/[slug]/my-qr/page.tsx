@@ -1,5 +1,7 @@
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { checkRateLimit, myQrLimiter } from '@/lib/ratelimit'
 import QRDisplay from './qr-display'
 import Link from 'next/link'
 
@@ -11,6 +13,10 @@ type Props = {
 export default async function MyQRPage({ params, searchParams }: Props) {
   const { slug } = await params
   const { email } = await searchParams
+
+  const ip = (await headers()).get('x-forwarded-for') ?? 'unknown'
+  const { limited } = await checkRateLimit(myQrLimiter, ip)
+  if (limited) return <div>Too many requests — try again in a minute.</div>
 
   const supabase = await createClient()
 

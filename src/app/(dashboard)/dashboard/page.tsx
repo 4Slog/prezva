@@ -84,6 +84,8 @@ export default async function DashboardPage({ searchParams }: Props) {
     { label: 'Invite a team member',                done: hasMultipleMembers,  href: `/orgs/${orgSlug}/settings` },
     { label: 'Publish your event page',             done: false,               href: '/events' },
     { label: 'Connect an integration (optional)',   done: hasIntegration,      href: `/orgs/${orgSlug}/integrations` },
+    { label: 'Save an event as a template',         done: false,               href: `/orgs/${orgSlug}/templates` },
+    { label: 'Explore starter templates',           done: false,               href: '/events/new' },
   ]
 
   const showChecklist = checklistItems.filter(i => !i.done).length > 0

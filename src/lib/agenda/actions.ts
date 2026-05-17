@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -104,6 +105,7 @@ export async function createTrack(eventId: string, input: unknown) {
   const { data, error } = await supabase
     .from('tracks').insert({ event_id: eventId, ...parsed.data }).select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'track.create', 'track', (data as any).id, { name: parsed.data.name })
   revalidatePath('/events')
   return { data }
 }
@@ -117,6 +119,7 @@ export async function updateTrack(eventId: string, trackId: string, input: unkno
   const { data, error } = await supabase
     .from('tracks').update(parsed.data).eq('id', trackId).eq('event_id', eventId).select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'track.update', 'track', trackId)
   revalidatePath('/events')
   return { data }
 }
@@ -128,6 +131,7 @@ export async function deleteTrack(eventId: string, trackId: string) {
   const { error } = await supabase
     .from('tracks').delete().eq('id', trackId).eq('event_id', eventId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'track.delete', 'track', trackId)
   revalidatePath('/events')
   return { success: true }
 }
@@ -159,6 +163,7 @@ export async function createRoom(eventId: string, input: unknown) {
   const { data, error } = await supabase
     .from('rooms').insert({ event_id: eventId, ...parsed.data }).select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'room.create', 'room', (data as any).id, { name: parsed.data.name })
   revalidatePath('/events')
   return { data }
 }
@@ -172,6 +177,7 @@ export async function updateRoom(eventId: string, roomId: string, input: unknown
   const { data, error } = await supabase
     .from('rooms').update(parsed.data).eq('id', roomId).eq('event_id', eventId).select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'room.update', 'room', roomId)
   revalidatePath('/events')
   return { data }
 }
@@ -183,6 +189,7 @@ export async function deleteRoom(eventId: string, roomId: string) {
   const { error } = await supabase
     .from('rooms').delete().eq('id', roomId).eq('event_id', eventId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'room.delete', 'room', roomId)
   revalidatePath('/events')
   return { success: true }
 }
@@ -221,6 +228,7 @@ export async function createSpeaker(eventId: string, input: unknown) {
   const { data, error } = await supabase
     .from('speakers').insert({ event_id: eventId, ...parsed.data }).select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'speaker.create', 'speaker', (data as any).id, { name: parsed.data.name })
   revalidatePath('/events')
   return { data }
 }
@@ -234,6 +242,7 @@ export async function updateSpeaker(eventId: string, speakerId: string, input: u
   const { data, error } = await supabase
     .from('speakers').update(parsed.data).eq('id', speakerId).eq('event_id', eventId).select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'speaker.update', 'speaker', speakerId)
   revalidatePath('/events')
   return { data }
 }
@@ -245,6 +254,7 @@ export async function deleteSpeaker(eventId: string, speakerId: string) {
   const { error } = await supabase
     .from('speakers').delete().eq('id', speakerId).eq('event_id', eventId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'speaker.delete', 'speaker', speakerId)
   revalidatePath('/events')
   return { success: true }
 }
@@ -303,6 +313,7 @@ export async function createSession(eventId: string, input: unknown) {
       speaker_ids.map((sid, i) => ({ session_id: (session as any).id, speaker_id: sid, sort_order: i }))
     )
   }
+  await logAudit(supabase, null, user.id, 'session.create', 'session', (session as any).id, { title: sessionData.title })
   revalidatePath('/events')
   return { data: session }
 }
@@ -327,6 +338,7 @@ export async function updateSession(eventId: string, sessionId: string, input: u
       )
     }
   }
+  await logAudit(supabase, null, user.id, 'session.update', 'session', sessionId)
   revalidatePath('/events')
   return { data }
 }
@@ -338,6 +350,7 @@ export async function deleteSession(eventId: string, sessionId: string) {
   const { error } = await supabase
     .from('sessions').delete().eq('id', sessionId).eq('event_id', eventId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'session.delete', 'session', sessionId)
   revalidatePath('/events')
   return { success: true }
 }

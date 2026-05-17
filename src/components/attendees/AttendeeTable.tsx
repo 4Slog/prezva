@@ -22,6 +22,7 @@ export function AttendeeTable({
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [cancelId, setCancelId] = useState<string | null>(null)
 
   function apply() {
     onFilterChange({ search: search || undefined, status: status || undefined, page: 1 })
@@ -121,15 +122,29 @@ export function AttendeeTable({
                     : '—'}
                 </td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">
-                  {a.amount_paid_cents > 0 ? '$' + (a.amount_paid_cents / 100).toFixed(2) : 'Free'}
+                  {((a.amount_paid_cents ?? 0) > 0 ? '$' + ((a.amount_paid_cents ?? 0) / 100).toFixed(2) : 'Free')}
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => { if (confirm('Cancel this registration?')) onRemove(a.id) }}
-                    className="text-xs text-red-500 hover:text-red-700"
-                  >
-                    Cancel
-                  </button>
+                  {cancelId === a.id ? (
+                    <span className="flex items-center gap-1 text-xs">
+                      <span className="text-[var(--text-secondary)]">Cancel registration?</span>
+                      <button
+                        onClick={() => { onRemove(a.id); setCancelId(null) }}
+                        className="text-red-500 hover:text-red-700 font-medium"
+                      >Yes</button>
+                      <button
+                        onClick={() => setCancelId(null)}
+                        className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      >No</button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setCancelId(a.id)}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

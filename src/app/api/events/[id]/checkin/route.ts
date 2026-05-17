@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkInByQR } from '@/lib/checkin/actions'
+import { checkRateLimit, checkinLimiter } from '@/lib/ratelimit'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
+    const { limited } = await checkRateLimit(checkinLimiter, ip)
+    if (limited) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+
     const { id } = await params
     const body = await req.json()
     const { qr_code, device_id } = body
