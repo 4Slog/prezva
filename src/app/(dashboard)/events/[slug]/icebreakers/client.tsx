@@ -4,10 +4,18 @@ import { useState, useTransition } from 'react'
 import { seedIcebreakerPrompts } from '@/lib/engagement/sprint10-actions'
 import { ICEBREAKER_PROMPTS } from '@/lib/templates/icebreakers'
 
-interface IcebreakerQuestion { id: string; question_text: string }
+interface IcebreakerQuestion { 
+  id: string; 
+  question?: string; 
+  question_text?: string; 
+  prompt?: string;
+  category?: string
+}
 interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string }
 
 const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
+
+const getPromptText = (q: IcebreakerQuestion) => q.question || q.question_text || q.prompt || ''
 
 export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
   const [questions, setQuestions] = useState(init)
@@ -15,6 +23,23 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
   const [msg, setMsg] = useState('')
   const [customText, setCustomText] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [published, setPublished] = useState(false)
+
+  function handlePrint() {
+    const w = window.open('', '_blank')
+    if (!w) return
+    const html = `<!DOCTYPE html><html><head><title>Icebreaker Prompts</title>
+    <style>body{font-family:sans-serif;padding:2rem;color:#111}h1{font-size:1.5rem;margin-bottom:1.5rem}
+    .q{margin-bottom:1rem;padding:0.75rem;border:1px solid #eee;border-radius:6px;page-break-inside:avoid}
+    .q-text{font-size:15px}@media print{.no-print{display:none}}</style></head>
+    <body><h1>Icebreaker Prompts (${questions.length})</h1>
+    ${questions.map((q, i) => 
+      `<div class="q"><span style="color:#888;margin-right:8px">${i+1}.</span><span class="q-text">${getPromptText(q)}</span></div>`
+    ).join('')}
+    <script>window.print()</script></body></html>`
+    w.document.write(html)
+    w.document.close()
+  }
 
   function handleLoadStarter() {
     setShowPreview(false)
@@ -47,6 +72,16 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
           style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
           + Use starter pack (10 prompts)
         </button>
+        {questions.length > 0 && (<>
+          <button onClick={handlePrint}
+            style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>
+            🖨 Print
+          </button>
+          <button onClick={() => setPublished(v => !v)}
+            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer' }}>
+            {published ? '✓ Published' : 'Publish to attendees'}
+          </button>
+        </>)}
       </div>
 
       {/* Custom prompt input */}
@@ -70,7 +105,7 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
         {questions.map((q, i) => (
           <div key={q.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.875rem 1.25rem', background: 'var(--pz-surface)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--pz-muted)', fontSize: 12, fontWeight: 600, minWidth: 24 }}>{i + 1}</span>
-            <p style={{ color: 'var(--pz-text)', fontSize: 14, flex: 1, margin: 0 }}>{q.question_text}</p>
+            <p style={{ color: 'var(--pz-text)', fontSize: 14, flex: 1, margin: 0 }}>{getPromptText(q)}</p>
           </div>
         ))}
       </div>
@@ -91,7 +126,7 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
                 <div key={p.id} style={{ border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.75rem 1rem', background: '#0D1B2A', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <span style={{ color: '#475569', fontSize: 12, fontWeight: 600, minWidth: 20 }}>{i + 1}</span>
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#F0F4F8', fontSize: 13, margin: '0 0 4px' }}>{p.text}</p>
+                    <p style={{ color: '#F0F4F8', fontSize: 13, margin: '0 0 4px' }}>{p.text.replace('{event_title}', 'your event')}</p>
                     {p.tags.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {p.tags.map(tag => (

@@ -4,11 +4,13 @@ import { useState, useTransition } from 'react'
 import { seedTriviaQuestions } from '@/lib/engagement/sprint10-actions'
 import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
 
-interface TriviaQuestion { id: string; question_text: string; options?: string[]; correct_index?: number; category?: string; difficulty?: string }
+interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
 interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string }
 
 const DIFF_COLOR: Record<string, string> = { easy: '#059669', medium: '#d97706', hard: '#ef4444' }
 const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
+
+const getQuestionText = (q: TriviaQuestion) => q.body || q.question_text || ''
 
 export function TriviaAdminClient({ questions: init, eventId }: Props) {
   const [questions, setQuestions] = useState(init)
@@ -17,6 +19,28 @@ export function TriviaAdminClient({ questions: init, eventId }: Props) {
   const [showPreview, setShowPreview] = useState(false)
   // Add custom question state
   const [showAdd, setShowAdd] = useState(false)
+  const [published, setPublished] = useState(false)
+
+  function handlePrint() {
+    const w = window.open('', '_blank')
+    if (!w) return
+    const html = `<!DOCTYPE html><html><head><title>Trivia Questions</title>
+    <style>body{font-family:sans-serif;padding:2rem;color:#111}h1{font-size:1.5rem;margin-bottom:1.5rem}
+    .q{margin-bottom:1.5rem;page-break-inside:avoid}.q-text{font-weight:700;margin-bottom:0.5rem;font-size:15px}
+    .opt{padding:3px 0;font-size:14px}.correct{color:#059669;font-weight:600}
+    .meta{font-size:11px;color:#888;margin-top:4px}@media print{.no-print{display:none}}</style></head>
+    <body><h1>Trivia Questions (${questions.length})</h1>
+    ${questions.map((q, i) => `<div class="q">
+      <div class="q-text">${i+1}. ${q.body || q.question_text || ''}</div>
+      ${(q.options||[]).map((o: string, oi: number) => 
+        `<div class="opt ${oi === q.correct_index ? 'correct' : ''}">${oi === q.correct_index ? '✓' : '○'} ${o}</div>`
+      ).join('')}
+      <div class="meta">${q.category||''} · ${q.difficulty||''}</div>
+    </div>`).join('')}
+    <script>window.print()</script></body></html>`
+    w.document.write(html)
+    w.document.close()
+  }
   const [newQ, setNewQ] = useState('')
   const [newOpts, setNewOpts] = useState(['', '', '', ''])
   const [newCorrect, setNewCorrect] = useState(0)
@@ -30,7 +54,7 @@ export function TriviaAdminClient({ questions: init, eventId }: Props) {
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} trivia questions.`)
       const newItems = TRIVIA_QUESTIONS.map((q, i) => ({
-        id: `tmp-${i}`, question_text: q.q,
+        id: `tmp-${i}`, body: q.q, question_text: q.q,
         options: q.options, correct_index: q.correct,
         category: q.category, difficulty: q.difficulty,
       }))
@@ -47,7 +71,7 @@ export function TriviaAdminClient({ questions: init, eventId }: Props) {
       }])
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setQuestions(prev => [...prev, {
-        id: `tmp-custom-${Date.now()}`, question_text: newQ.trim(),
+        id: `tmp-custom-${Date.now()}`, body: newQ.trim(), question_text: newQ.trim(),
         options: newOpts.map(o => o.trim()), correct_index: newCorrect,
         category: newCategory, difficulty: newDifficulty,
       }])
@@ -69,6 +93,16 @@ export function TriviaAdminClient({ questions: init, eventId }: Props) {
           style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-text)', fontWeight: 600, cursor: 'pointer' }}>
           + Add custom question
         </button>
+        {questions.length > 0 && (<>
+          <button onClick={handlePrint}
+            style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>
+            🖨 Print
+          </button>
+          <button onClick={() => setPublished(v => !v)}
+            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer' }}>
+            {published ? '✓ Published' : 'Publish to attendees'}
+          </button>
+        </>)}
       </div>
 
       {/* Custom question form */}
@@ -109,7 +143,7 @@ export function TriviaAdminClient({ questions: init, eventId }: Props) {
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <span style={{ color: 'var(--pz-muted)', fontSize: 12, fontWeight: 600, minWidth: 24 }}>{i + 1}</span>
               <div style={{ flex: 1 }}>
-                <p style={{ color: 'var(--pz-text)', fontSize: 14, margin: '0 0 6px' }}>{q.question_text}</p>
+                <p style={{ color: 'var(--pz-text)', fontSize: 14, margin: '0 0 6px' }}>{getQuestionText(q)}</p>
                 {/* Show answer options if available */}
                 {q.options && q.options.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
