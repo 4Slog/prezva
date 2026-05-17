@@ -34,7 +34,7 @@ const InviteSchema = z.object({
 
 // ── Helper: assert caller is owner or admin ──────────────────────────────────
 
-async function assertOrgRole(
+export async function assertOrgRole(
   supabase: Awaited<ReturnType<typeof createClient>>,
   orgId: string,
   userId: string,
