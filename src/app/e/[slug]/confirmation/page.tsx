@@ -12,6 +12,19 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { slug } = await params
   const { reg: regId, session_id, waitlist } = await searchParams
 
+  const showAppleWallet = !!(
+    process.env.APPLE_PASS_TEAM_ID &&
+    process.env.APPLE_PASS_TYPE_IDENTIFIER &&
+    process.env.APPLE_PASS_CERT &&
+    process.env.APPLE_PASS_KEY &&
+    process.env.APPLE_PASS_WWDR
+  )
+  const showGoogleWallet = !!(
+    process.env.GOOGLE_WALLET_ISSUER_ID &&
+    process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL &&
+    process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY
+  )
+
   // Use admin client so guest registrations (user_id is null) can still
   // display their confirmation page. Reg ID is an unguessable UUID and is the
   // de-facto bearer token here, mirroring Eventbrite/Whova confirmation links.
@@ -92,20 +105,24 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     🎓 View certificate of attendance
                   </Link>
                 )}
-                {reg && (
+                {reg && (showAppleWallet || showGoogleWallet) && (
                   <div className="flex gap-2 justify-center flex-wrap mt-1">
-                    <a
-                      href={`/api/passes/apple/${reg.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
-                    >
-                      Add to Apple Wallet
-                    </a>
-                    <a
-                      href={`/api/passes/google/${reg.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
-                    >
-                      Add to Google Wallet
-                    </a>
+                    {showAppleWallet && (
+                      <a
+                        href={`/api/passes/apple/${reg.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                      >
+                        Add to Apple Wallet
+                      </a>
+                    )}
+                    {showGoogleWallet && (
+                      <a
+                        href={`/api/passes/google/${reg.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                      >
+                        Add to Google Wallet
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
