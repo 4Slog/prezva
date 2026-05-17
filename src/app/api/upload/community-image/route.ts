@@ -13,32 +13,32 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
   const eventId = formData.get('eventId') as string | null
-  const caption = formData.get('caption') as string | null
 
   if (!file || !eventId) return NextResponse.json({ error: 'file and eventId required' }, { status: 400 })
-  if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: `File type ${file.type} not allowed` }, { status: 400 })
-  if (file.size > MAX_SIZE) return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 })
+  if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: 'Images only' }, { status: 400 })
+  if (file.size > MAX_SIZE) return NextResponse.json({ error: 'Max 5MB' }, { status: 400 })
+
+  // Only confirmed registrants for this event can post community images
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .eq('status', 'confirmed')
+    .maybeSingle()
+  if (!reg) return NextResponse.json({ error: 'Forbidden — must be a confirmed registrant' }, { status: 403 })
 
   const ext = file.type.split('/')[1].replace('jpeg', 'jpg')
-  const path = `${eventId}/${user.id}/${Date.now()}.${ext}`
-
+  const path = `${eventId}/community/${user.id}/${Date.now()}.${ext}`
   const admin = createAdminClient()
   const bytes = await file.arrayBuffer()
-  const { data, error: uploadError } = await admin.storage
+
+  const { data, error } = await admin.storage
     .from('event-photos')
     .upload(path, bytes, { contentType: file.type, upsert: false })
 
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
-
-  const { error: dbError } = await admin
-    .from('photo_contest_entries')
-    .insert({ event_id: eventId, user_id: user.id, caption: caption || null, storage_path: path })
-
-  if (dbError) {
-    await admin.storage.from('event-photos').remove([path])
-    return NextResponse.json({ error: dbError.message }, { status: 500 })
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const { data: urlData } = admin.storage.from('event-photos').getPublicUrl(data.path)
-  return NextResponse.json({ url: urlData.publicUrl, path })
+  return NextResponse.json({ url: urlData.publicUrl })
 }

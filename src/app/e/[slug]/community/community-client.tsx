@@ -57,6 +57,8 @@ export function CommunityClient({
   const [ogLoading, setOgLoading] = useState(false)
   const [location, setLocation] = useState('')
   const [startsAt, setStartsAt] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({})
   const [replies, setReplies] = useState<Record<string, any[]>>({})
@@ -194,13 +196,43 @@ export function CommunityClient({
 
           {postType === 'post' && (
             <div className="mb-3">
-              <input
-                value={imageUrl}
-                onChange={e => setImageUrl(e.target.value)}
-                placeholder="Photo URL (optional)"
-                className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                style={inputStyle}
-              />
+              {imageUrl ? (
+                <div className="relative inline-block">
+                  <img src={imageUrl} alt="Preview" className="rounded-lg max-h-40 max-w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="absolute top-1 right-1 rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                  >×</button>
+                </div>
+              ) : (
+                <label
+                  className="inline-flex items-center gap-1.5 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold"
+                  style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)' }}
+                >
+                  {imageUploading ? 'Uploading…' : '📷 Add image'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    disabled={imageUploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setImageUploading(true)
+                      const fd = new FormData()
+                      fd.append('file', file)
+                      fd.append('eventId', eventId)
+                      const res = await fetch('/api/upload/community-image', { method: 'POST', body: fd })
+                      const json = await res.json()
+                      setImageUploading(false)
+                      if (res.ok) { setImageUrl(json.url); setImageUploadError('') } else { setImageUploadError(json.error ?? 'Image upload failed') }
+                    }}
+                  />
+                </label>
+              )}
+              {imageUploadError && <p className="text-xs text-[#EF4444] mt-1">{imageUploadError}</p>}
             </div>
           )}
 
