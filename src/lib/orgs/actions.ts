@@ -25,6 +25,14 @@ const UpdateOrgSchema = z.object({
   name: z.string().min(2).max(80).optional(),
   timezone: z.string().min(1).optional(),
   logo_url: z.string().url().nullable().optional(),
+  website: z.string().url().nullable().optional(),
+  description: z.string().max(500).nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().max(30).nullable().optional(),
+  address: z.string().max(200).nullable().optional(),
+  city: z.string().max(100).nullable().optional(),
+  state: z.string().max(100).nullable().optional(),
+  country: z.string().max(100).nullable().optional(),
 })
 
 const InviteSchema = z.object({
@@ -121,7 +129,15 @@ export async function updateOrg(orgId: string, formData: FormData) {
   const parsed = UpdateOrgSchema.safeParse({
     name: formData.get('name') || undefined,
     timezone: formData.get('timezone') || undefined,
-    logo_url: formData.get('logo_url') || undefined,
+    logo_url: formData.get('logo_url') || null,
+    website: formData.get('website') || null,
+    description: formData.get('description') || null,
+    email: formData.get('email') || null,
+    phone: formData.get('phone') || null,
+    address: formData.get('address') || null,
+    city: formData.get('city') || null,
+    state: formData.get('state') || null,
+    country: formData.get('country') || null,
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
