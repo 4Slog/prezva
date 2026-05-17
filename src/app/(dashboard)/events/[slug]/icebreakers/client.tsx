@@ -5,25 +5,23 @@ import { seedIcebreakerPrompts } from '@/lib/engagement/sprint10-actions'
 import { ICEBREAKER_PROMPTS } from '@/lib/templates/icebreakers'
 
 interface IcebreakerQuestion { id: string; question_text: string }
+interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string }
 
-interface Props {
-  questions: IcebreakerQuestion[]
-  eventId: string
-  orgId: string
-}
+const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
 
 export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
   const [customText, setCustomText] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
 
   function handleLoadStarter() {
+    setShowPreview(false)
     startTransition(async () => {
       const res = await seedIcebreakerPrompts(eventId, ICEBREAKER_PROMPTS)
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} starter prompts.`)
-      // Optimistically add the prompts to the list
       const newItems = ICEBREAKER_PROMPTS.map((p, i) => ({ id: `tmp-${i}`, question_text: p.text }))
       setQuestions(prev => [...prev, ...newItems])
     })
@@ -42,35 +40,27 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
 
   return (
     <div>
-      {msg && <p style={{ color: '#059669', fontSize: 13, marginBottom: '1rem' }}>{msg}</p>}
+      {msg && <p style={{ color: msg.startsWith('Error') ? '#EF4444' : '#059669', fontSize: 13, marginBottom: '1rem' }}>{msg}</p>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <button
-          onClick={handleLoadStarter}
-          disabled={pending}
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}
-        >
+        <button onClick={() => setShowPreview(true)} disabled={pending}
+          style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
           + Use starter pack (10 prompts)
         </button>
       </div>
 
+      {/* Custom prompt input */}
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
-        <input
-          value={customText}
-          onChange={e => setCustomText(e.target.value)}
-          placeholder="Add a custom icebreaker prompt…"
-          style={{ flex: 1, padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)', fontSize: 14 }}
-          onKeyDown={e => e.key === 'Enter' && handleAddCustom()}
-        />
-        <button
-          onClick={handleAddCustom}
-          disabled={pending || !customText.trim()}
-          style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1rem', color: 'var(--pz-text)', cursor: 'pointer', opacity: pending ? 0.6 : 1 }}
-        >
+        <input value={customText} onChange={e => setCustomText(e.target.value)}
+          placeholder="Add a custom icebreaker prompt…" className={inputCls}
+          onKeyDown={e => e.key === 'Enter' && handleAddCustom()} />
+        <button onClick={handleAddCustom} disabled={pending || !customText.trim()}
+          style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1rem', color: 'var(--pz-text)', cursor: 'pointer', opacity: pending ? 0.6 : 1, whiteSpace: 'nowrap' }}>
           Add
         </button>
       </div>
 
+      {/* Prompt list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {questions.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--pz-muted)', fontSize: 14 }}>
@@ -84,6 +74,48 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Starter pack preview modal */}
+      {showPreview && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+          <div style={{ background: '#112240', border: '1px solid #1E3A5F', borderRadius: 12, width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #1E3A5F' }}>
+              <div>
+                <h2 style={{ color: '#F0F4F8', fontWeight: 700, fontSize: 16, margin: 0 }}>Starter pack — 10 prompts</h2>
+                <p style={{ color: '#94A3B8', fontSize: 13, margin: '2px 0 0' }}>Preview before loading</p>
+              </div>
+              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {ICEBREAKER_PROMPTS.map((p, i) => (
+                <div key={p.id} style={{ border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.75rem 1rem', background: '#0D1B2A', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ color: '#475569', fontSize: 12, fontWeight: 600, minWidth: 20 }}>{i + 1}</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: '#F0F4F8', fontSize: 13, margin: '0 0 4px' }}>{p.text}</p>
+                    {p.tags.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {p.tags.map(tag => (
+                          <span key={tag} style={{ fontSize: 10, fontWeight: 600, background: '#00BFA622', color: '#00BFA6', padding: '1px 5px', borderRadius: 4 }}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #1E3A5F', display: 'flex', gap: 8 }}>
+              <button onClick={handleLoadStarter} disabled={pending}
+                style={{ flex: 1, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+                {pending ? 'Loading…' : 'Load all 10 prompts'}
+              </button>
+              <button onClick={() => setShowPreview(false)}
+                style={{ background: 'transparent', border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.7rem 1.25rem', color: '#94A3B8', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
