@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { Session, Track, Room } from '@/lib/agenda/actions'
 
 interface AgendaGridProps {
@@ -9,16 +10,47 @@ interface AgendaGridProps {
   timezone?: string
   onEdit: (session: Session) => void
   onDelete: (sessionId: string) => void
+  orgId?: string
+  zoomConnected?: boolean
+  teamsConnected?: boolean
+  onSessionUpdated?: () => void
 }
 
-export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete }: AgendaGridProps) {
+function MeetingButton({ label, sessionId, orgId, provider, onDone }: {
+  label: string; sessionId: string; orgId: string; provider: 'zoom' | 'teams'; onDone: () => void
+}) {
+  const [loading, setLoading] = useState(false)
+
+  async function handleClick() {
+    setLoading(true)
+    await fetch(`/api/integrations/${provider}/create-meeting`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId, sessionId }),
+    })
+    setLoading(false)
+    onDone()
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="px-2 py-0.5 rounded text-xs font-medium border border-current opacity-70 hover:opacity-100 disabled:opacity-40 transition-opacity"
+      title={label}
+    >
+      {loading ? '…' : label}
+    </button>
+  )
+}
+
+export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete, orgId, zoomConnected, teamsConnected, onSessionUpdated }: AgendaGridProps) {
   const fmtDay = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-CA', { timeZone: timezone }) // YYYY-MM-DD in org tz
+    new Date(iso).toLocaleDateString('en-CA', { timeZone: timezone })
 
   const fmtTime = (iso: string) =>
     new Date(iso).toLocaleTimeString('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' })
 
-  // Group sessions by date in org timezone
   const byDate: Record<string, Session[]> = {}
   for (const s of sessions) {
     const day = fmtDay(s.starts_at)
@@ -84,6 +116,26 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
                       <span>· {s.speakers.map(sp => sp.name).join(', ')}</span>
                     )}
                   </div>
+                  {(s as any).virtual_url && (
+                    <a
+                      href={(s as any).virtual_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 text-xs underline opacity-70 hover:opacity-100 block truncate"
+                    >
+                      Join link
+                    </a>
+                  )}
+                  {orgId && !(s as any).virtual_url && (zoomConnected || teamsConnected) && (
+                    <div className="flex gap-1 mt-1.5 flex-wrap">
+                      {zoomConnected && (
+                        <MeetingButton label="Zoom" sessionId={s.id} orgId={orgId} provider="zoom" onDone={onSessionUpdated ?? (() => {})} />
+                      )}
+                      {teamsConnected && (
+                        <MeetingButton label="Teams" sessionId={s.id} orgId={orgId} provider="teams" onDone={onSessionUpdated ?? (() => {})} />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

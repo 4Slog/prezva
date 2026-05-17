@@ -2,8 +2,11 @@ import { notFound } from 'next/navigation'
 import { getEventBySlug } from '@/lib/events/actions'
 import { getEventTickets } from '@/lib/registration/ticket-actions'
 import { TicketManager } from '@/components/registration/TicketManager'
+import { createClient } from '@/lib/supabase/server'
 
 type Props = { params: Promise<{ slug: string }> }
+
+const ASSOCIATION_PROVIDERS = ['wildapricot', 'imis', 'memberclicks', 'yourmembership', 'glue_up', 'neon', 'novi']
 
 export default async function TicketsPage({ params }: Props) {
   const { slug } = await params
@@ -11,6 +14,15 @@ export default async function TicketsPage({ params }: Props) {
   if (!event) notFound()
 
   const tickets = await getEventTickets(event.id)
+
+  const supabase = await createClient()
+  const { data: assocRows } = await supabase
+    .from('org_integrations')
+    .select('provider')
+    .eq('org_id', (event as any).org_id)
+    .eq('status', 'connected')
+    .in('provider', ASSOCIATION_PROVIDERS)
+  const connectedAssociations = (assocRows ?? []).map(r => r.provider)
 
   return (
     <div>
@@ -25,6 +37,7 @@ export default async function TicketsPage({ params }: Props) {
       <TicketManager
         eventId={event.id}
         tickets={tickets as Parameters<typeof TicketManager>[0]['tickets']}
+        connectedAssociations={connectedAssociations}
       />
     </div>
   )

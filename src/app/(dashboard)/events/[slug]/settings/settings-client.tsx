@@ -19,9 +19,12 @@ interface Props {
   eventSlug: string
   orgId: string
   currentRecurrence: string | null
+  outlookConnected?: boolean
+  driveConnected?: boolean
+  sharepointConnected?: boolean
 }
 
-export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurrence }: Props) {
+export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurrence, outlookConnected, driveConnected, sharepointConnected }: Props) {
   const router = useRouter()
 
   // Clone
@@ -46,6 +49,48 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
   // Create next occurrence
   const [nextLoading, setNextLoading] = useState(false)
   const [nextError, setNextError] = useState('')
+
+  // Outlook
+  const [outlookLoading, setOutlookLoading] = useState(false)
+  const [outlookDone, setOutlookDone] = useState(false)
+
+  // Drive / SharePoint file picker
+  const [driveFiles, setDriveFiles] = useState<{ id: string; name: string; mimeType: string; webViewLink: string }[]>([])
+  const [showDrive, setShowDrive] = useState(false)
+  const [driveLoading, setDriveLoading] = useState(false)
+  const [spFiles, setSpFiles] = useState<{ id: string; name: string; downloadUrl: string }[]>([])
+  const [showSP, setShowSP] = useState(false)
+  const [spLoading, setSpLoading] = useState(false)
+
+  async function handleOutlookAdd() {
+    setOutlookLoading(true)
+    await fetch('/api/integrations/outlook/create-calendar-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId, eventId }),
+    })
+    setOutlookLoading(false)
+    setOutlookDone(true)
+    setTimeout(() => setOutlookDone(false), 3000)
+  }
+
+  async function openDrive() {
+    setDriveLoading(true)
+    const res = await fetch(`/api/integrations/google-drive/list-files?orgId=${orgId}`)
+    const json = await res.json()
+    setDriveFiles(json.files ?? [])
+    setShowDrive(true)
+    setDriveLoading(false)
+  }
+
+  async function openSharePoint() {
+    setSpLoading(true)
+    const res = await fetch(`/api/integrations/sharepoint/list-files?orgId=${orgId}`)
+    const json = await res.json()
+    setSpFiles(json.files ?? [])
+    setShowSP(true)
+    setSpLoading(false)
+  }
 
   const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
@@ -191,6 +236,97 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
           {nextError && <p className="text-sm text-[#EF4444]">{nextError}</p>}
         </form>
       </section>
+
+      {/* Integrations */}
+      {(outlookConnected || driveConnected || sharepointConnected) && (
+        <section className="pz-card p-6 mb-6">
+          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Integrations</h2>
+          <div className="flex flex-wrap gap-3">
+            {outlookConnected && (
+              <button
+                onClick={handleOutlookAdd}
+                disabled={outlookLoading || outlookDone}
+                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50`}
+              >
+                {outlookDone ? 'Added to Outlook ✓' : outlookLoading ? 'Adding…' : 'Add to Outlook Calendar'}
+              </button>
+            )}
+            {driveConnected && (
+              <button
+                onClick={openDrive}
+                disabled={driveLoading}
+                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50`}
+              >
+                {driveLoading ? 'Loading…' : 'Attach from Drive'}
+              </button>
+            )}
+            {sharepointConnected && (
+              <button
+                onClick={openSharePoint}
+                disabled={spLoading}
+                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50`}
+              >
+                {spLoading ? 'Loading…' : 'Attach from SharePoint'}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Google Drive file picker modal */}
+      {showDrive && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#112240] rounded-xl p-6 w-full max-w-md space-y-4 border border-[#1E3A5F] max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-[#F0F4F8]">Google Drive files</h2>
+              <button onClick={() => setShowDrive(false)} className="text-[#64748B] hover:text-[#94A3B8] text-lg">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-1">
+              {driveFiles.length === 0 ? (
+                <p className="text-sm text-[#64748B]">No files found.</p>
+              ) : driveFiles.map(f => (
+                <a
+                  key={f.id}
+                  href={f.webViewLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1E3A5F] text-sm text-[#94A3B8] hover:text-[#F0F4F8] transition-colors"
+                >
+                  <span className="text-xs opacity-60 shrink-0 w-16 truncate">{f.mimeType.split('.').pop()}</span>
+                  <span className="flex-1 truncate">{f.name}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SharePoint file picker modal */}
+      {showSP && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#112240] rounded-xl p-6 w-full max-w-md space-y-4 border border-[#1E3A5F] max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-[#F0F4F8]">SharePoint files</h2>
+              <button onClick={() => setShowSP(false)} className="text-[#64748B] hover:text-[#94A3B8] text-lg">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-1">
+              {spFiles.length === 0 ? (
+                <p className="text-sm text-[#64748B]">No files found.</p>
+              ) : spFiles.map(f => (
+                <a
+                  key={f.id}
+                  href={f.downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1E3A5F] text-sm text-[#94A3B8] hover:text-[#F0F4F8] transition-colors"
+                >
+                  <span className="flex-1 truncate">{f.name}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

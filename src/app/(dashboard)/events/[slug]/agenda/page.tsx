@@ -22,15 +22,27 @@ export default async function AgendaPage({ params }: Props) {
 
   const { sessions, tracks, rooms, speakers } = await getAgenda((event as any).id)
 
+  const { data: integrations } = await supabase
+    .from('org_integrations')
+    .select('provider, status')
+    .eq('org_id', (event as any).org_id)
+    .in('provider', ['zoom', 'teams'])
+
+  const integrationMap: Record<string, string> = {}
+  for (const row of integrations ?? []) integrationMap[row.provider] = row.status
+
   return (
     <div className="p-6">
       <AgendaClient
         eventId={(event as any).id}
+        orgId={(event as any).org_id}
         timezone={(event as any).timezone ?? 'UTC'}
         initialSessions={sessions}
         tracks={tracks}
         rooms={rooms}
         speakers={speakers}
+        zoomConnected={integrationMap['zoom'] === 'connected'}
+        teamsConnected={integrationMap['teams'] === 'connected'}
       />
     </div>
   )

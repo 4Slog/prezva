@@ -16,9 +16,20 @@ interface Ticket {
   sort_order: number
 }
 
+const ASSOCIATION_LABELS: Record<string, string> = {
+  wildapricot: 'Wild Apricot',
+  imis: 'iMIS',
+  memberclicks: 'MemberClicks',
+  yourmembership: 'YourMembership',
+  glue_up: 'Glue Up',
+  neon: 'Neon CRM',
+  novi: 'Novi AMS',
+}
+
 interface TicketManagerProps {
   eventId: string
   tickets: Ticket[]
+  connectedAssociations?: string[]
 }
 
 function fmtPrice(cents: number, currency: string) {
@@ -26,10 +37,11 @@ function fmtPrice(cents: number, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
 }
 
-export function TicketManager({ eventId, tickets: initial }: TicketManagerProps) {
+export function TicketManager({ eventId, tickets: initial, connectedAssociations = [] }: TicketManagerProps) {
   const [tickets, setTickets] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [type, setType]         = useState('free')
+  const [membershipRequired, setMembershipRequired] = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const [pending, setPending]   = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -135,11 +147,30 @@ export function TicketManager({ eventId, tickets: initial }: TicketManagerProps)
               <input name="description" placeholder="Optional details" className={inputCls} />
             </div>
             <div className="col-span-2 flex items-center gap-2">
-              <input id="membership_required" name="membership_required" type="checkbox" value="true" className="rounded" />
+              <input
+                id="membership_required"
+                name="membership_required"
+                type="checkbox"
+                value="true"
+                checked={membershipRequired}
+                onChange={e => setMembershipRequired(e.target.checked)}
+                className="rounded"
+              />
               <label htmlFor="membership_required" className="text-sm text-[#94A3B8] cursor-pointer">
                 Membership required (verify via connected association integration)
               </label>
             </div>
+            {membershipRequired && connectedAssociations.length > 0 && (
+              <div className="col-span-2">
+                <label className={labelCls}>Verify against which association?</label>
+                <select name="membership_provider" className={inputCls}>
+                  <option value="">Any connected association</option>
+                  {connectedAssociations.map(p => (
+                    <option key={p} value={p}>{ASSOCIATION_LABELS[p] ?? p}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <div className="flex gap-3">
             <button
