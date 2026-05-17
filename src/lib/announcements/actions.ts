@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { enqueueAnnouncementDelivery } from '@/lib/trigger'
@@ -95,6 +96,7 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
     .single()
 
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'announcement.create', 'announcements', data.id, { channel: parsed.data.channel, recipientCount })
 
   if (!isScheduled) {
     if (parsed.data.channel === 'email' || parsed.data.channel === 'both') {
@@ -111,12 +113,13 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
 
 export async function deleteAnnouncement(announcementId: string, eventId: string) {
   const supabase = await createClient()
-  await requireUser()
+  const user = await requireUser()
   const { error } = await supabase
     .from('announcements')
     .delete()
     .eq('id', announcementId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'announcement.delete', 'announcements', announcementId)
   revalidatePath('/dashboard')
   return { success: true }
 }

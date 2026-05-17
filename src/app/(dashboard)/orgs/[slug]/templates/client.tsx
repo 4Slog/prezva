@@ -33,6 +33,7 @@ export function OrgTemplatesClient({ templates: init, orgSlug: _orgSlug }: Props
   const [templates, setTemplates] = useState(init)
   const [filterSurface, setFilterSurface] = useState<TemplateSurface | 'all'>('all')
   const [pending, startTransition] = useTransition()
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const surfaces = Array.from(new Set(templates.map(t => t.surface))) as TemplateSurface[]
 
@@ -41,10 +42,10 @@ export function OrgTemplatesClient({ templates: init, orgSlug: _orgSlug }: Props
     : templates.filter(t => t.surface === filterSurface)
 
   function handleDelete(id: string) {
-    if (!confirm('Delete this template?')) return
     startTransition(async () => {
       const res = await deleteOrgTemplate(id)
       if (!res.error) setTemplates(prev => prev.filter(t => t.id !== id))
+      setDeleteId(null)
     })
   }
 

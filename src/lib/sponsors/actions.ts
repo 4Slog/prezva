@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -42,11 +43,11 @@ async function assertOrgAdmin(eventId: string) {
   if (!member || !['owner', 'admin'].includes(member.role)) {
     throw new Error('Unauthorized')
   }
-  return { admin, event }
+  return { admin, event, userId: user.id }
 }
 
 export async function createSponsor(eventId: string, formData: FormData) {
-  const { admin } = await assertOrgAdmin(eventId)
+  const { admin, userId } = await assertOrgAdmin(eventId)
   const parsed = SponsorSchema.safeParse({
     name: formData.get('name'),
     website_url: formData.get('website_url') || undefined,
@@ -64,6 +65,7 @@ export async function createSponsor(eventId: string, formData: FormData) {
     logo_url: logo_url || null,
   })
   if (error) return { error: error.message }
+  await logAudit(admin, null, userId, 'sponsor.create', 'event_sponsors', eventId, { name: parsed.data.name })
   revalidatePath(`/events/[slug]/sponsors`, 'page')
   return { ok: true }
 }
@@ -73,7 +75,7 @@ export async function updateSponsor(
   eventId: string,
   formData: FormData,
 ) {
-  const { admin } = await assertOrgAdmin(eventId)
+  const { admin, userId } = await assertOrgAdmin(eventId)
   const parsed = SponsorSchema.safeParse({
     name: formData.get('name'),
     website_url: formData.get('website_url') || undefined,
@@ -90,18 +92,20 @@ export async function updateSponsor(
     .eq('id', sponsorId)
     .eq('event_id', eventId)
   if (error) return { error: error.message }
+  await logAudit(admin, null, userId, 'sponsor.update', 'event_sponsors', sponsorId)
   revalidatePath(`/events/[slug]/sponsors`, 'page')
   return { ok: true }
 }
 
 export async function deleteSponsor(sponsorId: string, eventId: string) {
-  const { admin } = await assertOrgAdmin(eventId)
+  const { admin, userId } = await assertOrgAdmin(eventId)
   const { error } = await admin
     .from('event_sponsors')
     .delete()
     .eq('id', sponsorId)
     .eq('event_id', eventId)
   if (error) return { error: error.message }
+  await logAudit(admin, null, userId, 'sponsor.delete', 'event_sponsors', sponsorId)
   revalidatePath(`/events/[slug]/sponsors`, 'page')
   return { ok: true }
 }

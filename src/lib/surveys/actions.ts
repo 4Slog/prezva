@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { assertOrgRole } from '@/lib/orgs/actions'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -53,6 +54,7 @@ export async function createSurvey(eventId: string, formData: FormData) {
     .from('surveys').insert({ event_id: eventId, created_by: user.id, title: parsed.data.title, description: parsed.data.description ?? null, status: 'draft' })
     .select().single()
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'survey.create', 'surveys', data.id, { title: parsed.data.title })
   revalidatePath('/dashboard')
   return { data }
 }
@@ -79,18 +81,20 @@ export async function addQuestion(surveyId: string, formData: FormData) {
 
 export async function publishSurvey(surveyId: string) {
   const supabase = await createClient()
-  await requireUser()
+  const user = await requireUser()
   const { error } = await supabase.from('surveys').update({ status: 'active' }).eq('id', surveyId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'survey.publish', 'surveys', surveyId)
   revalidatePath('/dashboard')
   return { success: true }
 }
 
 export async function closeSurvey(surveyId: string) {
   const supabase = await createClient()
-  await requireUser()
+  const user = await requireUser()
   const { error } = await supabase.from('surveys').update({ status: 'closed' }).eq('id', surveyId)
   if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'survey.close', 'surveys', surveyId)
   revalidatePath('/dashboard')
   return { success: true }
 }

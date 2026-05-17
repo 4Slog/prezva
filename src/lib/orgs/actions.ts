@@ -147,6 +147,7 @@ export async function updateOrg(orgId: string, formData: FormData) {
     .eq('id', orgId)
 
   if (error) return { error: error.message }
+  await logAudit(supabase, orgId, user.id, 'org.update', 'organizations', orgId)
 
   revalidatePath('/dashboard')
   revalidatePath(`/orgs/[slug]`)

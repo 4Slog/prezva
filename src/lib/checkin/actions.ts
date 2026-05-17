@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -100,6 +101,8 @@ export async function checkInByQR(
 
   if (ciErr) return { success: false, error: ciErr.message }
 
+  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', (reg as any).id, { method: 'qr_scan' })
+
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
     await awardPoints(eventId, (reg as any).user_id, 'checkin').catch(() => {})
@@ -168,6 +171,8 @@ export async function checkInBySearch(
   })
 
   if (error) return { success: false, error: error.message }
+
+  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual_search' })
 
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')

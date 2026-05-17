@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { POINT_VALUES } from '@/lib/engagement/point-values'
+import { PointConfigEditor } from '@/components/leaderboard/PointConfigEditor'
 import Link from 'next/link'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -10,7 +12,11 @@ export default async function EventLeaderboardAdminPage({ params }: Props) {
 
   // Admin client: fetch top 10 points for admin view
   const admin = createAdminClient()
-  const { data: event } = await admin.from('events').select('id, title').eq('slug', slug).maybeSingle()
+  const { data: event } = await admin
+    .from('events')
+    .select('id, title, leaderboard_point_config')
+    .eq('slug', slug)
+    .maybeSingle()
 
   const { data: leaders } = event ? await admin
     .from('attendee_points')
@@ -18,6 +24,10 @@ export default async function EventLeaderboardAdminPage({ params }: Props) {
     .eq('event_id', event.id)
     .order('total_points', { ascending: false })
     .limit(20) : { data: [] }
+
+  // Merge DB config over POINT_VALUES defaults
+  const dbConfig = (event?.leaderboard_point_config ?? {}) as Record<string, number>
+  const mergedConfig: Record<string, number> = { ...POINT_VALUES, ...dbConfig }
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -58,6 +68,10 @@ export default async function EventLeaderboardAdminPage({ params }: Props) {
             )
           })}
         </div>
+      )}
+
+      {event && (
+        <PointConfigEditor eventId={event.id} initialConfig={mergedConfig} />
       )}
     </div>
   )

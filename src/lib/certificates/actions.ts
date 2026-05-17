@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DEFAULT_CERTIFICATE_TEMPLATE } from '@/lib/templates/certificates'
 import { checkEligibility } from './eligibility'
 import { enqueueCertificateEmail } from '@/lib/trigger'
+import { logAudit } from '@/lib/audit/log'
 
 export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
   // Admin client: template management bypasses RLS for server-side cert generation
@@ -80,6 +81,8 @@ export async function issueOrGetCertificate(registrationId: string) {
     .single()
 
   if (error) return { error: error.message }
+
+  await logAudit(admin, orgId, null, 'certificate.issue', 'issued_certificates', cert.id, { registrationId })
 
   // Enqueue certificate delivery email (non-blocking)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
