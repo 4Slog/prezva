@@ -67,7 +67,7 @@ export const sendAnnouncement = schemaTask({
             <h1 style="color:#F0F4F8;font-size:20px;margin:0;">${ann.title}</h1>
           </div>
           <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-            <p style="font-size:15px;">Hi ${reg.attendee_name},</p>
+            <p style="font-size:15px;">Hi ${reg.attendee_name.trim().split(/\s+/)[0]},</p>
             <p style="white-space:pre-line;font-size:15px;line-height:1.6;">${ann.body}</p>
             ${eventUrl ? `<p style="margin:16px 0;"><a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;font-size:14px;">→ View event page</a></p>` : ''}
             <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />

@@ -164,9 +164,15 @@ export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) 
             <div className="pz-card p-5">
               <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Your information</h2>
               <div className="flex flex-col gap-4">
-                <div>
-                  <label className={labelCls}>Full name *</label>
-                  <input name="attendee_name" required className={inputCls} placeholder="Jane Smith" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>First name *</label>
+                    <input name="attendee_first_name" required className={inputCls} placeholder="Jane" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Last name *</label>
+                    <input name="attendee_last_name" required className={inputCls} placeholder="Smith" />
+                  </div>
                 </div>
                 <div>
                   <label className={labelCls}>Email address *</label>

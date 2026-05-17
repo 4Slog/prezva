@@ -137,7 +137,7 @@ export const processWaitlist = schemaTask({
           <h1 style="color:#F0F4F8;font-size:22px;margin:0;">Good news — you're in!</h1>
         </div>
         <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-          <p style="font-size:15px;">Hi ${next.attendee_name},</p>
+          <p style="font-size:15px;">Hi ${next.attendee_name.trim().split(/\s+/)[0]},</p>
           <p style="font-size:15px;">A spot opened up for <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> and you've been confirmed off the waitlist.</p>
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
