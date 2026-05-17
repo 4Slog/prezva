@@ -41,3 +41,4 @@ next-env.d.ts
 # Root-level screenshot PNGs (not public/ icons)
 /*.png
 .claude/worktrees/
+docs/production-secrets.md

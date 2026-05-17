@@ -40,7 +40,10 @@ describe('Public Actions', () => {
   function setup(data: any, error: any = null) {
     const chain = makeChain(data)
     chain._setData(data, error)
-    mockSupabase = { from: vi.fn().mockReturnValue(chain) }
+    mockSupabase = {
+      from: vi.fn().mockReturnValue(chain),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    }
     ;(createClient as any).mockResolvedValue(mockSupabase)
     return chain
   }
