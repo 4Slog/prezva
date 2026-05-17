@@ -31,7 +31,7 @@ export function IcebreakersClient({ questions, eventId }: Props) {
     <div className="space-y-4">
       {questions.map((q: any) => (
         <div key={q.id} className="pz-card p-4">
-          <p style={{ fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>{q.prompt}</p>
+          <p style={{ fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>{q.question || q.question_text || q.prompt || ''}</p>
           {submitted.has(q.id) ? (
             <p style={{ fontSize: 13, color: 'var(--pz-success)' }}>✓ Submitted — +5 points earned!</p>
           ) : (
