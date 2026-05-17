@@ -1,10 +1,12 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createCheckoutSession } from '@/lib/stripe/checkout'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
 import { verifyMembership } from '@/lib/integrations/_shared/association-verify'
+import { checkRateLimit, registrationLimiter } from '@/lib/ratelimit'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -53,6 +55,10 @@ export async function validateDiscountCode(eventId: string, code: string) {
 
 // ── Start registration (free ticket → confirm directly, paid → Stripe) ────────
 export async function startRegistration(formData: FormData) {
+  const ip = (await headers()).get('x-forwarded-for') ?? 'unknown'
+  const { limited } = await checkRateLimit(registrationLimiter, ip)
+  if (limited) return { error: 'Too many requests — please try again in a minute.' }
+
   const supabase = await createClient()
 
   // Get current user if logged in (optional — guests can register)
