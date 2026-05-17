@@ -1,7 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { Bookmark, BookmarkCheck } from 'lucide-react'
+import { Bookmark, BookmarkCheck, CheckCircle2 } from 'lucide-react'
 import { toggleBookmark } from '@/lib/public/bookmark-actions'
+import { markSessionAttendance } from '@/lib/checkin/session-checkin-actions'
 
 interface Session {
   id: string; title: string; session_type: string
@@ -21,6 +22,36 @@ const COLORS: Record<string,string> = {
   keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
   panel:'#059669', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
+
+function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: string; eventId: string; userId: string }) {
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [, startTransition] = useTransition()
+
+  function handleClick() {
+    setState('loading')
+    startTransition(async () => {
+      const result = await markSessionAttendance(sessionId, eventId)
+      if (result.error) setState('error')
+      else setState('done')
+    })
+  }
+
+  if (state === 'done') return (
+    <span style={{ fontSize:11, color:'var(--color-teal)', display:'flex', alignItems:'center', gap:3 }}>
+      <CheckCircle2 size={13} /> Attended
+    </span>
+  )
+  return (
+    <button
+      onClick={handleClick}
+      disabled={state === 'loading'}
+      style={{ fontSize:11, color:'var(--color-teal)', textDecoration:'none', background:'var(--color-teal)22', padding:'2px 8px', borderRadius:10, border:'none', cursor:'pointer', whiteSpace:'nowrap', opacity: state === 'loading' ? 0.6 : 1 }}
+    >
+      {state === 'loading' ? '…' : state === 'error' ? 'Error' : 'Mark Attended'}
+    </button>
+  )
+}
+
 export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '' }: AgendaClientProps) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
@@ -48,6 +79,8 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
               const color = s.tracks?.color ?? COLORS[s.session_type] ?? '#64748b'
               const spks = s.session_speakers?.map(ss => ss.speakers).filter(Boolean) ?? []
               const borderStyle = '4px solid ' + color
+              const isActive = new Date() >= new Date(s.starts_at) && new Date() <= new Date(s.ends_at)
+              const isEnded = new Date(s.ends_at) < new Date()
               return (
                 <div key={s.id} style={{ border:'1px solid var(--color-border)', borderRadius:10, padding:'1rem 1.25rem', background:'var(--color-surface)', borderLeft:borderStyle, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                   <div style={{ flex:1 }}>
@@ -77,7 +110,10 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-                    {eventSlug && new Date(s.ends_at) < new Date() && (
+                    {userId && (isActive || isEnded) && (
+                      <MarkAttendanceButton sessionId={s.id} eventId={eventId} userId={userId} />
+                    )}
+                    {eventSlug && isEnded && (
                       <a
                         href={`/e/${eventSlug}/feedback/${s.id}`}
                         style={{ fontSize:11, color:'var(--color-teal)', textDecoration:'none', background:'var(--color-teal)22', padding:'2px 8px', borderRadius:10, whiteSpace:'nowrap' }}

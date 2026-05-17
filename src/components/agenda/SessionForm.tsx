@@ -27,6 +27,7 @@ export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel
   const [trackId, setTrackId] = useState(session?.track_id ?? '')
   const [roomId, setRoomId] = useState(session?.room_id ?? '')
   const [speakerIds, setSpeakerIds] = useState<string[]>(session?.speakers?.map(s => s.id) ?? [])
+  const [ceHours, setCeHours] = useState<string>(session?.ce_credit_hours != null ? String(session.ce_credit_hours) : '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -44,6 +45,7 @@ export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel
         starts_at: toIso(startsAt), ends_at: toIso(endsAt),
         track_id: trackId || null, room_id: roomId || null,
         speaker_ids: speakerIds,
+        ce_credit_hours: ceHours !== '' ? parseFloat(ceHours) : null,
       })
     } catch (e: any) {
       setError(e.message)
@@ -94,12 +96,27 @@ export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel
         </div>
       </div>
 
-      <div>
-        <label className={labelCls}>Room</label>
-        <select className={inputCls} value={roomId} onChange={e => setRoomId(e.target.value)}>
-          <option value="">No room</option>
-          {rooms.map(r => <option key={r.id} value={r.id}>{r.name}{r.capacity ? ` (cap. ${r.capacity})` : ''}</option>)}
-        </select>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Room</label>
+          <select className={inputCls} value={roomId} onChange={e => setRoomId(e.target.value)}>
+            <option value="">No room</option>
+            {rooms.map(r => <option key={r.id} value={r.id}>{r.name}{r.capacity ? ` (cap. ${r.capacity})` : ''}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>CE Credit Hours</label>
+          <input
+            type="number"
+            step="0.25"
+            min="0"
+            max="24"
+            className={inputCls}
+            value={ceHours}
+            onChange={e => setCeHours(e.target.value)}
+            placeholder="0.00"
+          />
+        </div>
       </div>
 
       {speakers.length > 0 && (
