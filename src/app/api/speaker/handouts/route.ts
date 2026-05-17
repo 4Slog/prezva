@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { validateSpeakerToken } from '@/lib/speaker/speaker-actions'
+
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]
+const MAX_SIZE = 20 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
@@ -19,19 +26,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return NextResponse.json({ error: 'Only PDF and PowerPoint files allowed' }, { status: 400 })
+  }
+  if (file.size > MAX_SIZE) {
+    return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 400 })
+  }
+
+  const admin = createAdminClient()
   const ext = file.name.split('.').pop() ?? 'bin'
   const path = `${eventId}/${speakerId}/${sessionId}/${Date.now()}.${ext}`
+  const bytes = await file.arrayBuffer()
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await admin.storage
     .from('speaker-handouts')
-    .upload(path, file, { contentType: file.type, upsert: false })
+    .upload(path, bytes, { contentType: file.type, upsert: false })
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 })
   }
 
-  const { error: dbError } = await supabase.from('session_handouts').insert({
+  const { error: dbError } = await admin.from('session_handouts').insert({
     session_id: sessionId,
     speaker_id: speakerId,
     filename: file.name,
@@ -39,7 +54,7 @@ export async function POST(req: NextRequest) {
   })
 
   if (dbError) {
-    await supabase.storage.from('speaker-handouts').remove([path])
+    await admin.storage.from('speaker-handouts').remove([path])
     return NextResponse.json({ error: dbError.message }, { status: 500 })
   }
 
