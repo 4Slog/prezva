@@ -26,3 +26,9 @@ CREATE POLICY "Org members can manage icebreaker_questions"
         AND om.user_id = auth.uid()
     )
   );
+
+-- Fix 3: icebreaker_questions.question (original NOT NULL col) — make nullable
+-- The app inserts into question_text but table requires question; make both work
+ALTER TABLE icebreaker_questions ALTER COLUMN question DROP NOT NULL;
+ALTER TABLE icebreaker_questions ALTER COLUMN question SET DEFAULT '';
+UPDATE icebreaker_questions SET question = COALESCE(question_text, prompt, '') WHERE question IS NULL;

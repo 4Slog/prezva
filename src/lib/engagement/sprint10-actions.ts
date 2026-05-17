@@ -210,7 +210,7 @@ export async function getTriviaQuestions(eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('trivia_questions')
-    .select('id, body, options, points, sort_order')
+    .select('id, body, question_text, options, correct_index, category, difficulty, points, sort_order')
     .eq('event_id', eventId)
     .order('sort_order')
   return (data ?? []) as any[]
@@ -249,8 +249,10 @@ export async function getIcebreakerQuestions(eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('icebreaker_questions')
-    .select('id, prompt')
-    .limit(20)
+    .select('id, question, question_text, prompt, category, is_active')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: true })
+    .limit(100)
   return (data ?? []) as any[]
 }
 
@@ -320,7 +322,12 @@ export async function seedIcebreakerPrompts(eventId: string, prompts: { text: st
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const rows = prompts.map((p) => ({ event_id: eventId, question_text: p.text }))
+  const rows = prompts.map((p) => ({ 
+    event_id: eventId, 
+    question: p.text,       // primary NOT NULL column
+    question_text: p.text,  // alias column for future use
+    prompt: p.text,         // legacy alias
+  }))
   const { error } = await supabase.from('icebreaker_questions').insert(rows)
   if (error) return { error: error.message }
   return { count: rows.length }
@@ -332,7 +339,8 @@ export async function seedTriviaQuestions(eventId: string, questions: { q: strin
   if (!user) return { error: 'Not authenticated' }
   const rows = questions.map((q) => ({
     event_id: eventId,
-    question_text: q.q,
+    body: q.q,              // primary display column (what getTriviaQuestions reads)
+    question_text: q.q,     // alias for future use
     options: q.options,
     correct_index: q.correct,
     category: q.category,
