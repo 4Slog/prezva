@@ -2,14 +2,37 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function getPublicEvent(slug: string) {
   const supabase = await createClient()
-  const { data, error } = await supabase
+
+  // First try public (published) event
+  const { data: publicEvent } = await supabase
     .from('events')
     .select('*')
     .eq('slug', slug)
     .in('status', ['published', 'live', 'ended'])
     .single()
-  if (error || !data) return null
-  return data
+  if (publicEvent) return publicEvent
+
+  // Allow org members to preview draft/cancelled events
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: draftEvent } = await supabase
+    .from('events')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+  if (!draftEvent) return null
+
+  // Verify user is a member of the org that owns this event
+  const { data: member } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', (draftEvent as any).org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) return null
+
+  return { ...draftEvent, _isDraftPreview: true }
 }
 
 export async function getPublicAgenda(eventId: string) {

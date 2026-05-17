@@ -62,7 +62,14 @@ export async function startRegistration(formData: FormData) {
     event_id:           formData.get('event_id'),
     ticket_type_id:     formData.get('ticket_type_id'),
     attendee_email:     formData.get('attendee_email'),
-    attendee_name:      formData.get('attendee_name'),
+    // Support split first/last fields — combine into attendee_name
+    // Falls back to attendee_name for backwards compatibility
+    attendee_name: (() => {
+      const first = (formData.get('attendee_first_name') as string || '').trim()
+      const last = (formData.get('attendee_last_name') as string || '').trim()
+      if (first || last) return `${first} ${last}`.trim()
+      return formData.get('attendee_name')
+    })(),
     attendee_phone:     formData.get('attendee_phone') || undefined,
     attendee_company:   formData.get('attendee_company') || undefined,
     attendee_job_title: formData.get('attendee_job_title') || undefined,

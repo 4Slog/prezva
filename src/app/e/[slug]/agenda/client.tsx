@@ -16,17 +16,18 @@ type AgendaClientProps = {
   userId: string | null
   handoutsBySession?: Record<string, any[]>
   eventSlug?: string
+  timezone?: string
 }
 const COLORS: Record<string,string> = {
   keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
   panel:'#059669', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
-export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '' }: AgendaClientProps) {
+export default function AgendaClient({ sessions, eventId, userId, handoutsBySession, eventSlug = "", timezone = "UTC" }: AgendaClientProps) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
   const grouped: Record<string,Session[]> = {}
   for (const s of sessions) {
-    const day = new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
+    const day = new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:timezone})
     if (!grouped[day]) grouped[day] = []
     grouped[day].push(s)
   }
@@ -54,15 +55,15 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>
                       <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, textTransform:'uppercase', background:color+'22', color }}>{s.session_type}</span>
                       <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>
-                        {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} - {new Date(s.ends_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+                        {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:timezone})} – {new Date(s.ends_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:timezone})}
                       </span>
                       {s.rooms?.name && <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>· {s.rooms.name}</span>}
                     </div>
                     <p style={{ fontWeight:600, marginBottom: spks.length > 0 ? 6 : 0 }}>{s.title}</p>
                     {spks.length > 0 && <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>{(spks as any[]).map(sp => sp.name).join(', ')}</p>}
-                    {(handoutsBySession[s.id]?.length ?? 0) > 0 && (
+                    {((handoutsBySession ?? {})[s.id]?.length ?? 0) > 0 && (
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {handoutsBySession[s.id].map((h: any) => (
+                        {(handoutsBySession ?? {})[s.id].map((h: any) => (
                           <a
                             key={h.id}
                             href={`/api/speaker/handouts/${h.id}`}
