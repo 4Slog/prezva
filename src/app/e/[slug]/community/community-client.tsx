@@ -58,6 +58,7 @@ export function CommunityClient({
   const [location, setLocation] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
+  const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({})
   const [replies, setReplies] = useState<Record<string, any[]>>({})
@@ -226,11 +227,12 @@ export function CommunityClient({
                       const res = await fetch('/api/upload/community-image', { method: 'POST', body: fd })
                       const json = await res.json()
                       setImageUploading(false)
-                      if (res.ok) setImageUrl(json.url)
+                      if (res.ok) { setImageUrl(json.url); setImageUploadError('') } else { setImageUploadError(json.error ?? 'Image upload failed') }
                     }}
                   />
                 </label>
               )}
+              {imageUploadError && <p className="text-xs text-[#EF4444] mt-1">{imageUploadError}</p>}
             </div>
           )}
 

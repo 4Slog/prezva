@@ -30,7 +30,16 @@ export async function POST(req: NextRequest) {
 
   const { data: urlData } = admin.storage.from('user-avatars').getPublicUrl(data.path)
 
-  await admin.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', user.id)
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update({ avatar_url: urlData.publicUrl })
+    .eq('id', user.id)
+
+  if (profileError) {
+    // Upload succeeded but profile update failed — still return the URL
+    // so the client can display it; the hidden input will submit it on next save
+    console.error('[avatar-upload] profile update failed:', profileError.message)
+  }
 
   return NextResponse.json({ url: urlData.publicUrl })
 }

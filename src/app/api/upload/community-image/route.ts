@@ -18,6 +18,16 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: 'Images only' }, { status: 400 })
   if (file.size > MAX_SIZE) return NextResponse.json({ error: 'Max 5MB' }, { status: 400 })
 
+  // Only confirmed registrants for this event can post community images
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .eq('status', 'confirmed')
+    .maybeSingle()
+  if (!reg) return NextResponse.json({ error: 'Forbidden — must be a confirmed registrant' }, { status: 403 })
+
   const ext = file.type.split('/')[1].replace('jpeg', 'jpg')
   const path = `${eventId}/community/${user.id}/${Date.now()}.${ext}`
   const admin = createAdminClient()

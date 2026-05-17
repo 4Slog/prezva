@@ -26,6 +26,12 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: 'Only PDF, Word, and PowerPoint files allowed' }, { status: 400 })
   if (file.size > MAX_SIZE) return NextResponse.json({ error: 'Max 20MB' }, { status: 400 })
 
+  // Verify user is an org member for this event — prevents cross-tenant uploads
+  const { data: event } = await supabase.from('events').select('org_id').eq('id', eventId).maybeSingle()
+  if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+  const { data: member } = await supabase.from('org_members').select('role').eq('org_id', event.org_id).eq('user_id', user.id).maybeSingle()
+  if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const folder = documentType === 'session' && entityId ? `${eventId}/sessions/${entityId}` : `${eventId}/documents`
   const path = `${folder}/${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, '_')}`
 
@@ -38,7 +44,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   if (documentType === 'session' && entityId) {
-    await admin.from('session_documents').insert({
+    const { error: dbErr } = await admin.from('session_documents').insert({
       session_id: entityId,
       event_id: eventId,
       name: file.name,
@@ -46,16 +52,24 @@ export async function POST(req: NextRequest) {
       file_size_bytes: file.size,
       mime_type: file.type,
       uploaded_by: user.id,
-    }).then(() => {}, () => {})
+    })
+    if (dbErr) {
+      await admin.storage.from('event-documents').remove([data.path])
+      return NextResponse.json({ error: dbErr.message }, { status: 500 })
+    }
   } else {
-    await admin.from('event_documents').insert({
+    const { error: dbErr } = await admin.from('event_documents').insert({
       event_id: eventId,
       name: file.name,
       storage_path: data.path,
       file_size_bytes: file.size,
       mime_type: file.type,
       uploaded_by: user.id,
-    }).then(() => {}, () => {})
+    })
+    if (dbErr) {
+      await admin.storage.from('event-documents').remove([data.path])
+      return NextResponse.json({ error: dbErr.message }, { status: 500 })
+    }
   }
 
   const { data: signedData } = await admin.storage
