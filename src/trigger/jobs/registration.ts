@@ -17,6 +17,8 @@ export const sendConfirmationEmail = schemaTask({
     eventVenue:     z.string().optional(),
     qrCode:         z.string(),
     orgName:        z.string(),
+    virtualUrl:     z.string().optional(),
+    eventType:      z.string().optional(),
   }),
   run: async (payload) => {
     const dateStr = new Date(payload.eventStartAt).toLocaleString('en-US', {
@@ -42,6 +44,11 @@ export const sendConfirmationEmail = schemaTask({
           <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> is confirmed.</p>
           <p style="margin:4px 0;">📅 ${dateStr}</p>
           ${payload.eventVenue ? `<p style="margin:4px 0;">📍 ${payload.eventVenue}</p>` : ''}
+          ${['virtual','hybrid'].includes(payload.eventType ?? '') && payload.virtualUrl ? `
+          <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
+            <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Join link</p>
+            <a href="${payload.virtualUrl}" style="color:#00BFA6;font-size:16px;font-weight:700;text-decoration:none;">Join online →</a>
+          </div>` : ''}
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img

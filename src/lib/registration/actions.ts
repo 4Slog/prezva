@@ -88,7 +88,7 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, organizations(name, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, organizations(name, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -264,8 +264,10 @@ async function confirmFreeRegistration(
     eventSlug:      event.slug as string,
     eventVenue:     [event.venue_name, event.venue_city, event.venue_state]
       .filter(Boolean).join(', ') || undefined,
-    qrCode:  reg.qr_code,
+    qrCode:    reg.qr_code,
     orgName,
+    virtualUrl: (event as any).virtual_url ?? undefined,
+    eventType:  (event as any).event_type ?? undefined,
   })
 
   redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}`)

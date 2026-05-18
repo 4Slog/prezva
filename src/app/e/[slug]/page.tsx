@@ -64,11 +64,17 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <span style={{ display:'flex', alignItems:'center', gap:6 }}><Calendar size={16} style={{ color:'var(--color-teal)' }}/>{dateLabel}</span>
             <span style={{ display:'flex', alignItems:'center', gap:6 }}><Clock size={16} style={{ color:'var(--color-teal)' }}/>{fmtTime(start)} – {fmtTime(end)} {tzLabel}</span>
             {location && <span style={{ display:'flex', alignItems:'center', gap:6 }}><MapPin size={16} style={{ color:'var(--color-teal)' }}/>{location}</span>}
+            {['virtual','hybrid'].includes((event as any).event_type) && (event as any).virtual_url && (
+              <a href={(event as any).virtual_url} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:6, color:'var(--color-teal)', textDecoration:'none' }}>
+                💻 Join online
+              </a>
+            )}
             {event.capacity && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Users size={16} style={{ color:'var(--color-teal)' }}/>{event.registration_count} / {event.capacity} registered</span>}
           </div>
           <div style={{ marginTop:'2rem', display:'flex', gap:'1rem', flexWrap:'wrap' }}>
             <Link href={'/e/'+slug+'/register'} style={{ background:'var(--color-teal)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:700, textDecoration:'none', fontSize:15 }}>{ctaLabel}</Link>
             <Link href={'/e/'+slug+'/agenda'} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:15, border:'1px solid rgba(255,255,255,0.2)' }}>View Agenda</Link>
+            <a href={`/api/events/${slug}/calendar.ics`} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.75rem 2rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:15, border:'1px solid rgba(255,255,255,0.2)' }}>📅 Add to Calendar</a>
           </div>
           <ShareButtons url={eventUrl} title={event.title} calendarHref={`/api/events/${slug}/calendar.ics`} />
         </div>

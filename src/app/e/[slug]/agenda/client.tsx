@@ -10,6 +10,7 @@ interface Session {
   tracks?: { id: string; name: string; color: string } | null
   rooms?: { id: string; name: string } | null
   session_speakers?: { speakers: { id: string; name: string } | null }[]
+  virtual_url?: string | null
 }
 type AgendaClientProps = {
   sessions: Session[]
@@ -111,6 +112,22 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                    {s.virtual_url && (() => {
+                      const now = Date.now()
+                      const sessionStart = new Date(s.starts_at).getTime()
+                      const sessionEnd = new Date(s.ends_at).getTime()
+                      const showJoin = now >= sessionStart - 15 * 60 * 1000 && now <= sessionEnd
+                      return showJoin ? (
+                        <a
+                          href={s.virtual_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize:12, background:'#00BFA6', color:'#0D1B2A', padding:'6px 12px', borderRadius:6, fontWeight:700, textDecoration:'none' }}
+                        >
+                          Join session
+                        </a>
+                      ) : null
+                    })()}
                     {userId && (isActive || isEnded) && (
                       <MarkAttendanceButton sessionId={s.id} eventId={eventId} userId={userId} />
                     )}

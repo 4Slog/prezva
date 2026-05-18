@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/get-user'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -13,6 +14,18 @@ export default async function EventSettingsPage({ params }: Props) {
   if (!event) notFound()
 
   const supabase = await createClient()
+  const user = await requireUser()
+
+  // Determine if this user is staff-only (read-only view) or owner/admin (can edit)
+  const { data: memberRow } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', (event as any).org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!memberRow) notFound()
+  const isStaff = memberRow.role === 'staff'
+
   const { data: integrationRows } = await supabase
     .from('org_integrations')
     .select('provider, status')
@@ -21,7 +34,7 @@ export default async function EventSettingsPage({ params }: Props) {
   const integrationMap: Record<string, string> = {}
   for (const row of integrationRows ?? []) integrationMap[row.provider] = row.status
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+  const inputCls = `w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
 
   return (
@@ -35,6 +48,12 @@ export default async function EventSettingsPage({ params }: Props) {
       </div>
 
       <h1 className="text-xl font-bold text-[#F0F4F8] mb-6">Event settings</h1>
+
+      {isStaff && (
+        <div className="mb-6 rounded-lg bg-[#112240] border border-[#1E3A5F] px-4 py-3 text-sm text-[#94A3B8]">
+          You&apos;re viewing settings in read-only mode. Contact an admin to make changes.
+        </div>
+      )}
 
       {/* General */}
       <section className="pz-card p-6 mb-6">
@@ -86,13 +105,15 @@ export default async function EventSettingsPage({ params }: Props) {
               <option value="UTC">UTC</option>
             </select>
           </div>
-          <button
-            type="submit"
-            className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            Save changes
-          </button>
+          {!isStaff && (
+            <button
+              type="submit"
+              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              Save changes
+            </button>
+          )}
         </form>
       </section>
 
@@ -124,13 +145,15 @@ export default async function EventSettingsPage({ params }: Props) {
               <input name="venue_state" defaultValue={event.venue_state ?? ''} className={inputCls} />
             </div>
           </div>
-          <button
-            type="submit"
-            className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            Save venue
-          </button>
+          {!isStaff && (
+            <button
+              type="submit"
+              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              Save venue
+            </button>
+          )}
         </form>
       </section>
 
@@ -180,13 +203,15 @@ export default async function EventSettingsPage({ params }: Props) {
               <span className="text-sm text-[#94A3B8]">Show public attendee list</span>
             </label>
           </div>
-          <button
-            type="submit"
-            className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            Save settings
-          </button>
+          {!isStaff && (
+            <button
+              type="submit"
+              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              Save settings
+            </button>
+          )}
         </form>
       </section>
 
@@ -206,7 +231,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Danger zone */}
 
-      {['draft', 'cancelled'].includes(event.status) && (
+      {!isStaff && ['draft', 'cancelled'].includes(event.status) && (
         <section className="rounded-lg border border-[#EF4444]/30 bg-[#EF4444]/5 p-6">
           <h2 className="text-sm font-semibold text-[#EF4444] mb-2">Danger zone</h2>
           <p className="text-sm text-[#94A3B8] mb-4">

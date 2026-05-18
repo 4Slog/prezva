@@ -11,7 +11,7 @@ export async function GET(
   const admin = createAdminClient()
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, attendee_email, events(title, description, start_at, end_at, timezone, venue_name, venue_address, is_virtual, slug)')
+    .select('id, attendee_email, events(title, description, start_at, end_at, timezone, venue_name, venue_address, is_virtual, virtual_url, event_type, slug)')
     .eq('id', id)
     .maybeSingle()
 
@@ -29,9 +29,10 @@ export async function GET(
   const start = toIcsDate(new Date(ev.start_at))
   const end = ev.end_at ? toIcsDate(new Date(ev.end_at)) : start
 
-  const location = ev.is_virtual
-    ? 'Virtual event'
-    : [ev.venue_name, ev.venue_address].filter(Boolean).join(', ')
+  const isVirtual = ['virtual', 'hybrid'].includes(ev.event_type ?? '') || ev.is_virtual
+  const location = isVirtual && ev.virtual_url
+    ? ev.virtual_url
+    : [ev.venue_name, ev.venue_address].filter(Boolean).join(', ') || (isVirtual ? 'Virtual event' : '')
 
   const url = `https://prezva.app/e/${ev.slug}`
 
@@ -50,6 +51,7 @@ export async function GET(
     ev.description ? `DESCRIPTION:${escapeIcs(ev.description)}` : '',
     location ? `LOCATION:${escapeIcs(location)}` : '',
     `URL:${url}`,
+    ev.virtual_url ? `X-GOOGLE-CONFERENCE:${ev.virtual_url}` : '',
     `ORGANIZER:MAILTO:noreply@prezva.app`,
     `ATTENDEE;RSVP=TRUE:MAILTO:${reg.attendee_email}`,
     'END:VEVENT',
