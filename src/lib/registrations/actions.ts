@@ -220,6 +220,48 @@ export async function rejectRegistration(registrationId: string, reason?: string
   return { ok: true }
 }
 
+export async function promoteFromWaitlist(registrationId: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  const admin = createAdminClient()
+  const { data: reg } = await admin
+    .from('registrations')
+    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name))')
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (!reg) return { error: 'Registration not found' }
+  if (reg.status !== 'waitlisted') return { error: 'Registration is not waitlisted' }
+
+  const ev = reg.events as any
+  const orgId = ev?.organizations?.id
+  if (!orgId) return { error: 'Could not determine organization' }
+
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+
+  await admin
+    .from('registrations')
+    .update({ status: 'confirmed', confirmation_sent_at: new Date().toISOString(), waitlist_position: null })
+    .eq('id', registrationId)
+
+  const { enqueueConfirmationEmail } = await import('@/lib/trigger')
+  const orgName = ev?.organizations?.name ?? 'Prezva'
+  await enqueueConfirmationEmail({
+    registrationId: reg.id,
+    attendeeEmail: reg.attendee_email,
+    attendeeName: reg.attendee_name,
+    eventTitle: ev.title,
+    eventStartAt: ev.start_at,
+    eventSlug: ev.slug,
+    eventVenue: [ev.venue_name, ev.venue_city, ev.venue_state].filter(Boolean).join(', ') || undefined,
+    qrCode: reg.qr_code,
+    orgName,
+  })
+
+  return { ok: true }
+}
+
 export async function selfCancelRegistration(registrationId: string) {
   const admin = createAdminClient()
   const supabase = await createClient()

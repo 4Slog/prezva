@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AttendeeTable } from '@/components/attendees/AttendeeTable'
 import { AddAttendeeModal } from '@/components/attendees/AddAttendeeModal'
 import { removeAttendee } from '@/lib/attendees/actions'
-import { approveRegistration, rejectRegistration } from '@/lib/registrations/actions'
+import { approveRegistration, rejectRegistration, promoteFromWaitlist, cancelRegistration } from '@/lib/registrations/actions'
 import type { AttendeeWithTicket, AttendeeFilters, AttendeePage } from '@/lib/attendees/actions'
 
 interface AttendeesClientProps {
@@ -21,10 +21,13 @@ interface AttendeesClientProps {
 export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialData, tickets, integrations }: AttendeesClientProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const [activeTab, setActiveTab] = useState<'attendees' | 'pending'>('attendees')
+  const [activeTab, setActiveTab] = useState<'attendees' | 'pending' | 'waitlist'>('attendees')
   const [pendingRegs, setPendingRegs] = useState<any[]>([])
   const [pendingLoaded, setPendingLoaded] = useState(false)
   const [pendingMsg, setPendingMsg] = useState('')
+  const [waitlistRegs, setWaitlistRegs] = useState<any[]>([])
+  const [waitlistLoaded, setWaitlistLoaded] = useState(false)
+  const [waitlistMsg, setWaitlistMsg] = useState('')
   const [data, setData] = useState<AttendeePage>(initialData)
   const [filters, setFilters] = useState<AttendeeFilters>({})
   const [showAdd, setShowAdd] = useState(false)
@@ -110,9 +113,32 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
     setPendingLoaded(true)
   }
 
-  async function switchTab(tab: 'attendees' | 'pending') {
+  async function loadWaitlist() {
+    const res = await fetch(`/api/events/${eventId}/attendees?status=waitlisted&pageSize=100`)
+    const json = await res.json()
+    setWaitlistRegs(json.attendees ?? [])
+    setWaitlistLoaded(true)
+  }
+
+  async function switchTab(tab: 'attendees' | 'pending' | 'waitlist') {
     setActiveTab(tab)
     if (tab === 'pending' && !pendingLoaded) await loadPending()
+    if (tab === 'waitlist' && !waitlistLoaded) await loadWaitlist()
+  }
+
+  async function handlePromote(regId: string) {
+    setWaitlistMsg('')
+    const result = await promoteFromWaitlist(regId)
+    if (result?.error) { setWaitlistMsg(result.error); return }
+    setWaitlistRegs(r => r.filter(x => x.id !== regId))
+    setWaitlistMsg('Attendee promoted — confirmation email sent.')
+  }
+
+  async function handleWaitlistRemove(regId: string) {
+    setWaitlistMsg('')
+    const result = await cancelRegistration(regId)
+    if (result?.error) { setWaitlistMsg(result.error); return }
+    setWaitlistRegs(r => r.filter(x => x.id !== regId))
   }
 
   async function handleApprove(regId: string) {
@@ -198,6 +224,12 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
         >
           Pending Approvals
         </button>
+        <button
+          onClick={() => switchTab('waitlist')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'waitlist' ? 'border-[var(--brand-teal)] text-[var(--brand-teal)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+        >
+          Waitlist
+        </button>
       </div>
 
       {activeTab === 'pending' && (
@@ -209,6 +241,19 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
           )}
           {pendingRegs.map((reg: any) => (
             <PendingRow key={reg.id} reg={reg} onApprove={handleApprove} onReject={handleReject} />
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'waitlist' && (
+        <div className="space-y-3">
+          {waitlistMsg && <p className="text-sm text-[var(--brand-teal)]">{waitlistMsg}</p>}
+          {!waitlistLoaded && <p className="text-sm text-[var(--text-secondary)]">Loading…</p>}
+          {waitlistLoaded && waitlistRegs.length === 0 && (
+            <p className="text-sm text-[var(--text-secondary)]">No one on the waitlist.</p>
+          )}
+          {waitlistRegs.map((reg: any, idx: number) => (
+            <WaitlistRow key={reg.id} reg={reg} position={idx + 1} onPromote={handlePromote} onRemove={handleWaitlistRemove} />
           ))}
         </div>
       )}
@@ -301,6 +346,43 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function WaitlistRow({ reg, position, onPromote, onRemove }: { reg: any; position: number; onPromote: (id: string) => void; onRemove: (id: string) => void }) {
+  const [loading, setLoading] = useState(false)
+
+  async function promote() {
+    setLoading(true)
+    await onPromote(reg.id)
+    setLoading(false)
+  }
+
+  async function remove() {
+    setLoading(true)
+    await onRemove(reg.id)
+    setLoading(false)
+  }
+
+  return (
+    <div className="flex items-center justify-between p-4 border border-[var(--border)] rounded-lg bg-[var(--surface)]">
+      <div className="flex items-center gap-4">
+        <span className="text-xl font-bold text-[var(--text-secondary)] w-6 text-center">{position}</span>
+        <div>
+          <p className="font-medium text-sm">{reg.attendee_name}</p>
+          <p className="text-xs text-[var(--text-secondary)]">{reg.attendee_email} · {reg.ticket_name}</p>
+          <p className="text-xs text-[var(--text-secondary)]">Joined {new Date(reg.created_at).toLocaleDateString()}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={promote} disabled={loading} className="px-3 py-1.5 text-xs bg-[var(--brand-teal)] text-white rounded hover:opacity-90 disabled:opacity-50">
+          {loading ? '…' : 'Promote'}
+        </button>
+        <button onClick={remove} disabled={loading} className="px-3 py-1.5 text-xs border border-red-500 text-red-500 rounded hover:bg-red-50 disabled:opacity-50">
+          Remove
+        </button>
+      </div>
     </div>
   )
 }

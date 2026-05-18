@@ -20,6 +20,7 @@ const TicketSchema = z.object({
   sort_order:          z.coerce.number().int().default(0),
   membership_required: z.preprocess(v => v === 'true' || v === true, z.boolean()).default(false),
   membership_provider: z.string().nullable().optional(),
+  waitlist_enabled:    z.preprocess(v => v === 'true' || v === true, z.boolean()).default(false),
 })
 
 async function assertEventAccess(

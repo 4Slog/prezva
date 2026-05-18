@@ -168,6 +168,18 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                 Membership required (verify via connected association integration)
               </label>
             </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <input
+                id="waitlist_enabled"
+                name="waitlist_enabled"
+                type="checkbox"
+                value="true"
+                className="rounded"
+              />
+              <label htmlFor="waitlist_enabled" className="text-sm text-[#94A3B8] cursor-pointer">
+                Enable waitlist (when ticket sells out, allow attendees to join waitlist)
+              </label>
+            </div>
             {membershipRequired && connectedAssociations.length > 0 && (
               <div className="col-span-2">
                 <label className={labelCls}>Verify against which association?</label>
