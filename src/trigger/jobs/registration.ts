@@ -19,6 +19,7 @@ export const sendConfirmationEmail = schemaTask({
     orgName:        z.string(),
     virtualUrl:     z.string().optional(),
     eventType:      z.string().optional(),
+    orgEmail:       z.string().email().optional(),
   }),
   run: async (payload) => {
     const dateStr = new Date(payload.eventStartAt).toLocaleString('en-US', {
@@ -88,11 +89,12 @@ export const sendConfirmationEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    `${payload.orgName} <noreply@prezva.app>`,
-        to:      payload.attendeeEmail,
-        subject: `${payload.orgName}: You're registered for ${payload.eventTitle}`,
+        from:      `${payload.orgName} <noreply@prezva.app>`,
+        to:        payload.attendeeEmail,
+        subject:   `${payload.orgName}: You're registered for ${payload.eventTitle}`,
         html,
-        headers: { 'List-Unsubscribe': `<${unsubAllUrl}>` },
+        reply_to:  payload.orgEmail || undefined,
+        headers:   { 'List-Unsubscribe': `<${unsubAllUrl}>` },
       }),
     })
 

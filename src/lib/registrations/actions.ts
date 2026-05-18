@@ -130,7 +130,7 @@ export async function approveRegistration(registrationId: string) {
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name))')
+    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name, email))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -162,6 +162,7 @@ export async function approveRegistration(registrationId: string) {
     eventVenue: [ev.venue_name, ev.venue_city, ev.venue_state].filter(Boolean).join(', ') || undefined,
     qrCode: reg.qr_code,
     orgName,
+    orgEmail: ev?.organizations?.email || undefined,
   })
 
   return { ok: true }
@@ -227,7 +228,7 @@ export async function promoteFromWaitlist(registrationId: string) {
   const admin = createAdminClient()
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name))')
+    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name, email))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -257,6 +258,7 @@ export async function promoteFromWaitlist(registrationId: string) {
     eventVenue: [ev.venue_name, ev.venue_city, ev.venue_state].filter(Boolean).join(', ') || undefined,
     qrCode: reg.qr_code,
     orgName,
+    orgEmail: ev?.organizations?.email || undefined,
   })
 
   return { ok: true }

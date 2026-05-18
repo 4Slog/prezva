@@ -27,13 +27,15 @@ export const sendAnnouncement = schemaTask({
 
     const { data: ev } = await supabase
       .from('events')
-      .select('title, slug, organizations(name)')
+      .select('title, slug, organizations(name, email)')
       .eq('id', ann.event_id)
       .maybeSingle()
 
     const eventTitle = (ev as any)?.title ?? 'your event'
     const eventSlug  = (ev as any)?.slug ?? ''
-    const orgName    = ((ev as any)?.organizations as { name: string } | null)?.name ?? 'Your organizer'
+    const orgInfo    = (ev as any)?.organizations as { name: string; email?: string } | null
+    const orgName    = orgInfo?.name ?? 'Your organizer'
+    const orgEmail   = orgInfo?.email || undefined
     const eventUrl   = eventSlug ? `https://prezva.app/e/${eventSlug}` : ''
 
     const regQuery = supabase
@@ -112,11 +114,12 @@ export const sendAnnouncement = schemaTask({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `${orgName} <noreply@prezva.app>`,
-          to: reg.attendee_email,
-          subject: `${orgName}: ${ann.title}`,
+          from:     `${orgName} <noreply@prezva.app>`,
+          to:       reg.attendee_email,
+          subject:  `${orgName}: ${ann.title}`,
           html,
-          headers: { 'List-Unsubscribe': `<${unsubAllUrl}>` },
+          reply_to: orgEmail,
+          headers:  { 'List-Unsubscribe': `<${unsubAllUrl}>` },
         }),
       })
       if (res.ok) sent++

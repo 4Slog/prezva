@@ -103,7 +103,7 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, organizations(name, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, organizations(name, email, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -179,7 +179,7 @@ export async function startRegistration(formData: FormData) {
 
   // Paid ticket → Stripe Checkout
   // Require connected account for paid tickets
-  const org = event.organizations as unknown as { name: string; stripe_account_id: string | null } | null
+  const org = event.organizations as unknown as { name: string; email?: string | null; stripe_account_id: string | null } | null
   if (!org?.stripe_account_id) {
     return { error: 'This organization has not connected a bank account yet. Contact the event organizer.' }
   }
@@ -246,8 +246,9 @@ async function confirmFreeRegistration(
   if (error) return { error: error.message }
   void supabase
 
-  const org = event.organizations as { name: string } | null
+  const org = event.organizations as { name: string; email?: string | null } | null
   const orgName = org?.name ?? 'Prezva'
+  const orgEmail = org?.email || undefined
 
   if (requireApproval) {
     // Send "application received" email instead of confirmation
@@ -274,7 +275,7 @@ async function confirmFreeRegistration(
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: data.attendee_email, subject: `${orgName}: Application received for ${event.title as string}`, html }),
+      body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, reply_to: orgEmail, to: data.attendee_email, subject: `${orgName}: Application received for ${event.title as string}`, html }),
     })
     await saveFieldResponses(admin, reg.id, fieldResponses)
     redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}&pending=1`)
@@ -293,6 +294,7 @@ async function confirmFreeRegistration(
       .filter(Boolean).join(', ') || undefined,
     qrCode:    reg.qr_code,
     orgName,
+    orgEmail,
     virtualUrl: (event as any).virtual_url ?? undefined,
     eventType:  (event as any).event_type ?? undefined,
   })

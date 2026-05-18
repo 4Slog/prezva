@@ -9,6 +9,7 @@ export const sendSpeakerInviteEmail = schemaTask({
     eventTitle:   z.string(),
     eventDate:    z.string(),
     portalUrl:    z.string(),
+    orgEmail:     z.string().email().optional(),
   }),
   run: async (payload) => {
     const fmtDate = (d: string) =>
@@ -56,10 +57,11 @@ export const sendSpeakerInviteEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    'Prezva Events <events@prezva.app>',
-        to:      payload.speakerEmail,
-        subject: `You're speaking at ${payload.eventTitle} — here's your portal`,
+        from:     'Prezva Events <events@prezva.app>',
+        to:       payload.speakerEmail,
+        subject:  `You're speaking at ${payload.eventTitle} — here's your portal`,
         html,
+        reply_to: payload.orgEmail || undefined,
       }),
     })
 

@@ -12,6 +12,7 @@ export const sendCertificateEmail = schemaTask({
     verifyUrl:       z.string().url(),
     ceCredits:       z.number().optional(),
     certificateId:   z.string().optional(),
+    orgEmail:        z.string().email().optional(),
   }),
   run: async (payload) => {
     const { Resend } = await import('resend')
@@ -26,9 +27,10 @@ export const sendCertificateEmail = schemaTask({
       : ''
 
     await resend.emails.send({
-      from: 'Prezva <noreply@prezva.app>',
-      to: payload.attendeeEmail,
-      subject: `${payload.eventTitle}: Your certificate is ready`,
+      from:     'Prezva <noreply@prezva.app>',
+      to:       payload.attendeeEmail,
+      subject:  `${payload.eventTitle}: Your certificate is ready`,
+      replyTo:  payload.orgEmail || undefined,
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
