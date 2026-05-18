@@ -103,7 +103,7 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, organizations(name, email, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, registration_invite_code, registration_domain_restrict, organizations(name, email, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -131,6 +131,23 @@ export async function startRegistration(formData: FormData) {
   }
 
   // Capacity check — enforce at DB level via trigger, but also check here
+  // Per-event invite code check
+  const inviteCode = (parsed.data as any).invite_code as string | undefined
+  if ((event as any).registration_invite_code) {
+    if (!inviteCode || inviteCode.trim().toUpperCase() !== (event as any).registration_invite_code.trim().toUpperCase()) {
+      return { error: 'An invite code is required to register for this event.' }
+    }
+  }
+
+  // Domain restriction check
+  if ((event as any).registration_domain_restrict) {
+    const allowedDomain = (event as any).registration_domain_restrict.trim().toLowerCase()
+    const emailDomain = (parsed.data as any).attendee_email?.split('@')[1]?.toLowerCase()
+    if (emailDomain !== allowedDomain) {
+      return { error: `Registration is restricted to ${allowedDomain} email addresses.` }
+    }
+  }
+
   if (event.capacity !== null) {
     if (event.registration_count >= event.capacity) {
       if (!ticket.quantity || ticket.quantity_sold < ticket.quantity) {

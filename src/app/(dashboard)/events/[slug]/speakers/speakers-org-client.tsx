@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { sendSpeakerInvite } from '@/lib/speaker/speaker-actions'
+import { sendSpeakerInvite, createSpeaker } from '@/lib/speaker/speaker-actions'
 
 type Props = {
   event: any
@@ -14,9 +14,14 @@ const statusBadge: Record<string, { bg: string; label: string }> = {
   declined:  { bg: 'var(--pz-error, #ef4444)',     label: 'Declined' },
 }
 
-export function SpeakersOrgClient({ event, speakers }: Props) {
+export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
+  const [speakers, setSpeakers] = useState(initialSpeakers)
   const [inviting, setInviting] = useState<string | null>(null)
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({})
+  const [showAdd, setShowAdd] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
+  const [form, setForm] = useState({ name: '', email: '', job_title: '', company: '', bio: '' })
 
   async function invite(speakerId: string) {
     setInviting(speakerId)
@@ -29,21 +34,88 @@ export function SpeakersOrgClient({ event, speakers }: Props) {
     setInviting(null)
   }
 
-  if (speakers.length === 0) {
-    return (
-      <div className="pz-card p-6 text-center">
-        <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
-          No speakers yet. Add speakers from the{' '}
-          <a href={`/dashboard/events/${event.slug}/agenda`} style={{ color: 'var(--pz-teal)' }}>Agenda</a>{' '}
-          page.
-        </p>
-      </div>
-    )
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.name.trim()) { setAddError('Name is required'); return }
+    setAdding(true)
+    setAddError('')
+    const result = await createSpeaker(event.id, form)
+    setAdding(false)
+    if ((result as any).error) {
+      setAddError((result as any).error)
+    } else {
+      setSpeakers(prev => [...prev, (result as any).data])
+      setForm({ name: '', email: '', job_title: '', company: '', bio: '' })
+      setShowAdd(false)
+    }
   }
 
   return (
-    <div className="space-y-3">
-      {speakers.map(sp => {
+    <div className="space-y-4">
+      {/* Header with Add button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => { setShowAdd(s => !s); setAddError('') }}
+          className="rounded-lg px-4 py-2 text-sm font-medium"
+          style={{ background: 'var(--pz-teal)', color: '#fff' }}
+        >
+          {showAdd ? 'Cancel' : '+ Add Speaker'}
+        </button>
+      </div>
+
+      {/* Add speaker form */}
+      {showAdd && (
+        <form onSubmit={handleAdd} className="pz-card p-4 space-y-3">
+          <h3 className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>New Speaker</h3>
+          {addError && <p className="text-xs" style={{ color: 'var(--pz-error, #ef4444)' }}>{addError}</p>}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Name *</label>
+              <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
+            </div>
+            <div>
+              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Email</label>
+              <input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))}
+                type="email" className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
+            </div>
+            <div>
+              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Job title</label>
+              <input value={form.job_title} onChange={e => setForm(f => ({...f, job_title: e.target.value}))}
+                className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
+            </div>
+            <div>
+              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Company</label>
+              <input value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))}
+                className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Bio</label>
+            <textarea value={form.bio} onChange={e => setForm(f => ({...f, bio: e.target.value}))} rows={3}
+              className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)', resize: 'vertical' }} />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button type="submit" disabled={adding}
+              className="rounded-lg px-4 py-2 text-sm font-medium"
+              style={{ background: 'var(--pz-teal)', color: '#fff', opacity: adding ? 0.6 : 1 }}>
+              {adding ? 'Adding…' : 'Add Speaker'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Empty state */}
+      {speakers.length === 0 && !showAdd && (
+        <div className="pz-card p-6 text-center">
+          <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
+            No speakers yet. Click <strong>+ Add Speaker</strong> to add your first speaker.
+          </p>
+        </div>
+      )}
+
+      {/* Speaker list */}
+      {speakers.map((sp: any) => {
         const badge = statusBadge[sp.status ?? 'invited'] ?? statusBadge.invited
         return (
           <div key={sp.id} className="pz-card p-4">
@@ -51,12 +123,8 @@ export function SpeakersOrgClient({ event, speakers }: Props) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>{sp.name}</p>
-                  <span
-                    className="rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: badge.bg, color: '#fff' }}
-                  >
-                    {badge.label}
-                  </span>
+                  <span className="rounded-full px-2 py-0.5 text-xs font-medium"
+                    style={{ background: badge.bg, color: '#fff' }}>{badge.label}</span>
                 </div>
                 <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                   {sp.email ?? 'No email'}
@@ -75,22 +143,15 @@ export function SpeakersOrgClient({ event, speakers }: Props) {
                 )}
               </div>
               <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => invite(sp.id)}
-                  disabled={inviting === sp.id || !sp.email}
+                <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
                   className="rounded-lg px-3 py-1.5 text-xs font-medium"
-                  style={{ background: 'var(--pz-teal)', color: '#fff', opacity: !sp.email ? 0.5 : 1 }}
-                >
+                  style={{ background: 'var(--pz-teal)', color: '#fff', opacity: !sp.email ? 0.5 : 1 }}>
                   {inviting === sp.id ? 'Sending…' : 'Send invite'}
                 </button>
                 {sp.confirmation_token && (
-                  <a
-                    href={`/speaker/confirm/${sp.confirmation_token}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <a href={`/speaker/confirm/${sp.confirmation_token}`} target="_blank" rel="noreferrer"
                     className="rounded-lg px-3 py-1.5 text-xs font-medium"
-                    style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)' }}
-                  >
+                    style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)' }}>
                     Confirm link
                   </a>
                 )}

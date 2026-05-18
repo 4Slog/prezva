@@ -57,8 +57,27 @@ function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: strin
 export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '', timezone = 'UTC' }: AgendaClientProps) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [, startTransition] = useTransition()
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
+
+  // Build unique days and tracks for filters
+  const allDays = Array.from(new Set(sessions.map(s =>
+    new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:timezone})
+  )))
+  const allTracks = Array.from(new Map(
+    sessions.filter(s => s.tracks).map(s => [s.tracks!.id, s.tracks!])
+  ).values())
+
+  // Apply filters
+  const filteredSessions = sessions.filter(s => {
+    const day = new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:timezone})
+    if (selectedDay && day !== selectedDay) return false
+    if (selectedTrack && s.tracks?.id !== selectedTrack) return false
+    return true
+  })
+
   const grouped: Record<string,Session[]> = {}
-  for (const s of sessions) {
+  for (const s of filteredSessions) {
     const day = new Date(s.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:timezone})
     if (!grouped[day]) grouped[day] = []
     grouped[day].push(s)
@@ -73,6 +92,39 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
   )
   return (
     <div>
+      {/* Day + Track filters */}
+      {(allDays.length > 1 || allTracks.length > 0) && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:'1.5rem' }}>
+          {allDays.length > 1 && (
+            <select
+              value={selectedDay ?? ''}
+              onChange={e => setSelectedDay(e.target.value || null)}
+              style={{ fontSize:13, padding:'6px 10px', borderRadius:8, border:'1px solid var(--color-border)', background:'var(--color-surface)', color:'var(--color-text)', cursor:'pointer' }}
+            >
+              <option value=''>All days</option>
+              {allDays.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          )}
+          {allTracks.length > 0 && (
+            <select
+              value={selectedTrack ?? ''}
+              onChange={e => setSelectedTrack(e.target.value || null)}
+              style={{ fontSize:13, padding:'6px 10px', borderRadius:8, border:'1px solid var(--color-border)', background:'var(--color-surface)', color:'var(--color-text)', cursor:'pointer' }}
+            >
+              <option value=''>All tracks</option>
+              {allTracks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          {(selectedDay || selectedTrack) && (
+            <button
+              onClick={() => { setSelectedDay(null); setSelectedTrack(null) }}
+              style={{ fontSize:12, padding:'6px 10px', borderRadius:8, border:'1px solid var(--color-border)', background:'transparent', color:'var(--color-text-muted)', cursor:'pointer' }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
       {Object.entries(grouped).map(([day, daySessions]) => (
         <div key={day} style={{ marginBottom:'2.5rem' }}>
           <h2 style={{ fontWeight:700, fontSize:'0.9rem', color:'var(--color-text-muted)', textTransform:'uppercase', letterSpacing:1, marginBottom:'1rem' }}>{day}</h2>

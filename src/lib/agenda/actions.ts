@@ -15,6 +15,7 @@ export interface Track {
   event_id: string
   name: string
   color: string
+  description: string | null
   sort_order: number
 }
 

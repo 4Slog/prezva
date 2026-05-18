@@ -203,6 +203,30 @@ export default async function EventSettingsPage({ params }: Props) {
               <span className="text-sm text-[#94A3B8]">Show public attendee list</span>
             </label>
           </div>
+          <div>
+            <label className={labelCls}>Invite code (optional)</label>
+            <input
+              name="registration_invite_code"
+              type="text"
+              defaultValue={(event as any).registration_invite_code ?? ''}
+              placeholder="e.g. CIVITAS2026 — leave blank for open registration"
+              className={inputCls}
+              maxLength={50}
+            />
+            <p className="text-xs text-[#64748B] mt-1">Attendees must enter this code to register.</p>
+          </div>
+          <div>
+            <label className={labelCls}>Domain restriction (optional)</label>
+            <input
+              name="registration_domain_restrict"
+              type="text"
+              defaultValue={(event as any).registration_domain_restrict ?? ''}
+              placeholder="e.g. acme.com — leave blank to allow any email"
+              className={inputCls}
+              maxLength={100}
+            />
+            <p className="text-xs text-[#64748B] mt-1">Only emails from this domain can register.</p>
+          </div>
           {!isStaff && (
             <button
               type="submit"

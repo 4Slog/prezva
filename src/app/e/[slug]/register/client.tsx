@@ -26,6 +26,8 @@ interface Event {
   venue_city: string | null
   venue_state: string | null
   organizations: { name: string } | null
+  registration_invite_code?: string | null
+  registration_domain_restrict?: string | null
 }
 
 interface FormField {
@@ -309,6 +311,20 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
                 <span className="text-[#00BFA6]">{fmtPrice(finalPrice, selectedTicket.currency)}</span>
               </div>
             </div>
+
+            {/* Invite code field if required */}
+            {event.registration_invite_code && (
+              <div>
+                <label className={labelCls}>Invite code *</label>
+                <input
+                  name="invite_code"
+                  required
+                  className={inputCls}
+                  placeholder="Enter your invite code"
+                />
+                <p className="text-xs text-[#64748B] mt-1">This event requires an invite code to register.</p>
+              </div>
+            )}
 
             {error && (
               <p className="rounded-lg bg-[#EF4444]/10 px-4 py-3 text-sm text-[#EF4444]">{error}</p>

@@ -2,9 +2,44 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { requireUser } from '@/lib/auth/get-user'
 import { enqueueSpeakerInviteEmail } from '@/lib/trigger'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
+
+
+export async function createSpeaker(eventId: string, input: {
+  name: string
+  email?: string
+  job_title?: string
+  company?: string
+  bio?: string
+}) {
+  const supabase = await createClient()
+  const admin = createAdminClient()
+  const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
+  if (!event) return { error: 'Event not found' }
+  const user = await requireUser()
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  const { data, error } = await admin
+    .from('speakers')
+    .insert({
+      event_id: eventId,
+      name: input.name,
+      email: input.email || null,
+      job_title: input.job_title || null,
+      company: input.company || null,
+      bio: input.bio || null,
+      status: 'invited',
+      sort_order: 0,
+    })
+    .select('id, name, email, status')
+    .single()
+  if (error) return { error: error.message }
+  return { data }
+}
 
 export async function getOrCreateSpeakerToken(eventId: string, speakerId: string) {
   const supabase = await createClient()
