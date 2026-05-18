@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth/get-user'
 import { getAttendeeProfile, getVirtualCardData, getFollowStatus } from '@/lib/networking/sprint8-actions'
 import { ProfileActions } from './profile-actions'
+import VCardQR from '@/components/networking/VCardQR'
 
 type Props = { params: Promise<{ slug: string; registrationId: string }> }
 
@@ -52,9 +53,7 @@ export default async function AttendeePage({ params }: Props) {
     'END:VCARD',
   ].filter(Boolean).join('\n') : null
 
-  const qrUrl = vCardData
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(vCardData)}`
-    : null
+  // vCardData ready — rendered client-side via VCardQR (no external service)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
@@ -122,11 +121,11 @@ export default async function AttendeePage({ params }: Props) {
         </div>
 
         {/* Virtual business card (T-093) */}
-        {qrUrl && (
+        {vCardData && (
           <div className="pz-card p-5">
             <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--pz-label)' }}>Virtual business card</h2>
             <div className="flex items-start gap-4">
-              <img src={qrUrl} alt="Contact QR" width={120} height={120} className="rounded-lg" />
+              <VCardQR data={vCardData} />
               <div className="text-xs space-y-1" style={{ color: 'var(--pz-muted)' }}>
                 <p className="font-semibold text-sm" style={{ color: 'var(--pz-text)' }}>{(cardData as any).name}</p>
                 {(cardData as any).job_title && <p>{(cardData as any).job_title}</p>}
