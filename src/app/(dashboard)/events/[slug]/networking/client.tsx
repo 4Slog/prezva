@@ -8,6 +8,7 @@ interface Attendee {
   user_id: string | null
   attendee_name: string
   attendee_email: string
+  interests?: string[]
   profiles?: { id: string; full_name: string | null; avatar_url: string | null; job_title: string | null; company: string | null; bio: string | null } | null
 }
 interface Message { id: string; conversation_id: string; sender_id: string; body: string; created_at: string }
@@ -95,6 +96,13 @@ export default function NetworkingClient({ attendees, eventId, currentUserId }: 
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: 600, fontSize: 14 }}>{name}</p>
                   {a.profiles?.job_title && <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{a.profiles.job_title}{a.profiles.company ? ' · ' + a.profiles.company : ''}</p>}
+                  {(a.interests ?? []).length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                      {(a.interests ?? []).slice(0, 3).map((interest: string) => (
+                        <span key={interest} style={{ fontSize: 10, background: 'rgba(0,191,166,0.12)', color: 'var(--color-teal)', borderRadius: 4, padding: '1px 6px' }}>{interest}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {a.user_id && <MessageCircle size={16} style={{ color: 'var(--color-teal)', flexShrink: 0 }} />}
               </div>

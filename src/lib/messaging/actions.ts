@@ -101,17 +101,32 @@ export async function sendMessage(conversationId: string, body: string) {
 export async function getAttendeeDirectory(eventId: string) {
   const supabase = await createClient()
   const user = await requireUser()
+
+  // LEFT JOIN profiles so attendees without global profiles still appear
   const { data: regs } = await supabase
     .from('registrations')
-    .select('user_id, attendee_name, attendee_email, profiles(id, full_name, avatar_url, job_title, company, bio)')
+    .select('id, user_id, attendee_name, attendee_email, profiles!left(id, full_name, avatar_url, job_title, company, bio)')
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
     .neq('user_id', user.id)
 
   if (!regs) return []
 
+  // Fetch interests from attendee_profiles (event-specific networking profiles)
+  const regIds = (regs as any[]).map(r => r.id)
+  let interestMap: Record<string, string[]> = {}
+  if (regIds.length > 0) {
+    const { data: atProfiles } = await supabase
+      .from('attendee_profiles')
+      .select('registration_id, interests')
+      .in('registration_id', regIds)
+    for (const ap of atProfiles ?? []) {
+      interestMap[(ap as any).registration_id] = (ap as any).interests ?? []
+    }
+  }
+
   // Fetch opt-out prefs; if no row exists, attendee is visible by default (networking_show_in_dir = true)
-  const userIds = regs.map((r: any) => r.user_id).filter(Boolean)
+  const userIds = (regs as any[]).map((r: any) => r.user_id).filter(Boolean)
   const hiddenSet = new Set<string>()
   if (userIds.length > 0) {
     const { data: prefs } = await supabase
@@ -125,5 +140,52 @@ export async function getAttendeeDirectory(eventId: string) {
     }
   }
 
-  return regs.filter((r: any) => !r.user_id || !hiddenSet.has(r.user_id))
+  const visible = (regs as any[]).filter(r => !r.user_id || !hiddenSet.has(r.user_id))
+  return visible.map(r => ({ ...r, interests: interestMap[r.id] ?? [] }))
+}
+
+export async function getSuggestedConnectionsByInterest(eventId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+
+  // Get current user's registration and interests for this event
+  const { data: myReg } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .neq('status', 'cancelled')
+    .limit(1)
+    .maybeSingle()
+  if (!myReg) return []
+
+  const { data: myProfile } = await supabase
+    .from('attendee_profiles')
+    .select('interests')
+    .eq('registration_id', (myReg as any).id)
+    .maybeSingle()
+  const myInterests: string[] = (myProfile as any)?.interests ?? []
+  if (myInterests.length === 0) return []
+
+  // Fetch other attendee profiles with interests
+  const { data: others } = await supabase
+    .from('attendee_profiles')
+    .select('registration_id, interests, registrations!inner(id, user_id, attendee_name, profiles!left(avatar_url, job_title, company))')
+    .eq('event_id', eventId)
+    .eq('is_visible', true)
+    .neq('registration_id', (myReg as any).id)
+
+  if (!others) return []
+
+  const mySet = new Set(myInterests.map(i => i.toLowerCase().trim()))
+  return (others as any[])
+    .filter(o => (o.interests ?? []).some((i: string) => mySet.has(i.toLowerCase().trim())))
+    .slice(0, 5)
+    .map(o => ({
+      registration_id: o.registration_id,
+      user_id: o.registrations?.user_id,
+      attendee_name: o.registrations?.attendee_name ?? '',
+      interests: o.interests ?? [],
+      profiles: o.registrations?.profiles ?? null,
+    }))
 }
