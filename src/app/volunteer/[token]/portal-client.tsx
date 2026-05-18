@@ -168,7 +168,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token }: Prop
               Scan attendee QR codes to check them in.
             </p>
             <a
-              href={`/e/${event.slug}/checkin`}
+              href={`/volunteer/${token}/scan`}
               style={{ display: 'inline-block', background: '#00BFA6', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}
             >
               Open QR Scanner

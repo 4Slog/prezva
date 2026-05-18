@@ -28,6 +28,17 @@ export interface Message {
 export async function getOrCreateConversation(eventId: string, otherUserId: string) {
   const supabase = await createClient()
   const user = await requireUser()
+
+  // Check if recipient has disabled DMs — default allow, block only if explicitly false
+  const { data: recipientPref } = await supabase
+    .from('attendee_preferences')
+    .select('networking_allow_dms')
+    .eq('user_id', otherUserId)
+    .maybeSingle()
+  if (recipientPref && (recipientPref as any).networking_allow_dms === false) {
+    return { error: 'This attendee has disabled direct messages.' }
+  }
+
   // Check existing
   const { data: existing } = await supabase
     .from('conversations')
@@ -90,12 +101,29 @@ export async function sendMessage(conversationId: string, body: string) {
 export async function getAttendeeDirectory(eventId: string) {
   const supabase = await createClient()
   const user = await requireUser()
-  const { data } = await supabase
+  const { data: regs } = await supabase
     .from('registrations')
     .select('user_id, attendee_name, attendee_email, profiles(id, full_name, avatar_url, job_title, company, bio)')
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
-    .not('user_id', 'is', null)
     .neq('user_id', user.id)
-  return data ?? []
+
+  if (!regs) return []
+
+  // Fetch opt-out prefs; if no row exists, attendee is visible by default (networking_show_in_dir = true)
+  const userIds = regs.map((r: any) => r.user_id).filter(Boolean)
+  const hiddenSet = new Set<string>()
+  if (userIds.length > 0) {
+    const { data: prefs } = await supabase
+      .from('attendee_preferences')
+      .select('user_id, networking_show_in_dir')
+      .in('user_id', userIds)
+    for (const p of prefs ?? []) {
+      if ((p as any).networking_show_in_dir === false) {
+        hiddenSet.add((p as any).user_id)
+      }
+    }
+  }
+
+  return regs.filter((r: any) => !r.user_id || !hiddenSet.has(r.user_id))
 }

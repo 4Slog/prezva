@@ -112,7 +112,7 @@ export async function cancelRegistration(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
 
   const admin = createAdminClient()
   const { error } = await admin
@@ -121,6 +121,102 @@ export async function cancelRegistration(registrationId: string) {
     .eq('id', registrationId)
 
   if (error) return { error: error.message }
+  return { ok: true }
+}
+
+export async function approveRegistration(registrationId: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name))')
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (!reg) return { error: 'Registration not found' }
+  if (reg.status !== 'pending') return { error: 'Registration is not pending' }
+
+  const ev = reg.events as any
+  const orgId = ev?.organizations?.id
+  if (!orgId) return { error: 'Could not determine organization' }
+
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+
+  const admin = createAdminClient()
+  await admin
+    .from('registrations')
+    .update({ status: 'confirmed', confirmation_sent_at: new Date().toISOString() })
+    .eq('id', registrationId)
+
+  // Send confirmation email
+  const { enqueueConfirmationEmail } = await import('@/lib/trigger')
+  const orgName = ev?.organizations?.name ?? 'Prezva'
+  await enqueueConfirmationEmail({
+    registrationId: reg.id,
+    attendeeEmail: reg.attendee_email,
+    attendeeName: reg.attendee_name,
+    eventTitle: ev.title,
+    eventStartAt: ev.start_at,
+    eventSlug: ev.slug,
+    eventVenue: [ev.venue_name, ev.venue_city, ev.venue_state].filter(Boolean).join(', ') || undefined,
+    qrCode: reg.qr_code,
+    orgName,
+  })
+
+  return { ok: true }
+}
+
+export async function rejectRegistration(registrationId: string, reason?: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id, status, attendee_email, attendee_name, event_id, events(title, slug, organizations(id, name))')
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (!reg) return { error: 'Registration not found' }
+  if (reg.status !== 'pending') return { error: 'Registration is not pending' }
+
+  const ev = reg.events as any
+  const orgId = ev?.organizations?.id
+  if (!orgId) return { error: 'Could not determine organization' }
+
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+
+  const admin = createAdminClient()
+  await admin
+    .from('registrations')
+    .update({ status: 'cancelled' })
+    .eq('id', registrationId)
+
+  const orgName = ev?.organizations?.name ?? 'Prezva'
+  const reasonText = reason ? `<p style="font-size:15px;">Reason: ${reason}</p>` : ''
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+      <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
+        <span style="color:#0D1B2A;font-weight:900;font-size:18px;background:#00BFA6;padding:4px 10px;border-radius:6px;">P</span>
+        <h1 style="color:#F0F4F8;font-size:22px;margin:12px 0 0;">Registration update</h1>
+      </div>
+      <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
+        <p style="font-size:15px;">Hi ${reg.attendee_name},</p>
+        <p style="font-size:15px;">We're sorry — your registration for <strong style="color:#F0F4F8;">${ev.title}</strong> was not approved.</p>
+        ${reasonText}
+        <p style="font-size:15px;">If you have questions, please contact the event organizer.</p>
+        <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
+        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#00BFA6;">Prezva</a>.</p>
+      </div>
+    </div>
+  `
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: reg.attendee_email, subject: `${orgName}: Registration update for ${ev.title}`, html }),
+  })
+
   return { ok: true }
 }
 

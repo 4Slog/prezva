@@ -38,7 +38,7 @@ export const sendAnnouncement = schemaTask({
 
     const regQuery = supabase
       .from('registrations')
-      .select('attendee_email, attendee_name, ticket_type_id')
+      .select('id, attendee_email, attendee_name, ticket_type_id, user_id')
       .eq('event_id', ann.event_id)
       .eq('status', 'confirmed')
 
@@ -54,10 +54,32 @@ export const sendAnnouncement = schemaTask({
 
     if (regs.length === 0) return { sent: 0, failed: 0 }
 
+    // Fetch opt-out prefs for all users who have them
+    const userIds = regs.map((r: any) => r.user_id).filter(Boolean)
+    const prefMap: Record<string, boolean> = {}
+    if (userIds.length > 0) {
+      const { data: prefs } = await supabase
+        .from('attendee_preferences')
+        .select('user_id, email_announcements')
+        .in('user_id', userIds)
+      for (const p of prefs ?? []) {
+        prefMap[(p as any).user_id] = (p as any).email_announcements
+      }
+    }
+
     let sent = 0
     let failed = 0
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+
     for (const reg of regs) {
+      // Default opt-in; skip only if user explicitly set email_announcements = false
+      if ((reg as any).user_id && prefMap[(reg as any).user_id] === false) continue
+
+      const regIdB64 = Buffer.from((reg as any).id).toString('base64url')
+      const unsubUrl = `${appUrl}/api/unsubscribe?token=${regIdB64}&type=announcements`
+      const unsubAllUrl = `${appUrl}/api/unsubscribe?token=${regIdB64}&type=all`
+
       const html = `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -75,6 +97,10 @@ export const sendAnnouncement = schemaTask({
               Sent by ${orgName} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a> · ${eventTitle}<br/>
               You received this because you are registered for this event.
             </p>
+            <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">
+              <a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from announcements</a> ·
+              <a href="${unsubAllUrl}" style="color:#64748B;">Unsubscribe from all emails</a>
+            </p>
           </div>
         </div>
       `
@@ -90,6 +116,7 @@ export const sendAnnouncement = schemaTask({
           to: reg.attendee_email,
           subject: `${orgName}: ${ann.title}`,
           html,
+          headers: { 'List-Unsubscribe': `<${unsubAllUrl}>` },
         }),
       })
       if (res.ok) sent++

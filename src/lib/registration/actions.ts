@@ -88,7 +88,7 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, organizations(name, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, organizations(name, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -197,10 +197,8 @@ async function confirmFreeRegistration(
   discountCodeId: string | undefined,
 ) {
   // Use admin client for the insert so anonymous/guest registrations bypass RLS.
-  // (Sprint 19) Server action above has already validated event status, ticket
-  // availability, capacity, sale windows, discount codes and membership gates,
-  // so an unauthenticated write here is safe.
   const admin = createAdminClient()
+  const requireApproval = (event as any).require_approval === true
   const { data: reg, error } = await admin
     .from('registrations')
     .insert({
@@ -212,10 +210,10 @@ async function confirmFreeRegistration(
       attendee_phone: data.attendee_phone ?? null,
       attendee_company:   data.attendee_company ?? null,
       attendee_job_title: data.attendee_job_title ?? null,
-      status:              'confirmed',
+      status:              requireApproval ? 'pending' : 'confirmed',
       amount_paid_cents:   0,
       discount_code_id:    discountCodeId ?? null,
-      confirmation_sent_at: new Date().toISOString(),
+      confirmation_sent_at: requireApproval ? null : new Date().toISOString(),
     })
     .select()
     .single()
@@ -223,8 +221,40 @@ async function confirmFreeRegistration(
   if (error) return { error: error.message }
   void supabase
 
-  // Enqueue confirmation email (non-blocking)
   const org = event.organizations as { name: string } | null
+  const orgName = org?.name ?? 'Prezva'
+
+  if (requireApproval) {
+    // Send "application received" email instead of confirmation
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+    const regIdB64 = Buffer.from(reg.id).toString('base64url')
+    const unsubUrl = `${appUrl}/api/unsubscribe?token=${regIdB64}&type=all`
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
+          <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+            <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
+          </div>
+          <h1 style="color:#F0F4F8;font-size:22px;margin:0;">Application received!</h1>
+        </div>
+        <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
+          <p style="font-size:15px;">Hi ${data.attendee_name},</p>
+          <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${event.title as string}</strong> is pending approval. You'll hear from us once the organizer reviews your application.</p>
+          <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
+          <p style="color:#475569;font-size:12px;margin:0;">Sent by ${orgName} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a>.</p>
+          <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;"><a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from all emails</a></p>
+        </div>
+      </div>
+    `
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: data.attendee_email, subject: `${orgName}: Application received for ${event.title as string}`, html }),
+    })
+    redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}&pending=1`)
+  }
+
+  // Enqueue confirmation email (non-blocking)
   await enqueueConfirmationEmail({
     registrationId: reg.id,
     attendeeEmail:  data.attendee_email,
@@ -235,7 +265,7 @@ async function confirmFreeRegistration(
     eventVenue:     [event.venue_name, event.venue_city, event.venue_state]
       .filter(Boolean).join(', ') || undefined,
     qrCode:  reg.qr_code,
-    orgName: org?.name ?? 'Prezva',
+    orgName,
   })
 
   redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}`)
