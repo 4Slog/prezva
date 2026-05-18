@@ -4,6 +4,8 @@ import { getEventTickets } from '@/lib/registration/ticket-actions'
 import { TicketManager } from '@/components/registration/TicketManager'
 import { DiscountCodeManager } from '@/components/registration/DiscountCodeManager'
 import { getDiscountCodes } from '@/lib/events/discount-actions'
+import { FormFieldManager } from '@/components/registration/FormFieldManager'
+import { getFormFields } from '@/lib/events/form-field-actions'
 import { createClient } from '@/lib/supabase/server'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -15,9 +17,10 @@ export default async function TicketsPage({ params }: Props) {
   const event = await getEventBySlug(slug)
   if (!event) notFound()
 
-  const [tickets, discountCodes] = await Promise.all([
+  const [tickets, discountCodes, formFields] = await Promise.all([
     getEventTickets(event.id),
     getDiscountCodes(event.id),
+    getFormFields(event.id),
   ])
 
   const supabase = await createClient()
@@ -47,6 +50,11 @@ export default async function TicketsPage({ params }: Props) {
       <DiscountCodeManager
         eventId={event.id}
         initial={discountCodes as any}
+      />
+      <FormFieldManager
+        eventId={event.id}
+        initial={formFields as any}
+        tickets={(tickets as any[]).map((t: any) => ({ id: t.id, name: t.name }))}
       />
     </div>
   )

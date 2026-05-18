@@ -85,6 +85,21 @@ export async function startRegistration(formData: FormData) {
   const parsed = RegisterSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
+  // Collect custom field responses (cf_<uuid> keys → { fieldId, value })
+  const fieldResponseMap = new Map<string, string[]>()
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('cf_') && typeof value === 'string' && value.trim()) {
+      const fieldId = key.slice(3)
+      const existing = fieldResponseMap.get(fieldId) ?? []
+      existing.push(value)
+      fieldResponseMap.set(fieldId, existing)
+    }
+  }
+  const fieldResponses = Array.from(fieldResponseMap.entries()).map(([fieldId, values]) => ({
+    fieldId,
+    value: values.join(', '),
+  }))
+
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
@@ -158,6 +173,7 @@ export async function startRegistration(formData: FormData) {
       ticket,
       user?.id,
       discountCodeId,
+      fieldResponses,
     )
   }
 
@@ -184,10 +200,18 @@ export async function startRegistration(formData: FormData) {
     discountCodeId,
     discountAmountCents,
     org.stripe_account_id,
+    fieldResponses,
   )
 }
 
 // ── Free registration ─────────────────────────────────────────────────────────
+async function saveFieldResponses(admin: ReturnType<typeof createAdminClient>, registrationId: string, responses: { fieldId: string; value: string }[]) {
+  if (responses.length === 0) return
+  await admin.from('registration_field_responses').insert(
+    responses.map(r => ({ registration_id: registrationId, field_id: r.fieldId, value: r.value }))
+  )
+}
+
 async function confirmFreeRegistration(
   supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
   data: z.infer<typeof RegisterSchema>,
@@ -195,6 +219,7 @@ async function confirmFreeRegistration(
   ticket: Record<string, unknown>,
   userId: string | undefined,
   discountCodeId: string | undefined,
+  fieldResponses: { fieldId: string; value: string }[],
 ) {
   // Use admin client for the insert so anonymous/guest registrations bypass RLS.
   const admin = createAdminClient()
@@ -251,9 +276,11 @@ async function confirmFreeRegistration(
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: data.attendee_email, subject: `${orgName}: Application received for ${event.title as string}`, html }),
     })
+    await saveFieldResponses(admin, reg.id, fieldResponses)
     redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}&pending=1`)
   }
 
+  await saveFieldResponses(admin, reg.id, fieldResponses)
   // Enqueue confirmation email (non-blocking)
   await enqueueConfirmationEmail({
     registrationId: reg.id,
@@ -283,6 +310,7 @@ async function createPaidRegistration(
   discountCodeId: string | undefined,
   discountAmountCents: number,
   connectedAccountId: string,
+  fieldResponses: { fieldId: string; value: string }[],
 ) {
   // Create pending registration first (admin client bypasses RLS for guests)
   const admin = createAdminClient()
@@ -344,6 +372,7 @@ async function createPaidRegistration(
       })
       .eq('id', reg.id)
 
+    await saveFieldResponses(admin, reg.id, fieldResponses)
     redirect(session.url!)
   } catch {
     // Clean up pending registration if Stripe fails

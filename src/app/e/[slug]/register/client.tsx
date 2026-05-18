@@ -28,9 +28,19 @@ interface Event {
   organizations: { name: string } | null
 }
 
+interface FormField {
+  id: string
+  label: string
+  field_type: string
+  options: string[] | null
+  is_required: boolean
+  ticket_type_id: string | null
+}
+
 interface RegisterPageClientProps {
   event: Event
   tickets: TicketType[]
+  formFields?: FormField[]
 }
 
 function fmtPrice(cents: number, currency: string) {
@@ -47,7 +57,7 @@ function fmtDate(iso: string, tz: string) {
   })
 }
 
-export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) {
+export function RegisterPageClient({ event, tickets, formFields = [] }: RegisterPageClientProps) {
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(
     tickets.length === 1 ? tickets[0] : null,
   )
@@ -194,6 +204,63 @@ export function RegisterPageClient({ event, tickets }: RegisterPageClientProps) 
                 </div>
               </div>
             </div>
+
+            {/* Custom registration questions */}
+            {(() => {
+              const visible = formFields.filter(f =>
+                f.ticket_type_id === null || f.ticket_type_id === selectedTicket.id
+              )
+              if (visible.length === 0) return null
+              return (
+                <div className="pz-card p-5">
+                  <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Additional questions</h2>
+                  <div className="flex flex-col gap-4">
+                    {visible.map(f => (
+                      <div key={f.id}>
+                        <label className={labelCls}>
+                          {f.label}{f.is_required && ' *'}
+                        </label>
+                        {f.field_type === 'textarea' && (
+                          <textarea name={`cf_${f.id}`} required={f.is_required} rows={3} className={inputCls} />
+                        )}
+                        {(f.field_type === 'text' || f.field_type === 'email' || f.field_type === 'phone') && (
+                          <input name={`cf_${f.id}`} type={f.field_type === 'email' ? 'email' : f.field_type === 'phone' ? 'tel' : 'text'} required={f.is_required} className={inputCls} />
+                        )}
+                        {f.field_type === 'date' && (
+                          <input name={`cf_${f.id}`} type="date" required={f.is_required} className={inputCls} />
+                        )}
+                        {f.field_type === 'select' && f.options && (
+                          <select name={`cf_${f.id}`} required={f.is_required} className={inputCls}>
+                            <option value="">Select…</option>
+                            {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        )}
+                        {f.field_type === 'radio' && f.options && (
+                          <div className="flex flex-col gap-2 mt-1">
+                            {f.options.map(o => (
+                              <label key={o} className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                                <input type="radio" name={`cf_${f.id}`} value={o} required={f.is_required} />
+                                {o}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {f.field_type === 'checkbox' && f.options && (
+                          <div className="flex flex-col gap-2 mt-1">
+                            {f.options.map(o => (
+                              <label key={o} className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                                <input type="checkbox" name={`cf_${f.id}`} value={o} />
+                                {o}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Discount code */}
             {selectedTicket.price_cents > 0 && (
