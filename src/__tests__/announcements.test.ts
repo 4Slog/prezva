@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/auth/get-user', () => ({ requireUser: vi.fn().mockResolvedValue({ id: 'user-a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }) }))
+vi.mock('@/lib/orgs/actions', () => ({ assertOrgRole: vi.fn().mockResolvedValue('owner') }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { createClient } from '@/lib/supabase/server'
@@ -16,6 +17,7 @@ function makeChain(data: any = null, error: any = null) {
   chain.eq = vi.fn().mockReturnValue(chain)
   chain.order = vi.fn().mockReturnValue({ data, error })
   chain.single = vi.fn().mockResolvedValue({ data, error })
+  chain.maybeSingle = vi.fn().mockResolvedValue({ data: { org_id: 'org-a1b2c3d4' }, error: null })
   chain.insert = vi.fn().mockReturnValue(chain)
   chain.delete = vi.fn().mockReturnValue(chain)
   // make chain awaitable for delete().eq()
@@ -52,11 +54,14 @@ describe('Announcements', () => {
 
   it('createAnnouncement creates successfully', async () => {
     const ann = { id: ANN_ID, title: 'Test', body: 'Msg', channel: 'email', recipient_count: 5 }
+    const evtChain = makeChain({ org_id: 'org-a1b2c3d4' })   // events lookup for assertOrgRole
     const countChain = makeChain(5)
     const insertChain = makeChain(ann)
     insertChain.single.mockResolvedValue({ data: ann, error: null })
     const fromMock = vi.fn()
-      .mockReturnValueOnce(countChain)
+      .mockReturnValueOnce(evtChain)   // from('events')
+      .mockReturnValueOnce(evtChain)   // from('org_members') inside assertOrgRole
+      .mockReturnValueOnce(countChain) // count query
       .mockReturnValueOnce(insertChain)
     ;(createClient as any).mockResolvedValue({ from: fromMock })
     const fd = new FormData()
@@ -68,8 +73,13 @@ describe('Announcements', () => {
   })
 
   it('deleteAnnouncement calls delete', async () => {
-    const chain = makeChain(null)
-    ;(createClient as any).mockResolvedValue({ from: vi.fn().mockReturnValue(chain) })
+    const evtChain = makeChain({ org_id: 'org-a1b2c3d4' })
+    const delChain = makeChain(null)
+    const fromMock = vi.fn()
+      .mockReturnValueOnce(evtChain)   // from('events')
+      .mockReturnValueOnce(evtChain)   // from('org_members') inside assertOrgRole
+      .mockReturnValueOnce(delChain)   // delete query
+    ;(createClient as any).mockResolvedValue({ from: fromMock })
     const res = await deleteAnnouncement(ANN_ID, EVT_ID)
     expect(res).toHaveProperty('success', true)
   })

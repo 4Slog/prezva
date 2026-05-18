@@ -20,6 +20,8 @@ function makeChain(data: any = null, error: any = null) {
   c.order = vi.fn().mockReturnValue({ data, error })
   c.single = vi.fn().mockResolvedValue({ data, error })
   c.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+  c.in = vi.fn().mockReturnValue(c)
+  c.limit = vi.fn().mockReturnValue(c)
   c.insert = vi.fn().mockReturnValue(c)
   c.update = vi.fn().mockReturnValue(c)
   c.then = (res: any, rej: any) => Promise.resolve({ data, error }).then(res, rej)
@@ -68,7 +70,7 @@ describe('Messaging Actions', () => {
   })
 
   it('getAttendeeDirectory returns filtered list', async () => {
-    const rows = [{ user_id: 'e1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', attendee_name: 'Jane' }]
+    const rows = [{ user_id: 'e1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', attendee_name: 'Jane', interests: [] }]
     const c = makeChain(rows)
     ;(createClient as any).mockResolvedValue({ from: vi.fn().mockReturnValue(c) })
     c.then = (res: any, rej: any) => Promise.resolve({ data: rows, error: null }).then(res, rej)
