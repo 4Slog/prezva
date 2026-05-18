@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
+import { cookies } from 'next/headers'
+import CancelRegistrationButton from '@/components/registration/cancel-button'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -54,6 +56,17 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   const isWaitlist = waitlist === 'true'
 
+  // Store reg token in cookie so getSessionIdentity() can use it server-side
+  if (resolvedRegId && reg && !isWaitlist) {
+    const jar = await cookies()
+    jar.set(`pz_reg_${slug}`, resolvedRegId, {
+      path: `/e/${slug}`,
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 90, // 90 days
+    })
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center py-10 px-4" style={{ background: 'var(--pz-bg)' }}>
       <div className="mx-auto max-w-md w-full">
@@ -86,6 +99,13 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     <QRDisplay qrCode={reg.qr_code} />
                     <p className="text-xs text-[#64748B] mt-2">Show this at check-in</p>
                   </div>
+                  <a
+                    href={`/api/registrations/${reg.id}/calendar.ics`}
+                    className="text-sm mb-2"
+                    style={{ color: 'var(--pz-teal)' }}
+                  >
+                    Add to Calendar
+                  </a>
                 </>
               )}
               <div className="flex flex-col gap-3 items-center">
@@ -96,6 +116,15 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                 >
                   View event details
                 </Link>
+                {reg && ['confirmed', 'waitlisted'].includes(reg.status) &&
+                  (reg.events as any)?.start_at &&
+                  new Date((reg.events as any).start_at) > new Date() && (
+                  <CancelRegistrationButton
+                    registrationId={reg.id}
+                    eventTitle={(reg.events as any)?.title ?? ''}
+                    isPaid={(reg.amount_paid_cents ?? 0) > 0}
+                  />
+                )}
                 {reg && (reg.events as any)?.certificate_enabled && (
                   <Link
                     href={`/e/${slug}/certificate`}

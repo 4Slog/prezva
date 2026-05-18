@@ -220,6 +220,92 @@ export async function rejectRegistration(registrationId: string, reason?: string
   return { ok: true }
 }
 
+export async function selfCancelRegistration(registrationId: string) {
+  const admin = createAdminClient()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: reg } = await admin
+    .from('registrations')
+    .select('id, status, user_id, amount_paid_cents, attendee_email, attendee_name, event_id, events(title, slug, start_at, organizations(name))')
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (!reg) return { error: 'Registration not found' }
+  if (!['confirmed', 'waitlisted'].includes(reg.status)) return { error: 'This registration cannot be cancelled' }
+
+  const ev = reg.events as any
+  if (ev?.start_at && new Date(ev.start_at) <= new Date()) return { error: 'This event has already started' }
+
+  // Authorization: must own this registration
+  if (user) {
+    if (reg.user_id !== user.id) return { error: 'Not authorized' }
+  } else {
+    // Guest: verify via cookie token
+    const { cookies } = await import('next/headers')
+    const jar = await cookies()
+    const slug = ev?.slug as string | undefined
+    const cookieVal = slug ? jar.get(`pz_reg_${slug}`)?.value : undefined
+    if (cookieVal !== registrationId) return { error: 'Not authorized' }
+  }
+
+  const isPaid = (reg.amount_paid_cents ?? 0) > 0
+  const newStatus = isPaid ? 'cancellation_requested' : 'cancelled'
+
+  await admin.from('registrations').update({ status: newStatus }).eq('id', registrationId)
+
+  const orgName = (ev?.organizations as any)?.name ?? 'Prezva'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+      <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
+        <span style="color:#0D1B2A;font-weight:900;font-size:18px;background:#00BFA6;padding:4px 10px;border-radius:6px;">P</span>
+        <h1 style="color:#F0F4F8;font-size:22px;margin:12px 0 0;">Registration ${isPaid ? 'cancellation requested' : 'cancelled'}</h1>
+      </div>
+      <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
+        <p style="font-size:15px;">Hi ${reg.attendee_name},</p>
+        ${isPaid
+          ? `<p style="font-size:15px;">Your cancellation request for <strong style="color:#F0F4F8;">${ev.title}</strong> has been received. The organizer will process your refund per their policy.</p>`
+          : `<p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${ev.title}</strong> has been cancelled.</p>`
+        }
+        <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
+        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#00BFA6;">Prezva</a>.</p>
+      </div>
+    </div>
+  `
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: reg.attendee_email, subject: `${orgName}: Registration ${isPaid ? 'cancellation requested' : 'cancelled'} — ${ev.title}`, html }),
+  })
+
+  if (isPaid) {
+    // Notify organizer
+    const { data: orgOwner } = await admin
+      .from('org_members')
+      .select('users(email)')
+      .eq('org_id', (await admin.from('events').select('org_id').eq('id', reg.event_id).single()).data?.org_id ?? '')
+      .in('role', ['owner', 'admin'])
+      .limit(1)
+      .maybeSingle()
+    const orgEmail = (orgOwner?.users as any)?.email
+    if (orgEmail) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'noreply@prezva.app',
+          to: orgEmail,
+          subject: `Cancellation request: ${reg.attendee_name} — ${ev.title}`,
+          html: `<p>${reg.attendee_name} (${reg.attendee_email}) has requested a cancellation for ${ev.title}. Please process the refund via your Stripe dashboard.</p>`,
+        }),
+      })
+    }
+  }
+
+  return { ok: true, isPaid }
+}
+
 export async function manualCheckIn(registrationId: string) {
   const user = await requireUser()
   const supabase = await createClient()

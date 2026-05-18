@@ -113,6 +113,30 @@ export async function getSessionFeedback(sessionId: string) {
 
 // ── T-104: leaderboard ────────────────────────────────────────────────────────
 
+export async function awardPointsForReg(eventId: string, registrationId: string, action: string) {
+  const supabase = await createClient()
+  let points = POINT_VALUES[action] ?? 1
+  try {
+    const { data: event } = await supabase
+      .from('events')
+      .select('leaderboard_point_config')
+      .eq('id', eventId)
+      .single()
+    if (event?.leaderboard_point_config) {
+      const config = event.leaderboard_point_config as Record<string, number>
+      if (typeof config[action] === 'number') points = config[action]
+    }
+  } catch { /* fall back to default */ }
+
+  const admin = (await import('@/lib/supabase/admin')).createAdminClient()
+  const { error } = await admin
+    .from('leaderboard_points')
+    .insert({ event_id: eventId, registration_id: registrationId, action, points })
+  if (error && !error.code?.includes('23505')) {
+    console.error('[leaderboard] awardPointsForReg error:', error.message)
+  }
+}
+
 export async function awardPoints(eventId: string, userId: string, action: string) {
   const supabase = await createClient()
 
@@ -213,10 +237,10 @@ export async function getTriviaQuestions(eventId: string) {
   return (data ?? []) as any[]
 }
 
-export async function submitTriviaAnswer(questionId: string, answerIndex: number) {
+export async function submitTriviaAnswer(questionId: string, answerIndex: number, registrationId?: string) {
   const supabase = await createClient()
-  const user = await supabase.auth.getUser()
-  if (!user.data.user) return { error: 'Not authenticated', correct: false }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user && !registrationId) return { error: 'Enter your registration code to participate', correct: false }
 
   const { data: q } = await supabase
     .from('trivia_questions')
@@ -226,17 +250,21 @@ export async function submitTriviaAnswer(questionId: string, answerIndex: number
   if (!q) return { error: 'Question not found', correct: false }
 
   const isCorrect = (q as any).correct_index === answerIndex
-  const { error } = await supabase.from('trivia_answers').insert({
-    question_id: questionId,
-    user_id: user.data.user.id,
-    answer_index: answerIndex,
-    is_correct: isCorrect,
-  })
-  if (error) return { error: error.message, correct: false }
 
-  if (isCorrect) {
-    await awardPoints((q as any).event_id, user.data.user.id, 'trivia_correct')
+  if (user) {
+    const { error } = await supabase.from('trivia_answers').insert({
+      question_id: questionId,
+      user_id: user.id,
+      answer_index: answerIndex,
+      is_correct: isCorrect,
+    })
+    if (error) return { error: error.message, correct: false }
+    if (isCorrect) await awardPoints((q as any).event_id, user.id, 'trivia_correct')
+  } else {
+    // Guest: award points by registration_id only
+    if (isCorrect) await awardPointsForReg((q as any).event_id, registrationId!, 'trivia_correct')
   }
+
   return { correct: isCorrect, points: isCorrect ? (q as any).points : 0 }
 }
 
@@ -253,18 +281,31 @@ export async function getIcebreakerQuestions(eventId: string) {
   return (data ?? []) as any[]
 }
 
-export async function submitIcebreakerResponse(eventId: string, questionId: string, response: string) {
+export async function submitIcebreakerResponse(eventId: string, questionId: string, response: string, registrationId?: string) {
   const supabase = await createClient()
-  const user = await supabase.auth.getUser()
-  if (!user.data.user) return { error: 'Not authenticated' }
-  const { error } = await supabase.from('icebreaker_completions').upsert({
-    event_id: eventId,
-    user_id: user.data.user.id,
-    question_id: questionId,
-    response,
-  }, { onConflict: 'event_id,user_id,question_id' })
-  if (!error) await awardPoints(eventId, user.data.user.id, 'icebreaker')
-  return { error: error?.message }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user && !registrationId) return { error: 'Enter your registration code to participate' }
+
+  if (user) {
+    const { error } = await supabase.from('icebreaker_completions').upsert({
+      event_id: eventId,
+      user_id: user.id,
+      question_id: questionId,
+      response,
+    }, { onConflict: 'event_id,user_id,question_id' })
+    if (!error) await awardPoints(eventId, user.id, 'icebreaker')
+    return { error: error?.message }
+  } else {
+    const admin = (await import('@/lib/supabase/admin')).createAdminClient()
+    const { error } = await admin.from('icebreaker_completions').upsert({
+      event_id: eventId,
+      registration_id: registrationId,
+      question_id: questionId,
+      response,
+    }, { onConflict: 'event_id,registration_id,question_id' })
+    if (!error) await awardPointsForReg(eventId, registrationId!, 'icebreaker')
+    return { error: error?.message }
+  }
 }
 
 // ── T-108: passport contest ───────────────────────────────────────────────────
@@ -290,10 +331,10 @@ export async function getPassportVisits(eventId: string) {
   return ((data ?? []) as any[]).map(v => v.location_id)
 }
 
-export async function checkInPassportLocation(eventId: string, code: string) {
+export async function checkInPassportLocation(eventId: string, code: string, registrationId?: string) {
   const supabase = await createClient()
-  const user = await supabase.auth.getUser()
-  if (!user.data.user) return { error: 'Not authenticated' }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user && !registrationId) return { error: 'Enter your registration code to participate' }
 
   const { data: loc } = await supabase
     .from('passport_locations')
@@ -303,15 +344,27 @@ export async function checkInPassportLocation(eventId: string, code: string) {
     .single()
   if (!loc) return { error: 'Invalid code' }
 
-  const { error } = await supabase.from('passport_visits').insert({
-    event_id: eventId,
-    user_id: user.data.user.id,
-    location_id: (loc as any).id,
-  })
-  if (error && error.code === '23505') return { error: 'Already visited this location' }
-  if (error) return { error: error.message }
+  if (user) {
+    const { error } = await supabase.from('passport_visits').insert({
+      event_id: eventId,
+      user_id: user.id,
+      location_id: (loc as any).id,
+    })
+    if (error && error.code === '23505') return { error: 'Already visited this location' }
+    if (error) return { error: error.message }
+    await awardPoints(eventId, user.id, 'passport_visit')
+  } else {
+    const admin = (await import('@/lib/supabase/admin')).createAdminClient()
+    const { error } = await admin.from('passport_visits').insert({
+      event_id: eventId,
+      registration_id: registrationId,
+      location_id: (loc as any).id,
+    })
+    if (error && error.code === '23505') return { error: 'Already visited this location' }
+    if (error) return { error: error.message }
+    await awardPointsForReg(eventId, registrationId!, 'passport_visit')
+  }
 
-  await awardPoints(eventId, user.data.user.id, 'passport_visit')
   return { ok: true, location: (loc as any).name, points: (loc as any).points }
 }
 
