@@ -44,48 +44,55 @@ export default async function DashboardPage({ searchParams }: Props) {
     .maybeSingle()
   const displayName = (profile as any)?.full_name ?? user.email?.split('@')[0] ?? 'there'
 
+  // Fetch all org event IDs (needed for ticket/registration counts)
+  const { data: orgEvents } = await supabase.from('events').select('id').eq('org_id', orgId)
+  const orgEventIds = (orgEvents ?? []).map((e: any) => e.id)
+
   // Fetch real dashboard stats + checklist state in parallel
-  const [eventsResult, membersResult, integrationsResult, registeredResult, checkedInResult] =
-    await Promise.all([
-      supabase.from('events').select('id').eq('org_id', orgId).limit(1),
-      supabase.from('org_members').select('id').eq('org_id', orgId).limit(2),
-      supabase.from('org_integrations').select('id').eq('org_id', orgId).eq('status', 'active').limit(1),
-      // Confirmed registrations across all org events
-      supabase
-        .from('registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'confirmed')
-        .in(
-          'event_id',
-          (await supabase.from('events').select('id').eq('org_id', orgId)).data?.map((e: any) => e.id) ?? [],
-        ),
-      // Checked-in registrations across all org events
-      supabase
-        .from('registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('checked_in', true)
-        .in(
-          'event_id',
-          (await supabase.from('events').select('id').eq('org_id', orgId)).data?.map((e: any) => e.id) ?? [],
-        ),
-    ])
+  const [
+    membersResult, integrationsResult, registeredResult, checkedInResult,
+    ticketCountResult, publishedCountResult, stripeRow,
+  ] = await Promise.all([
+    supabase.from('org_members').select('id').eq('org_id', orgId).limit(2),
+    supabase.from('org_integrations').select('id').eq('org_id', orgId).eq('status', 'active').limit(1),
+    // Confirmed registrations across all org events
+    orgEventIds.length > 0
+      ? supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'confirmed').in('event_id', orgEventIds)
+      : Promise.resolve({ count: 0 }),
+    // Checked-in registrations across all org events
+    orgEventIds.length > 0
+      ? supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('checked_in', true).in('event_id', orgEventIds)
+      : Promise.resolve({ count: 0 }),
+    // Ticket types for this org
+    orgEventIds.length > 0
+      ? supabase.from('ticket_types').select('id', { count: 'exact', head: true }).in('event_id', orgEventIds)
+      : Promise.resolve({ count: 0 }),
+    // Published events
+    supabase.from('events').select('id', { count: 'exact', head: true }).eq('org_id', orgId).eq('status', 'published'),
+    // Stripe Connect status
+    supabase.from('organizations').select('stripe_charges_enabled').eq('id', orgId).maybeSingle(),
+  ])
 
-  const confirmedCount = registeredResult.count ?? 0
-  const checkedInCount = checkedInResult.count ?? 0
+  const confirmedCount = (registeredResult as any).count ?? 0
+  const checkedInCount = (checkedInResult as any).count ?? 0
+  const ticketCount = (ticketCountResult as any).count ?? 0
+  const publishedCount = (publishedCountResult as any).count ?? 0
 
-  const hasEvent = (eventsResult.data?.length ?? 0) > 0
+  const hasEvent = orgEventIds.length > 0
+  const hasTickets = ticketCount > 0
+  const hasPublishedEvent = publishedCount > 0
   const hasMultipleMembers = (membersResult.data?.length ?? 0) > 1
   const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
+  const hasStripeConnected = (stripeRow as any)?.data?.stripe_charges_enabled === true
 
   const checklistItems = [
     { label: 'Organization created',                done: true },
     { label: 'Create your first event',             done: hasEvent,            href: '/events/new' },
-    { label: 'Add a ticket type',                   done: hasEvent,            href: '/events' },
+    { label: 'Add a ticket type',                   done: hasTickets,          href: '/events' },
+    { label: 'Connect Stripe for paid tickets',     done: hasStripeConnected,  href: `/orgs/${orgSlug}/settings` },
+    { label: 'Publish your event page',             done: hasPublishedEvent,   href: '/events' },
     { label: 'Invite a team member',                done: hasMultipleMembers,  href: `/orgs/${orgSlug}/settings` },
-    { label: 'Publish your event page',             done: false,               href: '/events' },
     { label: 'Connect an integration (optional)',   done: hasIntegration,      href: `/orgs/${orgSlug}/integrations` },
-    { label: 'Save an event as a template',         done: false,               href: `/orgs/${orgSlug}/templates` },
-    { label: 'Explore starter templates',           done: false,               href: '/events/new' },
   ]
 
   const showChecklist = checklistItems.filter(i => !i.done).length > 0
