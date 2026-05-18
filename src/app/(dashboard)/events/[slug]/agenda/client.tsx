@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { SessionForm } from '@/components/agenda/SessionForm'
 import { AgendaGrid } from '@/components/agenda/AgendaGrid'
-import { createSession, updateSession, deleteSession } from '@/lib/agenda/actions'
+import { createSession, updateSession, deleteSession, createRoom, deleteRoom } from '@/lib/agenda/actions'
 import type { Session, Track, Room, Speaker } from '@/lib/agenda/actions'
 
 interface AgendaClientProps {
@@ -198,11 +198,17 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
   )
 }
 
-export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms, speakers, zoomConnected, teamsConnected }: AgendaClientProps) {
+export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms: initialRooms, speakers, zoomConnected, teamsConnected }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [roomsState, setRoomsState] = useState<Room[]>(initialRooms)
+  const [showRooms, setShowRooms] = useState(false)
+  const [newRoomName, setNewRoomName] = useState('')
+  const [newRoomCap, setNewRoomCap] = useState('')
+  const [newRoomHint, setNewRoomHint] = useState('')
+  const [roomAdding, setRoomAdding] = useState(false)
 
   const reload = useCallback(async () => {
     const res = await fetch(`/api/events/${eventId}/agenda/sessions`)
@@ -235,6 +241,28 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   function handleCancel() {
     setEditing(null)
     setShowForm(false)
+  }
+
+  async function handleAddRoom() {
+    if (!newRoomName.trim()) return
+    setRoomAdding(true)
+    const result = await createRoom(eventId, {
+      name: newRoomName.trim(),
+      capacity: newRoomCap ? parseInt(newRoomCap, 10) : null,
+      location_hint: newRoomHint.trim() || null,
+    })
+    setRoomAdding(false)
+    if (result && 'data' in result && result.data) {
+      setRoomsState(prev => [...prev, result.data as Room])
+      setNewRoomName('')
+      setNewRoomCap('')
+      setNewRoomHint('')
+    }
+  }
+
+  async function handleDeleteRoom(roomId: string) {
+    await deleteRoom(eventId, roomId)
+    setRoomsState(prev => prev.filter(r => r.id !== roomId))
   }
 
   return (
@@ -271,6 +299,91 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         )}
       </div>
 
+      {/* Manage Rooms */}
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+        <button
+          onClick={() => setShowRooms(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+        >
+          <span>Manage Rooms ({roomsState.length})</span>
+          <span className="text-[var(--text-muted)]">{showRooms ? '▲' : '▼'}</span>
+        </button>
+        {showRooms && (
+          <div className="border-t border-[var(--border)] p-4 space-y-3">
+            {roomsState.length === 0 ? (
+              <p className="text-xs text-[var(--text-muted)]">No rooms yet — add one below.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-[var(--text-muted)]">
+                    <th className="pb-2 font-medium">Name</th>
+                    <th className="pb-2 font-medium">Capacity</th>
+                    <th className="pb-2 font-medium">Hint</th>
+                    <th className="pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {roomsState.map(r => (
+                    <tr key={r.id} className="border-t border-[var(--border)]">
+                      <td className="py-2 pr-4 font-medium">{r.name}</td>
+                      <td className="py-2 pr-4 text-[var(--text-muted)]">{r.capacity ?? '—'}</td>
+                      <td className="py-2 pr-4 text-[var(--text-muted)]">{(r as any).location_hint ?? '—'}</td>
+                      <td className="py-2 text-right">
+                        <button
+                          onClick={() => handleDeleteRoom(r.id)}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <div className="flex gap-2 items-end pt-1">
+              <div>
+                <label className="block text-xs text-[var(--text-muted)] mb-1">Name *</label>
+                <input
+                  className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-36"
+                  placeholder="e.g. Room A"
+                  value={newRoomName}
+                  onChange={e => setNewRoomName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--text-muted)] mb-1">Capacity</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-20"
+                  placeholder="—"
+                  value={newRoomCap}
+                  onChange={e => setNewRoomCap(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--text-muted)] mb-1">Location hint</label>
+                <input
+                  className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-36"
+                  placeholder="e.g. 2nd floor"
+                  value={newRoomHint}
+                  onChange={e => setNewRoomHint(e.target.value)}
+                />
+              </div>
+              <button
+                onClick={handleAddRoom}
+                disabled={roomAdding || !newRoomName.trim()}
+                className="px-3 py-1.5 text-sm font-semibold rounded-lg disabled:opacity-50"
+                style={{ background: 'var(--brand-teal)', color: '#0D1B2A' }}
+              >
+                {roomAdding ? 'Adding…' : '+ Add'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Track legend */}
       {tracks.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -291,8 +404,9 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
           <SessionForm
             eventId={eventId}
             tracks={tracks}
-            rooms={rooms}
+            rooms={roomsState}
             speakers={speakers}
+            sessions={sessions}
             session={editing}
             onSave={handleSave}
             onCancel={handleCancel}
@@ -303,7 +417,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
       <AgendaGrid
         sessions={sessions}
         tracks={tracks}
-        rooms={rooms}
+        rooms={roomsState}
         timezone={timezone}
         onEdit={handleEdit}
         onDelete={handleDelete}

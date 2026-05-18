@@ -142,6 +142,14 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               <label className={labelCls}>Max per order</label>
               <input name="max_per_order" type="number" min="1" max="100" defaultValue="10" className={inputCls} />
             </div>
+            <div>
+              <label className={labelCls}>Sale starts at</label>
+              <input name="sale_starts_at" type="datetime-local" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Sale ends at</label>
+              <input name="sale_ends_at" type="datetime-local" className={inputCls} />
+            </div>
             <div className="col-span-2">
               <label className={labelCls}>Description</label>
               <input name="description" placeholder="Optional details" className={inputCls} />

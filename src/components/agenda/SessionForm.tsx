@@ -8,6 +8,7 @@ interface SessionFormProps {
   tracks: Track[]
   rooms: Room[]
   speakers: Speaker[]
+  sessions?: Session[]
   session?: Session | null
   onSave: (data: Record<string, any>) => Promise<void>
   onCancel: () => void
@@ -18,7 +19,7 @@ const SESSION_TYPES = ['talk', 'workshop', 'panel', 'keynote', 'break', 'network
 function fmt(iso: string) { return iso ? iso.slice(0, 16) : '' }
 function toIso(local: string) { return local ? new Date(local).toISOString() : '' }
 
-export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel }: SessionFormProps) {
+export function SessionForm({ tracks, rooms, speakers, sessions = [], session, onSave, onCancel }: SessionFormProps) {
   const [title, setTitle] = useState(session?.title ?? '')
   const [description, setDescription] = useState(session?.description ?? '')
   const [type, setType] = useState(session?.session_type ?? 'talk')
@@ -26,10 +27,17 @@ export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel
   const [endsAt, setEndsAt] = useState(fmt(session?.ends_at ?? ''))
   const [trackId, setTrackId] = useState(session?.track_id ?? '')
   const [roomId, setRoomId] = useState(session?.room_id ?? '')
+  const [capacity, setCapacity] = useState<string>(session?.capacity != null ? String(session.capacity) : '')
   const [speakerIds, setSpeakerIds] = useState<string[]>(session?.speakers?.map(s => s.id) ?? [])
   const [ceHours, setCeHours] = useState<string>(session?.ce_credit_hours != null ? String(session.ce_credit_hours) : '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Detect room conflicts when room + times are set
+  const conflict = roomId && startsAt && endsAt
+    ? sessions.find(s => s.id !== session?.id && s.room_id === roomId && new Date(s.starts_at) < new Date(toIso(endsAt)) && new Date(s.ends_at) > new Date(toIso(startsAt)))
+    : null
+  const conflictRoom = conflict ? rooms.find(r => r.id === conflict.room_id) : null
 
   function toggleSpeaker(id: string) {
     setSpeakerIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -44,6 +52,7 @@ export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel
         title, description: description || null, session_type: type,
         starts_at: toIso(startsAt), ends_at: toIso(endsAt),
         track_id: trackId || null, room_id: roomId || null,
+        capacity: capacity !== '' ? parseInt(capacity, 10) : null,
         speaker_ids: speakerIds,
         ce_credit_hours: ceHours !== '' ? parseFloat(ceHours) : null,
       })
@@ -105,18 +114,36 @@ export function SessionForm({ tracks, rooms, speakers, session, onSave, onCancel
           </select>
         </div>
         <div>
-          <label className={labelCls}>CE Credit Hours</label>
+          <label className={labelCls}>Max attendees</label>
           <input
             type="number"
-            step="0.25"
-            min="0"
-            max="24"
+            min="1"
             className={inputCls}
-            value={ceHours}
-            onChange={e => setCeHours(e.target.value)}
-            placeholder="0.00"
+            value={capacity}
+            onChange={e => setCapacity(e.target.value)}
+            placeholder="Unlimited"
           />
         </div>
+      </div>
+
+      {conflict && (
+        <p className="text-xs text-amber-400">
+          ⚠ {conflictRoom?.name ?? 'Room'} is already booked at this time by &ldquo;{conflict.title}&rdquo;
+        </p>
+      )}
+
+      <div>
+        <label className={labelCls}>CE Credit Hours</label>
+        <input
+          type="number"
+          step="0.25"
+          min="0"
+          max="24"
+          className={inputCls}
+          value={ceHours}
+          onChange={e => setCeHours(e.target.value)}
+          placeholder="0.00"
+        />
       </div>
 
       {speakers.length > 0 && (
