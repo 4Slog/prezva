@@ -63,12 +63,18 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(
     tickets.length === 1 ? tickets[0] : null,
   )
+  const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [discountCode, setDiscountCode] = useState('')
   const [discount, setDiscount] = useState<{ discountAmountCents: number; code: string } | null>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [checkingCode, setCheckingCode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+
+  function getQty(ticketId: string) { return quantities[ticketId] ?? 1 }
+  function setQty(ticketId: string, val: number) {
+    setQuantities(prev => ({ ...prev, [ticketId]: val }))
+  }
 
   const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
@@ -95,11 +101,17 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!selectedTicket) { setError('Please select a ticket'); return }
+    const qty = getQty(selectedTicket.id)
+    if (selectedTicket.quantity !== null) {
+      const remaining = selectedTicket.quantity - selectedTicket.quantity_sold
+      if (qty > remaining) { setError(`Only ${remaining} spot${remaining !== 1 ? 's' : ''} remaining`); return }
+    }
     setPending(true)
     setError(null)
     const fd = new FormData(e.currentTarget)
     fd.set('event_id', event.id)
     fd.set('ticket_type_id', selectedTicket.id)
+    fd.set('quantity', String(qty))
     if (discount) fd.set('discount_code', discount.code)
     const result = await startRegistration(fd)
     setPending(false)
@@ -107,8 +119,9 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
     // on success: server redirects to /e/[slug]/confirmation
   }
 
+  const selectedQty = selectedTicket ? getQty(selectedTicket.id) : 1
   const finalPrice = selectedTicket
-    ? Math.max(0, selectedTicket.price_cents - (discount?.discountAmountCents ?? 0))
+    ? Math.max(0, (selectedTicket.price_cents - (discount?.discountAmountCents ?? 0)) * selectedQty)
     : 0
 
   return (
@@ -139,31 +152,56 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
               const soldOut = t.quantity !== null && t.quantity_sold >= t.quantity
               const selected = selectedTicket?.id === t.id
               return (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={soldOut}
-                  onClick={() => { setSelectedTicket(t); setDiscount(null); setDiscountCode('') }}
-                  className={`pz-card p-4 text-left transition-all disabled:opacity-50 ${
-                    selected ? 'border-[#00BFA6] pz-glow-teal' : 'hover:border-[#00BFA6]/40'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-[#F0F4F8]">{t.name}</p>
-                      {t.description && <p className="text-xs text-[#94A3B8] mt-0.5">{t.description}</p>}
-                      {soldOut && <p className="text-xs text-[#EF4444] mt-1">Sold out</p>}
+                <div key={t.id} className={`pz-card p-4 transition-all ${soldOut ? 'opacity-50' : ''} ${selected ? 'border-[#00BFA6] pz-glow-teal' : ''}`}>
+                  <button
+                    type="button"
+                    disabled={soldOut}
+                    onClick={() => { setSelectedTicket(t); setDiscount(null); setDiscountCode('') }}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-[#F0F4F8]">{t.name}</p>
+                        {t.description && <p className="text-xs text-[#94A3B8] mt-0.5">{t.description}</p>}
+                        {soldOut && <p className="text-xs text-[#EF4444] mt-1">Sold out</p>}
+                      </div>
+                      <div className="text-right ml-4 flex-shrink-0">
+                        <p className="font-bold text-[#00BFA6]">{fmtPrice(t.price_cents, t.currency)}</p>
+                        {t.quantity !== null && (
+                          <p className="text-xs text-[#64748B]">
+                            {t.quantity - t.quantity_sold} left
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right ml-4 flex-shrink-0">
-                      <p className="font-bold text-[#00BFA6]">{fmtPrice(t.price_cents, t.currency)}</p>
-                      {t.quantity !== null && (
-                        <p className="text-xs text-[#64748B]">
-                          {t.quantity - t.quantity_sold} left
-                        </p>
+                  </button>
+                  {selected && !soldOut && (
+                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#1E3A5F]">
+                      <span className="text-sm text-[#94A3B8]">Quantity:</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setQty(t.id, Math.max(1, getQty(t.id) - 1))}
+                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors flex items-center justify-center text-sm"
+                        >−</button>
+                        <span className="w-8 text-center text-[#F0F4F8] font-medium">{getQty(t.id)}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const maxQty = Math.min(10, t.quantity !== null ? t.quantity - t.quantity_sold : 10)
+                            setQty(t.id, Math.min(maxQty, getQty(t.id) + 1))
+                          }}
+                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors flex items-center justify-center text-sm"
+                        >+</button>
+                      </div>
+                      {t.price_cents > 0 && getQty(t.id) > 1 && (
+                        <span className="text-xs text-[#64748B] ml-auto">
+                          Subtotal: {fmtPrice(t.price_cents * getQty(t.id), t.currency)}
+                        </span>
                       )}
                     </div>
-                  </div>
-                </button>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -297,13 +335,13 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
             <div className="pz-card p-5">
               <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">Order summary</h2>
               <div className="flex justify-between text-sm text-[#94A3B8] mb-1">
-                <span>{selectedTicket.name}</span>
-                <span>{fmtPrice(selectedTicket.price_cents, selectedTicket.currency)}</span>
+                <span>{selectedTicket.name}{selectedQty > 1 ? ` × ${selectedQty}` : ''}</span>
+                <span>{fmtPrice(selectedTicket.price_cents * selectedQty, selectedTicket.currency)}</span>
               </div>
               {discount && (
                 <div className="flex justify-between text-sm text-[#22C55E] mb-1">
-                  <span>Discount ({discount.code})</span>
-                  <span>−{fmtPrice(discount.discountAmountCents, selectedTicket.currency)}</span>
+                  <span>Discount ({discount.code}){selectedQty > 1 ? ` × ${selectedQty}` : ''}</span>
+                  <span>−{fmtPrice(discount.discountAmountCents * selectedQty, selectedTicket.currency)}</span>
                 </div>
               )}
               <div className="border-t border-[#1E3A5F] mt-2 pt-2 flex justify-between font-semibold text-[#F0F4F8]">
@@ -339,7 +377,7 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
               {pending
                 ? 'Processing…'
                 : finalPrice === 0
-                  ? 'Complete registration'
+                  ? selectedQty > 1 ? `Register ${selectedQty} tickets` : 'Complete registration'
                   : `Pay ${fmtPrice(finalPrice, selectedTicket.currency)}`}
             </button>
 

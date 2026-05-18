@@ -64,6 +64,8 @@ export async function startRegistration(formData: FormData) {
   // Get current user if logged in (optional — guests can register)
   const { data: { user } } = await supabase.auth.getUser()
 
+  const quantity = Math.max(1, Math.min(10, parseInt(formData.get('quantity') as string || '1', 10) || 1))
+
   const raw = {
     event_id:           formData.get('event_id'),
     ticket_type_id:     formData.get('ticket_type_id'),
@@ -169,9 +171,15 @@ export async function startRegistration(formData: FormData) {
     }
   }
 
-  // Ticket quantity check
-  if (ticket.quantity !== null && ticket.quantity_sold >= ticket.quantity) {
-    return { error: 'This ticket type is sold out' }
+  // Ticket quantity check — account for full batch requested
+  if (ticket.quantity !== null) {
+    if (ticket.quantity_sold >= ticket.quantity) {
+      return { error: 'This ticket type is sold out' }
+    }
+    if (ticket.quantity_sold + quantity > ticket.quantity) {
+      const remaining = ticket.quantity - ticket.quantity_sold
+      return { error: `Only ${remaining} spot${remaining !== 1 ? 's' : ''} remaining` }
+    }
   }
 
   // Member-only ticket gating
@@ -203,6 +211,7 @@ export async function startRegistration(formData: FormData) {
       user?.id,
       discountCodeId,
       fieldResponses,
+      quantity,
     )
   }
 
@@ -230,6 +239,7 @@ export async function startRegistration(formData: FormData) {
     discountAmountCents,
     org.stripe_account_id,
     fieldResponses,
+    quantity,
   )
 }
 
@@ -249,30 +259,38 @@ async function confirmFreeRegistration(
   userId: string | undefined,
   discountCodeId: string | undefined,
   fieldResponses: { fieldId: string; value: string }[],
+  quantity = 1,
 ) {
   // Use admin client for the insert so anonymous/guest registrations bypass RLS.
   const admin = createAdminClient()
   const requireApproval = (event as any).require_approval === true
-  const { data: reg, error } = await admin
+  const now = new Date().toISOString()
+
+  // Insert all registrations for the requested quantity
+  const insertRows = Array.from({ length: quantity }, () => ({
+    event_id:       data.event_id,
+    ticket_type_id: data.ticket_type_id,
+    user_id:        userId ?? null,
+    attendee_email: data.attendee_email,
+    attendee_name:  data.attendee_name,
+    attendee_phone: data.attendee_phone ?? null,
+    attendee_company:   data.attendee_company ?? null,
+    attendee_job_title: data.attendee_job_title ?? null,
+    status:              requireApproval ? 'pending' : 'confirmed',
+    amount_paid_cents:   0,
+    discount_code_id:    discountCodeId ?? null,
+    confirmation_sent_at: requireApproval ? null : now,
+  }))
+
+  const { data: regs, error } = await admin
     .from('registrations')
-    .insert({
-      event_id:       data.event_id,
-      ticket_type_id: data.ticket_type_id,
-      user_id:        userId ?? null,
-      attendee_email: data.attendee_email,
-      attendee_name:  data.attendee_name,
-      attendee_phone: data.attendee_phone ?? null,
-      attendee_company:   data.attendee_company ?? null,
-      attendee_job_title: data.attendee_job_title ?? null,
-      status:              requireApproval ? 'pending' : 'confirmed',
-      amount_paid_cents:   0,
-      discount_code_id:    discountCodeId ?? null,
-      confirmation_sent_at: requireApproval ? null : new Date().toISOString(),
-    })
+    .insert(insertRows)
     .select()
-    .single()
 
   if (error) return { error: error.message }
+  if (!regs || regs.length === 0) return { error: 'Registration failed' }
+
+  const reg = regs[0]
   void supabase
 
   const org = event.organizations as { name: string; email?: string | null } | null
@@ -311,7 +329,7 @@ async function confirmFreeRegistration(
   }
 
   await saveFieldResponses(admin, reg.id, fieldResponses)
-  // Enqueue confirmation email (non-blocking)
+  // Enqueue confirmation email for primary registration (non-blocking)
   await enqueueConfirmationEmail({
     registrationId: reg.id,
     attendeeEmail:  data.attendee_email,
@@ -328,6 +346,10 @@ async function confirmFreeRegistration(
     eventType:  (event as any).event_type ?? undefined,
   })
 
+  if (regs.length > 1) {
+    const allIds = regs.map((r: any) => r.id).join(',')
+    redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}&batch=${allIds}`)
+  }
   redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}`)
 }
 
@@ -342,6 +364,7 @@ async function createPaidRegistration(
   discountAmountCents: number,
   connectedAccountId: string,
   fieldResponses: { fieldId: string; value: string }[],
+  quantity = 1,
 ) {
   // Create pending registration first (admin client bypasses RLS for guests)
   const admin = createAdminClient()
@@ -379,7 +402,7 @@ async function createPaidRegistration(
       ticketName:         ticket.name as string,
       priceCents:         ticket.price_cents as number,
       currency:           ticket.currency as string,
-      quantity:           1,
+      quantity,
       attendeeEmail:      data.attendee_email,
       attendeeName:       data.attendee_name,
       discountAmountCents,
