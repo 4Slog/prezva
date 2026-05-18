@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import BulkIssueButton from './bulk-issue-button'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -60,20 +61,23 @@ export default async function CertificatesPage({ params }: Props) {
             Issue certificates of attendance to qualified attendees
           </p>
         </div>
-        <button
-          style={{
-            background: 'var(--pz-teal)',
-            color: '#0D1B2A',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            fontWeight: 600,
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}
-        >
-          + New Template
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <BulkIssueButton eventId={(event as any).id} eligibleCount={0} />
+          <button
+            style={{
+              background: 'var(--pz-teal)',
+              color: '#0D1B2A',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: 'pointer',
+            }}
+          >
+            + New Template
+          </button>
+        </div>
       </div>
 
       <div

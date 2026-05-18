@@ -142,6 +142,14 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               <label className={labelCls}>Max per order</label>
               <input name="max_per_order" type="number" min="1" max="100" defaultValue="10" className={inputCls} />
             </div>
+            <div>
+              <label className={labelCls}>Sale starts at</label>
+              <input name="sale_starts_at" type="datetime-local" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Sale ends at</label>
+              <input name="sale_ends_at" type="datetime-local" className={inputCls} />
+            </div>
             <div className="col-span-2">
               <label className={labelCls}>Description</label>
               <input name="description" placeholder="Optional details" className={inputCls} />
@@ -158,6 +166,18 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               />
               <label htmlFor="membership_required" className="text-sm text-[#94A3B8] cursor-pointer">
                 Membership required (verify via connected association integration)
+              </label>
+            </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <input
+                id="waitlist_enabled"
+                name="waitlist_enabled"
+                type="checkbox"
+                value="true"
+                className="rounded"
+              />
+              <label htmlFor="waitlist_enabled" className="text-sm text-[#94A3B8] cursor-pointer">
+                Enable waitlist (when ticket sells out, allow attendees to join waitlist)
               </label>
             </div>
             {membershipRequired && connectedAssociations.length > 0 && (

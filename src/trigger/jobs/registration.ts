@@ -17,6 +17,9 @@ export const sendConfirmationEmail = schemaTask({
     eventVenue:     z.string().optional(),
     qrCode:         z.string(),
     orgName:        z.string(),
+    virtualUrl:     z.string().optional(),
+    eventType:      z.string().optional(),
+    orgEmail:       z.string().email().optional(),
   }),
   run: async (payload) => {
     const dateStr = new Date(payload.eventStartAt).toLocaleString('en-US', {
@@ -25,6 +28,9 @@ export const sendConfirmationEmail = schemaTask({
     const agendaLink = payload.agendaUrl ?? `${BASE_URL}/e/${payload.eventSlug}/agenda`
     const icsUrl     = `${BASE_URL}/e/${payload.eventSlug}/calendar.ics`
     const eventUrl   = `${BASE_URL}/e/${payload.eventSlug}`
+    const regIdB64   = Buffer.from(payload.registrationId).toString('base64url')
+    const unsubUrl   = `${BASE_URL}/api/unsubscribe?token=${regIdB64}&type=reminders`
+    const unsubAllUrl = `${BASE_URL}/api/unsubscribe?token=${regIdB64}&type=all`
 
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
@@ -39,6 +45,11 @@ export const sendConfirmationEmail = schemaTask({
           <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> is confirmed.</p>
           <p style="margin:4px 0;">📅 ${dateStr}</p>
           ${payload.eventVenue ? `<p style="margin:4px 0;">📍 ${payload.eventVenue}</p>` : ''}
+          ${['virtual','hybrid'].includes(payload.eventType ?? '') && payload.virtualUrl ? `
+          <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
+            <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Join link</p>
+            <a href="${payload.virtualUrl}" style="color:#00BFA6;font-size:16px;font-weight:700;text-decoration:none;">Join online →</a>
+          </div>` : ''}
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
@@ -63,6 +74,10 @@ export const sendConfirmationEmail = schemaTask({
             Sent by ${payload.orgName} via <a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
             Questions? Reply to this email.
           </p>
+          <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">
+            <a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from reminder emails</a> ·
+            <a href="${unsubAllUrl}" style="color:#64748B;">Unsubscribe from all emails</a>
+          </p>
         </div>
       </div>
     `
@@ -74,10 +89,12 @@ export const sendConfirmationEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    `${payload.orgName} <noreply@prezva.app>`,
-        to:      payload.attendeeEmail,
-        subject: `${payload.orgName}: You're registered for ${payload.eventTitle}`,
+        from:      `${payload.orgName} <noreply@prezva.app>`,
+        to:        payload.attendeeEmail,
+        subject:   `${payload.orgName}: You're registered for ${payload.eventTitle}`,
         html,
+        reply_to:  payload.orgEmail || undefined,
+        headers:   { 'List-Unsubscribe': `<${unsubAllUrl}>` },
       }),
     })
 
@@ -109,7 +126,7 @@ export const processWaitlist = schemaTask({
     // Find highest-priority waitlisted registration
     const { data: next } = await supabase
       .from('registrations')
-      .select('id, attendee_email, attendee_name, qr_code, waitlist_position')
+      .select('id, attendee_email, attendee_name, qr_code, waitlist_position, user_id')
       .eq('event_id', payload.eventId)
       .eq('status', 'waitlisted')
       .order('waitlist_position', { ascending: true })
@@ -126,7 +143,22 @@ export const processWaitlist = schemaTask({
 
     if (error) throw new Error(`Failed to promote waitlisted reg: ${error.message}`)
 
+    // Check email_reminders preference — default opt-in, skip only if explicitly false
+    if ((next as any).user_id) {
+      const { data: pref } = await supabase
+        .from('attendee_preferences')
+        .select('email_reminders')
+        .eq('user_id', (next as any).user_id)
+        .maybeSingle()
+      if (pref && (pref as any).email_reminders === false) {
+        return { processed: true, promotedId: next.id, sentTo: null, reason: 'email_reminders opted out' }
+      }
+    }
+
     const eventUrl = payload.eventSlug ? `${BASE_URL}/e/${payload.eventSlug}` : ''
+    const wlRegIdB64 = Buffer.from(next.id).toString('base64url')
+    const wlUnsubUrl = `${BASE_URL}/api/unsubscribe?token=${wlRegIdB64}&type=reminders`
+    const wlUnsubAllUrl = `${BASE_URL}/api/unsubscribe?token=${wlRegIdB64}&type=all`
 
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
@@ -153,6 +185,10 @@ export const processWaitlist = schemaTask({
             Powered by <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
             Reply to this email with any questions.
           </p>
+          <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">
+            <a href="${wlUnsubUrl}" style="color:#64748B;">Unsubscribe from reminder emails</a> ·
+            <a href="${wlUnsubAllUrl}" style="color:#64748B;">Unsubscribe from all emails</a>
+          </p>
         </div>
       </div>
     `
@@ -168,6 +204,7 @@ export const processWaitlist = schemaTask({
         to: next.attendee_email,
         subject: `Good news — a spot opened up for ${payload.eventTitle}`,
         html,
+        headers: { 'List-Unsubscribe': `<${wlUnsubAllUrl}>` },
       }),
     })
 

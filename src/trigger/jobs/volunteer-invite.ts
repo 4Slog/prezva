@@ -12,6 +12,7 @@ export const sendVolunteerInviteEmail = schemaTask({
     shiftStart:     z.string().nullable(),
     shiftEnd:       z.string().nullable(),
     portalUrl:      z.string(),
+    orgEmail:       z.string().email().optional(),
   }),
   run: async (payload) => {
     const fmtDate = (d: string) =>
@@ -63,10 +64,11 @@ export const sendVolunteerInviteEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    'Prezva Events <events@prezva.app>',
-        to:      payload.volunteerEmail,
-        subject: `You're volunteering at ${payload.eventTitle} — here's your portal`,
+        from:     'Prezva Events <events@prezva.app>',
+        to:       payload.volunteerEmail,
+        subject:  `You're volunteering at ${payload.eventTitle} — here's your portal`,
         html,
+        reply_to: payload.orgEmail || undefined,
       }),
     })
 

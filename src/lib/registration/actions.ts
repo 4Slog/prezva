@@ -85,10 +85,25 @@ export async function startRegistration(formData: FormData) {
   const parsed = RegisterSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
+  // Collect custom field responses (cf_<uuid> keys → { fieldId, value })
+  const fieldResponseMap = new Map<string, string[]>()
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('cf_') && typeof value === 'string' && value.trim()) {
+      const fieldId = key.slice(3)
+      const existing = fieldResponseMap.get(fieldId) ?? []
+      existing.push(value)
+      fieldResponseMap.set(fieldId, existing)
+    }
+  }
+  const fieldResponses = Array.from(fieldResponseMap.entries()).map(([fieldId, values]) => ({
+    fieldId,
+    value: values.join(', '),
+  }))
+
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, organizations(name, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, registration_invite_code, registration_domain_restrict, organizations(name, email, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
@@ -116,6 +131,23 @@ export async function startRegistration(formData: FormData) {
   }
 
   // Capacity check — enforce at DB level via trigger, but also check here
+  // Per-event invite code check
+  const inviteCode = (parsed.data as any).invite_code as string | undefined
+  if ((event as any).registration_invite_code) {
+    if (!inviteCode || inviteCode.trim().toUpperCase() !== (event as any).registration_invite_code.trim().toUpperCase()) {
+      return { error: 'An invite code is required to register for this event.' }
+    }
+  }
+
+  // Domain restriction check
+  if ((event as any).registration_domain_restrict) {
+    const allowedDomain = (event as any).registration_domain_restrict.trim().toLowerCase()
+    const emailDomain = (parsed.data as any).attendee_email?.split('@')[1]?.toLowerCase()
+    if (emailDomain !== allowedDomain) {
+      return { error: `Registration is restricted to ${allowedDomain} email addresses.` }
+    }
+  }
+
   if (event.capacity !== null) {
     if (event.registration_count >= event.capacity) {
       if (!ticket.quantity || ticket.quantity_sold < ticket.quantity) {
@@ -158,12 +190,13 @@ export async function startRegistration(formData: FormData) {
       ticket,
       user?.id,
       discountCodeId,
+      fieldResponses,
     )
   }
 
   // Paid ticket → Stripe Checkout
   // Require connected account for paid tickets
-  const org = event.organizations as unknown as { name: string; stripe_account_id: string | null } | null
+  const org = event.organizations as unknown as { name: string; email?: string | null; stripe_account_id: string | null } | null
   if (!org?.stripe_account_id) {
     return { error: 'This organization has not connected a bank account yet. Contact the event organizer.' }
   }
@@ -184,10 +217,18 @@ export async function startRegistration(formData: FormData) {
     discountCodeId,
     discountAmountCents,
     org.stripe_account_id,
+    fieldResponses,
   )
 }
 
 // ── Free registration ─────────────────────────────────────────────────────────
+async function saveFieldResponses(admin: ReturnType<typeof createAdminClient>, registrationId: string, responses: { fieldId: string; value: string }[]) {
+  if (responses.length === 0) return
+  await admin.from('registration_field_responses').insert(
+    responses.map(r => ({ registration_id: registrationId, field_id: r.fieldId, value: r.value }))
+  )
+}
+
 async function confirmFreeRegistration(
   supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
   data: z.infer<typeof RegisterSchema>,
@@ -195,12 +236,11 @@ async function confirmFreeRegistration(
   ticket: Record<string, unknown>,
   userId: string | undefined,
   discountCodeId: string | undefined,
+  fieldResponses: { fieldId: string; value: string }[],
 ) {
   // Use admin client for the insert so anonymous/guest registrations bypass RLS.
-  // (Sprint 19) Server action above has already validated event status, ticket
-  // availability, capacity, sale windows, discount codes and membership gates,
-  // so an unauthenticated write here is safe.
   const admin = createAdminClient()
+  const requireApproval = (event as any).require_approval === true
   const { data: reg, error } = await admin
     .from('registrations')
     .insert({
@@ -212,10 +252,10 @@ async function confirmFreeRegistration(
       attendee_phone: data.attendee_phone ?? null,
       attendee_company:   data.attendee_company ?? null,
       attendee_job_title: data.attendee_job_title ?? null,
-      status:              'confirmed',
+      status:              requireApproval ? 'pending' : 'confirmed',
       amount_paid_cents:   0,
       discount_code_id:    discountCodeId ?? null,
-      confirmation_sent_at: new Date().toISOString(),
+      confirmation_sent_at: requireApproval ? null : new Date().toISOString(),
     })
     .select()
     .single()
@@ -223,8 +263,43 @@ async function confirmFreeRegistration(
   if (error) return { error: error.message }
   void supabase
 
+  const org = event.organizations as { name: string; email?: string | null } | null
+  const orgName = org?.name ?? 'Prezva'
+  const orgEmail = org?.email || undefined
+
+  if (requireApproval) {
+    // Send "application received" email instead of confirmation
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+    const regIdB64 = Buffer.from(reg.id).toString('base64url')
+    const unsubUrl = `${appUrl}/api/unsubscribe?token=${regIdB64}&type=all`
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
+          <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+            <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
+          </div>
+          <h1 style="color:#F0F4F8;font-size:22px;margin:0;">Application received!</h1>
+        </div>
+        <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
+          <p style="font-size:15px;">Hi ${data.attendee_name},</p>
+          <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${event.title as string}</strong> is pending approval. You'll hear from us once the organizer reviews your application.</p>
+          <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
+          <p style="color:#475569;font-size:12px;margin:0;">Sent by ${orgName} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a>.</p>
+          <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;"><a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from all emails</a></p>
+        </div>
+      </div>
+    `
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, reply_to: orgEmail, to: data.attendee_email, subject: `${orgName}: Application received for ${event.title as string}`, html }),
+    })
+    await saveFieldResponses(admin, reg.id, fieldResponses)
+    redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}&pending=1`)
+  }
+
+  await saveFieldResponses(admin, reg.id, fieldResponses)
   // Enqueue confirmation email (non-blocking)
-  const org = event.organizations as { name: string } | null
   await enqueueConfirmationEmail({
     registrationId: reg.id,
     attendeeEmail:  data.attendee_email,
@@ -234,8 +309,11 @@ async function confirmFreeRegistration(
     eventSlug:      event.slug as string,
     eventVenue:     [event.venue_name, event.venue_city, event.venue_state]
       .filter(Boolean).join(', ') || undefined,
-    qrCode:  reg.qr_code,
-    orgName: org?.name ?? 'Prezva',
+    qrCode:    reg.qr_code,
+    orgName,
+    orgEmail,
+    virtualUrl: (event as any).virtual_url ?? undefined,
+    eventType:  (event as any).event_type ?? undefined,
   })
 
   redirect(`/e/${event.slug as string}/confirmation?reg=${reg.id}`)
@@ -251,6 +329,7 @@ async function createPaidRegistration(
   discountCodeId: string | undefined,
   discountAmountCents: number,
   connectedAccountId: string,
+  fieldResponses: { fieldId: string; value: string }[],
 ) {
   // Create pending registration first (admin client bypasses RLS for guests)
   const admin = createAdminClient()
@@ -312,6 +391,7 @@ async function createPaidRegistration(
       })
       .eq('id', reg.id)
 
+    await saveFieldResponses(admin, reg.id, fieldResponses)
     redirect(session.url!)
   } catch {
     // Clean up pending registration if Stripe fails

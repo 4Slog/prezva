@@ -23,7 +23,7 @@ const DEFAULTS: Omit<AttendeePreferences, 'user_id'> = {
   email_marketing: false,
   push_announcements: true,
   push_reminders: true,
-  networking_show_in_dir: false,
+  networking_show_in_dir: true,
   networking_accept_matches: true,
   networking_allow_dms: true,
 }
