@@ -1,21 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { submitIcebreakerResponse } from '@/lib/engagement/sprint10-actions'
+import { submitIcebreakerResponse, getIcebreakerResponses } from '@/lib/engagement/sprint10-actions'
 
+type FeedEntry = { display: string; response: string }
 type Props = { questions: any[]; eventId: string }
 
 export function IcebreakersClient({ questions, eventId }: Props) {
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState<Set<string>>(new Set())
   const [pending, setPending] = useState<string | null>(null)
+  const [responseFeed, setResponseFeed] = useState<Record<string, FeedEntry[]>>({})
 
   async function submit(questionId: string) {
     const text = responses[questionId]?.trim()
     if (!text) return
     setPending(questionId)
     const result = await submitIcebreakerResponse(eventId, questionId, text)
-    if (!result?.error) setSubmitted(prev => new Set(prev).add(questionId))
+    if (!result?.error) {
+      setSubmitted(prev => new Set(prev).add(questionId))
+      const feed = await getIcebreakerResponses(eventId, questionId)
+      setResponseFeed(prev => ({ ...prev, [questionId]: feed }))
+    }
     setPending(null)
   }
 
@@ -33,7 +39,21 @@ export function IcebreakersClient({ questions, eventId }: Props) {
         <div key={q.id} className="pz-card p-4">
           <p style={{ fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>{q.question || q.question_text || q.prompt || ''}</p>
           {submitted.has(q.id) ? (
-            <p style={{ fontSize: 13, color: 'var(--pz-success)' }}>✓ Submitted — +5 points earned!</p>
+            <div>
+              <p style={{ fontSize: 13, color: 'var(--pz-success)', marginBottom: 8 }}>✓ Submitted — +5 points earned!</p>
+              {responseFeed[q.id] && responseFeed[q.id].length > 0 && (
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 6 }}>{responseFeed[q.id].length} people answered</p>
+                  <div className="space-y-2">
+                    {responseFeed[q.id].slice(0, 10).map((entry, i) => (
+                      <div key={i} style={{ fontSize: 13, color: 'var(--pz-text)', background: 'var(--pz-surface-2)', borderRadius: 6, padding: '6px 10px' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--pz-teal)' }}>{entry.display}</span>: {entry.response}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex gap-2">
               <input

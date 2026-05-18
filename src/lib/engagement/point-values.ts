@@ -9,4 +9,5 @@ export const POINT_VALUES: Record<string, number> = {
   passport_visit:   5,
   trivia_correct:   10,
   photo_upload:     3,
+  passport_complete: 25,
 }

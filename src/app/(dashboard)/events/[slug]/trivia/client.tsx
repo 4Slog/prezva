@@ -1,25 +1,25 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { seedTriviaQuestions } from '@/lib/engagement/sprint10-actions'
+import { seedTriviaQuestions, setTriviaActive } from '@/lib/engagement/sprint10-actions'
 import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
 
 interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
-interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string }
+interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; isActive?: boolean }
 
 const DIFF_COLOR: Record<string, string> = { easy: '#059669', medium: '#d97706', hard: '#ef4444' }
 const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
 
 const getQuestionText = (q: TriviaQuestion) => q.body || q.question_text || ''
 
-export function TriviaAdminClient({ questions: init, eventId }: Props) {
+export function TriviaAdminClient({ questions: init, eventId, isActive = false }: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   // Add custom question state
   const [showAdd, setShowAdd] = useState(false)
-  const [published, setPublished] = useState(false)
+  const [published, setPublished] = useState(isActive)
 
   function handlePrint() {
     const w = window.open('', '_blank')
@@ -98,8 +98,13 @@ export function TriviaAdminClient({ questions: init, eventId }: Props) {
             style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>
             🖨 Print
           </button>
-          <button onClick={() => setPublished(v => !v)}
-            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => startTransition(async () => {
+              const next = !published
+              await setTriviaActive(eventId, next)
+              setPublished(next)
+              setMsg(next ? 'Published to attendees.' : 'Set to draft.')
+            })} disabled={pending}
+            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
             {published ? '✓ Published' : 'Publish to attendees'}
           </button>
         </>)}

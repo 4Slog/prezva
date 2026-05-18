@@ -148,6 +148,18 @@ export async function startRegistration(formData: FormData) {
     }
   }
 
+  // Duplicate registration check
+  const { data: existingReg } = await supabase
+    .from('registrations')
+    .select('id, status')
+    .eq('event_id', parsed.data.event_id)
+    .eq('attendee_email', parsed.data.attendee_email.toLowerCase())
+    .in('status', ['confirmed', 'pending', 'checked_in'])
+    .maybeSingle()
+  if (existingReg) {
+    return { error: 'You are already registered for this event. Check your email for your confirmation.' }
+  }
+
   if (event.capacity !== null) {
     if (event.registration_count >= event.capacity) {
       if (!ticket.quantity || ticket.quantity_sold < ticket.quantity) {
