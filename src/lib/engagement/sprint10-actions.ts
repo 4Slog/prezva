@@ -425,12 +425,20 @@ export async function seedIcebreakerPrompts(eventId: string, prompts: { text: st
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
-  const rows = prompts.map((p) => ({ 
-    event_id: eventId, 
-    question: p.text,       // primary NOT NULL column
-    question_text: p.text,  // alias column for future use
-    prompt: p.text,         // legacy alias
-  }))
+
+  // Resolve {event_title} merge tag
+  const { data: event } = await supabase.from('events').select('title').eq('id', eventId).single()
+  const eventTitle = (event as any)?.title ?? 'this event'
+
+  const rows = prompts.map((p) => {
+    const text = p.text.replace(/\{event_title\}/g, eventTitle)
+    return {
+      event_id: eventId,
+      question: text,
+      question_text: text,
+      prompt: text,
+    }
+  })
   const { error } = await supabase.from('icebreaker_questions').insert(rows)
   if (error) return { error: error.message }
   return { count: rows.length }
