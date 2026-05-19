@@ -1,52 +1,48 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-18
+## Last updated: 2026-05-19
 
-## Status: bundle10b complete | Gates PASS | Ready for PR
+## Status: bundle10c complete | Gates PASS | Ready for PR
 
 ---
 
-## This Session — Bundle 10b (B10-1, B10-2, B9-22, B10-8, B10-3)
+## This Session — Bundle 10c (B10-6, B10-7, B10-10, B10-11, B9-10)
 
 ### Branch
-`bundle10b` (created from `bundle10a` which has B10a work)
+`bundle10c` (created from `bundle10b`)
 
 ### What was done
 
-**B10-1 — Live polls**
-- Migration `0054_live_polls.sql`: `session_polls` + `session_poll_votes` tables, RLS enabled, applied to prod
-- `src/lib/engagement/poll-actions.ts`: createPoll, activatePoll, closePoll, showResults, submitVote, getPollsForSession
-- Admin agenda `client.tsx`: `LivePollsPanel` component — session selector, poll create form, realtime vote bars, activate/close/show-results buttons
-- Attendee agenda `client.tsx`: `LivePollCard` component — realtime vote UI with result bars; subscribes to `session_polls` + `session_poll_votes` channels
+**B10-6 — Sponsor lead scanning**
+- Migration `0056_sponsor_leads.sql`: `sponsor_leads` table with quality (hot/warm/cold), applied to prod
+- `src/lib/sponsors/portal-actions.ts`: scanLead, getLeads, exportSponsorLeads, updateLeadQuality (replaced TODO stubs)
+- `src/app/api/sponsor-portal/[token]/scan-lead/route.ts`: POST route — body: { qr_code, note, contact_name }
+- Sponsor portal client: QR scan input (text input, hits API, shows success/error), lead list with quality badges (tap to cycle), CSV export
 
-**B10-2 — ICS export**
-- `/api/events/[eventId]/sessions/[sessionId]/calendar.ics` — single session ICS, no auth
-- `/api/events/[eventId]/my-agenda/calendar.ics?userId=` — all bookmarked sessions as multi-VEVENT ICS
-- 📅 icon added to every attendee session card
-- "Export .ics" button on My Agenda page (only shown when mySessions.length > 0)
-- `src/lib/engagement/agenda-reminder.ts`: `sendDailyAgendaReminder(eventId, date)` — manually callable, not wired to cron yet
+**B10-7 — AI announcement drafting**
+- `src/lib/announcements/ai-draft-actions.ts`: draftAnnouncement(eventId, type, context) → claude-haiku-4-5-20251001, max 500 tokens
+- Announcements client: "✨ Draft with AI" button next to Message label (hidden if no ANTHROPIC_API_KEY), inline context input, Generate button, populates textarea via ref
 
-**B9-22 — Multi-ticket quantity**
-- Quantity +/- stepper on selected ticket card (min 1, max min(10, remaining))
-- Subtotal shown per ticket type; order total updates live
-- Client-side capacity pre-check (returns error if qty > remaining)
-- `formData.set('quantity', ...)` passed to `startRegistration`
-- Server: `quantity` parsed (clamped 1–10), capacity guard covers full batch, free tickets: `N` registrations inserted in one insert call; paid: `quantity` passed to `createCheckoutSession`
-- Multi-reg redirect: `?reg=ID&batch=id1,id2,id3` (confirmation page shows first ID; batch param for future QR expansion)
+**B10-10 — Multiple sponsor contacts**
+- Migration `0057_sponsor_contacts.sql`: `sponsor_contacts` table with portal_token UUID, applied to prod
+- `src/lib/sponsors/portal-actions.ts`: addSponsorContact, getSponsorContacts, getSponsorByContactToken added
+- Sponsors admin client: "Contacts" button per sponsor expands ContactsPanel (lazy loads, shows contacts, copy link button, add contact form)
+- Sponsor portal page.tsx: supports `?contact=[uuid]` param as alternative auth — resolves portal_access_token via sponsor_contacts join
 
-**B10-8 — Frictionless flows**
-- Attendee agenda: bookmark click no longer hard-redirects to `/login` — shows dismissable inline sign-in prompt (`showLoginPrompt` state)
-- Community: non-logged-in users now see a "Sign in to post" card above the feed instead of the compose box being invisible
-- my-agenda already had correct inline prompt (no hard redirect) from prior work
-- `profile/edit` correctly uses `requireUser()` — kept as-is (write-only page)
+**B10-11 — Sponsored sessions flag**
+- Migration `0058_sponsored_sessions.sql`: `sessions.sponsored_by_id uuid REFERENCES event_sponsors`, applied to prod
+- Session interface + SessionSchema: added `sponsored_by_id`, `sponsored_by` join
+- SessionForm: `sponsored_by_id` state + dropdown (only shown when sponsors.length > 0), passed via `sponsors` prop
+- Admin agenda page.tsx: fetches sponsors in parallel, passes to AgendaClient → SessionForm
+- getPublicAgenda: joins `sponsored_by:event_sponsors(id, name, logo_url, website_url)`
+- Public agenda client: shows "Sponsored by [Name]" below session title when set
 
-**B10-3 — Session discussion threads**
-- Migration `0055_community_session_thread.sql`: `session_id` added to `community_posts`, index on session_id; applied to prod
-- `PostSchema` in sprint8-actions.ts: added `session_id` field
-- `getCommunityPosts`: added `sessionId` param, includes `session_id` in select
-- Attendee agenda: `SessionDiscussionPanel` component — realtime posts per session, compose box (auth-gated), falls back to community link if empty
-- 💬 button on each session card toggles `expandedDiscussion` state
-- Community feed: "re: session" pill on posts with `session_id`; clicking sets filter to `session:<id>` which `getCommunityPosts` translates to `.eq('session_id', ...)`
+**B9-10 — Event integrations page**
+- `src/app/(dashboard)/events/[slug]/integrations/page.tsx` created
+- Admin tiles href was already correct (`/events/${s}/integrations`) — no fix needed
+- Page shows 3 groups: AMS/Membership (7 providers), Communication (4), Content & Data (5)
+- Per-card: icon, name, Connected/Not connected status from org_integrations, Configure link → org integrations
+- Below grid: Event Actions section — Zoom (→ agenda), Eventbrite (→ attendees), Mailchimp (→ announcements)
 
 ### Gate results
 - `npm run build` — PASS (clean)
@@ -54,21 +50,33 @@
 - `npx tsc --noEmit` — PASS (ran after each task)
 
 ### Commit
-`71776ef` on `bundle10b`
+`a500eef` on `bundle10c`
 
 ### Next
-- Open PR: bundle10b → main (needs to include bundle10a work too — consider merging 10a first or PR from 10b which includes 10a commits)
-- Check if bundle10a PR was merged first; if not, PR 10a → main, then 10b → main
+- Open PR: bundle10c → main (check if bundle10b PR was merged first)
 - Start bundle 11 in fresh chat
 
 ---
 
-## Previous Session — Bundle 10a (B10a features)
+## Previous Session — Bundle 10b (B10-1, B10-2, B9-22, B10-8, B10-3)
 
 ### Branch
-`bundle10a` (merged or open — check git log)
+`bundle10b` (merged or open)
 
-### Commits
+### Commit
+`71776ef` — live polls, my-agenda ICS export, multi-ticket quantity, frictionless flows, session discussion threads
+
+### Gate results
+- `npm run build` — PASS
+- `npx vitest run` — 318/318 PASS
+
+---
+
+## Previous Session — Bundle 10a
+
+### Branch
+`bundle10a`
+### Commit
 `8c67d8b` — trivia/icebreaker publish gate, duplicate reg prevention, passport completion bonus, icebreaker response feed, passport points leaderboard
 
 ---
@@ -85,11 +93,3 @@
 ### Gate results (at merge)
 - npm run build: PASS
 - npx vitest run: 318/318 PASS
-
----
-
-## Previous Session — Bundle 5 Background Jobs
-
-### PR state (last known)
-- PR #9 open at https://github.com/4Slog/prezva/pull/9
-- 2 critical fixes needed before merge (see old notes above)

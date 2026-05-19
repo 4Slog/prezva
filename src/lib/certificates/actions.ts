@@ -6,6 +6,7 @@ import { DEFAULT_CERTIFICATE_TEMPLATE } from '@/lib/templates/certificates'
 import { checkEligibility } from './eligibility'
 import { enqueueCertificateEmail } from '@/lib/trigger'
 import { logAudit } from '@/lib/audit/log'
+import { createNotification } from '@/lib/notifications/notification-actions'
 
 export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
   // Admin client: template management bypasses RLS for server-side cert generation
@@ -58,7 +59,7 @@ export async function issueOrGetCertificate(registrationId: string) {
 
   const { data: reg } = await admin
     .from('registrations')
-    .select('event_id, attendee_name, attendee_email, events(org_id, title, slug)')
+    .select('event_id, user_id, attendee_name, attendee_email, events(org_id, title, slug)')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -96,6 +97,17 @@ export async function issueOrGetCertificate(registrationId: string) {
     verifyUrl:       `${appUrl}/e/${eventSlug}/certificate?id=${cert.id}`,
     ceCredits:       eligibility.ceCredits ?? undefined,
   })
+
+  // Create in-app notification if user has an account
+  if ((reg as any).user_id) {
+    void createNotification(
+      (reg as any).user_id,
+      'certificate',
+      'Your certificate is ready',
+      `Certificate for ${(reg.events as any)?.title ?? 'your event'}`,
+      '/me/wallet',
+    )
+  }
 
   return { data: cert }
 }

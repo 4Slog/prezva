@@ -189,18 +189,29 @@ export async function sendMeetingRequest(eventId: string, raw: unknown) {
   return { success: true }
 }
 
-export async function respondToMeetingRequest(requestId: string, status: 'accepted' | 'declined', meetingAt?: string) {
+export async function respondToMeetingRequest(
+  requestId: string,
+  response: 'accepted' | 'declined' | 'counter',
+  counterTime?: string,
+  counterNote?: string,
+) {
   const user = await requireUser()
   const supabase = await createClient()
 
+  const statusMap = { accepted: 'accepted', declined: 'declined', counter: 'pending' } as const
   const { error } = await supabase
     .from('meeting_requests')
-    .update({ status, meeting_at: meetingAt ?? null, updated_at: new Date().toISOString() })
+    .update({
+      status: statusMap[response],
+      meeting_counter_time: counterTime ?? null,
+      meeting_counter_note: counterNote ?? null,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', requestId)
     .eq('recipient_id', user.id)
 
   if (error) return { error: error.message }
-  return { success: true }
+  return { ok: true, response }
 }
 
 export async function getMeetingRequests(eventId: string) {
