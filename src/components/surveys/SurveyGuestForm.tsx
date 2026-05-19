@@ -14,11 +14,11 @@ interface Question {
 
 interface SurveyGuestFormProps {
   surveyId: string
-  token: string
+  token?: string
   questions: Question[]
 }
 
-export function SurveyGuestForm({ surveyId, token, questions }: SurveyGuestFormProps) {
+export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuestFormProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)

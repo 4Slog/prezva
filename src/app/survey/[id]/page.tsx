@@ -9,8 +9,6 @@ export default async function PublicSurveyPage({ params, searchParams }: {
   const { id } = await params
   const { token } = await searchParams
 
-  if (!token) notFound()
-
   const supabase = await createClient()
 
   const { data: survey } = await supabase.from('surveys').select('id, title, description, status').eq('id', id).maybeSingle()
