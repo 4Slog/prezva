@@ -34,6 +34,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'sponsors',       label: 'Sponsors',        icon: '🏢', category: 'advanced',    description: 'Sponsor tiers, logos, exhibitor directory',         href: s => `/events/${s}/sponsors` },
   { key: 'certificates',   label: 'Certificates',    icon: '🎓', category: 'advanced',    description: 'CE certificates, eligibility rules, email delivery', href: s => `/events/${s}/certificates` },
   { key: 'analytics',      label: 'Analytics',       icon: '📈', category: 'advanced',    description: 'Registration trends, engagement, survey results',    href: s => `/events/${s}/analytics` },
+  { key: 'dead-letters',   label: 'Failed Jobs',    icon: '⚠️', category: 'advanced',       description: 'View and retry failed background jobs and emails',   href: s => `/events/${s}/dead-letters` },
   { key: 'audit-log',      label: 'Audit Log',       icon: '🔍', category: 'advanced',    description: 'Track all admin actions, exports, and changes',      href: s => `/events/${s}/audit-log` },
   { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and replay failed background sync jobs',        href: s => `/events/${s}/dead-letters` },
 

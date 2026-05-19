@@ -113,6 +113,11 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
               ))
             )}
           </div>
+          <div style={{ padding: '10px 16px', borderTop: '1px solid var(--pz-border)', textAlign: 'center' }}>
+            <Link href="/me/notifications" onClick={() => setOpen(false)} style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>
+              See all notifications →
+            </Link>
+          </div>
         </div>
       )}
     </div>

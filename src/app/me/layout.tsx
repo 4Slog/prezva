@@ -10,7 +10,10 @@ export default async function MeLayout({ children }: { children: React.ReactNode
     { href: '/me', label: 'My Events' },
     { href: '/me/profile', label: 'Profile' },
     { href: '/me/wallet', label: 'Wallet' },
-    { href: '/me/preferences', label: 'Settings' },
+    { href: '/me/events', label: 'My Events' },
+    { href: '/me/notifications', label: 'Notifications' },
+    { href: '/me/preferences', label: 'Preferences' },
+    { href: '/me/settings', label: 'Account' },
   ]
 
   return (

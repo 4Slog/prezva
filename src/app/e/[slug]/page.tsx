@@ -203,7 +203,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
             )}
             {leaderboardRank && <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginBottom:20 }}>Your leaderboard rank: <strong style={{ color:'var(--color-teal)' }}>#{leaderboardRank}</strong></p>}
             <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-              {[{label:'Agenda',href:`/e/${slug}/agenda`},{label:'People',href:`/e/${slug}/people`},{label:'Trivia',href:`/e/${slug}/trivia`},{label:'Passport',href:`/e/${slug}/passport`},{label:'Leaderboard',href:`/e/${slug}/leaderboard`}].map(({label,href}) => (
+              {[{label:'Agenda',href:`/e/${slug}/agenda`},{label:'My Agenda',href:`/e/${slug}/my-agenda`},{label:'People',href:`/e/${slug}/people`},{label:'Groups',href:`/e/${slug}/groups`},{label:'Trivia',href:`/e/${slug}/trivia`},{label:'Passport',href:`/e/${slug}/passport`},{label:'Leaderboard',href:`/e/${slug}/leaderboard`},{label:'My QR',href:`/e/${slug}/my-qr`}].map(({label,href}) => (
                 <Link key={href} href={href} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.5rem 1.25rem', borderRadius:6, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid rgba(255,255,255,0.2)' }}>{label}</Link>
               ))}
             </div>
@@ -271,7 +271,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
       {/* ── BODY (same for all states) ─────────────────────────────────────── */}
       <div style={{ maxWidth:800, margin:'0 auto', padding:'0 1.5rem' }}>
         <div style={{ borderBottom:'1px solid var(--color-border)', marginBottom:'2rem', display:'flex', gap:'2rem' }}>
-          {[{label:'Agenda',href:'/e/'+slug+'/agenda'},{label:'Speakers',href:'/e/'+slug+'/speakers'},{label:'Trivia',href:'/e/'+slug+'/trivia'},{label:'Icebreakers',href:'/e/'+slug+'/icebreakers'},{label:'Passport',href:'/e/'+slug+'/passport'},{label:'Leaderboard',href:'/e/'+slug+'/leaderboard'}].map(({label,href}) => (
+          {[{label:'Agenda',href:'/e/'+slug+'/agenda'},{label:'Speakers',href:'/e/'+slug+'/speakers'},{label:'Community',href:'/e/'+slug+'/community'},{label:'Trivia',href:'/e/'+slug+'/trivia'},{label:'Icebreakers',href:'/e/'+slug+'/icebreakers'},{label:'Passport',href:'/e/'+slug+'/passport'},{label:'Leaderboard',href:'/e/'+slug+'/leaderboard'}].map(({label,href}) => (
             <Link key={href} href={href} style={{ padding:'1rem 0', color:'var(--color-text)', textDecoration:'none', fontSize:14, fontWeight:500 }}>{label}</Link>
           ))}
         </div>
