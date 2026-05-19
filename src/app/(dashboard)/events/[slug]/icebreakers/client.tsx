@@ -44,10 +44,10 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
   function handleLoadStarter() {
     setShowPreview(false)
     startTransition(async () => {
-      const res = await seedIcebreakerPrompts(eventId, ICEBREAKER_PROMPTS)
+      const res = await seedIcebreakerPrompts(eventId, ICEBREAKER_PROMPTS.slice(0, 10))
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} starter prompts.`)
-      const newItems = ICEBREAKER_PROMPTS.map((p, i) => ({ id: `tmp-${i}`, question_text: p.text }))
+      const newItems = ICEBREAKER_PROMPTS.slice(0, 10).map((p, i) => ({ id: `tmp-${i}`, question_text: p.text }))
       setQuestions(prev => [...prev, ...newItems])
     })
   }
@@ -59,7 +59,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setQuestions(prev => [...prev, { id: `tmp-custom-${Date.now()}`, question_text: customText.trim() }])
       setCustomText('')
-      setMsg('Prompt added.')
+      setMsg('Prompt added. Click "Publish to attendees" to make it visible.')
     })
   }
 
@@ -73,7 +73,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
           + Use starter pack (10 prompts)
         </button>
         {eventSlug && (
-          <a href={`/e/${eventSlug}/icebreakers`} target="_blank" rel="noreferrer"
+          <a href={`/e/${eventSlug}/icebreakers?preview=1`} target="_blank" rel="noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--pz-surface)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-teal)', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>
             Preview as attendee ↗
           </a>

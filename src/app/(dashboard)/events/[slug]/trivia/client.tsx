@@ -94,7 +94,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
           + Add custom question
         </button>
         {eventSlug && (
-          <a href={`/e/${eventSlug}/trivia`} target="_blank" rel="noreferrer"
+          <a href={`/e/${eventSlug}/trivia?preview=1`} target="_blank" rel="noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--pz-surface)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-teal)', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>
             Preview as attendee ↗
           </a>
