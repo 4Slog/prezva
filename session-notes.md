@@ -1,72 +1,95 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-16
+## Last updated: 2026-05-18
 
-## Status: Bundle 5 PR open (#9) | On bundle5-background-jobs | Needs 2 fixes before merge
+## Status: bundle10b complete | Gates PASS | Ready for PR
 
 ---
 
-## This Session — Bundle 5 Background Jobs (B5-1 through B5-4)
+## This Session — Bundle 10b (B10-1, B10-2, B9-22, B10-8, B10-3)
+
+### Branch
+`bundle10b` (created from `bundle10a` which has B10a work)
 
 ### What was done
-- B5-1: @trigger.dev/cli installed as devDependency; deploy-trigger CI job added (fires on push to main only, needs lint+tests green); TRIGGER_SECRET_KEY production key documented
-- B5-2: src/trigger/jobs/scheduled-announcements.ts — polls every 5 min, optimistic lock (status='scheduled'→'sending'), enqueues send-announcement task, marks 'sent'; also updated createAnnouncement() to set status='scheduled' explicitly
-- B5-3: migration 0037_add_token_expires_at.sql on org_integrations; src/trigger/jobs/oauth-token-refresh.ts — every 5 min, finds tokens expiring within 10 min, calls adapter.getStatus()
-- B5-4: vercel.json cron every 5 min → /api/cron/scheduled-announcements; Vercel cron route with CRON_SECRET auth; CRON_SECRET documented
 
-### PR state
-- PR #9 open at https://github.com/4Slog/prezva/pull/9
-- Branch: bundle5-background-jobs
-- Gate results: npm run build PASS | npx vitest run 318/318 PASS | tsc --noEmit PASS | eslint --max-warnings=0 PASS
+**B10-1 — Live polls**
+- Migration `0054_live_polls.sql`: `session_polls` + `session_poll_votes` tables, RLS enabled, applied to prod
+- `src/lib/engagement/poll-actions.ts`: createPoll, activatePoll, closePoll, showResults, submitVote, getPollsForSession
+- Admin agenda `client.tsx`: `LivePollsPanel` component — session selector, poll create form, realtime vote bars, activate/close/show-results buttons
+- Attendee agenda `client.tsx`: `LivePollCard` component — realtime vote UI with result bars; subscribes to `session_polls` + `session_poll_votes` channels
 
-### Code review findings (DO NOT MERGE without fixing):
-1. 🔴 Vercel cron route (/api/cron/scheduled-announcements) marks announcements as 'sending' but never actually sends them or enqueues a Trigger.dev task — announcements get stuck in 'sending' forever. Fix: either call Resend API directly in the route, or call tasks.trigger('send-announcement') for each.
-2. 🔴 TOCTOU race on invite code redemption (auth/actions.ts) — two concurrent signups with same code both pass validation before either marks used_at. Fix: mark used_at BEFORE signUp call, or add DB-level unique constraint enforcement.
+**B10-2 — ICS export**
+- `/api/events/[eventId]/sessions/[sessionId]/calendar.ics` — single session ICS, no auth
+- `/api/events/[eventId]/my-agenda/calendar.ics?userId=` — all bookmarked sessions as multi-VEVENT ICS
+- 📅 icon added to every attendee session card
+- "Export .ics" button on My Agenda page (only shown when mySessions.length > 0)
+- `src/lib/engagement/agenda-reminder.ts`: `sendDailyAgendaReminder(eventId, date)` — manually callable, not wired to cron yet
 
-### Other issues from code review (fix before shipping):
-- ADMIN_SECRET not documented in production-secrets.md
-- invite code brute-forcing (no rate limiting on /api/invite/validate)
-- Math.random() used for code entropy (use crypto.randomBytes instead)
-- OAuth refresh cron is no-op until adapters write token_expires_at (needs follow-up ticket)
+**B9-22 — Multi-ticket quantity**
+- Quantity +/- stepper on selected ticket card (min 1, max min(10, remaining))
+- Subtotal shown per ticket type; order total updates live
+- Client-side capacity pre-check (returns error if qty > remaining)
+- `formData.set('quantity', ...)` passed to `startRegistration`
+- Server: `quantity` parsed (clamped 1–10), capacity guard covers full batch, free tickets: `N` registrations inserted in one insert call; paid: `quantity` passed to `createCheckoutSession`
+- Multi-reg redirect: `?reg=ID&batch=id1,id2,id3` (confirmation page shows first ID; batch param for future QR expansion)
 
-### Branch complications
-- A parallel session was also working on bundle5-background-jobs (invite-only gate, badge RLS work)
-- Those changes (invite_codes table, signup gate, badge_templates RLS) are included in the PR
-- B5-4 commit accidentally landed on invite-only-gate branch (wrong branch) and was cherry-picked to bundle5-background-jobs
+**B10-8 — Frictionless flows**
+- Attendee agenda: bookmark click no longer hard-redirects to `/login` — shows dismissable inline sign-in prompt (`showLoginPrompt` state)
+- Community: non-logged-in users now see a "Sign in to post" card above the feed instead of the compose box being invisible
+- my-agenda already had correct inline prompt (no hard redirect) from prior work
+- `profile/edit` correctly uses `requireUser()` — kept as-is (write-only page)
 
-### Manual steps Paul needs (after merge)
-1. Get production Trigger.dev key (tr_live_...) from cloud.trigger.dev
-2. Add TRIGGER_SECRET_KEY to Vercel (production) and GitHub secrets
-3. Generate CRON_SECRET: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-4. Add CRON_SECRET to Vercel environment variables
-5. After merge, CI will auto-deploy Trigger.dev jobs on next push to main
+**B10-3 — Session discussion threads**
+- Migration `0055_community_session_thread.sql`: `session_id` added to `community_posts`, index on session_id; applied to prod
+- `PostSchema` in sprint8-actions.ts: added `session_id` field
+- `getCommunityPosts`: added `sessionId` param, includes `session_id` in select
+- Attendee agenda: `SessionDiscussionPanel` component — realtime posts per session, compose box (auth-gated), falls back to community link if empty
+- 💬 button on each session card toggles `expandedDiscussion` state
+- Community feed: "re: session" pill on posts with `session_id`; clicking sets filter to `session:<id>` which `getCommunityPosts` translates to `.eq('session_id', ...)`
+
+### Gate results
+- `npm run build` — PASS (clean)
+- `npx vitest run` — 318/318 PASS
+- `npx tsc --noEmit` — PASS (ran after each task)
+
+### Commit
+`71776ef` on `bundle10b`
 
 ### Next
-- Fix the 2 critical issues from code review before merging PR #9
-- Start fresh chat for next bundle
+- Open PR: bundle10b → main (needs to include bundle10a work too — consider merging 10a first or PR from 10b which includes 10a commits)
+- Check if bundle10a PR was merged first; if not, PR 10a → main, then 10b → main
+- Start bundle 11 in fresh chat
 
 ---
 
-## Previous Session — Bundle 4 Stripe Connect (B4-1 through B4-4 + rewrites)
+## Previous Session — Bundle 10a (B10a features)
+
+### Branch
+`bundle10a` (merged or open — check git log)
+
+### Commits
+`8c67d8b` — trivia/icebreaker publish gate, duplicate reg prevention, passport completion bonus, icebreaker response feed, passport points leaderboard
+
+---
+
+## Previous Session — Bundle 9 (B9 complete)
+
+### Branch
+`bundle9` → main (merged)
 
 ### What was done
-- B4-1: disconnectConnectAccount — proper error handling, uses adminClient, clears capability flags
-- B4-2: STRIPE_CLIENT_ID guard + /api/connect/health endpoint
-- B4-3: Checkout idempotency key → `checkout-${registrationId}`
-- B4-4: STRIPE_CLIENT_ID documented in docs/production-secrets.md
-- Rewrite 1: Replaced Express account creation with Stripe Connect OAuth (getConnectOAuthUrl)
-- Rewrite 2: Replaced broken OAuth (ca_ IDs rejected) with Connect Onboarding (startConnectOnboarding + stripe.accountLinks.create)
-- disconnectConnectAccount: clears capability flags only — does NOT delete Express account or clear stripe_account_id (preserves payout history, allows seamless reconnect)
-- Webhook: added Stripe-Account header capture + connected accounts docs
-- Checkout: charges go direct to connected account via stripeAccount header (no transfer_data)
-- PR #7 squash-merged to main (commit 745dc42) — required manual conflict resolution on merge
-
-### Branch state
-- main: 745dc42 (Bundle 4 squash merge)
-- bundle4-stripe-connect: closed/merged
+- B9-1 through B9-18 complete: launch blockers, magic-link check-in, speaker UI, agenda filters, event invite codes, announcements staff, and more
+- Migration range: 0036–0053
 
 ### Gate results (at merge)
 - npm run build: PASS
 - npx vitest run: 318/318 PASS
-- npm run type-check: PASS
-- npx eslint . --max-warnings=0: PASS
+
+---
+
+## Previous Session — Bundle 5 Background Jobs
+
+### PR state (last known)
+- PR #9 open at https://github.com/4Slog/prezva/pull/9
+- 2 critical fixes needed before merge (see old notes above)

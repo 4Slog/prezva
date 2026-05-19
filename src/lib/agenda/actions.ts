@@ -46,6 +46,7 @@ export interface Session {
   event_id: string
   track_id: string | null
   room_id: string | null
+  sponsored_by_id: string | null
   title: string
   description: string | null
   session_type: SessionType
@@ -61,6 +62,7 @@ export interface Session {
   speakers?: Pick<Speaker, 'id' | 'name' | 'job_title' | 'company' | 'photo_url'>[]
   track?: Pick<Track, 'id' | 'name' | 'color'> | null
   room?: Pick<Room, 'id' | 'name'> | null
+  sponsored_by?: { id: string; name: string; logo_url: string | null; website_url: string | null } | null
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -270,6 +272,7 @@ const SessionSchema = z.object({
   ends_at: z.string().datetime(),
   track_id: z.string().uuid().nullable().optional(),
   room_id: z.string().uuid().nullable().optional(),
+  sponsored_by_id: z.string().uuid().nullable().optional(),
   capacity: z.number().int().nullable().optional(),
   is_published: z.boolean().default(true),
   recording_url: z.string().url().nullable().optional(),
@@ -286,7 +289,7 @@ export async function getSessions(eventId: string): Promise<Session[]> {
   await assertOrgMember(supabase, user.id, eventId)
   const { data } = await supabase
     .from('sessions')
-    .select('*, tracks(id, name, color), rooms(id, name), session_speakers(speakers(id, name, job_title, company, photo_url))')
+    .select('*, tracks(id, name, color), rooms(id, name), session_speakers(speakers(id, name, job_title, company, photo_url)), sponsored_by:event_sponsors(id, name, logo_url, website_url)')
     .eq('event_id', eventId)
     .order('starts_at')
   return ((data ?? []) as any[]).map(s => ({
@@ -294,6 +297,7 @@ export async function getSessions(eventId: string): Promise<Session[]> {
     track: s.tracks ?? null,
     room: s.rooms ?? null,
     speakers: (s.session_speakers ?? []).map((ss: any) => ss.speakers).filter(Boolean),
+    sponsored_by: s.sponsored_by ?? null,
   }))
 }
 

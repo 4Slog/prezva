@@ -1,14 +1,24 @@
-import { notFound } from 'next/navigation'
-import { getSponsorPortalData } from '@/lib/sponsors/portal-actions'
+import { getSponsorPortalData, getSponsorByContactToken } from '@/lib/sponsors/portal-actions'
 import SponsorPortalClient from './client'
 
-type Props = { params: Promise<{ eventSlug: string; sponsorSlug: string }>; searchParams: Promise<{ token?: string }> }
+type Props = {
+  params: Promise<{ eventSlug: string; sponsorSlug: string }>
+  searchParams: Promise<{ token?: string; contact?: string }>
+}
 
 export default async function SponsorPortalPage({ params, searchParams }: Props) {
   const { eventSlug, sponsorSlug } = await params
-  const { token } = await searchParams
+  const { token, contact } = await searchParams
 
-  if (!token) {
+  let resolvedToken = token
+  if (!resolvedToken && contact) {
+    const row = await getSponsorByContactToken(contact)
+    if (row) {
+      resolvedToken = (row as any).event_sponsors?.portal_access_token
+    }
+  }
+
+  if (!resolvedToken) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
         <div style={{ textAlign: 'center' }}>
@@ -19,7 +29,7 @@ export default async function SponsorPortalPage({ params, searchParams }: Props)
     )
   }
 
-  const result = await getSponsorPortalData(eventSlug, sponsorSlug, token)
+  const result = await getSponsorPortalData(eventSlug, sponsorSlug, resolvedToken)
 
   if ('error' in result) {
     return (
@@ -32,5 +42,5 @@ export default async function SponsorPortalPage({ params, searchParams }: Props)
     )
   }
 
-  return <SponsorPortalClient event={result.event} sponsor={result.sponsor} leads={result.leads} eventSlug={eventSlug} token={token} />
+  return <SponsorPortalClient event={result.event} sponsor={result.sponsor} leads={result.leads} eventSlug={eventSlug} token={resolvedToken} />
 }

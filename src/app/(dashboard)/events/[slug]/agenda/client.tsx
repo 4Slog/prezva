@@ -16,6 +16,7 @@ interface AgendaClientProps {
   tracks: Track[]
   rooms: Room[]
   speakers: Speaker[]
+  sponsors?: { id: string; name: string }[]
   zoomConnected: boolean
   teamsConnected: boolean
 }
@@ -355,7 +356,7 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
   )
 }
 
-export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms: initialRooms, speakers, zoomConnected, teamsConnected }: AgendaClientProps) {
+export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -563,6 +564,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
             tracks={tracks}
             rooms={roomsState}
             speakers={speakers}
+            sponsors={sponsors}
             sessions={sessions}
             session={editing}
             onSave={handleSave}

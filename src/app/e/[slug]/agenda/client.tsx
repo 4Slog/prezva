@@ -14,6 +14,7 @@ interface Session {
   rooms?: { id: string; name: string } | null
   session_speakers?: { speakers: { id: string; name: string } | null }[]
   virtual_url?: string | null
+  sponsored_by?: { id: string; name: string; logo_url: string | null; website_url: string | null } | null
 }
 type AgendaClientProps = {
   sessions: Session[]
@@ -328,6 +329,11 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                       {s.rooms?.name && <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>· {s.rooms.name}</span>}
                     </div>
                     <p style={{ fontWeight:600, marginBottom: spks.length > 0 ? 6 : 0 }}>{s.title}</p>
+                    {(s as any).sponsored_by?.name && (
+                      <p style={{ fontSize:11, color:'var(--color-text-muted)', marginBottom: spks.length > 0 ? 4 : 0 }}>
+                        Sponsored by {(s as any).sponsored_by.name}
+                      </p>
+                    )}
                     {spks.length > 0 && <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>{(spks as any[]).map(sp => sp.name).join(', ')}</p>}
                     {(handoutsBySession[s.id]?.length ?? 0) > 0 && (
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>

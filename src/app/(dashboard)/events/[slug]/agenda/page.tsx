@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getAgenda } from '@/lib/agenda/actions'
+import { getSponsors } from '@/lib/sponsors/actions'
 import { AgendaClient } from './client'
 
 interface Props { params: Promise<{ slug: string }> }
@@ -20,7 +21,10 @@ export default async function AgendaPage({ params }: Props) {
     .eq('org_id', (event as any).org_id).eq('user_id', user.id).single()
   if (!member) notFound()
 
-  const { sessions, tracks, rooms, speakers } = await getAgenda((event as any).id)
+  const [{ sessions, tracks, rooms, speakers }, sponsors] = await Promise.all([
+    getAgenda((event as any).id),
+    getSponsors((event as any).id),
+  ])
 
   const { data: integrations } = await supabase
     .from('org_integrations')
@@ -41,6 +45,7 @@ export default async function AgendaPage({ params }: Props) {
         tracks={tracks}
         rooms={rooms}
         speakers={speakers}
+        sponsors={sponsors as any}
         zoomConnected={integrationMap['zoom'] === 'connected'}
         teamsConnected={integrationMap['teams'] === 'connected'}
       />

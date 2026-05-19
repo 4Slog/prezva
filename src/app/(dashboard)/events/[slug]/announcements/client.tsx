@@ -1,8 +1,9 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
-import { Send, Trash2, Mail, Bell, BellRing } from 'lucide-react'
+import { Send, Trash2, Mail, Bell, BellRing, Sparkles } from 'lucide-react'
 import { createAnnouncement, deleteAnnouncement } from '@/lib/announcements/actions'
+import { draftAnnouncement } from '@/lib/announcements/ai-draft-actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { AnnouncementTemplate } from '@/lib/templates/types'
 
@@ -25,6 +26,11 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
   const [bodyDefault, setBodyDefault] = useState('')
   const [channelDefault, setChannelDefault] = useState('email')
   const [subjectOptions, setSubjectOptions] = useState<string[]>([])
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [aiContext, setAiContext] = useState('')
+  const [aiDrafting, setAiDrafting] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
 
   function handleTemplatePick(raw: unknown) {
     setShowPicker(false)
@@ -66,6 +72,21 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
     })
   }
 
+  async function handleAiDraft(type: string) {
+    if (!aiContext.trim()) return
+    setAiDrafting(true)
+    setAiError('')
+    const res = await draftAnnouncement(eventId, type, aiContext)
+    setAiDrafting(false)
+    if (res.error) { setAiError(res.error); return }
+    if (res.draft && bodyRef.current) {
+      bodyRef.current.value = res.draft
+      setBodyDefault(res.draft)
+    }
+    setShowAiPanel(false)
+    setAiContext('')
+  }
+
   return (
     <div>
       {showPicker && (
@@ -103,8 +124,43 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
               )}
             </div>
             <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Message</label>
-              <textarea name="body" required maxLength={2000} rows={4} defaultValue={bodyDefault} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <label style={{ fontWeight: 600, fontSize: 13 }}>Message</label>
+                {process.env.NEXT_PUBLIC_AI_DRAFTING_ENABLED !== 'false' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAiPanel(p => !p)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid var(--color-teal)', color: 'var(--color-teal)', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    <Sparkles size={11} /> Draft with AI
+                  </button>
+                )}
+              </div>
+              {showAiPanel && (
+                <div style={{ marginBottom: 8, padding: '0.75rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8 }}>
+                  <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6 }}>What&apos;s this announcement about?</p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      type="text"
+                      value={aiContext}
+                      onChange={e => setAiContext(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAiDraft(titleDefault || 'general')}
+                      placeholder="e.g. keynote speaker added, parking info, schedule change…"
+                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13 }}
+                    />
+                    <button
+                      type="button"
+                      disabled={aiDrafting || !aiContext.trim()}
+                      onClick={() => handleAiDraft(titleDefault || 'general')}
+                      style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '0.5rem 1rem', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: aiDrafting || !aiContext.trim() ? 0.6 : 1 }}
+                    >
+                      {aiDrafting ? 'Generating…' : 'Generate'}
+                    </button>
+                  </div>
+                  {aiError && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{aiError}</p>}
+                </div>
+              )}
+              <textarea ref={bodyRef} name="body" required maxLength={2000} rows={4} defaultValue={bodyDefault} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Channel</label>

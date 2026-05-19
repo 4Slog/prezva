@@ -40,10 +40,11 @@ export async function getPublicAgenda(eventId: string) {
   const { data: sessions } = await supabase
     .from('sessions')
     .select(`
-      *, 
-      tracks(id, name, color), 
+      *,
+      tracks(id, name, color),
       rooms(id, name),
-      session_speakers(speakers(id, name, job_title, company, photo_url))
+      session_speakers(speakers(id, name, job_title, company, photo_url)),
+      sponsored_by:event_sponsors(id, name, logo_url, website_url)
     `)
     .eq('event_id', eventId)
     .eq('is_published', true)
