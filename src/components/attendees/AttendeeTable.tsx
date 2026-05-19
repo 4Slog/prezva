@@ -122,7 +122,16 @@ export function AttendeeTable({
                     : '—'}
                 </td>
                 <td className="px-4 py-3 text-[var(--text-secondary)]">
-                  {((a.amount_paid_cents ?? 0) > 0 ? '$' + ((a.amount_paid_cents ?? 0) / 100).toFixed(2) : 'Free')}
+                  {(() => {
+                    const amt = a.amount_paid_cents ?? 0
+                    const method = (a as any).payment_method ?? 'online'
+                    if (amt > 0) return '$' + (amt / 100).toFixed(2)
+                    if (method === 'comp') return 'Comp'
+                    if (method === 'cash') return 'Cash (paid)'
+                    if (method === 'card') return 'Card (paid)'
+                    if (method === 'invoice') return 'Invoice'
+                    return 'Free'
+                  })()}
                 </td>
                 <td className="px-4 py-3">
                   {cancelId === a.id ? (

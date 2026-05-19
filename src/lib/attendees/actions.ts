@@ -63,6 +63,8 @@ const ManualAddSchema = z.object({
   attendeeName: z.string().min(1).max(200),
   attendeeEmail: z.string().email(),
   ticketTypeId: z.string().uuid(),
+  amountPaidCents: z.number().int().min(0).default(0),
+  paymentMethod: z.enum(['comp','cash','card','invoice','other']).default('comp'),
 })
 
 const UpdateAttendeeSchema = z.object({
@@ -160,7 +162,7 @@ export async function manualAddAttendee(raw: unknown) {
   const parsed = ManualAddSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  const { eventId, attendeeName, attendeeEmail, ticketTypeId } = parsed.data
+  const { eventId, attendeeName, attendeeEmail, ticketTypeId, amountPaidCents, paymentMethod } = parsed.data
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
 
@@ -180,7 +182,8 @@ export async function manualAddAttendee(raw: unknown) {
       attendee_name: attendeeName,
       status: 'confirmed',
       qr_code: qr,
-      amount_paid_cents: 0,
+      amount_paid_cents: amountPaidCents,
+      payment_method: paymentMethod,
     })
     .select().single()
 
@@ -269,6 +272,7 @@ export async function importAttendeesCSV(eventId: string, csv: string) {
       status: 'confirmed',
       qr_code: qr,
       amount_paid_cents: 0,
+      payment_method: 'comp',
     })
     if (error) errors.push(name + ' <' + email + '>: ' + error.message)
     else imported++
