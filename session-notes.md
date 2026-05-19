@@ -2,69 +2,61 @@
 
 ## Last updated: 2026-05-19
 
-## Status: bundle10c complete | Gates PASS | Ready for PR
+## Status: bundle10d complete | Gates PASS | Ready for PR
 
 ---
 
-## This Session — Bundle 10c (B10-6, B10-7, B10-10, B10-11, B9-10)
+## This Session — Bundle 10d (B11-17 through B11-21)
 
 ### Branch
-`bundle10c` (created from `bundle10b`)
+`bundle10d` (created from `bundle10c`)
 
 ### What was done
 
-**B10-6 — Sponsor lead scanning**
-- Migration `0056_sponsor_leads.sql`: `sponsor_leads` table with quality (hot/warm/cold), applied to prod
-- `src/lib/sponsors/portal-actions.ts`: scanLead, getLeads, exportSponsorLeads, updateLeadQuality (replaced TODO stubs)
-- `src/app/api/sponsor-portal/[token]/scan-lead/route.ts`: POST route — body: { qr_code, note, contact_name }
-- Sponsor portal client: QR scan input (text input, hits API, shows success/error), lead list with quality badges (tap to cycle), CSV export
+**B11-17 — Ticket transfer self-service**
+- `src/lib/registration/transfer-actions.ts`: `transferRegistration()` — verifies ownership, blocks post-check-in, updates attendee name/email/qr_code, sets user_id=null, sends emails via Resend
+- `src/app/me/events/events-client.tsx`: Transfer button on upcoming confirmed regs, opens modal (first, last, email)
+- `src/app/e/[slug]/confirmation/transfer-button.tsx`: Same modal on confirmation page
 
-**B10-7 — AI announcement drafting**
-- `src/lib/announcements/ai-draft-actions.ts`: draftAnnouncement(eventId, type, context) → claude-haiku-4-5-20251001, max 500 tokens
-- Announcements client: "✨ Draft with AI" button next to Message label (hidden if no ANTHROPIC_API_KEY), inline context input, Generate button, populates textarea via ref
+**B11-18 — Meeting request accept/decline/reschedule**
+- Migration `0059_meeting_response_columns.sql`: Added `meeting_counter_time`, `meeting_counter_note` to `meeting_requests`
+- Updated `respondToMeetingRequest()` in `sprint8-actions.ts`: accepts `'accepted'|'declined'|'counter'`, stores counter fields
+- `src/components/networking/MeetingResponsePanel.tsx`: Accept/Decline/Suggest-time buttons on attendee profile
+- `src/app/e/[slug]/people/[registrationId]/page.tsx`: Fetches + renders incoming pending request panel
 
-**B10-10 — Multiple sponsor contacts**
-- Migration `0057_sponsor_contacts.sql`: `sponsor_contacts` table with portal_token UUID, applied to prod
-- `src/lib/sponsors/portal-actions.ts`: addSponsorContact, getSponsorContacts, getSponsorByContactToken added
-- Sponsors admin client: "Contacts" button per sponsor expands ContactsPanel (lazy loads, shows contacts, copy link button, add contact form)
-- Sponsor portal page.tsx: supports `?contact=[uuid]` param as alternative auth — resolves portal_access_token via sponsor_contacts join
+**B11-19 — Handout notifications to attendees**
+- `src/app/api/speaker/handouts/route.ts`: After insert, fires `notifyAttendeesOfHandout()` (non-blocking). Rate-limits to 3/session/day. Emails up to 500 confirmed regs.
 
-**B10-11 — Sponsored sessions flag**
-- Migration `0058_sponsored_sessions.sql`: `sessions.sponsored_by_id uuid REFERENCES event_sponsors`, applied to prod
-- Session interface + SessionSchema: added `sponsored_by_id`, `sponsored_by` join
-- SessionForm: `sponsored_by_id` state + dropdown (only shown when sponsors.length > 0), passed via `sponsors` prop
-- Admin agenda page.tsx: fetches sponsors in parallel, passes to AgendaClient → SessionForm
-- getPublicAgenda: joins `sponsored_by:event_sponsors(id, name, logo_url, website_url)`
-- Public agenda client: shows "Sponsored by [Name]" below session title when set
+**B11-20 — Upcoming events from this org**
+- `src/app/o/[slug]/page.tsx`: Public org profile (note: `/orgs/[slug]` is taken by dashboard route group, so public path is `/o/[slug]`)
+- `src/app/e/[slug]/page.tsx`: Post-event hero shows "More events from [org]" — up to 3 upcoming same-org events
 
-**B9-10 — Event integrations page**
-- `src/app/(dashboard)/events/[slug]/integrations/page.tsx` created
-- Admin tiles href was already correct (`/events/${s}/integrations`) — no fix needed
-- Page shows 3 groups: AMS/Membership (7 providers), Communication (4), Content & Data (5)
-- Per-card: icon, name, Connected/Not connected status from org_integrations, Configure link → org integrations
-- Below grid: Event Actions section — Zoom (→ agenda), Eventbrite (→ attendees), Mailchimp (→ announcements)
+**B11-21 — In-app notification center**
+- Migration `0060_user_notifications.sql`: `user_notifications` table with RLS
+- `src/lib/notifications/notification-actions.ts`: getNotifications, getUnreadCount, markRead, markAllRead, createNotification
+- `src/components/layout/NotificationBell.tsx`: Bell with badge, dropdown with mark-all-read
+- `src/app/(dashboard)/layout.tsx`: Bell added to top bar
+- `src/trigger/jobs/announcement.ts`: Creates per-user notification after email send
+- `src/lib/certificates/actions.ts`: Creates 'certificate' notification after cert issue
 
 ### Gate results
 - `npm run build` — PASS (clean)
 - `npx vitest run` — 318/318 PASS
-- `npx tsc --noEmit` — PASS (ran after each task)
+- `npx tsc --noEmit` — PASS
 
 ### Commit
-`a500eef` on `bundle10c`
+`5daafc3` on `bundle10d`
 
 ### Next
-- Open PR: bundle10c → main (check if bundle10b PR was merged first)
-- Start bundle 11 in fresh chat
+- Open PR: bundle10d → main (after bundle10c merges)
+- Next bundles: continue B11 series or start B12
 
 ---
 
-## Previous Session — Bundle 10b (B10-1, B10-2, B9-22, B10-8, B10-3)
-
-### Branch
-`bundle10b` (merged or open)
+## Previous Session — Bundle 10c (B10-6, B10-7, B10-10, B10-11, B9-10)
 
 ### Commit
-`71776ef` — live polls, my-agenda ICS export, multi-ticket quantity, frictionless flows, session discussion threads
+`a500eef` on `bundle10c` — sponsor lead scanning, AI drafting, multiple contacts, sponsored sessions, integrations page
 
 ### Gate results
 - `npm run build` — PASS
@@ -72,10 +64,15 @@
 
 ---
 
+## Previous Session — Bundle 10b (B10-1, B10-2, B9-22, B10-8, B10-3)
+
+### Commit
+`71776ef` — live polls, my-agenda ICS export, multi-ticket quantity, frictionless flows, session discussion threads
+
+---
+
 ## Previous Session — Bundle 10a
 
-### Branch
-`bundle10a`
 ### Commit
 `8c67d8b` — trivia/icebreaker publish gate, duplicate reg prevention, passport completion bonus, icebreaker response feed, passport points leaderboard
 
@@ -85,11 +82,4 @@
 
 ### Branch
 `bundle9` → main (merged)
-
-### What was done
-- B9-1 through B9-18 complete: launch blockers, magic-link check-in, speaker UI, agenda filters, event invite codes, announcements staff, and more
-- Migration range: 0036–0053
-
-### Gate results (at merge)
-- npm run build: PASS
-- npx vitest run: 318/318 PASS
+### Migration range: 0036–0053

@@ -25,7 +25,7 @@ export async function POST(
   // Find registration by QR code
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, attendee_name, attendee_email, status, ticket_type_id, ticket_types(name)')
+    .select('id, event_id, attendee_name, attendee_email, status, ticket_type_id, ticket_types(name)')
     .eq('qr_code', qrCode)
     .maybeSingle()
 
@@ -54,7 +54,7 @@ export async function POST(
 
   // Mark checked in
   const now = new Date().toISOString()
-  await admin.from('check_ins').insert({ registration_id: reg.id, checked_in_by: null, created_at: now })
+  await admin.from('check_ins').insert({ registration_id: reg.id, event_id: reg.event_id, checked_in_by: null, method: 'qr_scan', synced_at: now })
   await admin.from('registrations').update({ status: 'checked_in', checked_in_at: now }).eq('id', reg.id)
 
   return NextResponse.json({

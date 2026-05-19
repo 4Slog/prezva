@@ -383,9 +383,9 @@ export async function manualCheckIn(registrationId: string) {
     .insert({
       registration_id: registrationId,
       event_id: reg.event_id,
-      user_id: reg.user_id,
       method: 'manual',
       checked_in_by: user.id,
+      synced_at: new Date().toISOString(),
     })
 
   if (error) return { error: error.message }
