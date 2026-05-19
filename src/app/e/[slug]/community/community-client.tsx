@@ -30,6 +30,7 @@ interface Post {
   rsvp_count: number
   created_at: string
   author_id: string
+  session_id: string | null
 }
 
 type PostType = 'post' | 'meetup' | 'article'
@@ -66,7 +67,9 @@ export function CommunityClient({
   const supabaseRef = useRef(createClient())
 
   useEffect(() => {
-    getCommunityPosts(eventId, filter || undefined).then(p => setPosts(p as Post[]))
+    const sessionFilter = filter?.startsWith('session:') ? filter.slice(8) : undefined
+    const typeFilter = !sessionFilter ? (filter || undefined) : undefined
+    getCommunityPosts(eventId, typeFilter, 0, sessionFilter).then(p => setPosts(p as Post[]))
   }, [eventId, filter])
 
   useEffect(() => {
@@ -167,6 +170,12 @@ export function CommunityClient({
   return (
     <div>
       {/* Compose */}
+      {!userId && (
+        <div className="pz-card p-4 mb-6 text-center">
+          <p className="text-sm mb-3" style={{ color: 'var(--pz-muted)' }}>Sign in to post and connect with attendees</p>
+          <a href={`/login?next=/e/${eventSlug}/community`} className="inline-block text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: 'var(--pz-teal)', color: '#0D1B2A', textDecoration: 'none' }}>Sign in to post</a>
+        </div>
+      )}
       {userId && (
         <div className="pz-card p-4 mb-6">
           <div className="flex gap-2 mb-3">
@@ -313,6 +322,15 @@ export function CommunityClient({
                   <span className="rounded-full px-2 py-0.5 text-xs" style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)' }}>
                     {post.post_type === 'meetup' ? '📅 Meetup' : post.post_type === 'article' ? '📄 Article' : '💬 Post'}
                   </span>
+                  {post.session_id && (
+                    <button
+                      onClick={() => setFilter(`session:${post.session_id}`)}
+                      className="rounded-full px-2 py-0.5 text-xs"
+                      style={{ background: 'var(--pz-teal)22', color: 'var(--pz-teal)', border: 'none', cursor: 'pointer' }}
+                    >
+                      re: session
+                    </button>
+                  )}
                   <span className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                     {new Date(post.created_at).toLocaleDateString()}
                   </span>

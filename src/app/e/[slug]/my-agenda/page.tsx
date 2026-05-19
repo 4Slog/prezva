@@ -56,9 +56,20 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
       <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '1.25rem 1.5rem' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <Link href={`/e/${slug}/agenda`} style={{ color: 'var(--pz-teal)', textDecoration: 'none', fontSize: 13 }}>← Back to agenda</Link>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--pz-text)' }}>My Agenda</h1>
+        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div>
+            <Link href={`/e/${slug}/agenda`} style={{ color: 'var(--pz-teal)', textDecoration: 'none', fontSize: 13 }}>← Back to agenda</Link>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--pz-text)' }}>My Agenda</h1>
+          </div>
+          {mySessions.length > 0 && (
+            <a
+              href={`/api/events/${event.id}/my-agenda/calendar.ics?userId=${user.id}`}
+              download
+              style={{ fontSize: 13, color: 'var(--pz-teal)', border: '1px solid var(--pz-teal)', padding: '0.4rem 0.875rem', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              Export .ics
+            </a>
+          )}
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>

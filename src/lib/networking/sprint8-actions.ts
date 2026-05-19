@@ -189,18 +189,29 @@ export async function sendMeetingRequest(eventId: string, raw: unknown) {
   return { success: true }
 }
 
-export async function respondToMeetingRequest(requestId: string, status: 'accepted' | 'declined', meetingAt?: string) {
+export async function respondToMeetingRequest(
+  requestId: string,
+  response: 'accepted' | 'declined' | 'counter',
+  counterTime?: string,
+  counterNote?: string,
+) {
   const user = await requireUser()
   const supabase = await createClient()
 
+  const statusMap = { accepted: 'accepted', declined: 'declined', counter: 'pending' } as const
   const { error } = await supabase
     .from('meeting_requests')
-    .update({ status, meeting_at: meetingAt ?? null, updated_at: new Date().toISOString() })
+    .update({
+      status: statusMap[response],
+      meeting_counter_time: counterTime ?? null,
+      meeting_counter_note: counterNote ?? null,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', requestId)
     .eq('recipient_id', user.id)
 
   if (error) return { error: error.message }
-  return { success: true }
+  return { ok: true, response }
 }
 
 export async function getMeetingRequests(eventId: string) {
@@ -226,6 +237,7 @@ const PostSchema = z.object({
   article_url: z.string().url().optional().or(z.literal('')),
   location: z.string().max(200).optional(),
   starts_at: z.string().optional(),
+  session_id: z.string().uuid().optional(),
 })
 
 export async function createCommunityPost(eventId: string, raw: unknown) {
@@ -244,13 +256,13 @@ export async function createCommunityPost(eventId: string, raw: unknown) {
   return { data: post }
 }
 
-export async function getCommunityPosts(eventId: string, postType?: string, page = 0) {
+export async function getCommunityPosts(eventId: string, postType?: string, page = 0, sessionId?: string) {
   const supabase = await createClient()
   const PAGE_SIZE = 20
 
   let q = supabase
     .from('community_posts')
-    .select('id, post_type, body, image_url, article_url, og_title, og_image, location, starts_at, is_pinned, upvote_count, reply_count, rsvp_count, created_at, author_id')
+    .select('id, post_type, body, image_url, article_url, og_title, og_image, location, starts_at, is_pinned, upvote_count, reply_count, rsvp_count, created_at, author_id, session_id')
     .eq('event_id', eventId)
     .eq('is_deleted', false)
     .order('is_pinned', { ascending: false })
@@ -258,6 +270,7 @@ export async function getCommunityPosts(eventId: string, postType?: string, page
     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
   if (postType) q = q.eq('post_type', postType)
+  if (sessionId) q = q.eq('session_id', sessionId)
 
   const { data } = await q
   return (data ?? []) as any[]

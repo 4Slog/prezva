@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
-import { getIcebreakerQuestions } from '@/lib/engagement/sprint10-actions'
 import { IcebreakersAdminClient } from './client'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -18,7 +17,14 @@ export default async function IcebreakersAdminPage({ params }: Props) {
     .single()
   if (!event) notFound()
 
-  const questions = await getIcebreakerQuestions((event as any).id)
+  const { data: questions } = await supabase
+    .from('icebreaker_questions')
+    .select('id, question, question_text, prompt, category, is_active')
+    .eq('event_id', (event as any).id)
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  const isActive = (questions ?? []).some((q: any) => q.is_active)
 
   return (
     <div style={{ padding: '2rem', maxWidth: 800 }}>
@@ -29,9 +35,10 @@ export default async function IcebreakersAdminPage({ params }: Props) {
         </p>
       </div>
       <IcebreakersAdminClient
-        questions={questions as any[]}
+        questions={(questions ?? []) as any[]}
         eventId={(event as any).id}
         orgId={(event as any).org_id}
+        isActive={isActive}
       />
     </div>
   )

@@ -4,6 +4,7 @@ import { getUser } from '@/lib/auth/get-user'
 import { getAttendeeProfile, getVirtualCardData, getFollowStatus } from '@/lib/networking/sprint8-actions'
 import { ProfileActions } from './profile-actions'
 import VCardQR from '@/components/networking/VCardQR'
+import { MeetingResponsePanel } from '@/components/networking/MeetingResponsePanel'
 
 type Props = { params: Promise<{ slug: string; registrationId: string }> }
 
@@ -34,8 +35,20 @@ export default async function AttendeePage({ params }: Props) {
   const isOwnProfile = user && (profile as any).user_id === user.id
 
   let followStatus = { following: false }
+  let incomingMeetingRequest: any = null
   if (user && !isOwnProfile && (profile as any).user_id) {
-    followStatus = await getFollowStatus((event as any).id, (profile as any).user_id)
+    const [fs, mr] = await Promise.all([
+      getFollowStatus((event as any).id, (profile as any).user_id),
+      supabase.from('meeting_requests')
+        .select('id, status, message, proposed_times')
+        .eq('event_id', (event as any).id)
+        .eq('requester_id', (profile as any).user_id)
+        .eq('recipient_id', user.id)
+        .eq('status', 'pending')
+        .maybeSingle(),
+    ])
+    followStatus = fs
+    incomingMeetingRequest = mr.data ?? null
   }
 
   const p = profile as any
@@ -111,6 +124,15 @@ export default async function AttendeePage({ params }: Props) {
               targetName={r.attendee_name}
               registrationId={registrationId}
               isFollowing={followStatus.following}
+            />
+          )}
+          {incomingMeetingRequest && (
+            <MeetingResponsePanel
+              requestId={incomingMeetingRequest.id}
+              requesterName={r.attendee_name}
+              message={incomingMeetingRequest.message}
+              proposedTimes={incomingMeetingRequest.proposed_times ?? []}
+              initialStatus={incomingMeetingRequest.status}
             />
           )}
           {isOwnProfile && (

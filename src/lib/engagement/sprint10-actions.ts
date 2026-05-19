@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { requireUser } from '@/lib/auth/get-user'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
 
 export async function getEmailCampaigns(eventId: string) {
@@ -233,8 +235,16 @@ export async function getTriviaQuestions(eventId: string) {
     .from('trivia_questions')
     .select('id, body, question_text, options, correct_index, category, difficulty, points, sort_order')
     .eq('event_id', eventId)
+    .eq('is_active', true)
     .order('sort_order')
   return (data ?? []) as any[]
+}
+
+export async function setTriviaActive(eventId: string, active: boolean) {
+  await requireUser()
+  const admin = createAdminClient()
+  await admin.from('trivia_questions').update({ is_active: active }).eq('event_id', eventId)
+  return { ok: true }
 }
 
 export async function submitTriviaAnswer(questionId: string, answerIndex: number, registrationId?: string) {
@@ -276,9 +286,16 @@ export async function getIcebreakerQuestions(eventId: string) {
     .from('icebreaker_questions')
     .select('id, question, question_text, prompt, category, is_active')
     .eq('event_id', eventId)
+    .eq('is_active', true)
     .order('created_at', { ascending: true })
     .limit(100)
   return (data ?? []) as any[]
+}
+
+export async function setIcebreakersActive(eventId: string, active: boolean) {
+  const admin = createAdminClient()
+  await admin.from('icebreaker_questions').update({ is_active: active }).eq('event_id', eventId)
+  return { ok: true }
 }
 
 export async function submitIcebreakerResponse(eventId: string, questionId: string, response: string, registrationId?: string) {
@@ -353,6 +370,16 @@ export async function checkInPassportLocation(eventId: string, code: string, reg
     if (error && error.code === '23505') return { error: 'Already visited this location' }
     if (error) return { error: error.message }
     await awardPoints(eventId, user.id, 'passport_visit')
+    const completionAdmin = createAdminClient()
+    const { count: locCount } = await completionAdmin.from('passport_locations')
+      .select('id', { count: 'exact', head: true }).eq('event_id', eventId)
+    const { count: visitCount } = await completionAdmin.from('passport_visits')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId).eq('user_id', user.id)
+    if (locCount && visitCount === locCount) {
+      await awardPoints(eventId, user.id, 'passport_complete')
+      return { ok: true, location: (loc as any).name, points: (loc as any).points, completedPassport: true }
+    }
   } else {
     const admin = (await import('@/lib/supabase/admin')).createAdminClient()
     const { error } = await admin.from('passport_visits').insert({
@@ -363,9 +390,35 @@ export async function checkInPassportLocation(eventId: string, code: string, reg
     if (error && error.code === '23505') return { error: 'Already visited this location' }
     if (error) return { error: error.message }
     await awardPointsForReg(eventId, registrationId!, 'passport_visit')
+    const { count: locCount } = await admin.from('passport_locations')
+      .select('id', { count: 'exact', head: true }).eq('event_id', eventId)
+    const { count: visitCount } = await admin.from('passport_visits')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId).eq('registration_id', registrationId)
+    if (locCount && visitCount === locCount) {
+      await awardPointsForReg(eventId, registrationId!, 'passport_complete')
+      return { ok: true, location: (loc as any).name, points: (loc as any).points, completedPassport: true }
+    }
   }
 
   return { ok: true, location: (loc as any).name, points: (loc as any).points }
+}
+
+export async function getIcebreakerResponses(eventId: string, questionId: string) {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('icebreaker_completions')
+    .select('response, registrations(attendee_name), profiles(full_name)')
+    .eq('event_id', eventId)
+    .eq('question_id', questionId)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  return ((data ?? []) as any[]).map(r => {
+    const name = r.profiles?.full_name || r.registrations?.attendee_name || 'Attendee'
+    const parts = name.trim().split(' ')
+    const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0]
+    return { display, response: r.response }
+  })
 }
 
 export async function seedIcebreakerPrompts(eventId: string, prompts: { text: string; tags: string[] }[]) {

@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
-import { getTriviaQuestions } from '@/lib/engagement/sprint10-actions'
 import { TriviaAdminClient } from './client'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -18,7 +17,13 @@ export default async function TriviaAdminPage({ params }: Props) {
     .single()
   if (!event) notFound()
 
-  const questions = await getTriviaQuestions((event as any).id)
+  const { data: questions } = await supabase
+    .from('trivia_questions')
+    .select('id, body, question_text, options, correct_index, category, difficulty, points, sort_order, is_active')
+    .eq('event_id', (event as any).id)
+    .order('sort_order')
+
+  const isActive = (questions ?? []).some((q: any) => q.is_active)
 
   return (
     <div style={{ padding: '2rem', maxWidth: 800 }}>
@@ -29,9 +34,10 @@ export default async function TriviaAdminPage({ params }: Props) {
         </p>
       </div>
       <TriviaAdminClient
-        questions={questions as any[]}
+        questions={(questions ?? []) as any[]}
         eventId={(event as any).id}
         orgId={(event as any).org_id}
+        isActive={isActive}
       />
     </div>
   )

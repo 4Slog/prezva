@@ -3,11 +3,17 @@
 import { useState } from 'react'
 import type { Track, Room, Speaker, Session } from '@/lib/agenda/actions'
 
+interface SessionSponsor {
+  id: string
+  name: string
+}
+
 interface SessionFormProps {
   eventId: string
   tracks: Track[]
   rooms: Room[]
   speakers: Speaker[]
+  sponsors?: SessionSponsor[]
   sessions?: Session[]
   session?: Session | null
   onSave: (data: Record<string, any>) => Promise<void>
@@ -19,7 +25,7 @@ const SESSION_TYPES = ['talk', 'workshop', 'panel', 'keynote', 'break', 'network
 function fmt(iso: string) { return iso ? iso.slice(0, 16) : '' }
 function toIso(local: string) { return local ? new Date(local).toISOString() : '' }
 
-export function SessionForm({ tracks, rooms, speakers, sessions = [], session, onSave, onCancel }: SessionFormProps) {
+export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions = [], session, onSave, onCancel }: SessionFormProps) {
   const [title, setTitle] = useState(session?.title ?? '')
   const [description, setDescription] = useState(session?.description ?? '')
   const [type, setType] = useState(session?.session_type ?? 'talk')
@@ -27,6 +33,7 @@ export function SessionForm({ tracks, rooms, speakers, sessions = [], session, o
   const [endsAt, setEndsAt] = useState(fmt(session?.ends_at ?? ''))
   const [trackId, setTrackId] = useState(session?.track_id ?? '')
   const [roomId, setRoomId] = useState(session?.room_id ?? '')
+  const [sponsoredById, setSponsoredById] = useState(session?.sponsored_by_id ?? '')
   const [capacity, setCapacity] = useState<string>(session?.capacity != null ? String(session.capacity) : '')
   const [speakerIds, setSpeakerIds] = useState<string[]>(session?.speakers?.map(s => s.id) ?? [])
   const [ceHours, setCeHours] = useState<string>(session?.ce_credit_hours != null ? String(session.ce_credit_hours) : '')
@@ -52,6 +59,7 @@ export function SessionForm({ tracks, rooms, speakers, sessions = [], session, o
         title, description: description || null, session_type: type,
         starts_at: toIso(startsAt), ends_at: toIso(endsAt),
         track_id: trackId || null, room_id: roomId || null,
+        sponsored_by_id: sponsoredById || null,
         capacity: capacity !== '' ? parseInt(capacity, 10) : null,
         speaker_ids: speakerIds,
         ce_credit_hours: ceHours !== '' ? parseFloat(ceHours) : null,
@@ -125,6 +133,16 @@ export function SessionForm({ tracks, rooms, speakers, sessions = [], session, o
           />
         </div>
       </div>
+
+      {sponsors.length > 0 && (
+        <div>
+          <label className={labelCls}>Sponsor</label>
+          <select className={inputCls} value={sponsoredById} onChange={e => setSponsoredById(e.target.value)}>
+            <option value="">No sponsor</option>
+            {sponsors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+      )}
 
       {conflict && (
         <p className="text-xs text-amber-400">

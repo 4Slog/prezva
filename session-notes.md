@@ -1,72 +1,95 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-16
+## Last updated: 2026-05-19
 
-## Status: Bundle 5 PR open (#9) | On bundle5-background-jobs | Needs 2 fixes before merge
+## Status: bundle10c complete | Gates PASS | Ready for PR
 
 ---
 
-## This Session — Bundle 5 Background Jobs (B5-1 through B5-4)
+## This Session — Bundle 10c (B10-6, B10-7, B10-10, B10-11, B9-10)
+
+### Branch
+`bundle10c` (created from `bundle10b`)
 
 ### What was done
-- B5-1: @trigger.dev/cli installed as devDependency; deploy-trigger CI job added (fires on push to main only, needs lint+tests green); TRIGGER_SECRET_KEY production key documented
-- B5-2: src/trigger/jobs/scheduled-announcements.ts — polls every 5 min, optimistic lock (status='scheduled'→'sending'), enqueues send-announcement task, marks 'sent'; also updated createAnnouncement() to set status='scheduled' explicitly
-- B5-3: migration 0037_add_token_expires_at.sql on org_integrations; src/trigger/jobs/oauth-token-refresh.ts — every 5 min, finds tokens expiring within 10 min, calls adapter.getStatus()
-- B5-4: vercel.json cron every 5 min → /api/cron/scheduled-announcements; Vercel cron route with CRON_SECRET auth; CRON_SECRET documented
 
-### PR state
-- PR #9 open at https://github.com/4Slog/prezva/pull/9
-- Branch: bundle5-background-jobs
-- Gate results: npm run build PASS | npx vitest run 318/318 PASS | tsc --noEmit PASS | eslint --max-warnings=0 PASS
+**B10-6 — Sponsor lead scanning**
+- Migration `0056_sponsor_leads.sql`: `sponsor_leads` table with quality (hot/warm/cold), applied to prod
+- `src/lib/sponsors/portal-actions.ts`: scanLead, getLeads, exportSponsorLeads, updateLeadQuality (replaced TODO stubs)
+- `src/app/api/sponsor-portal/[token]/scan-lead/route.ts`: POST route — body: { qr_code, note, contact_name }
+- Sponsor portal client: QR scan input (text input, hits API, shows success/error), lead list with quality badges (tap to cycle), CSV export
 
-### Code review findings (DO NOT MERGE without fixing):
-1. 🔴 Vercel cron route (/api/cron/scheduled-announcements) marks announcements as 'sending' but never actually sends them or enqueues a Trigger.dev task — announcements get stuck in 'sending' forever. Fix: either call Resend API directly in the route, or call tasks.trigger('send-announcement') for each.
-2. 🔴 TOCTOU race on invite code redemption (auth/actions.ts) — two concurrent signups with same code both pass validation before either marks used_at. Fix: mark used_at BEFORE signUp call, or add DB-level unique constraint enforcement.
+**B10-7 — AI announcement drafting**
+- `src/lib/announcements/ai-draft-actions.ts`: draftAnnouncement(eventId, type, context) → claude-haiku-4-5-20251001, max 500 tokens
+- Announcements client: "✨ Draft with AI" button next to Message label (hidden if no ANTHROPIC_API_KEY), inline context input, Generate button, populates textarea via ref
 
-### Other issues from code review (fix before shipping):
-- ADMIN_SECRET not documented in production-secrets.md
-- invite code brute-forcing (no rate limiting on /api/invite/validate)
-- Math.random() used for code entropy (use crypto.randomBytes instead)
-- OAuth refresh cron is no-op until adapters write token_expires_at (needs follow-up ticket)
+**B10-10 — Multiple sponsor contacts**
+- Migration `0057_sponsor_contacts.sql`: `sponsor_contacts` table with portal_token UUID, applied to prod
+- `src/lib/sponsors/portal-actions.ts`: addSponsorContact, getSponsorContacts, getSponsorByContactToken added
+- Sponsors admin client: "Contacts" button per sponsor expands ContactsPanel (lazy loads, shows contacts, copy link button, add contact form)
+- Sponsor portal page.tsx: supports `?contact=[uuid]` param as alternative auth — resolves portal_access_token via sponsor_contacts join
 
-### Branch complications
-- A parallel session was also working on bundle5-background-jobs (invite-only gate, badge RLS work)
-- Those changes (invite_codes table, signup gate, badge_templates RLS) are included in the PR
-- B5-4 commit accidentally landed on invite-only-gate branch (wrong branch) and was cherry-picked to bundle5-background-jobs
+**B10-11 — Sponsored sessions flag**
+- Migration `0058_sponsored_sessions.sql`: `sessions.sponsored_by_id uuid REFERENCES event_sponsors`, applied to prod
+- Session interface + SessionSchema: added `sponsored_by_id`, `sponsored_by` join
+- SessionForm: `sponsored_by_id` state + dropdown (only shown when sponsors.length > 0), passed via `sponsors` prop
+- Admin agenda page.tsx: fetches sponsors in parallel, passes to AgendaClient → SessionForm
+- getPublicAgenda: joins `sponsored_by:event_sponsors(id, name, logo_url, website_url)`
+- Public agenda client: shows "Sponsored by [Name]" below session title when set
 
-### Manual steps Paul needs (after merge)
-1. Get production Trigger.dev key (tr_live_...) from cloud.trigger.dev
-2. Add TRIGGER_SECRET_KEY to Vercel (production) and GitHub secrets
-3. Generate CRON_SECRET: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-4. Add CRON_SECRET to Vercel environment variables
-5. After merge, CI will auto-deploy Trigger.dev jobs on next push to main
+**B9-10 — Event integrations page**
+- `src/app/(dashboard)/events/[slug]/integrations/page.tsx` created
+- Admin tiles href was already correct (`/events/${s}/integrations`) — no fix needed
+- Page shows 3 groups: AMS/Membership (7 providers), Communication (4), Content & Data (5)
+- Per-card: icon, name, Connected/Not connected status from org_integrations, Configure link → org integrations
+- Below grid: Event Actions section — Zoom (→ agenda), Eventbrite (→ attendees), Mailchimp (→ announcements)
+
+### Gate results
+- `npm run build` — PASS (clean)
+- `npx vitest run` — 318/318 PASS
+- `npx tsc --noEmit` — PASS (ran after each task)
+
+### Commit
+`a500eef` on `bundle10c`
 
 ### Next
-- Fix the 2 critical issues from code review before merging PR #9
-- Start fresh chat for next bundle
+- Open PR: bundle10c → main (check if bundle10b PR was merged first)
+- Start bundle 11 in fresh chat
 
 ---
 
-## Previous Session — Bundle 4 Stripe Connect (B4-1 through B4-4 + rewrites)
+## Previous Session — Bundle 10b (B10-1, B10-2, B9-22, B10-8, B10-3)
+
+### Branch
+`bundle10b` (merged or open)
+
+### Commit
+`71776ef` — live polls, my-agenda ICS export, multi-ticket quantity, frictionless flows, session discussion threads
+
+### Gate results
+- `npm run build` — PASS
+- `npx vitest run` — 318/318 PASS
+
+---
+
+## Previous Session — Bundle 10a
+
+### Branch
+`bundle10a`
+### Commit
+`8c67d8b` — trivia/icebreaker publish gate, duplicate reg prevention, passport completion bonus, icebreaker response feed, passport points leaderboard
+
+---
+
+## Previous Session — Bundle 9 (B9 complete)
+
+### Branch
+`bundle9` → main (merged)
 
 ### What was done
-- B4-1: disconnectConnectAccount — proper error handling, uses adminClient, clears capability flags
-- B4-2: STRIPE_CLIENT_ID guard + /api/connect/health endpoint
-- B4-3: Checkout idempotency key → `checkout-${registrationId}`
-- B4-4: STRIPE_CLIENT_ID documented in docs/production-secrets.md
-- Rewrite 1: Replaced Express account creation with Stripe Connect OAuth (getConnectOAuthUrl)
-- Rewrite 2: Replaced broken OAuth (ca_ IDs rejected) with Connect Onboarding (startConnectOnboarding + stripe.accountLinks.create)
-- disconnectConnectAccount: clears capability flags only — does NOT delete Express account or clear stripe_account_id (preserves payout history, allows seamless reconnect)
-- Webhook: added Stripe-Account header capture + connected accounts docs
-- Checkout: charges go direct to connected account via stripeAccount header (no transfer_data)
-- PR #7 squash-merged to main (commit 745dc42) — required manual conflict resolution on merge
-
-### Branch state
-- main: 745dc42 (Bundle 4 squash merge)
-- bundle4-stripe-connect: closed/merged
+- B9-1 through B9-18 complete: launch blockers, magic-link check-in, speaker UI, agenda filters, event invite codes, announcements staff, and more
+- Migration range: 0036–0053
 
 ### Gate results (at merge)
 - npm run build: PASS
 - npx vitest run: 318/318 PASS
-- npm run type-check: PASS
-- npx eslint . --max-warnings=0: PASS

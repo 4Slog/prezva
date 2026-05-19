@@ -2,15 +2,25 @@
 
 import { useState, useTransition } from 'react'
 import { createSponsor, updateSponsor, deleteSponsor } from '@/lib/sponsors/actions'
+import { addSponsorContact, getSponsorContacts } from '@/lib/sponsors/portal-actions'
 
 type Sponsor = {
   id: string
   name: string
+  slug?: string | null
   website_url: string | null
   logo_url: string | null
   tier: 'title' | 'gold' | 'silver' | 'bronze'
   sort_order: number
   is_featured: boolean
+}
+
+type SponsorContact = {
+  id: string
+  name: string
+  email: string | null
+  portal_token: string
+  created_at: string
 }
 
 const TIERS = [
@@ -191,10 +201,85 @@ function TierBadge({ tier }: { tier: TierValue }) {
   )
 }
 
+function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: string; eventSlug: string; sponsorSlug: string }) {
+  const [contacts, setContacts] = useState<SponsorContact[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
+
+  async function loadContacts() {
+    setLoading(true)
+    const data = await getSponsorContacts(sponsorId)
+    setContacts(data as SponsorContact[])
+    setLoading(false)
+  }
+
+  if (contacts === null) {
+    if (!loading) loadContacts()
+    return <p style={{ fontSize: 12, color: 'var(--pz-muted)', padding: '8px 0' }}>Loading…</p>
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newName.trim()) return
+    setAdding(true)
+    const res = await addSponsorContact(sponsorId, newName, newEmail || undefined)
+    if (!('error' in res)) {
+      await loadContacts()
+      setNewName('')
+      setNewEmail('')
+    }
+    setAdding(false)
+  }
+
+  function copyLink(token: string) {
+    const url = `${window.location.origin}/sponsor-portal/${eventSlug}/${sponsorSlug}?contact=${token}`
+    navigator.clipboard.writeText(url)
+    setCopied(token)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  const inp = { background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '5px 8px', fontSize: 12, color: 'var(--pz-text)', outline: 'none' }
+
+  return (
+    <div style={{ marginTop: 12, padding: '12px 16px', background: 'var(--pz-bg)', borderRadius: 8, border: '1px solid var(--pz-border)' }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Booth Contacts</p>
+      {loading && <p style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Loading…</p>}
+      {contacts.length === 0 && !loading && (
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 10 }}>No individual contacts yet. Add one to give booth staff their own portal link.</p>
+      )}
+      {contacts.map(c => (
+        <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--pz-border)' }}>
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</span>
+            {c.email && <span style={{ fontSize: 12, color: 'var(--pz-muted)', marginLeft: 8 }}>{c.email}</span>}
+          </div>
+          <button
+            onClick={() => copyLink(c.portal_token)}
+            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--pz-teal)', color: 'var(--pz-teal)', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            {copied === c.portal_token ? 'Copied!' : 'Copy link'}
+          </button>
+        </div>
+      ))}
+      <form onSubmit={handleAdd} style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+        <input style={inp} placeholder="Name *" value={newName} onChange={e => setNewName(e.target.value)} required />
+        <input style={inp} placeholder="Email (optional)" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+        <button type="submit" disabled={adding || !newName.trim()} style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: adding ? 0.6 : 1 }}>
+          {adding ? '…' : '+ Add'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [expandedContacts, setExpandedContacts] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   function handleDelete(sponsorId: string) {
@@ -266,6 +351,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                       />
                     </div>
                   ) : (
+                    <>
                     <div className="pz-card p-4" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       {/* Logo */}
                       <div style={{
@@ -303,6 +389,12 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                       {/* Actions */}
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         <button
+                          onClick={() => setExpandedContacts(expandedContacts === sp.id ? null : sp.id)}
+                          style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
+                        >
+                          Contacts
+                        </button>
+                        <button
                           onClick={() => { setEditing(sp.id); setShowAdd(false) }}
                           style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
                         >
@@ -317,6 +409,14 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                         </button>
                       </div>
                     </div>
+                    {expandedContacts === sp.id && (
+                      <ContactsPanel
+                        sponsorId={sp.id}
+                        eventSlug={eventSlug}
+                        sponsorSlug={sp.slug ?? sp.id}
+                      />
+                    )}
+                    </>
                   )}
                 </div>
               ))}

@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { SessionForm } from '@/components/agenda/SessionForm'
 import { AgendaGrid } from '@/components/agenda/AgendaGrid'
 import { createSession, updateSession, deleteSession, createRoom, deleteRoom } from '@/lib/agenda/actions'
 import type { Session, Track, Room, Speaker } from '@/lib/agenda/actions'
+import { createPoll, activatePoll, closePoll, showResults, getPollsForSession } from '@/lib/engagement/poll-actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface AgendaClientProps {
   eventId: string
@@ -14,6 +16,7 @@ interface AgendaClientProps {
   tracks: Track[]
   rooms: Room[]
   speakers: Speaker[]
+  sponsors?: { id: string; name: string }[]
   zoomConnected: boolean
   teamsConnected: boolean
 }
@@ -198,7 +201,162 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
   )
 }
 
-export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms: initialRooms, speakers, zoomConnected, teamsConnected }: AgendaClientProps) {
+type Poll = {
+  id: string
+  question: string
+  options: string[]
+  is_active: boolean
+  show_results: boolean
+  closed_at: string | null
+  voteCounts: number[]
+  totalVotes: number
+}
+
+function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Session[] }) {
+  const [open, setOpen] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState('')
+  const [polls, setPolls] = useState<Poll[]>([])
+  const [question, setQuestion] = useState('')
+  const [options, setOptions] = useState(['', '', '', ''])
+  const [creating, setCreating] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function loadPolls(sid: string) {
+    if (!sid) { setPolls([]); return }
+    const data = await getPollsForSession(sid)
+    setPolls(data as Poll[])
+  }
+
+  useEffect(() => {
+    if (!selectedSessionId) return
+    loadPolls(selectedSessionId)
+    const sb = createClient()
+    const ch = sb.channel(`polls:${selectedSessionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'session_polls', filter: `session_id=eq.${selectedSessionId}` }, () => loadPolls(selectedSessionId))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_poll_votes' }, () => loadPolls(selectedSessionId))
+      .subscribe()
+    return () => { sb.removeChannel(ch) }
+  }, [selectedSessionId])
+
+  async function handleCreate() {
+    if (!selectedSessionId || !question.trim()) return
+    const validOpts = options.filter(o => o.trim())
+    if (validOpts.length < 2) { setErr('At least 2 options required'); return }
+    setCreating(true); setErr('')
+    const result = await createPoll(selectedSessionId, eventId, question.trim(), validOpts)
+    if ('error' in result) { setErr(result.error ?? 'Failed'); setCreating(false); return }
+    if (result.data) {
+      await activatePoll(result.data.id)
+    }
+    setQuestion(''); setOptions(['', '', '', ''])
+    await loadPolls(selectedSessionId)
+    setCreating(false)
+  }
+
+  return (
+    <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+      >
+        <span>Live Polls</span>
+        <span className="text-[var(--text-muted)]">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-[var(--border)] p-4 space-y-4">
+          <div>
+            <label className="text-xs text-[var(--text-muted)] mb-1 block">Session</label>
+            <select
+              value={selectedSessionId}
+              onChange={e => setSelectedSessionId(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-2 py-1.5 text-sm text-[var(--text-primary)]"
+            >
+              <option value="">— select a session —</option>
+              {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
+          </div>
+
+          {selectedSessionId && (
+            <>
+              {/* Existing polls */}
+              {polls.length > 0 && (
+                <div className="space-y-3">
+                  {polls.map(p => (
+                    <div key={p.id} className="rounded-lg border border-[var(--border)] p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">{p.question}</p>
+                        {p.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-[#00BFA6]/20 text-[#00BFA6] shrink-0">Active</span>}
+                        {p.closed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] shrink-0">Closed</span>}
+                      </div>
+                      {p.options.map((opt: string, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <div className="flex-1 h-5 rounded bg-[var(--bg-subtle)] overflow-hidden">
+                            <div
+                              className="h-full bg-[#00BFA6]/40 transition-all"
+                              style={{ width: p.totalVotes > 0 ? `${(p.voteCounts[i] / p.totalVotes) * 100}%` : '0%' }}
+                            />
+                          </div>
+                          <span className="text-xs text-[var(--text-muted)] w-20 truncate">{opt}</span>
+                          <span className="text-xs text-[var(--text-muted)] w-8 text-right">{p.voteCounts[i]}</span>
+                        </div>
+                      ))}
+                      <p className="text-xs text-[var(--text-muted)]">{p.totalVotes} vote{p.totalVotes !== 1 ? 's' : ''}</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {!p.is_active && !p.closed_at && (
+                          <button onClick={() => activatePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[#00BFA6] text-[#00BFA6] hover:bg-[#00BFA6]/10">Activate</button>
+                        )}
+                        {p.is_active && (
+                          <button onClick={() => closePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Close</button>
+                        )}
+                        <button
+                          onClick={() => showResults(p.id, !p.show_results).then(() => loadPolls(selectedSessionId))}
+                          className="text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        >
+                          {p.show_results ? 'Hide results' : 'Show results'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* New poll form */}
+              <div className="rounded-lg border border-[var(--border)] p-3 space-y-2">
+                <p className="text-xs font-medium text-[var(--text-muted)]">New poll</p>
+                <input
+                  value={question}
+                  onChange={e => setQuestion(e.target.value)}
+                  placeholder="Poll question…"
+                  className="w-full rounded border border-[var(--border)] bg-[var(--bg-page)] px-2 py-1.5 text-sm text-[var(--text-primary)]"
+                />
+                {options.map((opt, i) => (
+                  <input
+                    key={i}
+                    value={opt}
+                    onChange={e => setOptions(prev => prev.map((o, j) => j === i ? e.target.value : o))}
+                    placeholder={`Option ${i + 1}${i < 2 ? ' *' : ''}`}
+                    className="w-full rounded border border-[var(--border)] bg-[var(--bg-page)] px-2 py-1.5 text-sm text-[var(--text-primary)]"
+                  />
+                ))}
+                {err && <p className="text-xs text-red-400">{err}</p>}
+                <button
+                  onClick={handleCreate}
+                  disabled={creating || !question.trim()}
+                  className="rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+                  style={{ background: 'var(--brand-teal)', color: '#0D1B2A' }}
+                >
+                  {creating ? 'Creating…' : 'Start poll'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -406,6 +564,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
             tracks={tracks}
             rooms={roomsState}
             speakers={speakers}
+            sponsors={sponsors}
             sessions={sessions}
             session={editing}
             onSave={handleSave}
@@ -426,6 +585,8 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         teamsConnected={teamsConnected}
         onSessionUpdated={reload}
       />
+
+      <LivePollsPanel eventId={eventId} sessions={sessions} />
     </div>
   )
 }

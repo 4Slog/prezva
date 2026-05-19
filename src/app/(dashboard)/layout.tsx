@@ -2,6 +2,8 @@ import { requireUser } from '@/lib/auth/get-user'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { UserMenu } from '@/components/auth/UserMenu'
+import { NotificationBell } from '@/components/layout/NotificationBell'
+import { getUnreadCount } from '@/lib/notifications/notification-actions'
 
 export default async function DashboardLayout({
   children,
@@ -9,7 +11,10 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const user = await requireUser()
-  const orgs = await getUserOrgs()
+  const [orgs, unreadCount] = await Promise.all([
+    getUserOrgs(),
+    getUnreadCount(),
+  ])
 
   const defaultOrgSlug =
     (orgs[0] as { organizations?: { slug?: string } } | undefined)?.organizations?.slug ?? null
@@ -31,6 +36,7 @@ export default async function DashboardLayout({
         >
           <div />
           <div className="flex items-center gap-3">
+            <NotificationBell initialUnreadCount={unreadCount} />
             <UserMenu email={user.email ?? ''} name={(user.user_metadata as { full_name?: string } | null)?.full_name ?? null} />
           </div>
         </header>

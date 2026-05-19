@@ -25,6 +25,26 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
     getPublicTicketTypes(event.id),
   ])
 
+  // Fetch org's other upcoming events for post-event "more from this org" section
+  let moreEvents: any[] = []
+  const eventOrgId = (event as any).org_id
+  if (eventOrgId && new Date((event as any).end_at) < new Date()) {
+    const admin = createAdminClient()
+    const { data: orgEvents } = await admin
+      .from('events')
+      .select('id, title, slug, start_at')
+      .eq('org_id', eventOrgId)
+      .eq('status', 'published')
+      .neq('id', event.id)
+      .gt('start_at', new Date().toISOString())
+      .order('start_at', { ascending: true })
+      .limit(3)
+    moreEvents = orgEvents ?? []
+  }
+
+  // Fetch org name for display
+  const orgName = (event as any).organizations?.name ?? null
+
   // Context detection
   const jar = await cookies()
   const cookieRegId = jar.get(`pz_reg_${slug}`)?.value
@@ -128,6 +148,28 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
               {(event as any).certificate_enabled && <Link href={`/e/${slug}/certificate`} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.65rem 1.5rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:14, border:'1px solid rgba(255,255,255,0.2)' }}>Download certificate</Link>}
               <Link href={`/e/${slug}/people`} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.65rem 1.5rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:14, border:'1px solid rgba(255,255,255,0.2)' }}>Connect with attendees</Link>
             </div>
+            {moreEvents.length > 0 && (
+              <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                  More events from {orgName ?? 'this organizer'}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {moreEvents.map((ev: any) => (
+                    <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: '0.75rem 1rem' }}>
+                      <div>
+                        <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{ev.title}</p>
+                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                          {new Date(ev.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <Link href={`/e/${ev.slug}`} style={{ fontSize: 13, color: 'var(--color-teal)', textDecoration: 'none', fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 12 }}>
+                        View event →
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

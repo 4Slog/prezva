@@ -26,21 +26,24 @@ export async function getPassportAdmin(eventId: string) {
   const [locRes, visitRes, topRes] = await Promise.all([
     admin.from('passport_locations').select('id, name, code, points, created_at').eq('event_id', eventId).order('created_at'),
     admin.from('passport_visits').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
-    // Use a proper aggregate: count visits per user across ALL visits (not a 100-row sample)
     admin
       .from('passport_visits')
-      .select('user_id, profiles(full_name)')
+      .select('user_id, registration_id, passport_locations(points), profiles(full_name), registrations(attendee_name)')
       .eq('event_id', eventId),
   ])
 
-  // Aggregate all visits per user for accurate leaderboard
-  const visitsByUser: Record<string, { userId: string; name: string; count: number }> = {}
+  const byPerson: Record<string, { userId?: string; registrationId?: string; name: string; count: number; totalPoints: number }> = {}
   for (const v of (topRes.data ?? []) as any[]) {
-    const uid = v.user_id
-    if (!visitsByUser[uid]) visitsByUser[uid] = { userId: uid, name: (v as any).profiles?.full_name ?? 'Unknown', count: 0 }
-    visitsByUser[uid].count++
+    const key = v.user_id ?? `reg-${v.registration_id}`
+    const name = (v as any).profiles?.full_name ?? (v as any).registrations?.attendee_name ?? 'Unknown'
+    const pts = (v as any).passport_locations?.points ?? 0
+    if (!byPerson[key]) byPerson[key] = { userId: v.user_id, registrationId: v.registration_id, name, count: 0, totalPoints: 0 }
+    byPerson[key].count++
+    byPerson[key].totalPoints += pts
   }
-  const leaderboard = Object.values(visitsByUser).sort((a, b) => b.count - a.count).slice(0, 5)
+  const leaderboard = Object.values(byPerson)
+    .sort((a, b) => b.totalPoints - a.totalPoints || b.count - a.count)
+    .slice(0, 10)
 
   return {
     locations: (locRes.data ?? []) as { id: string; name: string; code: string; points: number; created_at: string }[],

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 import { cookies } from 'next/headers'
 import CancelRegistrationButton from '@/components/registration/cancel-button'
+import TransferButton from './transfer-button'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -123,6 +124,14 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     registrationId={reg.id}
                     eventTitle={(reg.events as any)?.title ?? ''}
                     isPaid={(reg.amount_paid_cents ?? 0) > 0}
+                  />
+                )}
+                {reg && reg.status === 'confirmed' &&
+                  (reg.events as any)?.start_at &&
+                  new Date((reg.events as any).start_at) > new Date() && (
+                  <TransferButton
+                    registrationId={reg.id}
+                    eventTitle={(reg.events as any)?.title ?? ''}
                   />
                 )}
                 {reg && (reg.events as any)?.certificate_enabled && (

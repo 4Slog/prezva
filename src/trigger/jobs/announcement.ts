@@ -122,8 +122,21 @@ export const sendAnnouncement = schemaTask({
           headers:  { 'List-Unsubscribe': `<${unsubAllUrl}>` },
         }),
       })
-      if (res.ok) sent++
-      else failed++
+      if (res.ok) {
+        sent++
+        // Create in-app notification for users who have an account
+        if ((reg as any).user_id) {
+          await supabase.from('user_notifications').insert({
+            user_id: (reg as any).user_id,
+            type: 'announcement',
+            title: ann.title,
+            body: ann.body ? ann.body.slice(0, 120) : undefined,
+            url: eventUrl || undefined,
+          }).then(() => {})
+        }
+      } else {
+        failed++
+      }
     }
 
     // Update announcement status based on delivery outcome

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { seedIcebreakerPrompts } from '@/lib/engagement/sprint10-actions'
+import { seedIcebreakerPrompts, setIcebreakersActive } from '@/lib/engagement/sprint10-actions'
 import { ICEBREAKER_PROMPTS } from '@/lib/templates/icebreakers'
 
 interface IcebreakerQuestion { 
@@ -11,19 +11,19 @@ interface IcebreakerQuestion {
   prompt?: string;
   category?: string
 }
-interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string }
+interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; isActive?: boolean }
 
 const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
 
 const getPromptText = (q: IcebreakerQuestion) => q.question || q.question_text || q.prompt || ''
 
-export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
+export function IcebreakersAdminClient({ questions: init, eventId, isActive = false }: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
   const [customText, setCustomText] = useState('')
   const [showPreview, setShowPreview] = useState(false)
-  const [published, setPublished] = useState(false)
+  const [published, setPublished] = useState(isActive)
 
   function handlePrint() {
     const w = window.open('', '_blank')
@@ -77,8 +77,13 @@ export function IcebreakersAdminClient({ questions: init, eventId }: Props) {
             style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>
             🖨 Print
           </button>
-          <button onClick={() => setPublished(v => !v)}
-            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => startTransition(async () => {
+              const next = !published
+              await setIcebreakersActive(eventId, next)
+              setPublished(next)
+              setMsg(next ? 'Published to attendees.' : 'Set to draft.')
+            })} disabled={pending}
+            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
             {published ? '✓ Published' : 'Publish to attendees'}
           </button>
         </>)}
