@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertOrgRole } from '@/lib/orgs/actions'
+import { logAudit } from '@/lib/audit/log'
 
 export async function refundRegistration(registrationId: string) {
   const user = await requireUser()
@@ -121,6 +122,44 @@ export async function cancelRegistration(registrationId: string) {
     .eq('id', registrationId)
 
   if (error) return { error: error.message }
+  return { ok: true }
+}
+
+export async function undoCheckIn(registrationId: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id, event_id, status, events(organizations(id))')
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (!reg) return { error: 'Registration not found' }
+
+  const orgId = (reg.events as any)?.organizations?.id
+  if (!orgId) return { error: 'Could not determine organization' }
+
+  // Only owner/admin can undo check-ins — not staff
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+
+  const admin = createAdminClient()
+
+  // Delete the check-in record
+  await admin.from('check_ins')
+    .delete()
+    .eq('registration_id', registrationId)
+    .is('session_id', null)
+
+  // Revert registration status back to confirmed
+  await admin.from('registrations')
+    .update({ status: 'confirmed', checked_in_at: null })
+    .eq('id', registrationId)
+
+  await logAudit(supabase, null, user.id, 'checkin.undo', 'registrations', registrationId, {
+    undone_by: user.id,
+  })
+
   return { ok: true }
 }
 

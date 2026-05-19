@@ -1,6 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { refundRegistration, resendConfirmation, cancelRegistration, manualCheckIn } from '@/lib/registrations/actions'
+import { refundRegistration, resendConfirmation, cancelRegistration, manualCheckIn, undoCheckIn } from '@/lib/registrations/actions'
 
 interface Props {
   registrationId: string
@@ -46,9 +46,29 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
 
         {/* Manual check-in — shows success state, cannot be clicked again */}
         {checkedIn ? (
-          <button className={btnSuccess} disabled>
-            ✓ Checked In
-          </button>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button className={btnSuccess} disabled>
+              ✓ Checked In
+            </button>
+            {confirming === 'undo-checkin' ? (
+              <>
+                <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Undo check-in?</span>
+                <button className={btnDanger} onClick={() => run(
+                  () => undoCheckIn(registrationId),
+                  () => { setCheckedIn(false); setMessage({ text: 'Check-in undone.', ok: true }) }
+                )}>Yes, undo</button>
+                <button className={btnNeutral} onClick={() => setConfirming(null)}>Cancel</button>
+              </>
+            ) : (
+              <button
+                className={btnNeutral}
+                style={{ fontSize: 11, padding: '2px 8px', opacity: 0.6 }}
+                onClick={() => setConfirming('undo-checkin')}
+              >
+                Undo
+              </button>
+            )}
+          </span>
         ) : (
           <button
             className={btnTeal}
