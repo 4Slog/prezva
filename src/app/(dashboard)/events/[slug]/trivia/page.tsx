@@ -34,6 +34,7 @@ export default async function TriviaAdminPage({ params }: Props) {
         </p>
       </div>
       <TriviaAdminClient
+          eventSlug={slug}
         questions={(questions ?? []) as any[]}
         eventId={(event as any).id}
         orgId={(event as any).org_id}

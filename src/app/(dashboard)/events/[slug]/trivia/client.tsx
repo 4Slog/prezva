@@ -5,14 +5,14 @@ import { seedTriviaQuestions, setTriviaActive } from '@/lib/engagement/sprint10-
 import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
 
 interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
-interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; isActive?: boolean }
+interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
 
 const DIFF_COLOR: Record<string, string> = { easy: '#059669', medium: '#d97706', hard: '#ef4444' }
 const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
 
 const getQuestionText = (q: TriviaQuestion) => q.body || q.question_text || ''
 
-export function TriviaAdminClient({ questions: init, eventId, isActive = false }: Props) {
+export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActive = false }: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
@@ -93,6 +93,12 @@ export function TriviaAdminClient({ questions: init, eventId, isActive = false }
           style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-text)', fontWeight: 600, cursor: 'pointer' }}>
           + Add custom question
         </button>
+        {eventSlug && (
+          <a href={`/e/${eventSlug}/trivia`} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--pz-surface)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-teal)', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>
+            Preview as attendee ↗
+          </a>
+        )}
         {questions.length > 0 && (<>
           <button onClick={handlePrint}
             style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>

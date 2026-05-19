@@ -219,6 +219,14 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
                       <Link size={12} /> {copiedId === s.id ? 'Copied!' : 'Copy Link'}
                     </button>
                   )}
+                  <a
+                    href={`${appUrl}/survey/${s.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-surface)', color: 'var(--color-teal)', border: '1px solid var(--color-teal)', borderRadius: 6, padding: '4px 10px', fontSize: 12, textDecoration: 'none', fontWeight: 500 }}
+                  >
+                    Preview ↗
+                  </a>
                   {isPublished && (
                     <button
                       onClick={() => handleSendToAll(s.id)}

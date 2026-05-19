@@ -11,13 +11,13 @@ interface IcebreakerQuestion {
   prompt?: string;
   category?: string
 }
-interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; isActive?: boolean }
+interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
 
 const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
 
 const getPromptText = (q: IcebreakerQuestion) => q.question || q.question_text || q.prompt || ''
 
-export function IcebreakersAdminClient({ questions: init, eventId, isActive = false }: Props) {
+export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, isActive = false }: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
@@ -72,6 +72,12 @@ export function IcebreakersAdminClient({ questions: init, eventId, isActive = fa
           style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
           + Use starter pack (10 prompts)
         </button>
+        {eventSlug && (
+          <a href={`/e/${eventSlug}/icebreakers`} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--pz-surface)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-teal)', fontWeight: 600, textDecoration: 'none', fontSize: 14 }}>
+            Preview as attendee ↗
+          </a>
+        )}
         {questions.length > 0 && (<>
           <button onClick={handlePrint}
             style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.6rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>

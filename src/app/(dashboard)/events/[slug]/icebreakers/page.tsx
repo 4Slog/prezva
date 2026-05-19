@@ -35,6 +35,7 @@ export default async function IcebreakersAdminPage({ params }: Props) {
         </p>
       </div>
       <IcebreakersAdminClient
+          eventSlug={slug}
         questions={(questions ?? []) as any[]}
         eventId={(event as any).id}
         orgId={(event as any).org_id}
