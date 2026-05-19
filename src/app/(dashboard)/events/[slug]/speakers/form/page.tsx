@@ -31,7 +31,7 @@ export default async function SpeakerFormBuilderPage({ params }: Props) {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <a href={`/dashboard/events/${slug}/speakers`} className="text-sm" style={{ color: 'var(--pz-teal)' }}>← Speakers</a>
+        <a href={`/events/${slug}/speakers`} className="text-sm" style={{ color: 'var(--pz-teal)' }}>← Speakers</a>
         <h1 className="text-xl font-bold mt-2 mb-1" style={{ color: 'var(--pz-text)' }}>Speaker Info Form</h1>
         <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>Configure what information to collect from speakers.</p>
       </div>

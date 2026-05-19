@@ -39,7 +39,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
           <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>{(event as any).title}</p>
         </div>
         <a
-          href={`/dashboard/events/${slug}/speakers/messages`}
+          href={`/events/${slug}/speakers/messages`}
           className="rounded-lg px-4 py-2 text-sm font-medium"
           style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-text)' }}
         >

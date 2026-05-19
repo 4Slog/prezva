@@ -86,7 +86,7 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
       {/* Sidebar */}
       <div className="w-64 shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)' }}>
         <div className="p-4 border-b" style={{ borderColor: 'var(--pz-border)' }}>
-          <a href={`/dashboard/events/${eventSlug}/speakers`} className="text-xs" style={{ color: 'var(--pz-teal)' }}>
+          <a href={`/events/${eventSlug}/speakers`} className="text-xs" style={{ color: 'var(--pz-teal)' }}>
             ← Speakers
           </a>
           <h2 className="text-sm font-semibold mt-1" style={{ color: 'var(--pz-text)' }}>Speaker Messages</h2>
