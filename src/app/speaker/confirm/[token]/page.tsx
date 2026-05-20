@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getSpeakerByConfirmationToken, confirmSpeakerSlot } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/server'
+import { DeclineForm } from './decline-form'
 
 type Props = { params: Promise<{ token: string }> }
 
@@ -70,18 +71,7 @@ export default async function SpeakerConfirmPage({ params }: Props) {
               Confirm slot
             </button>
           </form>
-          <form action={async () => {
-            'use server'
-            await confirmSpeakerSlot(token, 'declined')
-          }}>
-            <button
-              type="submit"
-              className="rounded-lg px-6 py-2.5 text-sm font-semibold"
-              style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)' }}
-            >
-              Decline
-            </button>
-          </form>
+          <DeclineForm token={token} />
         </div>
       </div>
     </div>
