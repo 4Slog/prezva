@@ -21,7 +21,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
   const [showAdd, setShowAdd] = useState(false)
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
-  const [form, setForm] = useState({ name: '', email: '', job_title: '', company: '', bio: '' })
+  const [form, setForm] = useState({ name: '', email: '', job_title: '', company: '', bio: '', event_role: 'speaker' })
 
   async function invite(speakerId: string) {
     setInviting(speakerId)
@@ -45,7 +45,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
       setAddError((result as any).error)
     } else {
       setSpeakers(prev => [...prev, (result as any).data])
-      setForm({ name: '', email: '', job_title: '', company: '', bio: '' })
+      setForm({ name: '', email: '', job_title: '', company: '', bio: '', event_role: 'speaker' })
       setShowAdd(false)
     }
   }
@@ -89,6 +89,18 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
               <input value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Event role</label>
+            <select value={form.event_role} onChange={e => setForm(f => ({...f, event_role: e.target.value}))}
+              className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }}>
+              <option value="speaker">Speaker</option>
+              <option value="mc">MC / Emcee</option>
+              <option value="chair">Program Chair</option>
+              <option value="host">Host</option>
+              <option value="guest">Guest</option>
+              <option value="vip">VIP</option>
+            </select>
           </div>
           <div>
             <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Bio</label>

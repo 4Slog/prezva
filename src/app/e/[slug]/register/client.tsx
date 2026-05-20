@@ -13,6 +13,7 @@ interface TicketType {
   quantity: number | null
   quantity_sold: number
   max_per_order: number
+  delivery_method?: string
 }
 
 interface Event {
@@ -68,6 +69,7 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
   const [discount, setDiscount] = useState<{ discountAmountCents: number; code: string } | null>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [checkingCode, setCheckingCode] = useState(false)
+  const [deliveryMethodChoice, setDeliveryMethodChoice] = useState<'in_person' | 'virtual'>('in_person')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -113,6 +115,9 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
     fd.set('ticket_type_id', selectedTicket.id)
     fd.set('quantity', String(qty))
     if (discount) fd.set('discount_code', discount.code)
+    if (selectedTicket.delivery_method === 'both') {
+      fd.set('delivery_method', deliveryMethodChoice)
+    }
     const result = await startRegistration(fd)
     setPending(false)
     if (result?.error) setError(result.error)
@@ -209,6 +214,23 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
 
         {selectedTicket && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+            {/* Delivery method choice (only for hybrid tickets) */}
+            {selectedTicket.delivery_method === 'both' && (
+              <div className="pz-card p-5">
+                <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">How will you attend?</h2>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                    <input type="radio" name="delivery_method" value="in_person" checked={deliveryMethodChoice === 'in_person'} onChange={() => setDeliveryMethodChoice('in_person')} />
+                    📍 In-person
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                    <input type="radio" name="delivery_method" value="virtual" checked={deliveryMethodChoice === 'virtual'} onChange={() => setDeliveryMethodChoice('virtual')} />
+                    💻 Virtual
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Attendee info */}
             <div className="pz-card p-5">

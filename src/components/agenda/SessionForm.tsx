@@ -22,6 +22,15 @@ interface SessionFormProps {
 
 const SESSION_TYPES = ['talk', 'workshop', 'panel', 'keynote', 'break', 'networking', 'other']
 
+const SPEAKER_ROLES = [
+  { value: 'presenter', label: 'Presenter' },
+  { value: 'moderator', label: 'Moderator' },
+  { value: 'panelist', label: 'Panelist' },
+  { value: 'co-presenter', label: 'Co-presenter' },
+  { value: 'discussant', label: 'Discussant' },
+  { value: 'introducer', label: 'Introducer' },
+]
+
 function fmt(iso: string) { return iso ? iso.slice(0, 16) : '' }
 function toIso(local: string) { return local ? new Date(local).toISOString() : '' }
 
@@ -35,7 +44,12 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
   const [roomId, setRoomId] = useState(session?.room_id ?? '')
   const [sponsoredById, setSponsoredById] = useState(session?.sponsored_by_id ?? '')
   const [capacity, setCapacity] = useState<string>(session?.capacity != null ? String(session.capacity) : '')
-  const [speakerIds, setSpeakerIds] = useState<string[]>(session?.speakers?.map(s => s.id) ?? [])
+  const [speakerRoles, setSpeakerRoles] = useState<Record<string, string>>(
+    () => (session?.speakers ?? []).reduce((acc, s) => ({
+      ...acc,
+      [s.id]: (s as any).session_role ?? 'presenter',
+    }), {} as Record<string, string>)
+  )
   const [ceHours, setCeHours] = useState<string>(session?.ce_credit_hours != null ? String(session.ce_credit_hours) : '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -47,7 +61,18 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
   const conflictRoom = conflict ? rooms.find(r => r.id === conflict.room_id) : null
 
   function toggleSpeaker(id: string) {
-    setSpeakerIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+    setSpeakerRoles(prev => {
+      if (id in prev) {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      }
+      // Default role based on session type
+      const role = type === 'panel'
+        ? (Object.keys(prev).length === 0 ? 'moderator' : 'panelist')
+        : 'presenter'
+      return { ...prev, [id]: role }
+    })
   }
 
   async function handleSubmit() {
@@ -61,7 +86,8 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
         track_id: trackId || null, room_id: roomId || null,
         sponsored_by_id: sponsoredById || null,
         capacity: capacity !== '' ? parseInt(capacity, 10) : null,
-        speaker_ids: speakerIds,
+        speaker_ids: Object.keys(speakerRoles),
+        speaker_roles: speakerRoles,
         ce_credit_hours: ceHours !== '' ? parseFloat(ceHours) : null,
       })
     } catch (e: any) {
@@ -73,6 +99,8 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
 
   const inputCls = 'w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-sm text-[var(--text-primary)]'
   const labelCls = 'block text-xs font-medium text-[var(--text-muted)] mb-1'
+
+  const selectedSpeakers = speakers.filter(s => s.id in speakerRoles)
 
   return (
     <div className="space-y-4">
@@ -167,7 +195,7 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
       {speakers.length > 0 && (
         <div>
           <label className={labelCls}>Speakers</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {speakers.map(s => (
               <button
                 key={s.id}
@@ -175,7 +203,7 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
                 onClick={() => toggleSpeaker(s.id)}
                 className={
                   'px-3 py-1 rounded-full text-xs font-medium border transition-colors ' +
-                  (speakerIds.includes(s.id)
+                  (s.id in speakerRoles
                     ? 'bg-[var(--brand-teal)] text-white border-[var(--brand-teal)]'
                     : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border)]')
                 }
@@ -184,6 +212,24 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
               </button>
             ))}
           </div>
+          {selectedSpeakers.length > 0 && (
+            <div className="space-y-2">
+              {selectedSpeakers.map(s => (
+                <div key={s.id} className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--text-primary)] min-w-[120px]">{s.name}</span>
+                  <select
+                    value={speakerRoles[s.id]}
+                    onChange={e => setSpeakerRoles(prev => ({ ...prev, [s.id]: e.target.value }))}
+                    className="px-2 py-1 border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-xs text-[var(--text-primary)]"
+                  >
+                    {SPEAKER_ROLES.map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
