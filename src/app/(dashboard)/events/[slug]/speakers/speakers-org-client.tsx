@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { sendSpeakerInvite, createSpeaker } from '@/lib/speaker/speaker-actions'
+import { sendSpeakerInvite, createSpeaker, markSpeakerArrived } from '@/lib/speaker/speaker-actions'
 
 type Props = {
   event: any
@@ -15,7 +15,7 @@ const statusBadge: Record<string, { bg: string; label: string }> = {
 }
 
 export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
-  const [speakers, setSpeakers] = useState(initialSpeakers)
+  const [speakers, setSpeakers] = useState<any[]>(initialSpeakers)
   const [inviting, setInviting] = useState<string | null>(null)
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({})
   const [showAdd, setShowAdd] = useState(false)
@@ -32,6 +32,13 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
       [speakerId]: (result as any).error ?? ((result as any).sent ? 'Invite sent!' : `Portal: ${(result as any).portalUrl ?? ''}`)
     }))
     setInviting(null)
+  }
+
+  async function markArrived(speakerId: string) {
+    await markSpeakerArrived(speakerId)
+    setSpeakers(prev => prev.map(sp =>
+      sp.id === speakerId ? { ...sp, checked_in_at: new Date().toISOString() } : sp
+    ))
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -159,12 +166,23 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                 <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
                   className="rounded-lg px-3 py-1.5 text-xs font-medium"
                   style={{ background: 'var(--pz-teal)', color: '#fff', opacity: !sp.email ? 0.5 : 1 }}>
                   {inviting === sp.id ? 'Sending…' : 'Send invite'}
                 </button>
+                {!sp.checked_in_at ? (
+                  <button onClick={() => markArrived(sp.id)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium"
+                    style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'transparent', cursor: 'pointer' }}>
+                    Mark arrived
+                  </button>
+                ) : (
+                  <span className="text-xs" style={{ color: 'var(--pz-teal)', alignSelf: 'center' }}>
+                    ✓ Arrived {new Date(sp.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                )}
                 {sp.confirmation_token && (
                   <a href={`/speaker/confirm/${sp.confirmation_token}`} target="_blank" rel="noreferrer"
                     className="rounded-lg px-3 py-1.5 text-xs font-medium"

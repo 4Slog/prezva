@@ -141,6 +141,24 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
         {/* Sessions tab */}
         {tab === 'sessions' && (
           <div className="space-y-6">
+            {(() => {
+              const eventDate = new Date((event as any).start_date)
+              const isToday = eventDate.toDateString() === new Date().toDateString()
+              const dayOfInfo = (event as any).speaker_day_of_info
+              return isToday && dayOfInfo ? (
+                <div style={{
+                  background: 'var(--pz-teal)15', border: '1px solid var(--pz-teal)',
+                  borderRadius: 10, padding: '1rem',
+                }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-teal)', marginBottom: 6 }}>
+                    Day-of Info
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--pz-text)', whiteSpace: 'pre-wrap', margin: 0 }}>
+                    {dayOfInfo}
+                  </p>
+                </div>
+              ) : null
+            })()}
             {sessionsWithQA.length === 0 ? (
               <div className="pz-card p-6 text-center">
                 <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>No sessions assigned yet.</p>
@@ -256,6 +274,24 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                       <span style={{ fontSize: 20 }}>{'★'.repeat(Math.round(sd.feedback.avg))}{'☆'.repeat(5 - Math.round(sd.feedback.avg))}</span>
                       <span className="text-sm font-semibold" style={{ color: 'var(--pz-text)' }}>{sd.feedback.avg.toFixed(1)}/5</span>
                     </div>
+                    {sd.feedback.comments?.length > 0 && (
+                      <details style={{ marginTop: 6 }}>
+                        <summary style={{ fontSize: 12, color: 'var(--pz-teal)', cursor: 'pointer', userSelect: 'none' }}>
+                          Read comments ({sd.feedback.comments.length})
+                        </summary>
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {sd.feedback.comments.map((c: string, i: number) => (
+                            <div key={i} style={{
+                              background: 'var(--pz-surface-2)', borderRadius: 8,
+                              padding: '0.75rem', fontSize: 13, color: 'var(--pz-text)',
+                              fontStyle: 'italic', lineHeight: 1.5,
+                            }}>
+                              &ldquo;{c}&rdquo;
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </div>
                 )}
 

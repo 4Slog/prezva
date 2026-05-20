@@ -239,16 +239,21 @@ export async function getSessionFeedbackForSpeaker(sessionIds: string[]) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('session_feedback')
-    .select('session_id, rating, comment')
+    .select('session_id, rating, comment, created_at')
     .in('session_id', sessionIds)
-  const bySession: Record<string, { ratings: number[]; avg: number; count: number }> = {}
+    .order('created_at', { ascending: false })
+  const bySession: Record<string, { ratings: number[]; avg: number; count: number; comments: string[] }> = {}
   for (const fb of (data ?? []) as any[]) {
-    if (!bySession[fb.session_id]) bySession[fb.session_id] = { ratings: [], avg: 0, count: 0 }
+    if (!bySession[fb.session_id]) bySession[fb.session_id] = { ratings: [], avg: 0, count: 0, comments: [] }
     bySession[fb.session_id].ratings.push(fb.rating)
+    if (fb.comment?.trim()) {
+      bySession[fb.session_id].comments.push(fb.comment.trim())
+    }
   }
-  for (const [sid, val] of Object.entries(bySession)) {
+  for (const val of Object.values(bySession)) {
     val.avg = val.ratings.reduce((s, r) => s + r, 0) / val.ratings.length
     val.count = val.ratings.length
+    val.comments = val.comments.slice(0, 20)
   }
   return bySession
 }
@@ -426,4 +431,28 @@ export async function getSpeakersWithMissingInfo(eventId: string, missingField: 
   }
   const { data } = await q
   return (data ?? []) as any[]
+}
+
+export async function markSpeakerArrived(speakerId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: sp } = await admin.from('speakers').select('event_id, events(org_id)').eq('id', speakerId).single()
+  if (!sp) return { error: 'Not found' }
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, (sp as any).events?.org_id, user.id, ['owner', 'admin', 'staff'])
+  await admin.from('speakers').update({ checked_in_at: new Date().toISOString() }).eq('id', speakerId)
+  return { ok: true }
+}
+
+export async function updateSpeakerDayOfInfo(eventId: string, text: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
+  if (!event) return { error: 'Event not found' }
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  await admin.from('events').update({ speaker_day_of_info: text || null }).eq('id', eventId)
+  return { ok: true }
 }

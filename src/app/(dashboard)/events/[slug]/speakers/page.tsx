@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { SpeakersOrgClient } from './speakers-org-client'
+import { DayOfInfoSection } from './day-of-info-section'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -12,7 +13,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, org_id, slug')
+    .select('id, title, org_id, slug, speaker_day_of_info')
     .eq('slug', slug)
     .single()
   if (!event) notFound()
@@ -27,7 +28,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
 
   const { data: speakers } = await supabase
     .from('speakers')
-    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason')
+    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at')
     .eq('event_id', (event as any).id)
     .order('sort_order', { ascending: true })
 
@@ -49,6 +50,10 @@ export default async function SpeakersDashboardPage({ params }: Props) {
       <SpeakersOrgClient
         event={event as any}
         speakers={(speakers ?? []) as any[]}
+      />
+      <DayOfInfoSection
+        eventId={(event as any).id}
+        initialValue={(event as any).speaker_day_of_info ?? ''}
       />
     </div>
   )
