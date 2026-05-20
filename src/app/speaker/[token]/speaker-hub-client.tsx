@@ -99,10 +99,10 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
       {/* Header */}
       <div style={{ background: 'var(--pz-teal)', padding: '1.25rem 1.5rem' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <p className="text-xs font-medium text-white/70 mb-0.5">{event?.title}</p>
+          <p className="text-xs font-medium text-white/70 mb-0.5" style={{ fontSize: 13 }}>{event?.title}</p>
           <h1 className="text-lg font-bold text-white">Speaker Portal</h1>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm text-white/90">{speaker?.name}</span>
+            <span className="text-white/90" style={{ fontSize: 18 }}>{speaker?.name}</span>
             <span
               className="rounded-full px-2 py-0.5 text-xs font-semibold"
               style={{ background: statusColor[speaker?.status ?? 'invited'] ?? 'var(--pz-warning, #f59e0b)', color: '#fff' }}
@@ -115,7 +115,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
 
       {/* Tabs */}
       <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: '0.25rem', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: '0.25rem', padding: '0 1.5rem', overflowX: 'auto' }}>
           {(['sessions', 'info', 'messages'] as Tab[]).map(t => (
             <button
               key={t}
@@ -123,10 +123,12 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                 setTab(t)
                 if (t === 'messages' && !convId) loadMessages()
               }}
-              className="px-4 py-3 text-sm font-medium capitalize"
+              className="text-sm font-medium capitalize"
               style={{
                 borderBottom: tab === t ? '2px solid var(--pz-teal)' : '2px solid transparent',
                 color: tab === t ? 'var(--pz-teal)' : 'var(--pz-muted)',
+                minHeight: 44,
+                padding: '0 1.25rem',
               }}
             >
               {t}
@@ -157,6 +159,44 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                   <p className="text-xs mb-4" style={{ color: 'var(--pz-muted)' }}>
                     {new Date(sd.session.starts_at).toLocaleString()}
                   </p>
+                )}
+
+                {/* Co-speakers */}
+                {sd.co_speakers?.length > 0 && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--pz-border)', marginBottom: 12 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 6 }}>
+                      ALSO PRESENTING
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {sd.co_speakers.map((cs: any) => (
+                        <div key={cs.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: 'var(--pz-teal)22', color: 'var(--pz-teal)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 11, fontWeight: 700, flexShrink: 0,
+                          }}>
+                            {cs.name?.charAt(0) ?? '?'}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--pz-text)', margin: 0 }}>
+                              {cs.name}
+                              {cs.session_role !== 'presenter' && (
+                                <span style={{ fontSize: 11, color: 'var(--pz-muted)', marginLeft: 4 }}>
+                                  ({cs.session_role})
+                                </span>
+                              )}
+                            </p>
+                            {(cs.job_title || cs.company) && (
+                              <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>
+                                {cs.job_title}{cs.company ? `, ${cs.company}` : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {/* Handouts */}
@@ -194,8 +234,8 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                           {!q.answered_at && (
                             <button
                               onClick={() => answerQuestion(q.id)}
-                              className="rounded px-2 py-1 text-xs font-medium shrink-0"
-                              style={{ background: 'var(--pz-success)', color: '#fff' }}
+                              className="rounded text-xs font-medium shrink-0"
+                              style={{ background: 'var(--pz-success)', color: '#fff', minWidth: 44, minHeight: 44 }}
                             >
                               Mark answered
                             </button>
@@ -250,7 +290,8 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                       {pollOptions.map((opt, i) => (
                         <input
                           key={i}
-                          className="pz-input w-full text-sm"
+                          className="pz-input w-full"
+                          style={{ fontSize: 16 }}
                           placeholder={`Option ${i + 1}`}
                           value={opt}
                           onChange={e => { const o = [...pollOptions]; o[i] = e.target.value; setPollOptions(o) }}
@@ -261,11 +302,12 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                           + Add option
                         </button>
                       )}
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         <button
                           onClick={submitPoll}
                           disabled={pollPending}
-                          className="pz-btn-primary text-sm px-3 py-1.5"
+                          className="pz-btn-primary text-sm"
+                          style={{ width: '100%', padding: '0.75rem' }}
                         >
                           {pollPending ? 'Creating…' : 'Create poll'}
                         </button>
@@ -325,16 +367,26 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                 </div>
               </div>
             )}
+            <a
+              href={`/e/${(event as any).slug}/speakers/${(speaker as any).id}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                       color: 'var(--pz-teal)', fontSize: 13, textDecoration: 'none',
+                       marginTop: 12 }}
+            >
+              Preview your public profile →
+            </a>
           </div>
         )}
 
         {/* Messages tab (T-095d) */}
         {tab === 'messages' && (
-          <div className="pz-card flex flex-col" style={{ height: '60vh' }}>
+          <div className="pz-card">
             <div className="p-4 border-b" style={{ borderColor: 'var(--pz-border)' }}>
               <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>Message organizer</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="p-4 space-y-2" style={{ maxHeight: '55vh', overflowY: 'auto' }}>
               {messages.length === 0 && (
                 <p className="text-sm text-center" style={{ color: 'var(--pz-muted)' }}>No messages yet. Start the conversation!</p>
               )}
@@ -355,7 +407,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                 </div>
               ))}
             </div>
-            <div className="p-3 border-t flex gap-2" style={{ borderColor: 'var(--pz-border)' }}>
+            <div style={{ position: 'sticky', bottom: 0, background: 'var(--pz-surface)', borderTop: '1px solid var(--pz-border)', padding: '0.75rem', display: 'flex', gap: 8 }}>
               <input
                 className="pz-input flex-1 text-sm"
                 placeholder="Type a message…"

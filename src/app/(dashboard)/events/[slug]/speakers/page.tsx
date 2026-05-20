@@ -27,7 +27,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
 
   const { data: speakers } = await supabase
     .from('speakers')
-    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published')
+    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason')
     .eq('event_id', (event as any).id)
     .order('sort_order', { ascending: true })
 

@@ -153,6 +153,19 @@ export async function confirmSpeakerSlot(token: string, action: 'confirmed' | 'd
   return { error: error?.message }
 }
 
+export async function declineSpeakerSlot(token: string, reason?: string, alternative?: string) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('speakers')
+    .update({
+      status: 'declined',
+      decline_reason: reason || null,
+      decline_alternative: alternative || null,
+    })
+    .eq('confirmation_token', token)
+  return { error: error?.message }
+}
+
 // ── T-095c: speaker form ──────────────────────────────────────────────────────
 
 export async function getSpeakerFormSchema(eventId: string) {
@@ -250,17 +263,28 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
   const sessionIds = ((sessionSpeakers ?? []) as any[]).map(ss => ss.session_id)
   if (sessionIds.length === 0) return []
 
-  const { data: questions } = await supabase
-    .from('session_questions')
-    .select('id, session_id, body, upvote_count, is_poll, poll_options, answered_at, created_at')
-    .in('session_id', sessionIds)
-    .eq('event_id', eventId)
-    .order('upvote_count', { ascending: false })
+  const [{ data: questions }, { data: coSpeakerRows }] = await Promise.all([
+    supabase
+      .from('session_questions')
+      .select('id, session_id, body, upvote_count, is_poll, poll_options, answered_at, created_at')
+      .in('session_id', sessionIds)
+      .eq('event_id', eventId)
+      .order('upvote_count', { ascending: false }),
+    supabase
+      .from('session_speakers')
+      .select('session_id, role, speakers(id, name, job_title, company, photo_url, event_role)')
+      .in('session_id', sessionIds)
+      .neq('speaker_id', speakerId),
+  ])
 
   return ((sessionSpeakers ?? []) as any[]).map(ss => ({
     session: ss.sessions ? { ...ss.sessions, session_role: ss.role ?? 'presenter' } : null,
     questions: ((questions ?? []) as any[]).filter(q => q.session_id === ss.session_id && !q.is_poll),
     polls: ((questions ?? []) as any[]).filter(q => q.session_id === ss.session_id && q.is_poll),
+    co_speakers: ((coSpeakerRows ?? []) as any[])
+      .filter(cs => cs.session_id === ss.session_id)
+      .map(cs => ({ ...cs.speakers, session_role: cs.role ?? 'presenter' }))
+      .filter(Boolean),
   }))
 }
 
@@ -323,7 +347,56 @@ export async function sendSpeakerMessage(conversationId: string, senderRole: 'or
   const { error } = await supabase
     .from('speaker_messages')
     .insert({ conversation_id: conversationId, sender_role: senderRole, body })
-  return { error: error?.message }
+  if (error) return { error: error.message }
+
+  if (senderRole === 'organizer') {
+    const admin = createAdminClient()
+
+    const { data: conv } = await admin
+      .from('speaker_conversations')
+      .select('speaker_id, event_id, speakers(name, email, confirmation_token), events(title, organizations(name))')
+      .eq('id', conversationId)
+      .single()
+
+    if (conv) {
+      const speaker = (conv as any).speakers
+      const event = (conv as any).events
+      const orgName = event?.organizations?.name ?? 'Event organizer'
+      const hubUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/speaker/${speaker?.confirmation_token}`
+
+      const { data: recent } = await admin
+        .from('speaker_messages')
+        .select('created_at')
+        .eq('conversation_id', conversationId)
+        .eq('sender_role', 'organizer')
+        .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(2)
+
+      const shouldEmail = !recent || recent.length <= 1
+
+      if (shouldEmail && speaker?.email) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `${orgName} <noreply@prezva.app>`,
+            to: speaker.email,
+            subject: `New message re: ${event?.title ?? 'your session'}`,
+            html: `<p>Hi ${speaker.name},</p>
+                   <p>${orgName} sent you a message:</p>
+                   <blockquote style="border-left:3px solid #00BFA6;padding:0 1rem;color:#555">${body}</blockquote>
+                   <p><a href="${hubUrl}">View in your speaker hub →</a></p>`,
+          }),
+        }).catch(() => {})
+      }
+    }
+  }
+
+  return { error: undefined }
 }
 
 export async function getSpeakerConversations(eventId: string) {

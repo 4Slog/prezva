@@ -148,6 +148,11 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                     Confirmed {new Date(sp.confirmed_at).toLocaleDateString()}
                   </p>
                 )}
+                {sp.decline_reason && (
+                  <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 2, fontStyle: 'italic' }}>
+                    "{sp.decline_reason}"
+                  </p>
+                )}
                 {inviteResult[sp.id] && (
                   <p className="text-xs mt-1" style={{ color: inviteResult[sp.id].startsWith('Portal:') ? 'var(--pz-muted)' : 'var(--pz-success)', wordBreak: 'break-all' }}>
                     {inviteResult[sp.id]}
