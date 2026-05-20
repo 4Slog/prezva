@@ -296,7 +296,7 @@ export async function searchAttendeesForCheckIn(eventId: string, query: string) 
 
   const { data } = await supabase
     .from('registrations')
-    .select('id, attendee_name, attendee_email, status, ticket_types(name), check_ins(id, checked_in_at)')
+    .select('id, attendee_name, attendee_email, status, delivery_method, ticket_types(name), check_ins(id, checked_in_at)')
     .eq('event_id', eventId)
     .neq('status', 'cancelled')
     .or('attendee_name.ilike.%' + query + '%,attendee_email.ilike.%' + query + '%')
@@ -307,6 +307,7 @@ export async function searchAttendeesForCheckIn(eventId: string, query: string) 
     attendee_name: r.attendee_name,
     attendee_email: r.attendee_email,
     ticket_name: r.ticket_types?.name ?? '',
+    delivery_method: r.delivery_method ?? 'in_person',
     checked_in: (r.check_ins?.length ?? 0) > 0,
     check_in_time: r.check_ins?.[0]?.checked_in_at ?? null,
   }))

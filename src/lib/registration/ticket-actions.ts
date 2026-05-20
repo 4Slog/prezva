@@ -21,6 +21,7 @@ const TicketSchema = z.object({
   membership_required: z.preprocess(v => v === 'true' || v === true, z.boolean()).default(false),
   membership_provider: z.string().nullable().optional(),
   waitlist_enabled:    z.preprocess(v => v === 'true' || v === true, z.boolean()).default(false),
+  delivery_method:     z.enum(['in_person', 'virtual', 'both']).default('in_person'),
 })
 
 async function assertEventAccess(

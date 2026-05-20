@@ -15,6 +15,7 @@ export async function createSpeaker(eventId: string, input: {
   job_title?: string
   company?: string
   bio?: string
+  event_role?: string
 }) {
   const supabase = await createClient()
   const admin = createAdminClient()
@@ -32,6 +33,7 @@ export async function createSpeaker(eventId: string, input: {
       job_title: input.job_title || null,
       company: input.company || null,
       bio: input.bio || null,
+      event_role: input.event_role ?? 'speaker',
       status: 'invited',
       sort_order: 0,
     })
@@ -242,7 +244,7 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
   const supabase = await createClient()
   const { data: sessionSpeakers } = await supabase
     .from('session_speakers')
-    .select('session_id, sessions(id, title, starts_at, ends_at)')
+    .select('session_id, role, sessions(id, title, starts_at, ends_at)')
     .eq('speaker_id', speakerId)
 
   const sessionIds = ((sessionSpeakers ?? []) as any[]).map(ss => ss.session_id)
@@ -256,7 +258,7 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
     .order('upvote_count', { ascending: false })
 
   return ((sessionSpeakers ?? []) as any[]).map(ss => ({
-    session: ss.sessions,
+    session: ss.sessions ? { ...ss.sessions, session_role: ss.role ?? 'presenter' } : null,
     questions: ((questions ?? []) as any[]).filter(q => q.session_id === ss.session_id && !q.is_poll),
     polls: ((questions ?? []) as any[]).filter(q => q.session_id === ss.session_id && q.is_poll),
   }))

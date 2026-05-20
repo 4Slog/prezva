@@ -145,7 +145,14 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
               </div>
             ) : sessionsWithQA.map((sd: any) => (
               <div key={sd.session?.id} className="pz-card p-5">
-                <h2 className="font-semibold mb-1" style={{ color: 'var(--pz-text)' }}>{sd.session?.title}</h2>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h2 className="font-semibold" style={{ color: 'var(--pz-text)' }}>{sd.session?.title}</h2>
+                  {sd.session?.session_role && sd.session.session_role !== 'presenter' && (
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: 'var(--pz-teal)22', color: 'var(--pz-teal)' }}>
+                      {sd.session.session_role.charAt(0).toUpperCase() + sd.session.session_role.slice(1)}
+                    </span>
+                  )}
+                </div>
                 {sd.session?.starts_at && (
                   <p className="text-xs mb-4" style={{ color: 'var(--pz-muted)' }}>
                     {new Date(sd.session.starts_at).toLocaleString()}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { BADGE_TEMPLATES } from '@/lib/templates/badges'
 import type { BadgeTemplate, BadgeField } from '@/lib/templates/types'
@@ -21,7 +22,18 @@ interface BindingMap {
   [key: string]: string
 }
 
-function buildBindings(reg: RegRow, eventTitle: string): BindingMap {
+const EVENT_ROLE_LABELS: Record<string, string> = {
+  mc: 'EMCEE',
+  chair: 'PROGRAM CHAIR',
+  host: 'HOST',
+  guest: 'GUEST',
+  vip: 'VIP',
+}
+
+function buildBindings(reg: RegRow, eventTitle: string, speakerEventRole?: string | null): BindingMap {
+  const roleLabel = speakerEventRole && speakerEventRole !== 'speaker'
+    ? (EVENT_ROLE_LABELS[speakerEventRole] ?? speakerEventRole.toUpperCase())
+    : ''
   return {
     attendee_name: reg.attendee_name,
     attendee_email: reg.attendee_email,
@@ -30,6 +42,8 @@ function buildBindings(reg: RegRow, eventTitle: string): BindingMap {
     ticket_type_name: reg.ticket_types?.name ?? '',
     event_title: eventTitle,
     qr_code: reg.qr_code,
+    speaker_event_role_label: roleLabel,
+    speaker_photo_url: '',
   }
 }
 
@@ -189,12 +203,28 @@ export async function GET(
     return NextResponse.json({ error: 'No confirmed registrations found' }, { status: 404 })
   }
 
+  // Fetch confirmed speakers for this event (for auto-detection)
+  const admin = createAdminClient()
+  const { data: confirmedSpeakers } = await admin
+    .from('speakers')
+    .select('email, event_role, photo_url')
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed')
+
+  const speakerByEmail = new Map<string, { event_role: string; photo_url: string | null }>()
+  for (const sp of confirmedSpeakers ?? []) {
+    if (sp.email) speakerByEmail.set(sp.email.toLowerCase(), { event_role: sp.event_role ?? 'speaker', photo_url: sp.photo_url })
+  }
+
+  const speakerTemplate = BADGE_TEMPLATES.find(t => t.id === 'speaker') ?? null
   const eventTitle = (event as any).title as string
 
   if (format === 'zpl') {
     const zplPages = (regs as unknown as RegRow[]).map((reg) => {
-      const bindings = buildBindings(reg, eventTitle)
-      return badgeToZpl(template!, bindings)
+      const speakerInfo = speakerByEmail.get(reg.attendee_email.toLowerCase())
+      const effectiveTemplate = speakerInfo && speakerTemplate ? speakerTemplate : template!
+      const bindings = buildBindings(reg, eventTitle, speakerInfo?.event_role)
+      return badgeToZpl(effectiveTemplate, bindings)
     })
     return new NextResponse(zplPages.join('\n'), {
       headers: {
@@ -207,9 +237,12 @@ export async function GET(
   // HTML render — generate QR data URLs for each reg
   const badges: string[] = []
   for (const reg of regs as unknown as RegRow[]) {
-    const bindings = buildBindings(reg, eventTitle)
+    const speakerInfo = speakerByEmail.get(reg.attendee_email.toLowerCase())
+    const effectiveTemplate = speakerInfo && speakerTemplate ? speakerTemplate : template!
+    const bindings = buildBindings(reg, eventTitle, speakerInfo?.event_role)
+    if (speakerInfo?.photo_url) bindings['speaker_photo_url'] = speakerInfo.photo_url
     const qrUrl = await buildQrDataUrl(reg.qr_code)
-    badges.push(badgeToHtml(template!, bindings, qrUrl))
+    badges.push(badgeToHtml(effectiveTemplate, bindings, qrUrl))
   }
 
   const { width_mm, height_mm } = template.size

@@ -43,7 +43,7 @@ export async function getPublicAgenda(eventId: string) {
       *,
       tracks(id, name, color),
       rooms(id, name),
-      session_speakers(speakers(id, name, job_title, company, photo_url)),
+      session_speakers(role, speakers(id, name, job_title, company, photo_url)),
       sponsored_by:event_sponsors(id, name, logo_url, website_url)
     `)
     .eq('event_id', eventId)

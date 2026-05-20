@@ -59,7 +59,7 @@ export interface Session {
   sort_order: number
   ce_credit_hours: number | null
   virtual_url: string | null
-  speakers?: Pick<Speaker, 'id' | 'name' | 'job_title' | 'company' | 'photo_url'>[]
+  speakers?: (Pick<Speaker, 'id' | 'name' | 'job_title' | 'company' | 'photo_url'> & { session_role?: string })[]
   track?: Pick<Track, 'id' | 'name' | 'color'> | null
   room?: Pick<Room, 'id' | 'name'> | null
   sponsored_by?: { id: string; name: string; logo_url: string | null; website_url: string | null } | null
@@ -281,6 +281,7 @@ const SessionSchema = z.object({
   ce_credit_hours: z.number().min(0).max(24).nullable().optional(),
   virtual_url: z.string().url().nullable().optional(),
   speaker_ids: z.array(z.string().uuid()).optional(),
+  speaker_roles: z.record(z.string(), z.string()).optional(),
 })
 
 export async function getSessions(eventId: string): Promise<Session[]> {
@@ -289,14 +290,14 @@ export async function getSessions(eventId: string): Promise<Session[]> {
   await assertOrgMember(supabase, user.id, eventId)
   const { data } = await supabase
     .from('sessions')
-    .select('*, tracks(id, name, color), rooms(id, name), session_speakers(speakers(id, name, job_title, company, photo_url)), sponsored_by:event_sponsors(id, name, logo_url, website_url)')
+    .select('*, tracks(id, name, color), rooms(id, name), session_speakers(role, speakers(id, name, job_title, company, photo_url)), sponsored_by:event_sponsors(id, name, logo_url, website_url)')
     .eq('event_id', eventId)
     .order('starts_at')
   return ((data ?? []) as any[]).map(s => ({
     ...s,
     track: s.tracks ?? null,
     room: s.rooms ?? null,
-    speakers: (s.session_speakers ?? []).map((ss: any) => ss.speakers).filter(Boolean),
+    speakers: (s.session_speakers ?? []).map((ss: any) => ss.speakers ? { ...ss.speakers, session_role: ss.role ?? 'presenter' } : null).filter(Boolean),
     sponsored_by: s.sponsored_by ?? null,
   }))
 }
@@ -308,14 +309,14 @@ export async function createSession(eventId: string, input: unknown) {
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
 
-  const { speaker_ids, ...sessionData } = parsed.data
+  const { speaker_ids, speaker_roles, ...sessionData } = parsed.data
   const { data: session, error } = await supabase
     .from('sessions').insert({ event_id: eventId, ...sessionData }).select().single()
   if (error) return { error: error.message }
 
   if (speaker_ids?.length) {
     await supabase.from('session_speakers').insert(
-      speaker_ids.map((sid, i) => ({ session_id: (session as any).id, speaker_id: sid, sort_order: i }))
+      speaker_ids.map((sid, i) => ({ session_id: (session as any).id, speaker_id: sid, sort_order: i, role: speaker_roles?.[sid] ?? 'presenter' }))
     )
   }
   await logAudit(supabase, null, user.id, 'session.create', 'session', (session as any).id, { title: sessionData.title })
@@ -330,7 +331,7 @@ export async function updateSession(eventId: string, sessionId: string, input: u
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
 
-  const { speaker_ids, ...sessionData } = parsed.data as any
+  const { speaker_ids, speaker_roles, ...sessionData } = parsed.data as any
   const { data, error } = await supabase
     .from('sessions').update(sessionData).eq('id', sessionId).eq('event_id', eventId).select().single()
   if (error) return { error: error.message }
@@ -339,7 +340,7 @@ export async function updateSession(eventId: string, sessionId: string, input: u
     await supabase.from('session_speakers').delete().eq('session_id', sessionId)
     if (speaker_ids.length) {
       await supabase.from('session_speakers').insert(
-        speaker_ids.map((sid: string, i: number) => ({ session_id: sessionId, speaker_id: sid, sort_order: i }))
+        speaker_ids.map((sid: string, i: number) => ({ session_id: sessionId, speaker_id: sid, sort_order: i, role: speaker_roles?.[sid] ?? 'presenter' }))
       )
     }
   }

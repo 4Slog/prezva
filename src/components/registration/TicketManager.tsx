@@ -42,6 +42,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
   const [showForm, setShowForm] = useState(false)
   const [type, setType]         = useState('free')
   const [membershipRequired, setMembershipRequired] = useState(false)
+  const [deliveryMethod, setDeliveryMethod] = useState('in_person')
   const [error, setError]       = useState<string | null>(null)
   const [pending, setPending]   = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -62,6 +63,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       setShowForm(false)
       ;(e.target as HTMLFormElement).reset()
       setType('free')
+      setDeliveryMethod('in_person')
     }
   }
 
@@ -93,6 +95,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                     <span>{t.quantity_sold} / {t.quantity} sold</span>
                   )}
                   {t.quantity === null && <span>{t.quantity_sold} sold · unlimited</span>}
+                  <span>{(t as any).delivery_method === 'virtual' ? '💻 Virtual' : (t as any).delivery_method === 'both' ? '📍💻 Hybrid' : '📍 In-person'}</span>
                 </div>
               </div>
               <button
@@ -179,6 +182,23 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               <label htmlFor="waitlist_enabled" className="text-sm text-[#94A3B8] cursor-pointer">
                 Enable waitlist (when ticket sells out, allow attendees to join waitlist)
               </label>
+            </div>
+            <div className="col-span-2">
+              <label className={labelCls}>Attendance type</label>
+              <div className="flex gap-4 mt-1">
+                <label className="flex items-center gap-1.5 text-sm text-[#94A3B8] cursor-pointer">
+                  <input type="radio" name="delivery_method" value="in_person" checked={deliveryMethod === 'in_person'} onChange={e => setDeliveryMethod(e.target.value)} />
+                  📍 In-person
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-[#94A3B8] cursor-pointer">
+                  <input type="radio" name="delivery_method" value="virtual" checked={deliveryMethod === 'virtual'} onChange={e => setDeliveryMethod(e.target.value)} />
+                  💻 Virtual
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-[#94A3B8] cursor-pointer">
+                  <input type="radio" name="delivery_method" value="both" checked={deliveryMethod === 'both'} onChange={e => setDeliveryMethod(e.target.value)} />
+                  Both (attendee chooses)
+                </label>
+              </div>
             </div>
             {membershipRequired && connectedAssociations.length > 0 && (
               <div className="col-span-2">

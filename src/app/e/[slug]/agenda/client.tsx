@@ -12,7 +12,7 @@ interface Session {
   starts_at: string; ends_at: string
   tracks?: { id: string; name: string; color: string } | null
   rooms?: { id: string; name: string } | null
-  session_speakers?: { speakers: { id: string; name: string } | null }[]
+  session_speakers?: { role?: string; speakers: { id: string; name: string } | null }[]
   virtual_url?: string | null
   sponsored_by?: { id: string; name: string; logo_url: string | null; website_url: string | null } | null
 }
@@ -310,7 +310,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {daySessions.map(s => {
               const color = s.tracks?.color ?? COLORS[s.session_type] ?? '#64748b'
-              const spks = s.session_speakers?.map(ss => ss.speakers).filter(Boolean) ?? []
+              const spks = s.session_speakers?.filter(ss => ss.speakers).map(ss => ({ ...ss.speakers!, role: ss.role ?? 'presenter' })) ?? []
               const borderStyle = '4px solid ' + color
               const isActive = new Date() >= new Date(s.starts_at) && new Date() <= new Date(s.ends_at)
               const isEnded = new Date(s.ends_at) < new Date()
@@ -334,7 +334,19 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                         Sponsored by {(s as any).sponsored_by.name}
                       </p>
                     )}
-                    {spks.length > 0 && <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>{(spks as any[]).map(sp => sp.name).join(', ')}</p>}
+                    {spks.length > 0 && (
+                      <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>
+                        {spks.map((sp, i) => (
+                          <span key={sp.id}>
+                            {i > 0 && ', '}
+                            {sp.name}
+                            {sp.role && sp.role !== 'presenter' && (
+                              <span style={{ fontSize:11, marginLeft:3 }}>({sp.role.charAt(0).toUpperCase() + sp.role.slice(1)})</span>
+                            )}
+                          </span>
+                        ))}
+                      </p>
+                    )}
                     {(handoutsBySession[s.id]?.length ?? 0) > 0 && (
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {handoutsBySession[s.id].map((h: any) => (

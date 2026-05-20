@@ -54,6 +54,9 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
         {stats.capacity && <StatCard label="Capacity" value={`${stats.capacityUsed}/${stats.capacity}`} sub={`${Math.round((stats.capacityUsed / stats.capacity) * 100)}% full`} />}
         <StatCard label="Announcements" value={stats.announcementCount} />
         <StatCard label="Survey Responses" value={stats.surveyResponseCount} />
+        {(stats.virtualAttendees > 0 || stats.inPersonAttendees > 0) && (
+          <StatCard label="Attendance Mode" value={`${stats.inPersonAttendees} in-person`} sub={`${stats.virtualAttendees} virtual`} color="#0891b2" />
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>

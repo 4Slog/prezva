@@ -19,6 +19,7 @@ const RegisterSchema = z.object({
   attendee_company:   z.string().optional(),
   attendee_job_title: z.string().optional(),
   discount_code:      z.string().optional(),
+  delivery_method:    z.enum(['in_person', 'virtual']).optional(),
 })
 
 // ── Validate discount code ────────────────────────────────────────────────────
@@ -82,6 +83,7 @@ export async function startRegistration(formData: FormData) {
     attendee_company:   formData.get('attendee_company') || undefined,
     attendee_job_title: formData.get('attendee_job_title') || undefined,
     discount_code:      formData.get('discount_code') || undefined,
+    delivery_method:    formData.get('delivery_method') || undefined,
   }
 
   const parsed = RegisterSchema.safeParse(raw)
@@ -201,11 +203,18 @@ export async function startRegistration(formData: FormData) {
     discountAmountCents = result.discountAmountCents!(ticket.price_cents)
   }
 
+  // Compute effective delivery_method
+  const ticketDelivery = (ticket as any).delivery_method as string ?? 'in_person'
+  const effectiveDelivery: 'in_person' | 'virtual' = ticketDelivery === 'both'
+    ? (parsed.data.delivery_method ?? 'in_person')
+    : (ticketDelivery as 'in_person' | 'virtual')
+  const registrationData = { ...parsed.data, delivery_method: effectiveDelivery }
+
   // Free ticket → confirm immediately
   if (ticket.type === 'free' || ticket.price_cents === 0) {
     return await confirmFreeRegistration(
       supabase,
-      parsed.data,
+      registrationData,
       event,
       ticket,
       user?.id,
@@ -231,7 +240,7 @@ export async function startRegistration(formData: FormData) {
 
   return await createPaidRegistration(
     supabase,
-    parsed.data,
+    registrationData,
     event,
     ticket,
     user?.id,
@@ -280,6 +289,7 @@ async function confirmFreeRegistration(
     amount_paid_cents:   0,
     discount_code_id:    discountCodeId ?? null,
     confirmation_sent_at: requireApproval ? null : now,
+    delivery_method: data.delivery_method ?? 'in_person',
   }))
 
   const { data: regs, error } = await admin
@@ -383,6 +393,7 @@ async function createPaidRegistration(
       amount_paid_cents:   (ticket.price_cents as number) - discountAmountCents,
       discount_code_id:    discountCodeId ?? null,
       discount_amount_cents: discountAmountCents,
+      delivery_method: data.delivery_method ?? 'in_person',
     })
     .select()
     .single()
