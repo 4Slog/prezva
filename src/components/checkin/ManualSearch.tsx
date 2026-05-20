@@ -24,7 +24,7 @@ export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<AttendeeRow[]>([])
   const [searching, setSearching] = useState(false)
-  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('in_person')
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('all')
 
   const search = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return }

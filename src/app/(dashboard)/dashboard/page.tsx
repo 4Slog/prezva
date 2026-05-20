@@ -61,7 +61,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       : Promise.resolve({ count: 0 }),
     // Checked-in registrations across all org events
     orgEventIds.length > 0
-      ? supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('checked_in', true).in('event_id', orgEventIds)
+      ? supabase.from('check_ins').select('id', { count: 'exact', head: true }).is('session_id', null).in('event_id', orgEventIds)
       : Promise.resolve({ count: 0 }),
     // Ticket types for this org
     orgEventIds.length > 0

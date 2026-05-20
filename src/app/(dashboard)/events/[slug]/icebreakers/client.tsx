@@ -23,6 +23,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
   const [msg, setMsg] = useState('')
   const [customText, setCustomText] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [starterOffset, setStarterOffset] = useState(0)
   const [published, setPublished] = useState(isActive)
 
   function handlePrint() {
@@ -44,10 +45,11 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
   function handleLoadStarter() {
     setShowPreview(false)
     startTransition(async () => {
-      const res = await seedIcebreakerPrompts(eventId, ICEBREAKER_PROMPTS.slice(0, 10))
+      const res = await seedIcebreakerPrompts(eventId, ICEBREAKER_PROMPTS.slice(starterOffset, starterOffset + 10))
+      setStarterOffset(prev => Math.min(prev + 10, 50))
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} starter prompts.`)
-      const newItems = ICEBREAKER_PROMPTS.slice(0, 10).map((p, i) => ({ id: `tmp-${i}`, question_text: p.text }))
+      const newItems = ICEBREAKER_PROMPTS.slice(starterOffset, starterOffset + 10).map((p, i) => ({ id: `tmp-${starterOffset + i}`, question_text: p.text }))
       setQuestions(prev => [...prev, ...newItems])
     })
   }
@@ -127,13 +129,13 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
           <div style={{ background: '#112240', border: '1px solid #1E3A5F', borderRadius: 12, width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #1E3A5F' }}>
               <div>
-                <h2 style={{ color: '#F0F4F8', fontWeight: 700, fontSize: 16, margin: 0 }}>Starter pack — 10 prompts</h2>
+                <h2 style={{ color: '#F0F4F8', fontWeight: 700, fontSize: 16, margin: 0 }}>Starter pack — prompts {starterOffset + 1}–{Math.min(starterOffset + 10, 50)} of 50</h2>
                 <p style={{ color: '#94A3B8', fontSize: 13, margin: '2px 0 0' }}>Preview before loading</p>
               </div>
               <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {ICEBREAKER_PROMPTS.map((p, i) => (
+              {ICEBREAKER_PROMPTS.slice(starterOffset, starterOffset + 10).map((p, i) => (
                 <div key={p.id} style={{ border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.75rem 1rem', background: '#0D1B2A', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <span style={{ color: '#475569', fontSize: 12, fontWeight: 600, minWidth: 20 }}>{i + 1}</span>
                   <div style={{ flex: 1 }}>
@@ -152,7 +154,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #1E3A5F', display: 'flex', gap: 8 }}>
               <button onClick={handleLoadStarter} disabled={pending}
                 style={{ flex: 1, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
-                {pending ? 'Loading…' : 'Load all 10 prompts'}
+                {pending ? 'Loading…' : `Load prompts ${starterOffset + 1}–${Math.min(starterOffset + 10, 50)}`}
               </button>
               <button onClick={() => setShowPreview(false)}
                 style={{ background: 'transparent', border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.7rem 1.25rem', color: '#94A3B8', cursor: 'pointer' }}>

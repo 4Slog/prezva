@@ -206,13 +206,13 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
                 <p style={{ fontSize:12, color:'rgba(255,255,255,0.6)', marginBottom:4, textTransform:'uppercase', letterSpacing:1 }}>Next up</p>
                 <p style={{ fontSize:14 }}>
                   <strong>{nextSession.title}</strong>
-                  {' '}at {new Date(nextSession.starts_at).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone:tz })}
+                  {' '}at {new Date(nextSession.starts_at).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone:tz })} {tzLabel}
                   {nextSession.location ? ` · ${nextSession.location}` : ''}
                 </p>
               </div>
             )}
             {leaderboardRank && <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginBottom:20 }}>Your leaderboard rank: <strong style={{ color:'var(--color-teal)' }}>#{leaderboardRank}</strong></p>}
-            <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
+            <div style={{ display:'flex', overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', flexWrap:'wrap', gap:10 }}>
               {[{label:'Agenda',href:`/e/${slug}/agenda`},{label:'My Agenda',href:`/e/${slug}/my-agenda`},{label:'People',href:`/e/${slug}/people`},{label:'Groups',href:`/e/${slug}/groups`},{label:'Trivia',href:`/e/${slug}/trivia`},{label:'Passport',href:`/e/${slug}/passport`},{label:'Leaderboard',href:`/e/${slug}/leaderboard`},{label:'My QR',href:`/e/${slug}/my-qr`}].map(({label,href}) => (
                 <Link key={href} href={href} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.5rem 1.25rem', borderRadius:6, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid rgba(255,255,255,0.2)' }}>{label}</Link>
               ))}
@@ -280,7 +280,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
 
       {/* ── BODY (same for all states) ─────────────────────────────────────── */}
       <div style={{ maxWidth:800, margin:'0 auto', padding:'0 1.5rem' }}>
-        <div style={{ borderBottom:'1px solid var(--color-border)', marginBottom:'2rem', display:'flex', gap:'2rem' }}>
+        <div style={{ borderBottom:'1px solid var(--color-border)', marginBottom:'2rem', display:'flex', gap:'2rem', overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', msOverflowStyle:'none' }}>
           {[{label:'Agenda',href:'/e/'+slug+'/agenda'},{label:'Speakers',href:'/e/'+slug+'/speakers'},{label:'Community',href:'/e/'+slug+'/community'},{label:'Trivia',href:'/e/'+slug+'/trivia'},{label:'Icebreakers',href:'/e/'+slug+'/icebreakers'},{label:'Passport',href:'/e/'+slug+'/passport'},{label:'Leaderboard',href:'/e/'+slug+'/leaderboard'}].map(({label,href}) => (
             <Link key={href} href={href} style={{ padding:'1rem 0', color:'var(--color-text)', textDecoration:'none', fontSize:14, fontWeight:500 }}>{label}</Link>
           ))}
@@ -293,7 +293,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
                 <div key={s.id} style={{ border:'1px solid var(--color-border)', borderRadius:10, padding:'1rem 1.25rem', background:'var(--color-surface)', borderLeft:'4px solid '+(s.tracks?.color ?? 'var(--color-teal)') }}>
                   <p style={{ fontWeight:600, marginBottom:4 }}>{s.title}</p>
                   <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>
-                    {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz})}
+                    {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz})} {tzLabel}
                     {s.tracks?.name ? ' · '+s.tracks.name : ''}
                   </p>
                 </div>

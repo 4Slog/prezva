@@ -40,12 +40,14 @@ export function CommunityClient({
   eventId,
   userId,
   initialPosts,
+  sessionTitles = {},
   initialType,
 }: {
   eventSlug: string
   eventId: string
   userId: string | null
   initialPosts: Post[]
+  sessionTitles?: Record<string, string>
   initialType: string
 }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts)
@@ -328,7 +330,7 @@ export function CommunityClient({
                       className="rounded-full px-2 py-0.5 text-xs"
                       style={{ background: 'var(--pz-teal)22', color: 'var(--pz-teal)', border: 'none', cursor: 'pointer' }}
                     >
-                      re: session
+                      re: {sessionTitles[post.session_id] ?? 'session'}
                     </button>
                   )}
                   <span className="text-xs" style={{ color: 'var(--pz-muted)' }}>

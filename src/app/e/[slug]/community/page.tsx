@@ -19,6 +19,14 @@ export default async function CommunityPage({ params, searchParams }: Props) {
   const eventId = (event as any).id
   const posts = await getCommunityPosts(eventId, type)
 
+  // Fetch session titles for pill labels
+  const { data: sessions } = await supabase
+    .from('sessions')
+    .select('id, title')
+    .eq('event_id', eventId)
+  const sessionTitles: Record<string, string> = {}
+  for (const s of sessions ?? []) sessionTitles[(s as any).id] = (s as any).title
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
       <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '1.25rem 1.5rem' }}>
@@ -36,6 +44,7 @@ export default async function CommunityPage({ params, searchParams }: Props) {
           eventId={eventId}
           userId={user?.id ?? null}
           initialPosts={posts}
+          sessionTitles={sessionTitles}
           initialType={type ?? ''}
         />
       </div>
