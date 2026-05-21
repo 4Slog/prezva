@@ -52,6 +52,7 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
     { href: `/orgs/${currentOrgSlug}/templates`,    label: 'Templates',    icon: '📐' },
     { href: `/orgs/${currentOrgSlug}/integrations`, label: 'Integrations', icon: '🔌' },
     { href: `/orgs/${currentOrgSlug}/audit-log`,    label: 'Audit Log',    icon: '🔍' },
+    { href: `/orgs/${currentOrgSlug}/speakers`,     label: 'Speaker Library', icon: '🎤' },
   ]
 
   const width = collapsed ? 48 : 220

@@ -8,6 +8,7 @@ import {
   sendSpeakerMessage,
   getOrCreateSpeakerConversation,
   getSpeakerMessages,
+  deleteHandout,
 } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/client'
 
@@ -22,8 +23,9 @@ type Props = {
 
 type Tab = 'sessions' | 'info' | 'messages'
 
-export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSchema, formSubmission }: Props) {
+export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initialSessionsWithQA, formSchema, formSubmission }: Props) {
   const [tab, setTab] = useState<Tab>('sessions')
+  const [sessionsWithQA, setSessionsWithQA] = useState<any[]>(initialSessionsWithQA)
   const [formData, setFormData] = useState<Record<string, string>>(formSubmission)
   const [formSaved, setFormSaved] = useState(false)
   const [, startTransition] = useTransition()
@@ -220,12 +222,32 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                 {/* Handouts */}
                 <div className="mb-4">
                   <p className="text-xs font-semibold mb-2" style={{ color: 'var(--pz-label)' }}>Handouts</p>
-                  {sd.handouts?.length === 0 ? (
+                  {(!sd.handouts || sd.handouts.length === 0) ? (
                     <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>No handouts uploaded.</p>
                   ) : (
                     <ul className="space-y-1">
                       {sd.handouts.map((h: any) => (
-                        <li key={h.id} className="text-xs" style={{ color: 'var(--pz-text)' }}>📎 {h.filename}</li>
+                        <li key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span className="text-xs" style={{ color: 'var(--pz-text)' }}>📎 {h.filename}</span>
+                          {h.version > 1 && (
+                            <span style={{ fontSize: 10, background: 'var(--pz-teal)22', color: 'var(--pz-teal)',
+                                           borderRadius: 4, padding: '1px 5px' }}>v{h.version}</span>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Delete this handout?')) return
+                              await deleteHandout(h.id)
+                              setSessionsWithQA(prev => prev.map(s =>
+                                s.session?.id === sd.session?.id
+                                  ? { ...s, handouts: s.handouts.filter((x: any) => x.id !== h.id) }
+                                  : s
+                              ))
+                            }}
+                            style={{ fontSize: 11, color: 'var(--pz-muted)', background: 'none',
+                                     border: 'none', cursor: 'pointer', padding: '0 2px' }}
+                            title="Delete handout"
+                          >🗑</button>
+                        </li>
                       ))}
                     </ul>
                   )}
@@ -244,10 +266,24 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA, formSc
                       {sd.questions.map((q: any) => (
                         <div key={q.id} className="flex items-start justify-between gap-3 p-2 rounded-lg" style={{ background: 'var(--pz-surface-2)' }}>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm" style={{ color: q.answered_at ? 'var(--pz-muted)' : 'var(--pz-text)', textDecoration: q.answered_at ? 'line-through' : 'none' }}>
-                              {q.body}
-                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                              {q.is_pinned && <span style={{ fontSize: 12 }}>📌</span>}
+                              <p className="text-sm" style={{ color: q.answered_at ? 'var(--pz-muted)' : 'var(--pz-text)', textDecoration: q.answered_at ? 'line-through' : 'none', margin: 0 }}>
+                                {q.body}
+                              </p>
+                            </div>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--pz-muted)' }}>▲ {q.upvote_count}</p>
+                            {q.organizer_answer && (
+                              <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--pz-teal)15',
+                                            borderLeft: '3px solid var(--pz-teal)', borderRadius: 4 }}>
+                                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal)', margin: '0 0 2px' }}>
+                                  Answer from organizer
+                                </p>
+                                <p style={{ fontSize: 13, color: 'var(--pz-text)', margin: 0 }}>
+                                  {q.organizer_answer}
+                                </p>
+                              </div>
+                            )}
                           </div>
                           {!q.answered_at && (
                             <button

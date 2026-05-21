@@ -1,8 +1,10 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { SpeakersOrgClient } from './speakers-org-client'
 import { DayOfInfoSection } from './day-of-info-section'
+import { QAModerationClient } from './qa-moderation-client'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -26,11 +28,22 @@ export default async function SpeakersDashboardPage({ params }: Props) {
     .single()
   if (!member) redirect('/dashboard')
 
-  const { data: speakers } = await supabase
-    .from('speakers')
-    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at')
-    .eq('event_id', (event as any).id)
-    .order('sort_order', { ascending: true })
+  const admin = createAdminClient()
+
+  const [{ data: speakers }, { data: qaQuestions }] = await Promise.all([
+    supabase
+      .from('speakers')
+      .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at')
+      .eq('event_id', (event as any).id)
+      .order('sort_order', { ascending: true }),
+    admin
+      .from('session_questions')
+      .select('id, session_id, body, upvote_count, is_hidden, is_pinned, organizer_answer, created_at, sessions(title)')
+      .eq('event_id', (event as any).id)
+      .eq('is_poll', false)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false }),
+  ])
 
   return (
     <div className="p-6">
@@ -55,6 +68,15 @@ export default async function SpeakersDashboardPage({ params }: Props) {
         eventId={(event as any).id}
         initialValue={(event as any).speaker_day_of_info ?? ''}
       />
+      <div className="mt-8">
+        <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--pz-text)' }}>
+          Q&A Moderation
+        </h2>
+        <QAModerationClient
+          eventId={(event as any).id}
+          initialQuestions={(qaQuestions ?? []) as any[]}
+        />
+      </div>
     </div>
   )
 }

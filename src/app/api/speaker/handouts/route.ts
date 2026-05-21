@@ -46,16 +46,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 })
   }
 
+  // Find current latest handout for versioning
+  const { data: currentLatest } = await admin
+    .from('session_handouts')
+    .select('id, version')
+    .eq('session_id', sessionId)
+    .eq('speaker_id', speakerId)
+    .eq('is_latest', true)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const nextVersion = currentLatest ? (currentLatest as any).version + 1 : 1
+  const newId = crypto.randomUUID()
+
   const { error: dbError } = await admin.from('session_handouts').insert({
+    id: newId,
     session_id: sessionId,
     speaker_id: speakerId,
     filename: file.name,
     storage_path: path,
+    version: nextVersion,
+    is_latest: true,
   })
 
   if (dbError) {
     await admin.storage.from('speaker-handouts').remove([path])
     return NextResponse.json({ error: dbError.message }, { status: 500 })
+  }
+
+  // Mark previous latest as superseded
+  if (currentLatest) {
+    await admin
+      .from('session_handouts')
+      .update({ is_latest: false, superseded_by: newId })
+      .eq('id', (currentLatest as any).id)
   }
 
   // Notify attendees about new handout (fire-and-forget, non-blocking)

@@ -150,6 +150,32 @@ export async function confirmSpeakerSlot(token: string, action: 'confirmed' | 'd
       confirmed_at: action === 'confirmed' ? new Date().toISOString() : null,
     })
     .eq('confirmation_token', token)
+
+  if (!error && action === 'confirmed') {
+    const admin = createAdminClient()
+    const { data: spData } = await admin.from('speakers')
+      .select('name, email, job_title, company, bio, photo_url, website, linkedin_url, twitter_handle, events(org_id)')
+      .eq('confirmation_token', token)
+      .single()
+    if (spData && (spData as any).email) {
+      await admin.from('org_speakers').upsert({
+        org_id: (spData as any).events?.org_id,
+        name: (spData as any).name,
+        email: (spData as any).email,
+        job_title: (spData as any).job_title,
+        company: (spData as any).company,
+        bio: (spData as any).bio,
+        photo_url: (spData as any).photo_url,
+        website: (spData as any).website,
+        linkedin_url: (spData as any).linkedin_url,
+        twitter_handle: (spData as any).twitter_handle,
+        times_spoken: 1,
+        last_spoken_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'org_id,email', ignoreDuplicates: false })
+    }
+  }
+
   return { error: error?.message }
 }
 
@@ -260,6 +286,8 @@ export async function getSessionFeedbackForSpeaker(sessionIds: string[]) {
 
 export async function getSpeakerSessionsWithQA(speakerId: string, eventId: string) {
   const supabase = await createClient()
+  const admin = createAdminClient()
+
   const { data: sessionSpeakers } = await supabase
     .from('session_speakers')
     .select('session_id, role, sessions(id, title, starts_at, ends_at)')
@@ -268,24 +296,34 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
   const sessionIds = ((sessionSpeakers ?? []) as any[]).map(ss => ss.session_id)
   if (sessionIds.length === 0) return []
 
-  const [{ data: questions }, { data: coSpeakerRows }] = await Promise.all([
+  const [{ data: questions }, { data: coSpeakerRows }, { data: handoutRows }] = await Promise.all([
     supabase
       .from('session_questions')
-      .select('id, session_id, body, upvote_count, is_poll, poll_options, answered_at, created_at')
+      .select('id, session_id, body, upvote_count, is_poll, poll_options, answered_at, is_hidden, is_pinned, organizer_answer, created_at')
       .in('session_id', sessionIds)
       .eq('event_id', eventId)
+      .eq('is_hidden', false)
+      .order('is_pinned', { ascending: false })
       .order('upvote_count', { ascending: false }),
     supabase
       .from('session_speakers')
       .select('session_id, role, speakers(id, name, job_title, company, photo_url, event_role)')
       .in('session_id', sessionIds)
       .neq('speaker_id', speakerId),
+    admin
+      .from('session_handouts')
+      .select('id, session_id, speaker_id, filename, storage_path, version, is_latest, created_at')
+      .in('session_id', sessionIds)
+      .eq('speaker_id', speakerId)
+      .eq('is_latest', true)
+      .order('created_at', { ascending: true }),
   ])
 
   return ((sessionSpeakers ?? []) as any[]).map(ss => ({
     session: ss.sessions ? { ...ss.sessions, session_role: ss.role ?? 'presenter' } : null,
     questions: ((questions ?? []) as any[]).filter(q => q.session_id === ss.session_id && !q.is_poll),
     polls: ((questions ?? []) as any[]).filter(q => q.session_id === ss.session_id && q.is_poll),
+    handouts: ((handoutRows ?? []) as any[]).filter(h => h.session_id === ss.session_id),
     co_speakers: ((coSpeakerRows ?? []) as any[])
       .filter(cs => cs.session_id === ss.session_id)
       .map(cs => ({ ...cs.speakers, session_role: cs.role ?? 'presenter' }))
@@ -455,4 +493,184 @@ export async function updateSpeakerDayOfInfo(eventId: string, text: string) {
   await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
   await admin.from('events').update({ speaker_day_of_info: text || null }).eq('id', eventId)
   return { ok: true }
+}
+
+// ── B11-34: token renewal ─────────────────────────────────────────────────────
+
+export async function renewSpeakerToken(speakerId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+
+  const { data: sp } = await admin
+    .from('speakers')
+    .select('id, event_id, name, email, events(org_id, title, organizations(name))')
+    .eq('id', speakerId)
+    .single()
+
+  if (!sp) return { error: 'Speaker not found' }
+
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, (sp as any).events?.org_id, user.id, ['owner', 'admin', 'staff'])
+
+  const { nanoid } = await import('nanoid')
+  const newToken = nanoid(32)
+
+  await admin.from('speakers').update({ confirmation_token: newToken }).eq('id', speakerId)
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const hubUrl = `${appUrl}/speaker/${newToken}`
+  const orgName = (sp as any).events?.organizations?.name ?? 'Event organizer'
+  const eventTitle = (sp as any).events?.title ?? 'the event'
+
+  if ((sp as any).email) {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${orgName} <noreply@prezva.app>`,
+        to: (sp as any).email,
+        subject: `Updated speaker portal link — ${eventTitle}`,
+        html: `<p>Hi ${(sp as any).name},</p>
+               <p>Your speaker portal link has been refreshed for ${eventTitle}.</p>
+               <p><a href="${hubUrl}">Access your speaker hub →</a></p>
+               <p>Your previous link is no longer active.</p>
+               <p>— ${orgName}</p>`,
+      }),
+    }).catch(() => {})
+  }
+
+  return { ok: true, newToken, hubUrl }
+}
+
+// ── B11-35: handout delete (admin-auth version) ───────────────────────────────
+
+export async function deleteHandoutAsOrg(handoutId: string, orgId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+
+  const { data: handout } = await admin
+    .from('session_handouts')
+    .select('id, storage_path')
+    .eq('id', handoutId)
+    .single()
+
+  if (!handout) return { error: 'Not found' }
+
+  const storagePath = (handout as any).storage_path
+  if (storagePath) {
+    await admin.storage.from('speaker-handouts').remove([storagePath]).catch(() => {})
+  }
+
+  await admin.from('session_handouts').delete().eq('id', handoutId)
+  return { ok: true }
+}
+
+// ── B11-36: Q&A moderation ────────────────────────────────────────────────────
+
+export async function moderateQAQuestion(
+  questionId: string,
+  action: 'hide' | 'pin' | 'unpin' | 'answer',
+  answerText?: string,
+) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+
+  const { data: q } = await admin
+    .from('session_questions')
+    .select('id, event_id, events(org_id)')
+    .eq('id', questionId)
+    .single()
+
+  if (!q) return { error: 'Question not found' }
+
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, (q as any).events?.org_id, user.id, ['owner', 'admin', 'staff'])
+
+  const updates: Record<string, unknown> = {}
+  if (action === 'hide')   updates.is_hidden = true
+  if (action === 'pin')    updates.is_pinned = true
+  if (action === 'unpin')  updates.is_pinned = false
+  if (action === 'answer') updates.organizer_answer = answerText ?? ''
+
+  await admin.from('session_questions').update(updates).eq('id', questionId)
+  return { ok: true }
+}
+
+export async function getQAQuestionsForEvent(eventId: string) {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('session_questions')
+    .select('id, session_id, body, upvote_count, is_hidden, is_pinned, organizer_answer, created_at, sessions(title)')
+    .eq('event_id', eventId)
+    .eq('is_poll', false)
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false })
+  return (data ?? []) as any[]
+}
+
+// ── B11-37: org speaker library ───────────────────────────────────────────────
+
+export async function getOrgSpeakerLibrary(orgId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('org_speakers')
+    .select('*')
+    .eq('org_id', orgId)
+    .order('times_spoken', { ascending: false })
+  return (data ?? []) as any[]
+}
+
+export async function addSpeakerFromLibrary(eventId: string, orgSpeakerId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+
+  const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
+  if (!event) return { error: 'Event not found' }
+
+  const { assertOrgRole } = await import('@/lib/orgs/actions')
+  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+
+  const { data: libSpeaker } = await admin
+    .from('org_speakers').select('*').eq('id', orgSpeakerId).single()
+  if (!libSpeaker) return { error: 'Speaker not found in library' }
+
+  const { data: existing } = await admin.from('speakers')
+    .select('id').eq('event_id', eventId).eq('email', (libSpeaker as any).email).maybeSingle()
+  if (existing) return { error: 'Speaker is already added to this event' }
+
+  const { nanoid } = await import('nanoid')
+  const token = nanoid(32)
+
+  const { data: newSpeaker, error } = await admin.from('speakers').insert({
+    event_id: eventId,
+    name: (libSpeaker as any).name,
+    email: (libSpeaker as any).email,
+    job_title: (libSpeaker as any).job_title,
+    company: (libSpeaker as any).company,
+    bio: (libSpeaker as any).bio,
+    photo_url: (libSpeaker as any).photo_url,
+    website: (libSpeaker as any).website,
+    linkedin_url: (libSpeaker as any).linkedin_url,
+    twitter_handle: (libSpeaker as any).twitter_handle,
+    status: 'invited',
+    confirmation_token: token,
+    sort_order: 0,
+  }).select('id').single()
+
+  if (error) return { error: error.message }
+  return { ok: true, speakerId: (newSpeaker as any).id }
 }
