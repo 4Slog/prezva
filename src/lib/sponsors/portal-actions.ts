@@ -1,5 +1,8 @@
 'use server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/get-user'
+import { assertOrgRole } from '@/lib/orgs/actions'
 
 async function validateToken(token: string) {
   const admin = createAdminClient()
@@ -193,4 +196,59 @@ export async function getSponsorByContactToken(contactToken: string) {
     .eq('portal_token', contactToken)
     .maybeSingle()
   return data
+}
+
+export async function sendSponsorPortalInvite(sponsorId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+
+  const { data: sponsor } = await admin
+    .from('event_sponsors')
+    .select('id, name, slug, contact_email, portal_access_token, event_id, events(title, slug, org_id, organizations(name))')
+    .eq('id', sponsorId)
+    .single()
+
+  if (!sponsor) return { error: 'Sponsor not found' }
+
+  const orgId = (sponsor as any).events?.org_id
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+
+  const email = (sponsor as any).contact_email
+  if (!email) return { error: 'No contact email set for this sponsor. Add one in sponsor settings first.' }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const eventSlug = (sponsor as any).events?.slug
+  const sponsorSlug = (sponsor as any).slug ?? (sponsor as any).id
+  const portalUrl = `${appUrl}/sponsor-portal/${eventSlug}/${sponsorSlug}?token=${(sponsor as any).portal_access_token}`
+  const orgName = (sponsor as any).events?.organizations?.name ?? 'Event organizer'
+  const eventTitle = (sponsor as any).events?.title ?? 'the event'
+
+  const result = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `${orgName} <noreply@prezva.app>`,
+      to: email,
+      subject: `Your sponsor portal is ready — ${eventTitle}`,
+      html: `<p>Hi ${(sponsor as any).name} team,</p>
+             <p>Your sponsor portal for <strong>${eventTitle}</strong> is ready.</p>
+             <p>Use your portal to:</p>
+             <ul>
+               <li>Scan attendee badges to capture leads</li>
+               <li>Rate and add notes to leads</li>
+               <li>Export your lead list as CSV</li>
+               <li>View event materials</li>
+             </ul>
+             <p><a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#00BFA6;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Open sponsor portal →</a></p>
+             <p>Keep this link private — it provides direct access to your portal.</p>
+             <p>— ${orgName}</p>`,
+    }),
+  })
+
+  if (!result.ok) return { error: 'Failed to send email' }
+  return { ok: true }
 }

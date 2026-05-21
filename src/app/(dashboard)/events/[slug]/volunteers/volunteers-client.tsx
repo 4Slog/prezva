@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { resolveVolunteerAlert } from '@/lib/volunteers/actions'
+import { resolveVolunteerAlert, exportVolunteerHours } from '@/lib/volunteers/actions'
 
 interface Volunteer {
   id: string
@@ -81,6 +81,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
   const [filterStatus, setFilterStatus] = useState('All')
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [form, setForm] = useState({
     name: '', email: '', phone: '', role: 'check-in',
     shift_start: '', shift_end: '', notes: '',
@@ -90,6 +91,23 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
   async function handleResolveAlert(alertId: string) {
     await resolveVolunteerAlert(alertId)
     setAlerts(a => a.filter(x => x.id !== alertId))
+  }
+
+  async function handleExportHours() {
+    setExporting(true)
+    try {
+      const result = await exportVolunteerHours(eventId)
+      if ('error' in result) return
+      const blob = new Blob([result.csv], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = result.filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
   }
 
   const filtered = filterStatus === 'All'
@@ -180,6 +198,13 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleExportHours}
+            disabled={exporting}
+            style={{ background: 'transparent', color: 'var(--pz-muted)', padding: '8px 14px', borderRadius: 8, fontWeight: 600, fontSize: 13, border: '1px solid var(--pz-border)', cursor: exporting ? 'not-allowed' : 'pointer', opacity: exporting ? 0.6 : 1 }}
+          >
+            {exporting ? 'Exporting…' : 'Export hours CSV'}
+          </button>
           <button
             onClick={() => setShowAdd(true)}
             style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
