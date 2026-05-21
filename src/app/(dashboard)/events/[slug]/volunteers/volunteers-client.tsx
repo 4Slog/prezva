@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { resolveVolunteerAlert } from '@/lib/volunteers/actions'
 
 interface Volunteer {
   id: string
@@ -11,10 +12,21 @@ interface Volunteer {
   shift_start?: string | null
   shift_end?: string | null
   status: string
+  shift_response?: string | null
   portal_access_token: string
   clocked_in_at?: string | null
   clocked_out_at?: string | null
   notes?: string | null
+}
+
+interface VolunteerAlert {
+  id: string
+  volunteer_id: string
+  alert_type: string
+  message: string
+  resolved: boolean
+  created_at: string
+  volunteers: { name: string } | null
 }
 
 interface Session {
@@ -28,9 +40,10 @@ interface Props {
   eventSlug: string
   volunteers: Volunteer[]
   sessions: Session[]
+  alerts: VolunteerAlert[]
 }
 
-const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'general']
+const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'team-lead', 'general']
 const STATUSES = ['All', 'invited', 'confirmed', 'checked_in', 'no_show']
 
 const STATUS_COLORS: Record<string, string> = {
@@ -49,8 +62,22 @@ function fmtShift(start?: string | null, end?: string | null) {
   return `${s} – ${e}`
 }
 
-export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions }: Props) {
+const ALERT_TYPE_COLORS: Record<string, string> = {
+  urgent:   '#EF4444',
+  issue:    '#F59E0B',
+  question: '#3B82F6',
+  info:     '#64748B',
+}
+
+const SHIFT_RESPONSE_COLORS: Record<string, string> = {
+  confirmed: '#10b981',
+  declined:  '#ef4444',
+  pending:   '#94a3b8',
+}
+
+export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts }: Props) {
   const [volunteers, setVolunteers] = useState<Volunteer[]>(initial)
+  const [alerts, setAlerts] = useState<VolunteerAlert[]>(initialAlerts)
   const [filterStatus, setFilterStatus] = useState('All')
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -59,6 +86,11 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
     shift_start: '', shift_end: '', notes: '',
   })
   const [err, setErr] = useState('')
+
+  async function handleResolveAlert(alertId: string) {
+    await resolveVolunteerAlert(alertId)
+    setAlerts(a => a.filter(x => x.id !== alertId))
+  }
 
   const filtered = filterStatus === 'All'
     ? volunteers
@@ -103,6 +135,40 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
 
   return (
     <div>
+      {/* Alert inbox */}
+      {alerts.length > 0 && (
+        <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '1rem', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', margin: 0 }}>Volunteer Alerts</h2>
+            <span style={{ fontSize: 11, background: '#ef4444', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
+              {alerts.length}
+            </span>
+          </div>
+          {alerts.map(a => (
+            <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '0.625rem 0', borderTop: '1px solid rgba(239,68,68,0.15)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 4, fontWeight: 700, background: ALERT_TYPE_COLORS[a.alert_type] + '22', color: ALERT_TYPE_COLORS[a.alert_type] }}>
+                    {a.alert_type}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-text)' }}>{a.volunteers?.name ?? 'Volunteer'}</span>
+                  <span style={{ fontSize: 11, color: 'var(--pz-muted)' }}>
+                    {new Date(a.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--pz-text)', margin: 0 }}>{a.message}</p>
+              </div>
+              <button
+                onClick={() => handleResolveAlert(a.id)}
+                style={{ fontSize: 12, color: 'var(--pz-muted)', background: 'none', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                Resolve
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
@@ -206,7 +272,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)' }}>
-                {['Name', 'Email', 'Role', 'Shift', 'Status', 'Actions'].map(h => (
+                {['Name', 'Email', 'Role', 'Shift', 'Status', 'Response', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--pz-muted)' }}>{h}</th>
                 ))}
               </tr>
@@ -228,6 +294,16 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                     <span style={{ fontSize: 12, fontWeight: 600, color: STATUS_COLORS[v.status] ?? 'var(--pz-muted)', textTransform: 'capitalize' }}>
                       {v.status.replace('_', ' ')}
                     </span>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    {(() => {
+                      const r = v.shift_response ?? 'pending'
+                      return (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: SHIFT_RESPONSE_COLORS[r] ?? 'var(--pz-muted)', textTransform: 'capitalize' }}>
+                          {r}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 6 }}>

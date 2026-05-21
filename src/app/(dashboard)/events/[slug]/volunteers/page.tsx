@@ -9,7 +9,6 @@ export default async function VolunteersPage({ params }: Props) {
   const { slug } = await params
   await requireUser()
 
-  // Admin client: read event + volunteers bypassing RLS for org staff view
   const admin = createAdminClient()
   const { data: event } = await admin
     .from('events')
@@ -32,6 +31,13 @@ export default async function VolunteersPage({ params }: Props) {
     .eq('is_published', true)
     .order('starts_at', { ascending: true })
 
+  const { data: alerts } = await admin
+    .from('volunteer_alerts')
+    .select('id, volunteer_id, alert_type, message, resolved, created_at, volunteers(name)')
+    .eq('event_id', event.id)
+    .eq('resolved', false)
+    .order('created_at', { ascending: false })
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -47,6 +53,7 @@ export default async function VolunteersPage({ params }: Props) {
         eventSlug={slug}
         volunteers={(volunteers ?? []) as any[]}
         sessions={(sessions ?? []) as any[]}
+        alerts={(alerts ?? []) as any[]}
       />
     </div>
   )
