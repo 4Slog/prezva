@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { sendSpeakerInvite, createSpeaker, markSpeakerArrived } from '@/lib/speaker/speaker-actions'
+import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken, getOrgSpeakerLibrary, addSpeakerFromLibrary } from '@/lib/speaker/speaker-actions'
 
 type Props = {
   event: any
@@ -22,6 +22,11 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
   const [form, setForm] = useState({ name: '', email: '', job_title: '', company: '', bio: '', event_role: 'speaker' })
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [libSpeakers, setLibSpeakers] = useState<any[]>([])
+  const [libLoading, setLibLoading] = useState(false)
+  const [libAdding, setLibAdding] = useState<string | null>(null)
+  const [libResult, setLibResult] = useState<Record<string, string>>({})
 
   async function invite(speakerId: string) {
     setInviting(speakerId)
@@ -57,10 +62,33 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
     }
   }
 
+  async function openLibrary() {
+    setShowLibrary(true)
+    if (libSpeakers.length > 0) return
+    setLibLoading(true)
+    const lib = await getOrgSpeakerLibrary(event.org_id)
+    setLibSpeakers(lib)
+    setLibLoading(false)
+  }
+
+  async function addFromLib(orgSpeakerId: string) {
+    setLibAdding(orgSpeakerId)
+    const result = await addSpeakerFromLibrary(event.id, orgSpeakerId)
+    setLibResult(prev => ({ ...prev, [orgSpeakerId]: (result as any).error ?? 'Added!' }))
+    setLibAdding(null)
+  }
+
   return (
     <div className="space-y-4">
-      {/* Header with Add button */}
-      <div className="flex justify-end">
+      {/* Header with Add buttons */}
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={openLibrary}
+          className="rounded-lg px-4 py-2 text-sm font-medium"
+          style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-text)', background: 'transparent' }}
+        >
+          + From library
+        </button>
         <button
           onClick={() => { setShowAdd(s => !s); setAddError('') }}
           className="rounded-lg px-4 py-2 text-sm font-medium"
@@ -69,6 +97,61 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
           {showAdd ? 'Cancel' : '+ Add Speaker'}
         </button>
       </div>
+
+      {/* Library modal */}
+      {showLibrary && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: 24,
+                        width: '100%', maxWidth: 600, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--pz-text)', margin: 0 }}>Speaker Library</h2>
+              <button onClick={() => setShowLibrary(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-muted)', fontSize: 18 }}>✕</button>
+            </div>
+            {libLoading ? (
+              <p style={{ color: 'var(--pz-muted)', fontSize: 13 }}>Loading…</p>
+            ) : libSpeakers.length === 0 ? (
+              <p style={{ color: 'var(--pz-muted)', fontSize: 13 }}>
+                No speakers in library yet. Speakers are added automatically when they confirm their invitation.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {libSpeakers.map((sp: any) => (
+                  <div key={sp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            gap: 12, padding: '10px 12px', borderRadius: 8,
+                                            border: '1px solid var(--pz-border)' }}>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>{sp.name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>
+                        {[sp.job_title, sp.company].filter(Boolean).join(', ')}
+                        {sp.times_spoken > 0 && ` · Spoken ${sp.times_spoken}×`}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <button
+                        onClick={() => addFromLib(sp.id)}
+                        disabled={libAdding === sp.id}
+                        style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6,
+                                 background: 'var(--pz-teal)', color: '#fff', border: 'none',
+                                 cursor: 'pointer', opacity: libAdding === sp.id ? 0.6 : 1 }}
+                      >
+                        {libAdding === sp.id ? 'Adding…' : 'Add to event'}
+                      </button>
+                      {libResult[sp.id] && (
+                        <p style={{ fontSize: 11, marginTop: 2,
+                                    color: libResult[sp.id] === 'Added!' ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+                          {libResult[sp.id]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Add speaker form */}
       {showAdd && (
@@ -171,6 +254,21 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                   className="rounded-lg px-3 py-1.5 text-xs font-medium"
                   style={{ background: 'var(--pz-teal)', color: '#fff', opacity: !sp.email ? 0.5 : 1 }}>
                   {inviting === sp.id ? 'Sending…' : 'Send invite'}
+                </button>
+                <button
+                  onClick={async () => {
+                    const result = await renewSpeakerToken(sp.id)
+                    if ((result as any).ok) {
+                      await navigator.clipboard.writeText((result as any).hubUrl)
+                      setInviteResult(prev => ({ ...prev, [sp.id]: 'New link copied to clipboard!' }))
+                    }
+                  }}
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6,
+                           border: '1px solid var(--pz-border)', color: 'var(--pz-muted)',
+                           background: 'transparent', cursor: 'pointer' }}
+                  title="Generate a new portal link and resend invite email"
+                >
+                  ↻ Renew link
                 </button>
                 {!sp.checked_in_at ? (
                   <button onClick={() => markArrived(sp.id)}
