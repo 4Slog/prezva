@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { sendVolunteerThankYouEmails } from '@/lib/volunteers/actions'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -222,6 +223,11 @@ export async function transitionEventStatus(
   if (newStatus === 'published' || newStatus === 'cancelled') {
     await logAudit(supabase, null, user.id, `event.${newStatus}`, 'event', eventId, { previousStatus: event.status })
   }
+
+  if (newStatus === 'ended') {
+    sendVolunteerThankYouEmails(eventId).catch(() => {})
+  }
+
   revalidatePath('/events')
   revalidatePath(`/events/[slug]`)
   return { success: true }

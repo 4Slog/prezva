@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { createSponsor, updateSponsor, deleteSponsor } from '@/lib/sponsors/actions'
-import { addSponsorContact, getSponsorContacts } from '@/lib/sponsors/portal-actions'
+import { addSponsorContact, getSponsorContacts, sendSponsorPortalInvite } from '@/lib/sponsors/portal-actions'
 
 type Sponsor = {
   id: string
@@ -13,6 +13,7 @@ type Sponsor = {
   tier: 'title' | 'gold' | 'silver' | 'bronze'
   sort_order: number
   is_featured: boolean
+  contact_email?: string | null
 }
 
 type SponsorContact = {
@@ -280,7 +281,18 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedContacts, setExpandedContacts] = useState<string | null>(null)
+  const [inviteStatus, setInviteStatus] = useState<Record<string, string>>({})
   const [pending, startTransition] = useTransition()
+
+  async function handleSendInvite(sponsorId: string) {
+    setInviteStatus(s => ({ ...s, [sponsorId]: 'sending' }))
+    const result = await sendSponsorPortalInvite(sponsorId)
+    if ((result as any).error) {
+      setInviteStatus(s => ({ ...s, [sponsorId]: (result as any).error }))
+    } else {
+      setInviteStatus(s => ({ ...s, [sponsorId]: 'sent' }))
+    }
+  }
 
   function handleDelete(sponsorId: string) {
     if (!confirm('Delete this sponsor?')) return
@@ -387,7 +399,21 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                       </div>
 
                       {/* Actions */}
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                        {sp.contact_email ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                            <button
+                              onClick={() => handleSendInvite(sp.id)}
+                              disabled={inviteStatus[sp.id] === 'sending'}
+                              style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: inviteStatus[sp.id] === 'sending' ? 'not-allowed' : 'pointer', opacity: inviteStatus[sp.id] === 'sending' ? 0.6 : 1, whiteSpace: 'nowrap' }}
+                            >
+                              {inviteStatus[sp.id] === 'sending' ? 'Sending…' : inviteStatus[sp.id] === 'sent' ? '✓ Sent' : 'Send portal link'}
+                            </button>
+                            {inviteStatus[sp.id] && inviteStatus[sp.id] !== 'sending' && inviteStatus[sp.id] !== 'sent' && (
+                              <span style={{ fontSize: 11, color: '#ef4444' }}>{inviteStatus[sp.id]}</span>
+                            )}
+                          </div>
+                        ) : null}
                         <button
                           onClick={() => setExpandedContacts(expandedContacts === sp.id ? null : sp.id)}
                           style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
