@@ -43,6 +43,7 @@ interface Props {
   event: Event
   token: string
   assignedSessions: AssignedSession[]
+  isLinkedUser?: boolean
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -61,7 +62,7 @@ const ALERT_TYPES = [
   { value: 'info',   label: 'Info',   color: '#64748B' },
 ] as const
 
-export function VolunteerPortalClient({ volunteer: initial, event, token, assignedSessions }: Props) {
+export function VolunteerPortalClient({ volunteer: initial, event, token, assignedSessions, isLinkedUser }: Props) {
   const [volunteer, setVolunteer] = useState<Volunteer>(initial)
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
@@ -160,6 +161,16 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
 
   return (
     <div style={{ minHeight: '100vh', background: '#0D1B2A', color: '#F0F4F8', fontFamily: 'sans-serif' }}>
+      {isLinkedUser && (
+        <div style={{ background: 'rgba(0,191,166,0.08)', borderBottom: '1px solid #00BFA6', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <p style={{ fontSize: 13, color: '#00BFA6', margin: 0 }}>
+            🙋 You're viewing this as a volunteer
+          </p>
+          <a href="/dashboard" style={{ fontSize: 12, color: '#00BFA6', textDecoration: 'underline' }}>
+            Back to organizer dashboard →
+          </a>
+        </div>
+      )}
       <header style={{ background: '#112240', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 800, fontSize: 18, color: '#00BFA6', letterSpacing: -0.5 }}>P Prezva</span>
         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Volunteer Portal</span>

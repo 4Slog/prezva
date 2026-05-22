@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { VolunteerPortalClient } from './portal-client'
 
 type Props = { params: Promise<{ token: string }> }
@@ -8,8 +9,11 @@ export default async function VolunteerPortalPage({ params }: Props) {
   const { token } = await params
 
   const admin = createAdminClient()
-  const { data: volunteer } = await admin
-    .rpc('get_volunteer_by_token', { p_token: token })
+  const supabase = await createClient()
+  const [{ data: volunteer }, { data: { user } }] = await Promise.all([
+    admin.rpc('get_volunteer_by_token', { p_token: token }),
+    supabase.auth.getUser(),
+  ])
 
   if (!volunteer) notFound()
 
@@ -38,12 +42,16 @@ export default async function VolunteerPortalPage({ params }: Props) {
     assignedSessions = (sessions ?? []) as unknown as AssignedSession[]
   }
 
+  const isLinkedUser = !!(user?.email && volunteer.email &&
+    user.email.toLowerCase() === (volunteer.email as string).toLowerCase())
+
   return (
     <VolunteerPortalClient
       volunteer={{ ...volunteer, ...(volExtra ?? {}) } as any}
       event={event as any}
       token={token}
       assignedSessions={assignedSessions}
+      isLinkedUser={isLinkedUser}
     />
   )
 }

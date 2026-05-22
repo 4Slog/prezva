@@ -57,9 +57,12 @@ const mockReg    = {
 
 function regListChain() {
   const c = makeChain()
+  const resolvedData = { data: [mockReg], count: 1, error: null }
   c.range = vi.fn().mockReturnValue({
-    order: vi.fn().mockResolvedValue({ data: [mockReg], count: 1, error: null }),
+    order: vi.fn().mockResolvedValue(resolvedData),
   })
+  // exportAttendeesCSV uses .eq().order().limit() — make limit() resolve
+  c.limit = vi.fn().mockResolvedValue(resolvedData)
   return c
 }
 

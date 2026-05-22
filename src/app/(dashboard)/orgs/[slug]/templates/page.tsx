@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { listOrgTemplates, deleteOrgTemplate } from '@/lib/templates/actions'
+import { getEventTemplates } from '@/lib/productivity/sprint11-actions'
 import { OrgTemplatesClient } from './client'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -18,7 +19,10 @@ export default async function OrgTemplatesPage({ params }: Props) {
     .single()
   if (!org) notFound()
 
-  const templates = await listOrgTemplates((org as any).id)
+  const [templates, eventTemplates] = await Promise.all([
+    listOrgTemplates((org as any).id),
+    getEventTemplates((org as any).id),
+  ])
 
   return (
     <div style={{ padding: '2rem', maxWidth: 900 }}>
@@ -29,7 +33,7 @@ export default async function OrgTemplatesPage({ params }: Props) {
           Saved templates for {(org as any).name} — reuse them across events
         </p>
       </div>
-      <OrgTemplatesClient templates={templates} orgSlug={slug} />
+      <OrgTemplatesClient templates={templates} eventTemplates={eventTemplates} orgSlug={slug} />
     </div>
   )
 }
