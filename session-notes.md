@@ -1,12 +1,58 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-21
+## Last updated: 2026-05-22
 
-## Status: bundle11g complete | Gates PASS | Committed bf4c41b, ready for PR
+## Status: bundle12c complete | Gates PASS | Committed 50064e1, ready for PR
 
 ---
 
-## This Session — Bundle 11g (B11-44 through B11-49)
+## This Session — Bundle 12c (B12-09, B12-14, B12-15)
+
+### Branch
+`bundle12c` (created from `main`)
+
+### What was done
+
+**B12-09 — Public org profile page /o/[slug]**
+- `src/app/o/[slug]/page.tsx`: Server page — no auth required; fetches org by slug, shows upcoming (is_discoverable + published/live) + past (is_discoverable + ended) events; org header with logo/name/website/description
+- `src/lib/public/actions.ts`: Added `slug` to `organizations(name, logo_url, website, slug)` select in both event queries
+- `src/app/e/[slug]/page.tsx`: Added `orgSlug` from organizations data; nav org name/logo now links to `/o/${orgSlug}` instead of `orgWebsite`
+
+**B12-14 — Badge rules per ticket type / persona**
+- `supabase/migrations/0078_badge_rules.sql`: `ALTER TABLE events ADD COLUMN IF NOT EXISTS badge_rules jsonb DEFAULT '[]'::jsonb`
+- `src/lib/events/actions.ts`: New `updateBadgeRules(eventId, rules)` server action
+- `src/app/(dashboard)/events/[slug]/badges/page.tsx`: Fetches `badge_rules` + active `ticket_types`; passes both to BadgesClient
+- `src/app/(dashboard)/events/[slug]/badges/badges-client.tsx`: Badge Rules section — condition/template dropdowns per rule, add/remove/save; imports BADGE_TEMPLATES + updateBadgeRules
+- `src/app/api/events/[eventId]/badges/print/route.ts`: Fetches badge_rules; adds ticket_type_id + ticket_types(name, is_press) to reg select; resolveTemplate evaluates rules in order (is_speaker → is_press → ticket_type → default); both HTML + ZPL loops use async resolveTemplate
+
+**B12-15 — Cross-event attendance history on /me**
+- `src/app/me/events/page.tsx`: Registrations query includes organizations(name, slug); stats bar (registered/attended/upcoming); "Your history" section — per-org count + last attended + "View org →" link
+
+### Gate results
+- `npx tsc --noEmit` — PASS (after each task)
+- `npm run build` — PASS (compiled 7.6s)
+- `npx vitest run` — 318/318 PASS
+
+### Commit
+`50064e1` on `bundle12c`
+
+### Next
+- Open PR: bundle12c → main
+- Next migration: 0079
+
+---
+
+## Previous Session — Bundle 12b (B12-05, B12-06, B12-07, B12-12, B12-13)
+
+### Branch
+`bundle12b`
+
+### Commit
+`3b12783` on `bundle12b`
+
+---
+
+## Previous Session — Bundle 11g (B11-44 through B11-49)
 
 ### Branch
 `bundle11g` (created from `main`)
