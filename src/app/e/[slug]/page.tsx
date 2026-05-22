@@ -48,6 +48,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
   const orgName = (event as any).organizations?.name ?? null
   const orgLogo = (event as any).organizations?.logo_url ?? null
   const orgWebsite = (event as any).organizations?.website ?? null
+  const orgSlug = (event as any).organizations?.slug ?? null
 
   // Context detection
   const jar = await cookies()
@@ -136,11 +137,11 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
       )}
       <header style={{ background:'var(--color-navy)', borderBottom:'1px solid rgba(255,255,255,0.08)', padding:'0.75rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         {orgLogo ? (
-          <a href={orgWebsite ?? '/'} target={orgWebsite ? '_blank' : '_self'} rel="noreferrer" style={{ textDecoration:'none', display:'flex', alignItems:'center' }}>
+          <a href={orgSlug ? `/o/${orgSlug}` : '/'} style={{ textDecoration:'none', display:'flex', alignItems:'center' }}>
             <img src={orgLogo} alt={orgName ?? 'Organizer'} style={{ height:36, maxWidth:140, objectFit:'contain' }} />
           </a>
         ) : orgName ? (
-          <a href={orgWebsite ?? '/'} target={orgWebsite ? '_blank' : '_self'} rel="noreferrer" style={{ fontWeight:800, fontSize:16, color:'var(--color-text)', textDecoration:'none', letterSpacing:-0.3 }}>{orgName}</a>
+          <a href={orgSlug ? `/o/${orgSlug}` : '/'} style={{ fontWeight:800, fontSize:16, color:'var(--color-text)', textDecoration:'none', letterSpacing:-0.3 }}>{orgName}</a>
         ) : (
           <Link href="/" style={{ fontWeight:800, fontSize:18, color:'var(--color-teal)', textDecoration:'none', letterSpacing:-0.5 }}>P Prezva</Link>
         )}

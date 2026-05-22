@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { saveAsOrgTemplate } from '@/lib/productivity/sprint11-actions'
+import { updateBadgeRules } from '@/lib/events/actions'
 import { createClient } from '@/lib/supabase/client'
+import { BADGE_TEMPLATES } from '@/lib/templates/badges'
 
 interface BadgeTemplate {
   id: string
@@ -11,15 +13,28 @@ interface BadgeTemplate {
   is_template?: boolean
 }
 
+interface TicketType {
+  id: string
+  name: string
+}
+
+interface BadgeRule {
+  condition: 'is_speaker' | 'is_press' | 'ticket_type' | 'default'
+  ticketTypeId?: string
+  templateId: string
+}
+
 interface Props {
   eventId: string
   orgId: string
   eventSlug: string
   eventTemplates: BadgeTemplate[]
   orgTemplates: BadgeTemplate[]
+  badgeRules: BadgeRule[]
+  ticketTypes: TicketType[]
 }
 
-export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg }: Props) {
+export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg, badgeRules: initialRules, ticketTypes }: Props) {
   const [eventTpls, setEventTpls] = useState(initial)
   const [saving, setSaving] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
@@ -33,6 +48,8 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   const [defaultTemplateId, setDefaultTemplateId] = useState<string | null>(
     initial.length > 0 ? initial[0].id : null
   )
+  const [rules, setRules] = useState<BadgeRule[]>(initialRules)
+  const [savingRules, setSavingRules] = useState(false)
 
   async function handleSaveToOrg(templateId: string) {
     setSaving(templateId)
@@ -63,6 +80,27 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
     setEventTpls(prev => [...prev, newTpl])
     if (!defaultTemplateId) setDefaultTemplateId(newTpl.id)
     setSuccess('Template copied to this event.')
+  }
+
+  async function handleSaveRules() {
+    setSavingRules(true)
+    setError('')
+    const result = await updateBadgeRules(eventId, rules)
+    setSavingRules(false)
+    if (result && 'error' in result) setError(result.error ?? 'Failed to save rules')
+    else setSuccess('Badge rules saved.')
+  }
+
+  function addRule() {
+    setRules(prev => [...prev, { condition: 'default', templateId: defaultTemplateId ?? '' }])
+  }
+
+  function updateRule(index: number, patch: Partial<BadgeRule>) {
+    setRules(prev => prev.map((r, i) => i === index ? { ...r, ...patch } : r))
+  }
+
+  function removeRule(index: number) {
+    setRules(prev => prev.filter((_, i) => i !== index))
   }
 
   async function handleDelete(templateId: string) {
@@ -271,6 +309,97 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* Badge Rules */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-semibold text-[#F0F4F8]">Badge rules</h2>
+            <p className="text-xs text-[#64748B] mt-0.5">Map conditions to templates. Evaluated in order — first match wins.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={addRule}
+              className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
+              style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+            >
+              + Add rule
+            </button>
+            <button
+              onClick={handleSaveRules}
+              disabled={savingRules}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              {savingRules ? 'Saving…' : 'Save rules'}
+            </button>
+          </div>
+        </div>
+
+        {rules.length === 0 ? (
+          <p className="text-xs text-[#64748B]">No rules yet. Without rules, all badges use the default template selected above.</p>
+        ) : (
+          <div className="space-y-2">
+            {rules.map((rule, i) => {
+              const allTemplates = [
+                ...BADGE_TEMPLATES.map(t => ({ id: t.id, name: t.name })),
+                ...eventTpls.map(t => ({ id: t.id, name: `${t.name} (this event)` })),
+                ...orgTpls.map(t => ({ id: t.id, name: `${t.name} (org)` })),
+              ]
+              return (
+                <div key={i} className="pz-card p-3 flex items-center gap-3 flex-wrap">
+                  <select
+                    value={rule.condition}
+                    onChange={e => updateRule(i, { condition: e.target.value as BadgeRule['condition'], ticketTypeId: undefined })}
+                    className="rounded-md border px-2 py-1 text-xs bg-transparent"
+                    style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }}
+                  >
+                    <option value="is_speaker">Is a confirmed speaker</option>
+                    <option value="is_press">Is a press ticket</option>
+                    <option value="ticket_type">Ticket type is…</option>
+                    <option value="default">Default (everyone else)</option>
+                  </select>
+
+                  {rule.condition === 'ticket_type' && (
+                    <select
+                      value={rule.ticketTypeId ?? ''}
+                      onChange={e => updateRule(i, { ticketTypeId: e.target.value })}
+                      className="rounded-md border px-2 py-1 text-xs bg-transparent"
+                      style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }}
+                    >
+                      <option value="">— pick a ticket type —</option>
+                      {ticketTypes.map(tt => (
+                        <option key={tt.id} value={tt.id}>{tt.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  <span className="text-xs text-[#64748B]">→</span>
+
+                  <select
+                    value={rule.templateId}
+                    onChange={e => updateRule(i, { templateId: e.target.value })}
+                    className="rounded-md border px-2 py-1 text-xs bg-transparent flex-1 min-w-[160px]"
+                    style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }}
+                  >
+                    <option value="">— pick a template —</option>
+                    {allTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={() => removeRule(i)}
+                    className="text-xs text-[#EF4444] hover:underline opacity-60 hover:opacity-100 ml-auto"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </section>

@@ -6,7 +6,7 @@ export async function getPublicEvent(slug: string) {
   // First try public (published) event
   const { data: publicEvent } = await supabase
     .from('events')
-    .select('*, organizations(name, logo_url, website)')
+    .select('*, organizations(name, logo_url, website, slug)')
     .eq('slug', slug)
     .in('status', ['published', 'live', 'ended'])
     .single()
@@ -18,7 +18,7 @@ export async function getPublicEvent(slug: string) {
 
   const { data: draftEvent } = await supabase
     .from('events')
-    .select('*, organizations(name, logo_url, website)')
+    .select('*, organizations(name, logo_url, website, slug)')
     .eq('slug', slug)
     .single()
   if (!draftEvent) return null

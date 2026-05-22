@@ -15,7 +15,8 @@ interface RegRow {
   attendee_company: string | null
   attendee_job_title: string | null
   qr_code: string
-  ticket_types: { name: string } | null
+  ticket_type_id: string | null
+  ticket_types: { name: string; is_press: boolean } | null
 }
 
 interface BindingMap {
@@ -156,7 +157,7 @@ export async function GET(
   // Auth: must be org member
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, org_id')
+    .select('id, title, org_id, badge_rules')
     .eq('id', eventId)
     .single()
   if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 })
@@ -191,7 +192,7 @@ export async function GET(
   // Fetch registrations
   let query = supabase
     .from('registrations')
-    .select('id, attendee_name, attendee_email, attendee_company, attendee_job_title, qr_code, ticket_types(name)')
+    .select('id, attendee_name, attendee_email, attendee_company, attendee_job_title, qr_code, ticket_type_id, ticket_types(name, is_press)')
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
 
@@ -218,14 +219,59 @@ export async function GET(
 
   const speakerTemplate = BADGE_TEMPLATES.find(t => t.id === 'speaker') ?? null
   const eventTitle = (event as any).title as string
+  const badgeRules: any[] = (event as any).badge_rules ?? []
+
+  async function resolveTemplateById(tid: string): Promise<BadgeTemplate | null> {
+    if (UUID_RE.test(tid)) {
+      const { data: tpl } = await supabase
+        .from('badge_templates')
+        .select('id, name, template_json')
+        .eq('id', tid)
+        .single()
+      if (tpl) {
+        const tj = (tpl as any).template_json as BadgeTemplate
+        return { ...tj, id: (tpl as any).id, name: (tpl as any).name }
+      }
+      return null
+    }
+    return BADGE_TEMPLATES.find(t => t.id === tid) ?? null
+  }
+
+  async function resolveTemplate(
+    reg: RegRow & { speakerMatch: boolean; ticket_type_id?: string | null; is_press_ticket?: boolean },
+  ): Promise<BadgeTemplate> {
+    for (const rule of badgeRules) {
+      if (rule.condition === 'is_speaker' && reg.speakerMatch) {
+        const t = await resolveTemplateById(rule.templateId)
+        if (t) return t
+      }
+      if (rule.condition === 'is_press' && reg.is_press_ticket) {
+        const t = await resolveTemplateById(rule.templateId)
+        if (t) return t
+      }
+      if (rule.condition === 'ticket_type' && reg.ticket_type_id === rule.ticketTypeId) {
+        const t = await resolveTemplateById(rule.templateId)
+        if (t) return t
+      }
+      if (rule.condition === 'default') {
+        const t = await resolveTemplateById(rule.templateId)
+        if (t) return t
+      }
+    }
+    // Fallback: auto-detect speaker, then the URL-supplied template
+    if (reg.speakerMatch && speakerTemplate) return speakerTemplate
+    return template!
+  }
 
   if (format === 'zpl') {
-    const zplPages = (regs as unknown as RegRow[]).map((reg) => {
+    const zplPages: string[] = []
+    for (const reg of regs as unknown as RegRow[]) {
       const speakerInfo = speakerByEmail.get(reg.attendee_email.toLowerCase())
-      const effectiveTemplate = speakerInfo && speakerTemplate ? speakerTemplate : template!
+      const enriched = { ...reg, speakerMatch: !!speakerInfo, is_press_ticket: !!(reg.ticket_types as any)?.is_press }
+      const effectiveTemplate = await resolveTemplate(enriched)
       const bindings = buildBindings(reg, eventTitle, speakerInfo?.event_role)
-      return badgeToZpl(effectiveTemplate, bindings)
-    })
+      zplPages.push(badgeToZpl(effectiveTemplate, bindings))
+    }
     return new NextResponse(zplPages.join('\n'), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -238,7 +284,8 @@ export async function GET(
   const badges: string[] = []
   for (const reg of regs as unknown as RegRow[]) {
     const speakerInfo = speakerByEmail.get(reg.attendee_email.toLowerCase())
-    const effectiveTemplate = speakerInfo && speakerTemplate ? speakerTemplate : template!
+    const enriched = { ...reg, speakerMatch: !!speakerInfo, is_press_ticket: !!(reg.ticket_types as any)?.is_press }
+    const effectiveTemplate = await resolveTemplate(enriched)
     const bindings = buildBindings(reg, eventTitle, speakerInfo?.event_role)
     if (speakerInfo?.photo_url) bindings['speaker_photo_url'] = speakerInfo.photo_url
     const qrUrl = await buildQrDataUrl(reg.qr_code)

@@ -342,3 +342,25 @@ export async function applyStarterAction(
   const { applyStarterTemplate } = await import('@/lib/templates/apply-starter')
   await applyStarterTemplate(eventId, template, new Date(startAtIso))
 }
+
+// ── Badge rules ───────────────────────────────────────────────────────────────
+
+export async function updateBadgeRules(eventId: string, rules: unknown[]) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  try {
+    await assertEventAccess(supabase, eventId, user.id)
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .update({ badge_rules: rules })
+    .eq('id', eventId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/[slug]/badges`, 'page')
+  return { ok: true }
+}

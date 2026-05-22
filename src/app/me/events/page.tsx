@@ -56,7 +56,7 @@ export default async function MyEventsPage() {
   const [regsResult, speakerResult, volunteerResult] = await Promise.all([
     supabase
       .from('registrations')
-      .select('id, event_id, status, created_at, events(id, title, slug, start_at, end_at, status, org_id)')
+      .select('id, event_id, status, created_at, events(id, title, slug, start_at, end_at, status, org_id, organizations(name, slug))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
@@ -111,6 +111,26 @@ export default async function MyEventsPage() {
     return aUpcoming ? aDate - bDate : bDate - aDate
   })
 
+  // Stats for attendance summary bar
+  const confirmedRegs = registrations.filter((r: any) => ['confirmed', 'checked_in'].includes(r.status))
+  const attendedCount = confirmedRegs.filter((r: any) => r.status === 'checked_in').length
+  const upcomingCount = registrations.filter((r: any) =>
+    r.status === 'confirmed' && new Date((r.events as any)?.start_at) > new Date()
+  ).length
+
+  // Org attendance history
+  const orgHistory: Record<string, { orgName: string; orgSlug: string; count: number; lastAt: string }> = {}
+  for (const reg of confirmedRegs as any[]) {
+    const orgId = (reg.events as any)?.org_id
+    const orgName = (reg.events as any)?.organizations?.name
+    const orgSlug = (reg.events as any)?.organizations?.slug
+    if (!orgId || !orgName) continue
+    if (!orgHistory[orgId]) orgHistory[orgId] = { orgName, orgSlug: orgSlug ?? '', count: 0, lastAt: '' }
+    orgHistory[orgId].count++
+    const startAt = (reg.events as any)?.start_at ?? ''
+    if (startAt > orgHistory[orgId].lastAt) orgHistory[orgId].lastAt = startAt
+  }
+
   // Suggested events from orgs the user has attended
   const attendedOrgIds = [...new Set(
     registrations
@@ -142,6 +162,25 @@ export default async function MyEventsPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '2rem 1.5rem' }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 24 }}>My Events</h1>
+
+      {confirmedRegs.length > 0 && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Events registered', value: confirmedRegs.length },
+            { label: 'Events attended', value: attendedCount },
+            { label: 'Upcoming', value: upcomingCount },
+          ].map(({ label, value }) => (
+            <div key={label} style={{
+              flex: 1, minWidth: 100, background: 'var(--pz-surface)',
+              borderRadius: 10, padding: '0.875rem', border: '1px solid var(--pz-border)',
+              textAlign: 'center'
+            }}>
+              <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--pz-teal)', margin: 0 }}>{value}</p>
+              <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '2px 0 0' }}>{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {events.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--pz-muted)', fontSize: 14 }}>
@@ -185,6 +224,47 @@ export default async function MyEventsPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {Object.values(orgHistory).length > 0 && (
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pz-border)' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-muted)',
+                       textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+            Your history
+          </h2>
+          {Object.values(orgHistory)
+            .sort((a, b) => b.count - a.count)
+            .map(({ orgName, orgSlug, count, lastAt }) => (
+              <div key={orgSlug} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0.75rem 0', borderBottom: '1px solid var(--pz-border)'
+              }}>
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: '0 0 2px' }}>
+                    {orgName}
+                  </p>
+                  {lastAt && (
+                    <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>
+                      Last attended {new Date(lastAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-teal)' }}>
+                    {count} event{count !== 1 ? 's' : ''}
+                  </span>
+                  {orgSlug && (
+                    <a href={`/o/${orgSlug}`}
+                      style={{ fontSize: 12, color: 'var(--pz-muted)', textDecoration: 'none',
+                               border: '1px solid var(--pz-border)', borderRadius: 6, padding: '3px 8px' }}>
+                      View org →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))
+          }
         </div>
       )}
 
