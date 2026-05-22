@@ -1,10 +1,9 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 
 type Props = { params: Promise<{ slug: string }> }
 
-export default async function OrgProfilePage({ params }: Props) {
+export default async function PublicOrgPage({ params }: Props) {
   const { slug } = await params
   const supabase = await createClient()
 
@@ -12,112 +11,151 @@ export default async function OrgProfilePage({ params }: Props) {
     .from('organizations')
     .select('id, name, slug, logo_url, website, description')
     .eq('slug', slug)
-    .eq('is_active', true)
-    .maybeSingle()
+    .single()
+
   if (!org) notFound()
 
   const now = new Date().toISOString()
 
-  const [{ data: upcomingEvents }, { data: pastEvents }] = await Promise.all([
-    supabase
-      .from('events')
-      .select('id, title, slug, start_at, venue_name, venue_city, is_virtual')
-      .eq('org_id', (org as any).id)
-      .in('status', ['published', 'live'])
-      .gt('start_at', now)
-      .order('start_at', { ascending: true })
-      .limit(6),
-    supabase
-      .from('events')
-      .select('id, title, slug, start_at')
-      .eq('org_id', (org as any).id)
-      .eq('status', 'ended')
-      .order('start_at', { ascending: false })
-      .limit(3),
-  ])
+  const { data: upcomingEvents } = await supabase
+    .from('events')
+    .select('id, title, slug, start_at, end_at, venue_city, venue_state, event_type, cover_image_url, registration_count, status')
+    .eq('org_id', (org as any).id)
+    .eq('is_discoverable', true)
+    .in('status', ['published', 'live'])
+    .gt('start_at', now)
+    .order('start_at', { ascending: true })
+    .limit(6)
 
-  const o = org as any
+  const { data: pastEvents } = await supabase
+    .from('events')
+    .select('id, title, slug, start_at, venue_city, venue_state, registration_count')
+    .eq('org_id', (org as any).id)
+    .eq('is_discoverable', true)
+    .eq('status', 'ended')
+    .lt('start_at', now)
+    .order('start_at', { ascending: false })
+    .limit(3)
+
+  const upcoming = (upcomingEvents ?? []) as any[]
+  const past = (pastEvents ?? []) as any[]
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
-      {/* Header */}
       <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '2rem 1.5rem' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 20 }}>
-          {o.logo_url ? (
-            <img src={o.logo_url} alt={o.name} style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--pz-border)' }} />
-          ) : (
-            <div style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--pz-teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#0D1B2A', flexShrink: 0 }}>
-              {o.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--pz-text)', marginBottom: 4 }}>{o.name}</h1>
-            {o.website && (
-              <a href={o.website} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--pz-teal)', textDecoration: 'none' }}>{o.website}</a>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+            {(org as any).logo_url ? (
+              <img src={(org as any).logo_url} alt={(org as any).name}
+                style={{ height: 56, maxWidth: 160, objectFit: 'contain' }} />
+            ) : (
+              <div style={{
+                width: 56, height: 56, borderRadius: 12,
+                background: 'var(--pz-teal)22', color: 'var(--pz-teal)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24, fontWeight: 800
+              }}>
+                {(org as any).name?.charAt(0) ?? '?'}
+              </div>
             )}
+            <div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pz-text)', margin: 0 }}>
+                {(org as any).name}
+              </h1>
+              {(org as any).website && (
+                <a href={(org as any).website} target="_blank" rel="noreferrer"
+                  style={{ fontSize: 13, color: 'var(--pz-teal)', textDecoration: 'none' }}>
+                  {(org as any).website.replace(/^https?:\/\//, '')} ↗
+                </a>
+              )}
+            </div>
           </div>
+          {(org as any).description && (
+            <p style={{ fontSize: 14, color: 'var(--pz-muted)', margin: 0, lineHeight: 1.6 }}>
+              {(org as any).description}
+            </p>
+          )}
         </div>
       </div>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem' }}>
-        {o.description && (
-          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.25rem', marginBottom: 28 }}>
-            <p style={{ color: 'var(--pz-text)', fontSize: 14, lineHeight: 1.7 }}>{o.description}</p>
-          </div>
-        )}
 
-        {/* Upcoming events */}
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 14 }}>Upcoming events</h2>
-        {!upcomingEvents || upcomingEvents.length === 0 ? (
-          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '2rem', textAlign: 'center', marginBottom: 28 }}>
-            <p style={{ color: 'var(--pz-muted)', fontSize: 13 }}>No upcoming events.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-            {upcomingEvents.map((ev: any) => {
-              const date = new Date(ev.start_at)
-              return (
-                <div key={ev.id} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.25rem', display: 'flex', gap: 16, alignItems: 'center' }}>
-                  <div style={{ minWidth: 52, textAlign: 'center', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '6px 4px', flexShrink: 0 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--pz-teal)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                      {date.toLocaleDateString('en-US', { month: 'short' })}
+        <section style={{ marginBottom: '2.5rem' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-muted)',
+                       textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>
+            Upcoming Events {upcoming.length > 0 ? `(${upcoming.length})` : ''}
+          </h2>
+          {upcoming.length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--pz-muted)', fontStyle: 'italic' }}>
+              No upcoming events at this time. Check back soon.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {upcoming.map((e: any) => (
+                <a key={e.id} href={`/e/${e.slug}`}
+                  style={{ display: 'block', background: 'var(--pz-surface)', borderRadius: 12,
+                           border: '1px solid var(--pz-border)', padding: '1.25rem',
+                           textDecoration: 'none', transition: 'border-color 0.15s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--pz-text)', margin: '0 0 4px' }}>
+                        {e.title}
+                      </p>
+                      <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: '0 0 8px' }}>
+                        {new Date(e.start_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                        {e.venue_city ? ` · ${e.venue_city}${e.venue_state ? `, ${e.venue_state}` : ''}` : ''}
+                        {e.event_type === 'virtual' ? ' · Virtual' : e.event_type === 'hybrid' ? ' · Hybrid' : ''}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
+                          {e.registration_count ?? 0} registered
+                        </span>
+                        {e.status === 'live' && (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                                         borderRadius: 20, background: '#EF444422', color: '#EF4444' }}>
+                            LIVE NOW
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--pz-text)', lineHeight: 1.1 }}>{date.getDate()}</div>
-                    <div style={{ fontSize: 10, color: 'var(--pz-muted)' }}>{date.getFullYear()}</div>
+                    <span style={{ fontSize: 13, color: 'var(--pz-teal)', fontWeight: 600,
+                                   flexShrink: 0, paddingTop: 2 }}>
+                      Register →
+                    </span>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 3 }}>{ev.title}</p>
-                    <p style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
-                      {ev.is_virtual ? 'Virtual' : [ev.venue_name, ev.venue_city].filter(Boolean).join(', ') || 'TBA'}
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {past.length > 0 && (
+          <section>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-muted)',
+                         textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+              Past Events
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {past.map((e: any) => (
+                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between',
+                                         alignItems: 'center', padding: '0.75rem 0',
+                                         borderBottom: '1px solid var(--pz-border)' }}>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: '0 0 2px' }}>
+                      {e.title}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>
+                      {new Date(e.start_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      {e.venue_city ? ` · ${e.venue_city}` : ''}
                     </p>
                   </div>
-                  <Link
-                    href={`/e/${ev.slug}`}
-                    style={{ fontSize: 13, fontWeight: 600, background: 'var(--pz-teal)', color: '#0D1B2A', padding: '8px 16px', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
-                  >
-                    Register →
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Past events */}
-        {pastEvents && pastEvents.length > 0 && (
-          <>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 14 }}>Past events</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {pastEvents.map((ev: any) => (
-                <div key={ev.id} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--pz-text)' }}>{ev.title}</p>
-                  <p style={{ fontSize: 12, color: 'var(--pz-muted)', flexShrink: 0, marginLeft: 12 }}>
-                    {new Date(ev.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
+                  <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
+                    {e.registration_count ?? 0} attended
+                  </span>
                 </div>
               ))}
             </div>
-          </>
+          </section>
         )}
       </div>
     </div>

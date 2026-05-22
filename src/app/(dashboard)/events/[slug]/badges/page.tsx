@@ -14,7 +14,7 @@ export default async function BadgesPage({ params }: Props) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, org_id')
+    .select('id, title, org_id, badge_rules')
     .eq('slug', slug)
     .single()
   if (!event) notFound()
@@ -33,6 +33,12 @@ export default async function BadgesPage({ params }: Props) {
     .eq('event_id', (event as any).id)
 
   const orgTemplates = await getOrgBadgeTemplates((event as any).org_id)
+
+  const { data: ticketTypes } = await supabase
+    .from('ticket_types')
+    .select('id, name')
+    .eq('event_id', (event as any).id)
+    .eq('is_active', true)
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -56,6 +62,8 @@ export default async function BadgesPage({ params }: Props) {
         eventSlug={slug}
         eventTemplates={(eventTemplates ?? []) as any[]}
         orgTemplates={orgTemplates}
+        badgeRules={((event as any).badge_rules ?? []) as any[]}
+        ticketTypes={(ticketTypes ?? []) as any[]}
       />
     </div>
   )
