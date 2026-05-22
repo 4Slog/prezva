@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getPendingInvites } from '@/lib/orgs/actions'
 import { InviteForm } from '@/components/orgs/InviteForm'
 import { MemberList } from '@/components/orgs/MemberList'
 import { ConnectBankButton } from '@/components/connect/ConnectBankButton'
@@ -40,14 +41,24 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
     .eq('org_id', org.id)
     .order('created_at', { ascending: true })
 
-  // Fetch pending invites so the team section shows invite status
-  const { data: pendingInvites } = await admin
-    .from("org_member_invites")
-    .select("id, email, role, created_at, expires_at, accepted_at")
-    .eq("org_id", org.id)
-    .is("accepted_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
+  // Fetch pending invites from legacy table and new org_invites table
+  const [legacyInvitesResult, newPendingInvites] = await Promise.all([
+    admin
+      .from("org_member_invites")
+      .select("id, email, role, created_at, expires_at, accepted_at")
+      .eq("org_id", org.id)
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
+    canManage ? getPendingInvites(org.id).catch(() => []) : Promise.resolve([]),
+  ])
+  const legacyInvites = legacyInvitesResult.data ?? []
+  // Merge: org_invites (with token/resend support) take priority; skip legacy dupes
+  const legacyEmails = new Set(newPendingInvites.map(i => i.email.toLowerCase()))
+  const pendingInvites = [
+    ...newPendingInvites,
+    ...legacyInvites.filter(i => !legacyEmails.has(i.email.toLowerCase())),
+  ]
 
   // Fetch Connect status server-side for initial render
   const connectStatus = isOwner ? await getConnectStatus(org.id) : null

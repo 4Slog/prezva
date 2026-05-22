@@ -19,7 +19,7 @@ export async function getSponsorPortalData(eventSlug: string, sponsorSlug: strin
 
   const { data: event } = await admin
     .from('events')
-    .select('id, title, slug, starts_at, ends_at, status')
+    .select('id, title, slug, starts_at, ends_at, status, registration_count')
     .eq('slug', eventSlug)
     .maybeSingle()
 
@@ -45,7 +45,13 @@ export async function getSponsorPortalData(eventSlug: string, sponsorSlug: strin
     .order('created_at', { ascending: false })
 
   return {
-    event: { id: event.id, title: event.title, starts_at: event.starts_at, ends_at: event.ends_at },
+    event: {
+      id: event.id,
+      title: event.title,
+      starts_at: event.starts_at,
+      ends_at: event.ends_at,
+      registration_count: (event as any).registration_count ?? null,
+    },
     sponsor: {
       id: (sponsor as any).id,
       name: (sponsor as any).name,
@@ -144,6 +150,44 @@ export async function exportSponsorLeads(eventSlug: string, token: string): Prom
       .map(v => JSON.stringify(v ?? '')).join(',')
   )
   return { csv: 'name,email,company,job_title,note,quality,scanned_at\n' + rows.join('\n') }
+}
+
+export async function updateSponsorBooth(
+  token: string,
+  updates: { description?: string; website_url?: string; logo_url?: string },
+): Promise<{ ok?: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const { data: sponsor } = await admin
+    .from('event_sponsors')
+    .select('id')
+    .eq('portal_access_token', token)
+    .single()
+  if (!sponsor) return { error: 'Invalid token' }
+  await admin.from('event_sponsors')
+    .update({
+      description: updates.description ?? undefined,
+      website_url: updates.website_url ?? undefined,
+      logo_url: updates.logo_url ?? undefined,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', (sponsor as any).id)
+  return { ok: true }
+}
+
+export async function updateLeadNote(
+  token: string,
+  leadId: string,
+  note: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const { data: sponsor } = await admin
+    .from('event_sponsors').select('id').eq('portal_access_token', token).single()
+  if (!sponsor) return { error: 'Invalid token' }
+  await admin.from('sponsor_leads')
+    .update({ note: note.trim() || null })
+    .eq('id', leadId)
+    .eq('sponsor_id', (sponsor as any).id)
+  return { ok: true }
 }
 
 export async function updateLeadQuality(

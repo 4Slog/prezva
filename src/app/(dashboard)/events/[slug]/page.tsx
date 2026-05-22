@@ -7,6 +7,9 @@ import { SaveAsTemplateButton } from '@/components/events/SaveAsTemplateButton'
 import { getAdminTileBadges } from '@/lib/events/admin-tile-counts'
 import { getEventCounts } from '@/lib/registrations/counts'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/get-user'
+import { StaffDashboard } from './staff-dashboard'
 import Link from 'next/link'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -34,6 +37,18 @@ export default async function EventDetailPage({ params }: Props) {
   const event = await getEventBySlug(slug)
   if (!event) notFound()
 
+  const supabase = await createClient()
+  const user = await requireUser()
+
+  const { data: memberRow } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', (event as any).org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const userRole = memberRow?.role ?? null
+
   // Admin client: fetch org slug for integration tile link + tile badges + live counts
   const admin = createAdminClient()
   const [orgRes, badges, counts] = await Promise.all([
@@ -42,6 +57,29 @@ export default async function EventDetailPage({ params }: Props) {
     getEventCounts((event as any).id),
   ])
   const orgSlug = orgRes.data?.slug
+
+  if (userRole === 'staff') {
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
+    const todayEnd   = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString()
+
+    const { data: todaysSessions } = await supabase
+      .from('sessions')
+      .select('id, title, starts_at, ends_at, rooms(name)')
+      .eq('event_id', (event as any).id)
+      .gte('starts_at', todayStart)
+      .lt('starts_at', todayEnd)
+      .order('starts_at', { ascending: true })
+
+    return (
+      <StaffDashboard
+        event={{ slug: event.slug, title: event.title }}
+        checkedInCount={counts.checkedIn}
+        registrationCount={counts.total}
+        todaysSessions={(todaysSessions ?? []) as any}
+      />
+    )
+  }
 
   const notArrived = counts.confirmed - counts.checkedIn
 
