@@ -1,12 +1,65 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-20
+## Last updated: 2026-05-21
 
-## Status: bundle11c complete | Gates PASS | Ready for PR
+## Status: bundle11g complete | Gates PASS | Committed bf4c41b, ready for PR
 
 ---
 
-## This Session — Bundle 11c (B9-40, B11-31, B11-32, B11-33)
+## This Session — Bundle 11g (B11-44 through B11-49)
+
+### Branch
+`bundle11g` (created from `main`)
+
+### What was done
+
+**B11-44 — Sponsor portal booth info editing**
+- `src/lib/sponsors/portal-actions.ts`: `updateSponsorBooth()` — validates token, updates description/website_url/logo_url + updated_at
+- `client.tsx`: new "Edit Info" tab with description textarea, website URL, logo URL inputs; save button with ✓ Saved feedback
+
+**B11-45 — Lead notes and quality analytics**
+- `portal-actions.ts`: `updateLeadNote()` — validates token, updates note on blur
+- `client.tsx`: note textarea on each lead card (onBlur saves); hot/warm/cold/total analytics bar at top of Leads tab
+
+**B11-46 — Sponsor ROI report tab**
+- `portal-actions.ts`: `getSponsorPortalData()` now includes `registration_count` from events
+- `client.tsx`: new "Report" tab — metrics grid (leads, hot leads, companies, attendees), companies-reached list, export CSV button; 5 tabs total
+
+**B11-47 — Staff scoped dashboard**
+- `src/app/(dashboard)/events/[slug]/staff-dashboard.tsx`: NEW client component — check-in stats, progress bar, quick-links, today's sessions
+- `src/app/(dashboard)/events/[slug]/page.tsx`: added requireUser + createClient; fetches org_members role; role==='staff' → fetches today's sessions + returns StaffDashboard
+
+**B11-48 — Staff onboarding modal**
+- `src/components/staff/StaffOnboardingModal.tsx`: NEW — first-visit localStorage-keyed guide, 4 steps, dismisses once per user
+- `src/app/(dashboard)/dashboard/page.tsx`: renders StaffOnboardingModal for staff members
+
+**B11-49 — Org invite improvements**
+- `supabase/migrations/0075_org_invites.sql`: NEW org_invites table; RLS policy; UNIQUE(org_id, email)
+- `src/lib/orgs/actions.ts`: getPendingInvites, revokeInvite, resendInvite added; inviteMember upserts into org_invites
+- `src/components/orgs/MemberList.tsx`: Resend button on org_invites entries; handleRevoke updated for both tables
+- `src/app/(dashboard)/orgs/[slug]/settings/page.tsx`: merges org_invites + org_member_invites, deduped by email
+
+### Gate results
+- `npx tsc --noEmit` — PASS
+- `npm run build` — PASS (compiled 6.9s)
+- `npx vitest run` — 318/318 PASS
+
+### Commit
+`bf4c41b` on `bundle11g`
+
+### Next
+- Open PR: bundle11g → main
+- Next migration: 0076
+
+---
+
+## Previous Session — Bundle 11f (B11-40 through B11-43, B9-44)
+
+### Commit: `76bda92` on `bundle11f`
+
+---
+
+## Previous Session — Bundle 11c (B9-40, B11-31, B11-32, B11-33)
 
 ### Branch
 `bundle11c` (created from `main`)

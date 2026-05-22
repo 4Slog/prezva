@@ -228,15 +228,59 @@ export async function removeAttendee(registrationId: string) {
 }
 
 export async function exportAttendeesCSV(eventId: string): Promise<string> {
-  const { attendees } = await getAttendees(eventId, { pageSize: 10000 })
-  const headers = ['Name', 'Email', 'Ticket', 'Status', 'Amount Paid', 'Checked In', 'Check-In Time', 'Registered At']
-  const rows = attendees.map(a => [
-    a.attendee_name, a.attendee_email, a.ticket_name, a.status,
-    ((a.amount_paid_cents ?? 0) / 100).toFixed(2),
-    a.checked_in ? 'Yes' : 'No',
-    a.check_in_time ? new Date(a.check_in_time).toLocaleString() : '',
-    new Date(a.created_at ?? '').toLocaleString(),
-  ])
+  const user = await requireUser()
+  const supabase = await createClient()
+  await assertOrgMember(supabase, user.id, eventId)
+
+  // Fetch all registrations with extended fields for export
+  const { data } = await supabase
+    .from('registrations')
+    .select('*, ticket_types(name), check_ins(checked_in_at)')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false })
+    .limit(10000)
+
+  const headers = [
+    'Name', 'Email', 'Phone', 'Company', 'Job Title',
+    'Ticket', 'Status', 'Amount Paid', 'Payment Method',
+    'Delivery', 'Checked In', 'Check-In Time', 'Registered At'
+  ]
+
+  const PAYMENT_LABELS: Record<string, string> = {
+    online: 'Online (Stripe)', cash: 'Cash', card: 'Card (in person)',
+    invoice: 'Invoice', comp: 'Complimentary', other: 'Other', '': '—'
+  }
+
+  const DELIVERY_LABELS: Record<string, string> = {
+    in_person: 'In-person', virtual: 'Virtual', both: 'Both', '': '—'
+  }
+
+  const STATUS_LABELS: Record<string, string> = {
+    confirmed: 'Confirmed', cancelled: 'Cancelled',
+    waitlisted: 'Waitlist', pending: 'Pending', refunded: 'Refunded'
+  }
+
+  const rows = ((data ?? []) as any[]).map(r => {
+    const checkedIn = (r.check_ins?.length ?? 0) > 0
+    const checkInTime = r.check_ins?.[0]?.checked_in_at
+    const amountPaid = (r.amount_paid_cents ?? 0) / 100
+    return [
+      r.attendee_name ?? '',
+      r.attendee_email ?? '',
+      r.attendee_phone ?? '',
+      r.attendee_company ?? '',
+      r.attendee_job_title ?? '',
+      r.ticket_types?.name ?? '',
+      STATUS_LABELS[r.status] ?? r.status ?? '',
+      amountPaid > 0 ? '$' + amountPaid.toFixed(2) : '$0.00',
+      PAYMENT_LABELS[r.payment_method ?? ''] ?? r.payment_method ?? '—',
+      DELIVERY_LABELS[r.delivery_method ?? ''] ?? '—',
+      checkedIn ? 'Yes' : 'No',
+      checkInTime ? new Date(checkInTime).toISOString().replace('T', ' ').slice(0, 19) : '—',
+      r.created_at ? new Date(r.created_at).toISOString().replace('T', ' ').slice(0, 19) : '',
+    ]
+  })
+
   return [headers, ...rows]
     .map(row => row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(','))
     .join('\n')
