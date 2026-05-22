@@ -20,6 +20,7 @@ export const sendConfirmationEmail = schemaTask({
     virtualUrl:     z.string().optional(),
     eventType:      z.string().optional(),
     orgEmail:       z.string().email().optional(),
+    pressToken:     z.string().optional(),
   }),
   run: async (payload) => {
     const dateStr = new Date(payload.eventStartAt).toLocaleString('en-US', {
@@ -49,6 +50,11 @@ export const sendConfirmationEmail = schemaTask({
           <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Join link</p>
             <a href="${payload.virtualUrl}" style="color:#00BFA6;font-size:16px;font-weight:700;text-decoration:none;">Join online →</a>
+          </div>` : ''}
+          ${payload.pressToken ? `
+          <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
+            <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Press credentials</p>
+            <a href="${BASE_URL}/press/${payload.pressToken}" style="color:#00BFA6;font-size:15px;font-weight:700;text-decoration:none;">Access your press portal →</a>
           </div>` : ''}
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>

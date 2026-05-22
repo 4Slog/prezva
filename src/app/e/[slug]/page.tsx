@@ -6,6 +6,8 @@ import { ShareButtons } from '@/components/events/ShareButtons'
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import QRDisplay from './my-qr/qr-display'
+import { GuestConversionBanner } from '@/components/events/GuestConversionBanner'
+import { VirtualJoinButton } from '@/components/events/VirtualJoinButton'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -236,6 +238,12 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
               <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginTop:'1.5rem' }}>
                 <a href={`/api/registrations/${reg.id}/calendar.ics`} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.6rem 1.25rem', borderRadius:7, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid rgba(255,255,255,0.2)' }}>Add to Calendar</a>
                 <Link href={`/e/${slug}/agenda`} style={{ background:'rgba(255,255,255,0.1)', color:'#fff', padding:'0.6rem 1.25rem', borderRadius:7, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid rgba(255,255,255,0.2)' }}>View Schedule</Link>
+                {['virtual','hybrid'].includes((event as any).event_type) && (event as any).virtual_url && (
+                  <VirtualJoinButton
+                    virtualUrl={(event as any).virtual_url}
+                    registrationId={reg.id}
+                  />
+                )}
               </div>
             </div>
             {reg?.qr_code && (
@@ -262,9 +270,16 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
               <span style={{ display:'flex', alignItems:'center', gap:6 }}><Clock size={16} style={{ color:'var(--color-teal)' }}/>{fmtTime(start)} – {fmtTime(end)} {tzLabel}</span>
               {location && <span style={{ display:'flex', alignItems:'center', gap:6 }}><MapPin size={16} style={{ color:'var(--color-teal)' }}/>{location}</span>}
               {['virtual','hybrid'].includes((event as any).event_type) && (event as any).virtual_url && (
-                <a href={(event as any).virtual_url} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:6, color:'var(--color-teal)', textDecoration:'none' }}>
-                  💻 Join online
-                </a>
+                reg?.id ? (
+                  <VirtualJoinButton
+                    virtualUrl={(event as any).virtual_url}
+                    registrationId={reg.id}
+                  />
+                ) : (
+                  <a href={(event as any).virtual_url} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:6, color:'var(--color-teal)', textDecoration:'none' }}>
+                    💻 Join online
+                  </a>
+                )
               )}
               {event.capacity && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Users size={16} style={{ color:'var(--color-teal)' }}/>{event.registration_count} / {event.capacity} registered</span>}
             </div>
@@ -280,6 +295,15 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
 
       {/* ── BODY (same for all states) ─────────────────────────────────────── */}
       <div style={{ maxWidth:800, margin:'0 auto', padding:'0 1.5rem' }}>
+        {reg && !reg.user_id && (
+          <div style={{ paddingTop: '1.5rem' }}>
+            <GuestConversionBanner
+              regId={reg.id}
+              email={reg.attendee_email ?? ''}
+              slug={slug}
+            />
+          </div>
+        )}
         <div style={{ borderBottom:'1px solid var(--color-border)', marginBottom:'2rem', display:'flex', gap:'2rem', overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', msOverflowStyle:'none' }}>
           {[{label:'Agenda',href:'/e/'+slug+'/agenda'},{label:'Speakers',href:'/e/'+slug+'/speakers'},{label:'Community',href:'/e/'+slug+'/community'},{label:'Trivia',href:'/e/'+slug+'/trivia'},{label:'Icebreakers',href:'/e/'+slug+'/icebreakers'},{label:'Passport',href:'/e/'+slug+'/passport'},{label:'Leaderboard',href:'/e/'+slug+'/leaderboard'},{label:'Volunteer',href:'/e/'+slug+'/volunteer'}].map(({label,href}) => (
             <Link key={href} href={href} style={{ padding:'1rem 0', color:'var(--color-text)', textDecoration:'none', fontSize:14, fontWeight:500 }}>{label}</Link>

@@ -276,6 +276,7 @@ async function confirmFreeRegistration(
   const now = new Date().toISOString()
 
   // Insert all registrations for the requested quantity
+  const isPressTicket = (ticket as any).is_press === true
   const insertRows = Array.from({ length: quantity }, () => ({
     event_id:       data.event_id,
     ticket_type_id: data.ticket_type_id,
@@ -290,6 +291,7 @@ async function confirmFreeRegistration(
     discount_code_id:    discountCodeId ?? null,
     confirmation_sent_at: requireApproval ? null : now,
     delivery_method: data.delivery_method ?? 'in_person',
+    press_token: isPressTicket ? crypto.randomUUID() : null,
   }))
 
   const { data: regs, error } = await admin
@@ -354,6 +356,7 @@ async function confirmFreeRegistration(
     orgEmail,
     virtualUrl: (event as any).virtual_url ?? undefined,
     eventType:  (event as any).event_type ?? undefined,
+    pressToken: (reg as any).press_token ?? undefined,
   })
 
   if (regs.length > 1) {
@@ -394,6 +397,7 @@ async function createPaidRegistration(
       discount_code_id:    discountCodeId ?? null,
       discount_amount_cents: discountAmountCents,
       delivery_method: data.delivery_method ?? 'in_person',
+      press_token: (ticket as any).is_press === true ? crypto.randomUUID() : null,
     })
     .select()
     .single()
@@ -444,6 +448,40 @@ async function createPaidRegistration(
     await admin.from('registrations').delete().eq('id', reg.id)
     return { error: 'Payment setup failed — please try again' }
   }
+}
+
+// ── Virtual check-in ──────────────────────────────────────────────────────────
+export async function virtualCheckIn(registrationId: string) {
+  const admin = createAdminClient()
+
+  const { data: reg } = await admin
+    .from('registrations')
+    .select('id, event_id, status, delivery_method')
+    .eq('id', registrationId)
+    .single()
+
+  if (!reg) return { error: 'Registration not found' }
+  if (!['virtual', 'both'].includes((reg as any).delivery_method ?? ''))
+    return { error: 'This registration is not virtual' }
+
+  const { data: existing } = await admin
+    .from('check_ins')
+    .select('id')
+    .eq('registration_id', registrationId)
+    .is('session_id', null)
+    .maybeSingle()
+
+  if (existing) return { ok: true, alreadyCheckedIn: true }
+
+  await admin.from('check_ins').insert({
+    registration_id: registrationId,
+    event_id: (reg as any).event_id,
+    method: 'virtual',
+    checked_in_by: null,
+    synced_at: new Date().toISOString(),
+  })
+
+  return { ok: true, alreadyCheckedIn: false }
 }
 
 // ── Waitlist ──────────────────────────────────────────────────────────────────
