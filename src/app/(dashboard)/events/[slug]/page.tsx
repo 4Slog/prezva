@@ -138,7 +138,7 @@ export default async function EventDetailPage({ params }: Props) {
       </div>
 
       {/* Module tile grid */}
-      <AdminTileGrid eventSlug={slug} orgSlug={orgSlug ?? undefined} badges={badges} />
+      <AdminTileGrid eventSlug={slug} orgSlug={orgSlug ?? undefined} badges={badges} userRole={userRole} />
     </div>
   )
 }

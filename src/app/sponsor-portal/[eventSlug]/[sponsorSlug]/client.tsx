@@ -1,5 +1,6 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Download, Users, Package, BarChart3, QrCode, FileText, Info } from 'lucide-react'
 import {
   exportSponsorLeads,
@@ -28,6 +29,17 @@ const QUALITY_CYCLE: Record<string, 'hot' | 'warm' | 'cold'> = { hot: 'warm', wa
 export default function SponsorPortalClient({ event, sponsor, leads: initLeads, eventSlug, token }: Props) {
   const [tab, setTab] = useState<'overview' | 'leads' | 'analytics' | 'info' | 'report'>('overview')
   const [leads, setLeads] = useState<SponsorLead[]>(initLeads)
+  const [isLinkedUser, setIsLinkedUser] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email && sponsor.contact_email &&
+          user.email.toLowerCase() === sponsor.contact_email.toLowerCase()) {
+        setIsLinkedUser(true)
+      }
+    })
+  }, [sponsor.contact_email])
   const [exporting, setExporting] = useState(false)
   const [scanCode, setScanCode] = useState('')
   const [scanNote, setScanNote] = useState('')
@@ -145,6 +157,16 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg, #0D1B2A)', fontFamily: 'sans-serif', color: 'var(--pz-text, #F0F4F8)' }}>
+      {isLinkedUser && (
+        <div style={{ background: 'rgba(0,191,166,0.08)', borderBottom: '1px solid #00BFA6', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <p style={{ fontSize: 13, color: '#00BFA6', margin: 0 }}>
+            🏢 You're viewing this as a sponsor
+          </p>
+          <a href="/dashboard" style={{ fontSize: 12, color: '#00BFA6', textDecoration: 'underline' }}>
+            Back to organizer dashboard →
+          </a>
+        </div>
+      )}
       {/* Header */}
       <div style={{ background: '#0D1B2A', color: '#fff', padding: '1.5rem 2rem' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

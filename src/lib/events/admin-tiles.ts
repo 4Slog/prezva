@@ -7,12 +7,13 @@ export interface AdminTile {
   category: TileCategory
   description: string
   href: (slug: string) => string
+  min_role?: 'owner' | 'admin' | 'staff'
 }
 
 export const ADMIN_TILES: AdminTile[] = [
   // Core
   { key: 'attendees',      label: 'Attendees',      icon: '👥', category: 'core',        description: 'Manage registrations, check-ins, refunds',           href: s => `/events/${s}/attendees` },
-  { key: 'tickets',        label: 'Tickets',         icon: '🎟️', category: 'core',        description: 'Ticket types, pricing, capacity, discount codes',    href: s => `/events/${s}/tickets` },
+  { key: 'tickets',        label: 'Tickets',         icon: '🎟️', category: 'core',        description: 'Ticket types, pricing, capacity, discount codes',    href: s => `/events/${s}/tickets`,        min_role: 'admin' },
   { key: 'agenda',         label: 'Agenda',          icon: '📋', category: 'core',        description: 'Sessions, schedule, session documents, check-ins',   href: s => `/events/${s}/agenda` },
   { key: 'speakers',       label: 'Speakers',        icon: '🎤', category: 'core',        description: 'Invite speakers, manage bios, handouts, portal',     href: s => `/events/${s}/speakers` },
   { key: 'checkin',        label: 'Check-in',        icon: '✅', category: 'core',        description: 'QR scanner, kiosk mode, walk-in registrations',      href: s => `/events/${s}/checkin` },
@@ -33,13 +34,12 @@ export const ADMIN_TILES: AdminTile[] = [
   // Advanced
   { key: 'sponsors',       label: 'Sponsors',        icon: '🏢', category: 'advanced',    description: 'Sponsor tiers, logos, exhibitor directory',         href: s => `/events/${s}/sponsors` },
   { key: 'certificates',   label: 'Certificates',    icon: '🎓', category: 'advanced',    description: 'CE certificates, eligibility rules, email delivery', href: s => `/events/${s}/certificates` },
-  { key: 'analytics',      label: 'Analytics',       icon: '📈', category: 'advanced',    description: 'Registration trends, engagement, survey results',    href: s => `/events/${s}/analytics` },
-  { key: 'dead-letters',   label: 'Failed Jobs',    icon: '⚠️', category: 'advanced',       description: 'View and retry failed background jobs and emails',   href: s => `/events/${s}/dead-letters` },
+  { key: 'analytics',      label: 'Analytics',       icon: '📈', category: 'advanced',    description: 'Registration trends, engagement, survey results',    href: s => `/events/${s}/analytics`,      min_role: 'admin' },
   { key: 'audit-log',      label: 'Audit Log',       icon: '🔍', category: 'advanced',    description: 'Track all admin actions, exports, and changes',      href: s => `/events/${s}/audit-log` },
-  { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and replay failed background sync jobs',        href: s => `/events/${s}/dead-letters` },
+  { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and retry failed background jobs and emails',   href: s => `/events/${s}/dead-letters`,   min_role: 'admin' },
 
   // Integration
-  { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: s => `/events/${s}/integrations` },
+  { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: s => `/events/${s}/integrations`,   min_role: 'admin' },
 ]
 
 export const TILE_CATEGORIES: { key: TileCategory; label: string }[] = [

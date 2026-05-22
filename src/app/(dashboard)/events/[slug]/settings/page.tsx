@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getEventBySlug, updateEvent, deleteEvent } from '@/lib/events/actions'
+import { getEventBySlug, updateEvent, deleteEvent, updateEventDiscoverable } from '@/lib/events/actions'
 import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
@@ -152,6 +152,48 @@ export default async function EventSettingsPage({ params }: Props) {
               style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
             >
               Save venue
+            </button>
+          )}
+        </form>
+      </section>
+
+      {/* Discovery */}
+      <section className="pz-card p-6 mb-6">
+        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Discovery</h2>
+        <form
+          action={async (fd: FormData) => {
+            'use server'
+            const isDiscoverable = fd.get('is_discoverable') === 'true'
+            await updateEventDiscoverable(event.id, isDiscoverable)
+          }}
+          className="flex flex-col gap-4"
+        >
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: isStaff ? 'default' : 'pointer' }}>
+            <input
+              type="checkbox"
+              name="is_discoverable"
+              value="true"
+              defaultChecked={(event as any).is_discoverable ?? false}
+              disabled={isStaff}
+              style={{ marginTop: 2, accentColor: 'var(--pz-teal)', width: 16, height: 16 }}
+            />
+            <div>
+              <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>
+                List this event publicly on Prezva
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '2px 0 0' }}>
+                When enabled, this event appears in Prezva&apos;s public event discovery.
+                Your event registration page is always publicly accessible via direct link regardless of this setting.
+              </p>
+            </div>
+          </label>
+          {!isStaff && (
+            <button
+              type="submit"
+              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              Save discovery
             </button>
           )}
         </form>

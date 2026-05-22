@@ -32,7 +32,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   // display their confirmation page. Reg ID is an unguessable UUID and is the
   // de-facto bearer token here, mirroring Eventbrite/Whova confirmation links.
   const admin = createAdminClient()
-  void createClient
+  const supabase = await createClient()
 
   let resolvedRegId = regId
 
@@ -50,7 +50,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { data: reg } = resolvedRegId
     ? await admin
         .from('registrations')
-        .select('*, ticket_types(name, price_cents), events(title, start_at, timezone, certificate_enabled)')
+        .select('*, ticket_types(name, price_cents), events(id, org_id, title, start_at, timezone, certificate_enabled)')
         .eq('id', resolvedRegId)
         .maybeSingle()
     : { data: null }
@@ -66,6 +66,24 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 90, // 90 days
     })
+  }
+
+  // Repeat attendee recognition
+  let previousCount = 0
+  if (reg && !isWaitlist) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const orgId = (reg.events as any)?.org_id
+    const eventId = (reg.events as any)?.id
+    if (user && orgId && eventId) {
+      const { count } = await admin
+        .from('registrations')
+        .select('id, events!inner(org_id)', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('events.org_id', orgId)
+        .in('status', ['confirmed', 'checked_in'])
+        .neq('event_id', eventId)
+      previousCount = count ?? 0
+    }
   }
 
   return (
@@ -108,6 +126,16 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     Add to Calendar
                   </a>
                 </>
+              )}
+              {previousCount > 0 && (
+                <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'var(--pz-teal, #00BFA6)15', borderRadius: 10, border: '1px solid rgba(0,191,166,0.27)', textAlign: 'center' }}>
+                  <p style={{ fontSize: 14, color: 'var(--pz-teal, #00BFA6)', fontWeight: 600, margin: 0 }}>
+                    Welcome back! 👋
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--pz-muted, #94A3B8)', margin: '4px 0 0' }}>
+                    You&apos;ve attended {previousCount} previous event{previousCount !== 1 ? 's' : ''} with this organization.
+                  </p>
+                </div>
               )}
               <div className="flex flex-col gap-3 items-center">
                 <Link

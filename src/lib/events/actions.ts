@@ -51,6 +51,7 @@ const UpdateEventSchema = z.object({
   allow_public_attendee_list: z.coerce.boolean().optional(),
   require_approval:           z.coerce.boolean().optional(),
   cover_image_url: z.string().url().optional().or(z.literal('')),
+  is_discoverable: z.coerce.boolean().optional(),
 })
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -167,6 +168,28 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const { error } = await supabase
     .from('events')
     .update(parsed.data)
+    .eq('id', eventId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/events')
+  revalidatePath(`/events/[slug]`)
+  return { success: true }
+}
+
+export async function updateEventDiscoverable(eventId: string, isDiscoverable: boolean) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  try {
+    await assertEventAccess(supabase, eventId, user.id)
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .update({ is_discoverable: isDiscoverable })
     .eq('id', eventId)
 
   if (error) return { error: error.message }

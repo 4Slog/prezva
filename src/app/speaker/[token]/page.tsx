@@ -25,11 +25,15 @@ export default async function SpeakerHubPage({ params }: Props) {
     .eq('id', speakerId)
     .single()
 
-  const [sessionData, formSchema, formSubmission] = await Promise.all([
+  const [sessionData, formSchema, formSubmission, { data: { user } }] = await Promise.all([
     getSpeakerSessionsWithQA(speakerId, eventId),
     getSpeakerFormSchema(eventId),
     getSpeakerFormSubmission(eventId, speakerId),
+    supabase.auth.getUser(),
   ])
+
+  const isLinkedUser = !!(user?.email && speaker?.email &&
+    user.email.toLowerCase() === (speaker as any).email.toLowerCase())
 
   const sessionIds = sessionData.map((sd: any) => sd.session?.id).filter(Boolean)
   const feedbackBySession = await getSessionFeedbackForSpeaker(sessionIds)
@@ -50,6 +54,7 @@ export default async function SpeakerHubPage({ params }: Props) {
       sessionsWithQA={sessionsWithHandouts}
       formSchema={formSchema}
       formSubmission={formSubmission}
+      isLinkedUser={isLinkedUser}
     />
   )
 }

@@ -19,11 +19,12 @@ type Props = {
   sessionsWithQA: any[]
   formSchema: any[]
   formSubmission: Record<string, string>
+  isLinkedUser?: boolean
 }
 
 type Tab = 'sessions' | 'info' | 'messages'
 
-export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initialSessionsWithQA, formSchema, formSubmission }: Props) {
+export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initialSessionsWithQA, formSchema, formSubmission, isLinkedUser }: Props) {
   const [tab, setTab] = useState<Tab>('sessions')
   const [sessionsWithQA, setSessionsWithQA] = useState<any[]>(initialSessionsWithQA)
   const [formData, setFormData] = useState<Record<string, string>>(formSubmission)
@@ -98,6 +99,16 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
+      {isLinkedUser && (
+        <div style={{ background: 'var(--pz-teal, #00BFA6)22', borderBottom: '1px solid var(--pz-teal, #00BFA6)', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <p style={{ fontSize: 13, color: 'var(--pz-teal, #00BFA6)', margin: 0 }}>
+            🎙️ You're viewing this as a speaker
+          </p>
+          <a href="/dashboard" style={{ fontSize: 12, color: 'var(--pz-teal, #00BFA6)', textDecoration: 'underline' }}>
+            Back to organizer dashboard →
+          </a>
+        </div>
+      )}
       {/* Header */}
       <div style={{ background: 'var(--pz-teal)', padding: '1.25rem 1.5rem' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>

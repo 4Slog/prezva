@@ -72,14 +72,14 @@ describe('Sprint 21 — Attendee App Surface', () => {
   })
 
   // /me/events
-  it('/me/events page exists with tab filtering', () => {
+  it('/me/events page exists with multi-persona event view', () => {
     const path = join(SRC, 'app/me/events/page.tsx')
     expect(existsSync(path)).toBe(true)
     const src = readFileSync(path, 'utf-8')
-    expect(src).toContain('getMyRegistrations')
-    expect(src).toContain('upcoming')
-    expect(src).toContain('past')
-    expect(src).toContain('cancelled')
+    expect(src).toContain('speakers')
+    expect(src).toContain('volunteers')
+    expect(src).toContain('RolePill')
+    expect(src).toContain('EventEntry')
   })
 
   // /me/profile
