@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 
 export interface EventAnalytics {
@@ -17,11 +18,31 @@ export interface EventAnalytics {
   announcementCount: number
   virtualAttendees: number
   inPersonAttendees: number
+  // Registration pace
+  registrationsLast24h: number
+  registrationsLast7d: number
+  // Check-in velocity
+  checkInsLast30min: number
+  checkInsLast60min: number
+  estimatedMinutesToComplete: number | null
+  // Revenue intelligence
+  compTicketCount: number
+  paidTicketCount: number
+  freeTicketCount: number
+  averageTicketValueCents: number
 }
 
 export async function getEventAnalytics(eventId: string): Promise<EventAnalytics> {
   const supabase = await createClient()
+  const admin = createAdminClient()
   await requireUser()
+
+  const now = new Date()
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+  const last7d  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000).toISOString()
+  const last30m = new Date(now.getTime() - 30 * 60 * 1000).toISOString()
+  const last60m = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
+  const last14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
 
   const [
     { data: event },
@@ -30,28 +51,49 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
     { data: surveyResponses },
     { data: announcements },
     { data: ticketTypes },
+    ci30m,
+    ci60m,
   ] = await Promise.all([
     supabase.from('events').select('capacity, registration_count, checked_in_count').eq('id', eventId).single(),
-    supabase.from('registrations').select('status, amount_paid_cents, ticket_type_id, created_at, delivery_method').eq('event_id', eventId),
+    supabase.from('registrations').select('status, amount_paid_cents, ticket_type_id, created_at, delivery_method, payment_method').eq('event_id', eventId),
     supabase.from('check_ins').select('id').eq('event_id', eventId),
     supabase.from('survey_responses').select('id, surveys!inner(event_id)').eq('surveys.event_id', eventId),
     supabase.from('announcements').select('id').eq('event_id', eventId),
     supabase.from('ticket_types').select('id, name, type').eq('event_id', eventId),
+    admin.from('check_ins').select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId).is('session_id', null).gte('created_at', last30m),
+    admin.from('check_ins').select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId).is('session_id', null).gte('created_at', last60m),
   ])
 
   const regs = registrations ?? []
   const confirmed = regs.filter((r: any) => r.status === 'confirmed')
   const totalRevenue = confirmed.reduce((sum: number, r: any) => sum + (r.amount_paid_cents ?? 0), 0)
 
-  // Group by day
+  // Registration pace from already-fetched data
+  const registrationsLast24h = regs.filter((r: any) =>
+    r.created_at && r.created_at >= last24h &&
+    (r.status === 'confirmed' || r.status === 'pending')
+  ).length
+  const registrationsLast7d = regs.filter((r: any) =>
+    r.created_at && r.created_at >= last7d &&
+    (r.status === 'confirmed' || r.status === 'pending')
+  ).length
+
+  // registrationsByDay — last 14 days, pre-populated
   const dayMap: Record<string, number> = {}
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+    dayMap[d.toISOString().slice(0, 10)] = 0
+  }
   for (const r of regs) {
     const day = (r as any).created_at?.slice(0, 10)
-    if (day) dayMap[day] = (dayMap[day] ?? 0) + 1
+    if (day && day >= last14d.slice(0, 10) && day in dayMap &&
+        ((r as any).status === 'confirmed' || (r as any).status === 'pending')) {
+      dayMap[day]++
+    }
   }
-  const registrationsByDay = Object.entries(dayMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count }))
+  const registrationsByDay = Object.entries(dayMap).map(([date, count]) => ({ date, count }))
 
   // Ticket breakdown
   const ttMap: Record<string, { name: string; count: number; revenueCents: number }> = {}
@@ -72,6 +114,23 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
   const virtualAttendees = confirmed.filter((r: any) => r.delivery_method === 'virtual').length
   const inPersonAttendees = confirmed.filter((r: any) => r.delivery_method !== 'virtual').length
 
+  // Check-in velocity
+  const checkInsLast30min = ci30m.count ?? 0
+  const checkInsLast60min = ci60m.count ?? 0
+  const remaining = confirmedCount - checkedInCount
+  const ratePerMin = checkInsLast30min / 30
+  const estimatedMinutesToComplete = ratePerMin > 0 ? Math.round(remaining / ratePerMin) : null
+
+  // Revenue intelligence
+  const compCount = (confirmed as any[]).filter(r =>
+    r.payment_method === 'comp' || (r.amount_paid_cents === 0 && r.payment_method === 'comp')
+  ).length
+  const paidCount = (confirmed as any[]).filter(r => (r.amount_paid_cents ?? 0) > 0).length
+  const freeTicketCount = (confirmed as any[]).filter(r =>
+    (r.amount_paid_cents ?? 0) === 0 && r.payment_method !== 'comp'
+  ).length
+  const avgCents = paidCount > 0 ? Math.round(totalRevenue / paidCount) : 0
+
   return {
     totalRegistrations: regs.length,
     confirmedRegistrations: confirmedCount,
@@ -86,5 +145,14 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
     announcementCount: announcements?.length ?? 0,
     virtualAttendees,
     inPersonAttendees,
+    registrationsLast24h,
+    registrationsLast7d,
+    checkInsLast30min,
+    checkInsLast60min,
+    estimatedMinutesToComplete,
+    compTicketCount: compCount,
+    paidTicketCount: paidCount,
+    freeTicketCount,
+    averageTicketValueCents: avgCents,
   }
 }

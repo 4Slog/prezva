@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getEventBySlug, updateEvent, deleteEvent, updateEventDiscoverable } from '@/lib/events/actions'
+import { getEventBySlug, updateEvent, deleteEvent, updateEventDiscoverable, updateEventTagsAndCategory } from '@/lib/events/actions'
 import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
@@ -194,6 +194,55 @@ export default async function EventSettingsPage({ params }: Props) {
               style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
             >
               Save discovery
+            </button>
+          )}
+        </form>
+
+        {/* Category and tags */}
+        <form
+          action={async (fd: FormData) => {
+            'use server'
+            const category = fd.get('category') as string | null
+            const tagsRaw = fd.get('tags') as string ?? ''
+            const tags = tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+            await updateEventTagsAndCategory(event.id, category, tags)
+          }}
+          className="flex flex-col gap-4 mt-6 pt-6 border-t border-[#1E3A5F]"
+        >
+          <div>
+            <label className={labelCls}>Category</label>
+            <select name="category" defaultValue={(event as any).category ?? ''} disabled={isStaff} className={inputCls}>
+              <option value="">Select a category</option>
+              <option value="conference">Conference</option>
+              <option value="workshop">Workshop</option>
+              <option value="webinar">Webinar</option>
+              <option value="gala">Gala / Awards</option>
+              <option value="training">Training</option>
+              <option value="networking">Networking</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Tags</label>
+            <input
+              name="tags"
+              type="text"
+              placeholder="e.g. technology, policy, nonprofit (comma-separated)"
+              defaultValue={((event as any).tags ?? []).join(', ')}
+              disabled={isStaff}
+              className={inputCls}
+            />
+            <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 4 }}>
+              Tags help attendees find your event in search. Use 3–5 relevant keywords.
+            </p>
+          </div>
+          {!isStaff && (
+            <button
+              type="submit"
+              className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            >
+              Save category &amp; tags
             </button>
           )}
         </form>

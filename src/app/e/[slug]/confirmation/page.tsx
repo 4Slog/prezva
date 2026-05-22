@@ -5,6 +5,7 @@ import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 import { cookies } from 'next/headers'
 import CancelRegistrationButton from '@/components/registration/cancel-button'
 import TransferButton from './transfer-button'
+import { SocialShareButtons } from '@/components/events/SocialShareButtons'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -136,6 +137,12 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     You&apos;ve attended {previousCount} previous event{previousCount !== 1 ? 's' : ''} with this organization.
                   </p>
                 </div>
+              )}
+              {reg && (
+                <SocialShareButtons
+                  eventTitle={(reg.events as any)?.title ?? ''}
+                  eventUrl={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/e/${slug}`}
+                />
               )}
               <div className="flex flex-col gap-3 items-center">
                 <Link
