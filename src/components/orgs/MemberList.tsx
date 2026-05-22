@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { removeMember } from '@/lib/orgs/actions'
+import { removeMember, revokeInvite, resendInvite } from '@/lib/orgs/actions'
 
 interface Member {
   id: string
@@ -21,7 +21,8 @@ interface PendingInvite {
   email: string
   role: string
   created_at: string
-  expires_at: string
+  expires_at?: string
+  token?: string | null
 }
 
 interface MemberListProps {
@@ -41,6 +42,8 @@ const ROLE_STYLE: Record<string, { bg: string; text: string }> = {
 export function MemberList({ members, pendingInvites = [], orgId, currentUserId, currentUserRole }: MemberListProps) {
   const [removing, setRemoving]   = useState<string | null>(null)
   const [revoking, setRevoking]   = useState<string | null>(null)
+  const [resending, setResending] = useState<string | null>(null)
+  const [resent, setResent]       = useState<string | null>(null)
   const [error,    setError]      = useState<string | null>(null)
   const canManage  = ['owner', 'admin'].includes(currentUserRole)
   const totalCount = members.length + pendingInvites.length
@@ -52,11 +55,27 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
     if (result?.error) setError(result.error)
   }
 
-  async function handleRevoke(inviteId: string) {
-    setRevoking(inviteId); setError(null)
-    const res = await fetch(`/api/orgs/${orgId}/invites/${inviteId}`, { method: 'DELETE' })
-    if (!res.ok) { setError('Failed to revoke invite'); setRevoking(null); return }
+  async function handleRevoke(invite: PendingInvite) {
+    setRevoking(invite.id); setError(null)
+    // Use server action if the invite is in org_invites (has no expires_at), else API route
+    if (!invite.expires_at) {
+      const result = await revokeInvite(invite.id)
+      setRevoking(null)
+      if ('error' in result) { setError(result.error ?? 'Failed to revoke'); return }
+    } else {
+      const res = await fetch(`/api/orgs/${orgId}/invites/${invite.id}`, { method: 'DELETE' })
+      if (!res.ok) { setError('Failed to revoke invite'); setRevoking(null); return }
+    }
     window.location.reload()
+  }
+
+  async function handleResend(inviteId: string) {
+    setResending(inviteId); setError(null)
+    const result = await resendInvite(inviteId)
+    setResending(null)
+    if ('error' in result) { setError(result.error ?? 'Failed to resend'); return }
+    setResent(inviteId)
+    setTimeout(() => setResent(null), 3000)
   }
 
   return (
@@ -116,8 +135,10 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
 
           {pendingInvites.map((invite) => {
             const role = ROLE_STYLE[invite.role] ?? ROLE_STYLE.staff
-            // eslint-disable-next-line react-hooks/purity
-            const daysLeft = Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)
+            const daysLeft = invite.expires_at
+              ? Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)
+              : null
+            const daysSince = Math.floor((Date.now() - new Date(invite.created_at).getTime()) / 86400000)
             return (
               <li key={invite.id} className="flex items-center justify-between px-5 py-4"
                 style={{ borderTop: '1px solid var(--pz-border)', opacity: 0.85 }}>
@@ -129,7 +150,9 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>{invite.email}</p>
                     <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>
-                      Invite expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+                      {daysLeft !== null
+                        ? `Invite expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
+                        : `Sent ${daysSince === 0 ? 'today' : `${daysSince} day${daysSince !== 1 ? 's' : ''} ago`}`}
                     </p>
                   </div>
                 </div>
@@ -137,8 +160,14 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
                   <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: role.bg, color: role.text }}>{invite.role}</span>
                   <span className="rounded-full px-2 py-0.5 text-xs font-medium"
                     style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>Pending</span>
+                  {canManage && invite.token && (
+                    <button onClick={() => handleResend(invite.id)} disabled={resending === invite.id || resent === invite.id}
+                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: '#00BFA6' }}>
+                      {resending === invite.id ? 'Sending…' : resent === invite.id ? 'Sent!' : 'Resend'}
+                    </button>
+                  )}
                   {canManage && (
-                    <button onClick={() => handleRevoke(invite.id)} disabled={revoking === invite.id}
+                    <button onClick={() => handleRevoke(invite)} disabled={revoking === invite.id}
                       className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: '#EF4444' }}>
                       {revoking === invite.id ? 'Revoking…' : 'Revoke'}
                     </button>

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SetupChecklist } from '@/components/dashboard/SetupChecklist'
+import { StaffOnboardingModal } from '@/components/staff/StaffOnboardingModal'
 import { redirect } from 'next/navigation'
 
 type Props = { searchParams: Promise<{ error?: string }> }
@@ -32,9 +33,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   // Auto-select: use first org (single-org owners get stats immediately)
-  const orgData = (orgs[0] as any).organizations
+  const firstOrg = orgs[0] as any
+  const orgData = firstOrg.organizations
   const orgId = orgData?.id
   const orgSlug = orgData?.slug
+  const myRole = firstOrg.role as string
 
   // Fetch profile for greeting
   const { data: profile } = await supabase
@@ -99,6 +102,9 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div>
+      {myRole === 'staff' && (
+        <StaffOnboardingModal userId={user.id} orgName={orgData?.name ?? 'your organization'} />
+      )}
       {errorParam === 'admin_required' && (
         <div
           className="mb-6 rounded-lg px-4 py-3 text-sm"

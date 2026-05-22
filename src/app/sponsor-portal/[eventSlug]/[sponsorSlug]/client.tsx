@@ -1,11 +1,16 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { Download, Users, Package, BarChart3, QrCode } from 'lucide-react'
-import { exportSponsorLeads, updateLeadQuality } from '@/lib/sponsors/portal-actions'
+import { Download, Users, Package, BarChart3, QrCode, FileText, Info } from 'lucide-react'
+import {
+  exportSponsorLeads,
+  updateLeadQuality,
+  updateLeadNote,
+  updateSponsorBooth,
+} from '@/lib/sponsors/portal-actions'
 import type { SponsorLead } from '@/lib/sponsors/portal-actions'
 
 interface Props {
-  event: { id: string; title: string; starts_at: string; ends_at: string }
+  event: { id: string; title: string; starts_at: string; ends_at: string; registration_count: number | null }
   sponsor: { id: string; name: string; tier: string; logo_url: string | null; website_url: string | null; description: string | null; contact_email: string | null; materials: any[] }
   leads: SponsorLead[]
   eventSlug: string
@@ -21,7 +26,7 @@ const QUALITY_STYLE: Record<string, { bg: string; color: string; label: string }
 const QUALITY_CYCLE: Record<string, 'hot' | 'warm' | 'cold'> = { hot: 'warm', warm: 'cold', cold: 'hot' }
 
 export default function SponsorPortalClient({ event, sponsor, leads: initLeads, eventSlug, token }: Props) {
-  const [tab, setTab] = useState<'overview' | 'leads' | 'analytics'>('overview')
+  const [tab, setTab] = useState<'overview' | 'leads' | 'analytics' | 'info' | 'report'>('overview')
   const [leads, setLeads] = useState<SponsorLead[]>(initLeads)
   const [exporting, setExporting] = useState(false)
   const [scanCode, setScanCode] = useState('')
@@ -29,6 +34,13 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
   const [scanResult, setScanResult] = useState<{ ok?: boolean; attendee_name?: string; error?: string } | null>(null)
   const [scanning, setScanning] = useState(false)
   const [, startTransition] = useTransition()
+
+  // Info tab state
+  const [description, setDescription] = useState(sponsor.description ?? '')
+  const [websiteUrl, setWebsiteUrl] = useState(sponsor.website_url ?? '')
+  const [logoUrl, setLogoUrl] = useState(sponsor.logo_url ?? '')
+  const [infoSaving, setInfoSaving] = useState(false)
+  const [infoSaved, setInfoSaved] = useState(false)
 
   async function handleExport() {
     setExporting(true)
@@ -86,14 +98,50 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
     })
   }
 
+  function handleNoteBlur(leadId: string, note: string) {
+    startTransition(async () => {
+      await updateLeadNote(token, leadId, note)
+    })
+  }
+
+  async function handleSaveInfo() {
+    setInfoSaving(true)
+    setInfoSaved(false)
+    await updateSponsorBooth(token, {
+      description: description || undefined,
+      website_url: websiteUrl || undefined,
+      logo_url: logoUrl || undefined,
+    })
+    setInfoSaving(false)
+    setInfoSaved(true)
+    setTimeout(() => setInfoSaved(false), 3000)
+  }
+
   const tierColor = TIER_COLOR[sponsor.tier] ?? '#6B7280'
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+  const hotCount = leads.filter(l => l.quality === 'hot').length
+  const warmCount = leads.filter(l => l.quality === 'warm').length
+  const coldCount = leads.filter(l => l.quality === 'cold').length
+  const companiesReached = new Set(leads.map(l => l.company).filter(Boolean)).size
+
   const tabStyle = (active: boolean) => ({
-    padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
     background: active ? 'var(--color-teal, #00BFA6)' : 'transparent',
     color: active ? '#0D1B2A' : 'var(--pz-muted, #94A3B8)',
   })
+
+  const inputStyle = {
+    width: '100%',
+    background: '#0D1B2A',
+    border: '1px solid #1E3A5F',
+    borderRadius: 8,
+    padding: '8px 12px',
+    fontSize: 13,
+    color: '#F0F4F8',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg, #0D1B2A)', fontFamily: 'sans-serif', color: 'var(--pz-text, #F0F4F8)' }}>
@@ -119,10 +167,12 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem' }}>
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--pz-surface, #112240)', borderRadius: 10, padding: 4, width: 'fit-content', border: '1px solid var(--pz-border, #1E3A5F)' }}>
-          <button style={tabStyle(tab === 'overview')} onClick={() => setTab('overview')}><Package size={13} style={{ display: 'inline', marginRight: 6 }} />Overview</button>
-          <button style={tabStyle(tab === 'leads')} onClick={() => setTab('leads')}><Users size={13} style={{ display: 'inline', marginRight: 6 }} />Leads ({leads.length})</button>
-          <button style={tabStyle(tab === 'analytics')} onClick={() => setTab('analytics')}><BarChart3 size={13} style={{ display: 'inline', marginRight: 6 }} />Analytics</button>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--pz-surface, #112240)', borderRadius: 10, padding: 4, width: 'fit-content', border: '1px solid var(--pz-border, #1E3A5F)', flexWrap: 'wrap' }}>
+          <button style={tabStyle(tab === 'overview')} onClick={() => setTab('overview')}><Package size={13} style={{ display: 'inline', marginRight: 4 }} />Overview</button>
+          <button style={tabStyle(tab === 'leads')} onClick={() => setTab('leads')}><Users size={13} style={{ display: 'inline', marginRight: 4 }} />Leads ({leads.length})</button>
+          <button style={tabStyle(tab === 'analytics')} onClick={() => setTab('analytics')}><BarChart3 size={13} style={{ display: 'inline', marginRight: 4 }} />Analytics</button>
+          <button style={tabStyle(tab === 'report')} onClick={() => setTab('report')}><FileText size={13} style={{ display: 'inline', marginRight: 4 }} />Report</button>
+          <button style={tabStyle(tab === 'info')} onClick={() => setTab('info')}><Info size={13} style={{ display: 'inline', marginRight: 4 }} />Edit Info</button>
         </div>
 
         {tab === 'overview' && (
@@ -156,6 +206,23 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
 
         {tab === 'leads' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Analytics summary */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+              {[
+                { label: 'Hot', count: hotCount, color: '#EF4444' },
+                { label: 'Warm', count: warmCount, color: '#F59E0B' },
+                { label: 'Cold', count: coldCount, color: '#3B82F6' },
+                { label: 'Total', count: leads.length, color: '#00BFA6' },
+              ].map(({ label, count, color }) => (
+                <div key={label} style={{ flex: 1, textAlign: 'center', padding: '0.75rem 0.5rem',
+                                           background: 'var(--pz-surface, #112240)', borderRadius: 10,
+                                           border: `1px solid ${color}44` }}>
+                  <p style={{ fontSize: 22, fontWeight: 800, color, margin: 0 }}>{count}</p>
+                  <p style={{ fontSize: 11, color: '#94A3B8', margin: 0 }}>{label}</p>
+                </div>
+              ))}
+            </div>
+
             {/* Scanner */}
             <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -215,18 +282,28 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                   {leads.map(lead => {
                     const q = QUALITY_STYLE[lead.quality] ?? QUALITY_STYLE.warm
                     return (
-                      <div key={lead.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '10px 12px', background: '#0D1B2A', borderRadius: 8, border: '1px solid #1E3A5F', alignItems: 'center' }}>
-                        <div>
-                          <p style={{ fontWeight: 600, fontSize: 14 }}>{lead.attendee_name ?? '—'}</p>
-                          <p style={{ fontSize: 12, color: '#94A3B8' }}>{lead.attendee_email ?? ''}{lead.company ? ` · ${lead.company}` : ''}{lead.job_title ? ` · ${lead.job_title}` : ''}</p>
-                          {lead.note && <p style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{lead.note}</p>}
+                      <div key={lead.id} style={{ padding: '10px 12px', background: '#0D1B2A', borderRadius: 8, border: '1px solid #1E3A5F' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontWeight: 600, fontSize: 14 }}>{lead.attendee_name ?? '—'}</p>
+                            <p style={{ fontSize: 12, color: '#94A3B8' }}>{lead.attendee_email ?? ''}{lead.company ? ` · ${lead.company}` : ''}{lead.job_title ? ` · ${lead.job_title}` : ''}</p>
+                          </div>
+                          <button
+                            onClick={() => handleCycleQuality(lead.id, lead.quality)}
+                            style={{ background: q.bg, color: q.color, border: `1px solid ${q.color}44`, borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                          >
+                            {q.label}
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleCycleQuality(lead.id, lead.quality)}
-                          style={{ background: q.bg, color: q.color, border: `1px solid ${q.color}44`, borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                        >
-                          {q.label}
-                        </button>
+                        <textarea
+                          defaultValue={lead.note ?? ''}
+                          onBlur={e => handleNoteBlur(lead.id, e.target.value)}
+                          placeholder="Add a note..."
+                          rows={2}
+                          style={{ width: '100%', fontSize: 13, padding: '6px 8px', borderRadius: 6,
+                                   border: '1px solid #1E3A5F', background: '#112240',
+                                   color: '#F0F4F8', marginTop: 6, resize: 'none', boxSizing: 'border-box', outline: 'none' }}
+                        />
                       </div>
                     )
                   })}
@@ -240,7 +317,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             {[
               { label: 'Total Leads', value: leads.length },
-              { label: 'Hot Leads', value: leads.filter(l => l.quality === 'hot').length },
+              { label: 'Hot Leads', value: hotCount },
               { label: 'Tier', value: sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1) },
             ].map(stat => (
               <div key={stat.label} style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)', textAlign: 'center' }}>
@@ -248,6 +325,111 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                 <p style={{ fontSize: 32, fontWeight: 700, color: '#F0F4F8' }}>{stat.value}</p>
               </div>
             ))}
+          </div>
+        )}
+
+        {tab === 'report' && (
+          <div style={{ padding: '0.5rem 0' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)', marginBottom: 4 }}>
+              Sponsorship Summary
+            </h2>
+            <p style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20 }}>
+              {event.title}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+              {[
+                { label: 'Total leads captured', value: leads.length },
+                { label: 'Hot leads', value: hotCount },
+                { label: 'Companies reached', value: companiesReached },
+                { label: 'Event attendees', value: event.registration_count ?? '—' },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ background: 'var(--pz-surface, #112240)', borderRadius: 10,
+                                           padding: '1rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
+                  <p style={{ fontSize: 24, fontWeight: 800, color: '#00BFA6', margin: '0 0 4px' }}>
+                    {value}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {companiesReached > 0 && (
+              <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 10, padding: '1rem', border: '1px solid var(--pz-border, #1E3A5F)', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8',
+                             marginBottom: 10, textTransform: 'uppercase' as const }}>
+                  Companies Reached
+                </h3>
+                {Array.from(new Set(leads.map(l => l.company).filter(Boolean))).slice(0, 10).map(company => {
+                  const count = leads.filter(l => l.company === company).length
+                  return (
+                    <div key={company as string} style={{ display: 'flex', justifyContent: 'space-between',
+                                                          padding: '8px 0', borderBottom: '1px solid #1E3A5F' }}>
+                      <span style={{ fontSize: 13, color: '#F0F4F8' }}>{company as string}</span>
+                      <span style={{ fontSize: 12, color: '#94A3B8' }}>
+                        {count} contact{count !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <button
+              onClick={() => handleExport()}
+              style={{ marginTop: 4, width: '100%', padding: '0.75rem', borderRadius: 10,
+                       border: '1px solid #00BFA6', background: 'transparent',
+                       color: '#00BFA6', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+              {exporting ? 'Exporting…' : 'Export leads as CSV'}
+            </button>
+          </div>
+        )}
+
+        {tab === 'info' && (
+          <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)', maxWidth: 560 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: '#F0F4F8', marginBottom: 16 }}>Edit Booth Info</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>Company description</label>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  rows={4}
+                  placeholder="Tell attendees about your company…"
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>Website URL</label>
+                <input
+                  type="url"
+                  value={websiteUrl}
+                  onChange={e => setWebsiteUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>Logo URL</label>
+                <input
+                  type="url"
+                  value={logoUrl}
+                  onChange={e => setLogoUrl(e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                  style={inputStyle}
+                />
+              </div>
+              <button
+                onClick={handleSaveInfo}
+                disabled={infoSaving}
+                style={{ padding: '0.75rem', borderRadius: 8, border: 'none',
+                         background: '#00BFA6', color: '#0D1B2A', fontWeight: 700,
+                         fontSize: 14, cursor: infoSaving ? 'default' : 'pointer',
+                         opacity: infoSaving ? 0.7 : 1, marginTop: 4 }}
+              >
+                {infoSaving ? 'Saving…' : infoSaved ? '✓ Saved' : 'Save changes'}
+              </button>
+            </div>
           </div>
         )}
       </div>

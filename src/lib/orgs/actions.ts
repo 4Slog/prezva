@@ -219,8 +219,78 @@ export async function inviteMember(orgId: string, formData: FormData) {
     }),
   })
 
+  // Track in org_invites for resend/revoke support
+  const admin = createAdminClient()
+  await admin.from('org_invites').upsert({
+    org_id: orgId,
+    email: parsed.data.email.toLowerCase(),
+    role: parsed.data.role,
+    invited_by: user.id,
+  }, { onConflict: 'org_id,email' })
+
   revalidatePath(`/orgs/[slug]`)
   return { success: true }
+}
+
+// ── Pending invites (org_invites table) ─────────────────────────────────────
+
+export async function getPendingInvites(orgId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('org_invites')
+    .select('id, email, role, created_at, token')
+    .eq('org_id', orgId)
+    .is('accepted_at', null)
+    .order('created_at', { ascending: false })
+  return (data ?? []) as { id: string; email: string; role: string; created_at: string; token: string | null }[]
+}
+
+export async function revokeInvite(inviteId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: invite } = await admin.from('org_invites').select('org_id').eq('id', inviteId).single()
+  if (!invite) return { error: 'Not found' }
+  await assertOrgRole(supabase, (invite as any).org_id, user.id, ['owner', 'admin'])
+  await admin.from('org_invites').delete().eq('id', inviteId)
+  return { ok: true }
+}
+
+export async function resendInvite(inviteId: string) {
+  const supabase = await createClient()
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: invite } = await admin
+    .from('org_invites')
+    .select('id, org_id, email, role, token, organizations(name)')
+    .eq('id', inviteId)
+    .single()
+  if (!invite) return { error: 'Not found' }
+  await assertOrgRole(supabase, (invite as any).org_id, user.id, ['owner', 'admin'])
+
+  const orgName = (invite as any).organizations?.name ?? 'An organization'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const inviteUrl = `${appUrl}/invite/${(invite as any).token}`
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Prezva <noreply@prezva.app>',
+      to: (invite as any).email,
+      subject: `Reminder: You've been invited to join ${orgName} on Prezva`,
+      html: `<p>This is a reminder that you've been invited to join <strong>${orgName}</strong> as a ${(invite as any).role} on Prezva.</p>
+             <p><a href="${inviteUrl}">Accept invitation →</a></p>`,
+    }),
+  }).catch(() => {})
+
+  return { ok: true }
 }
 
 // ── Remove member ────────────────────────────────────────────────────────────
