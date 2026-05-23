@@ -5,9 +5,11 @@ import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getPublicSponsors, 
 import { ShareButtons } from '@/components/events/ShareButtons'
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import QRDisplay from './my-qr/qr-display'
 import { GuestConversionBanner } from '@/components/events/GuestConversionBanner'
 import { VirtualJoinButton } from '@/components/events/VirtualJoinButton'
+import { RoleSwitcherBanner } from '@/components/events/RoleSwitcherBanner'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -124,6 +126,53 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
         leaderboardRank = sorted.indexOf(myTotal) + 1
       }
     }
+  }
+
+  // Detect additional roles for the logged-in user
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let speakerRecord: any = null
+  let volunteerRecord: any = null
+
+  if (user?.email) {
+    const adminRoles = createAdminClient()
+    const [spRes, volRes] = await Promise.all([
+      adminRoles.from('speakers')
+        .select('id, event_role, confirmation_token, status')
+        .eq('event_id', event.id)
+        .eq('email', user.email.toLowerCase())
+        .in('status', ['confirmed', 'invited'])
+        .maybeSingle(),
+      adminRoles.from('volunteers')
+        .select('id, role, portal_access_token')
+        .eq('event_id', event.id)
+        .eq('email', user.email.toLowerCase())
+        .maybeSingle(),
+    ])
+    speakerRecord = spRes.data
+    volunteerRecord = volRes.data
+  }
+
+  const eventRoles: { type: 'attendee' | 'speaker' | 'volunteer'; label: string; href: string; icon: string }[] = []
+  if (reg) {
+    eventRoles.push({ type: 'attendee', label: 'Attendee view', href: `/e/${slug}`, icon: '👤' })
+  }
+  if (speakerRecord) {
+    eventRoles.push({
+      type: 'speaker',
+      label: speakerRecord.event_role === 'mc' ? 'MC view' : 'Speaker view',
+      href: `/speaker/${speakerRecord.confirmation_token}`,
+      icon: speakerRecord.event_role === 'mc' ? '🎙️' : '🎤',
+    })
+  }
+  if (volunteerRecord) {
+    eventRoles.push({
+      type: 'volunteer',
+      label: 'Volunteer view',
+      href: `/volunteer/${volunteerRecord.portal_access_token}`,
+      icon: '🙋',
+    })
   }
 
   const now = new Date()
@@ -278,6 +327,11 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
                   />
                 )}
               </div>
+              {eventRoles.length > 1 && reg && (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <RoleSwitcherBanner roles={eventRoles} />
+                </div>
+              )}
             </div>
             {reg?.qr_code && (
               <div style={{ textAlign:'center' }}>
