@@ -117,6 +117,78 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
       </section>
 
       {canManage && <InviteForm orgId={org.id} />}
+
+      {/* Role permission matrix */}
+      <section className="mb-8 rounded-xl border border-[#1E3A5F] bg-[#112240] p-6 mt-6">
+        <h2 className="text-base font-semibold text-[#F0F4F8] mb-4">Role Permissions</h2>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '8px 12px', color: '#94A3B8', fontWeight: 600 }}>Action</th>
+              {['Owner', 'Admin', 'Staff'].map(role => (
+                <th key={role} style={{ textAlign: 'center', padding: '8px 12px', color: '#94A3B8', fontWeight: 600 }}>{role}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { action: 'Create / edit events',      owner: true,  admin: true,  staff: false },
+              { action: 'Manage tickets & pricing',  owner: true,  admin: true,  staff: false },
+              { action: 'View analytics & revenue',  owner: true,  admin: true,  staff: false },
+              { action: 'Issue refunds',             owner: true,  admin: true,  staff: false },
+              { action: 'Check-in attendees',        owner: true,  admin: true,  staff: true  },
+              { action: 'Add / edit attendees',      owner: true,  admin: true,  staff: true  },
+              { action: 'Send announcements',        owner: true,  admin: true,  staff: false },
+              { action: 'Manage speakers',           owner: true,  admin: true,  staff: true  },
+              { action: 'Manage volunteers',         owner: true,  admin: true,  staff: true  },
+              { action: 'Manage integrations',       owner: true,  admin: true,  staff: false },
+              { action: 'Invite team members',       owner: true,  admin: true,  staff: false },
+              { action: 'Organization settings',     owner: true,  admin: false, staff: false },
+              { action: 'Delete organization',       owner: true,  admin: false, staff: false },
+            ].map(({ action, owner, admin, staff }) => (
+              <tr key={action} style={{ borderTop: '1px solid #1E3A5F' }}>
+                <td style={{ padding: '8px 12px', color: '#F0F4F8' }}>{action}</td>
+                {[owner, admin, staff].map((allowed, i) => (
+                  <td key={i} style={{ textAlign: 'center', padding: '8px 12px' }}>
+                    {allowed
+                      ? <span style={{ color: '#00BFA6', fontSize: 16 }}>✓</span>
+                      : <span style={{ color: '#1E3A5F', fontSize: 16 }}>—</span>
+                    }
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {/* Danger zone — owners only */}
+      {isOwner && (
+        <section className="mb-8 rounded-xl p-6 mt-2" style={{ border: '2px solid #EF4444' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: '#EF4444', margin: '0 0 8px' }}>
+            Danger Zone
+          </h2>
+          <p style={{ fontSize: 13, color: '#94A3B8', margin: '0 0 16px' }}>
+            These actions are irreversible. Please be certain.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '0.875rem 0', borderBottom: '1px solid #1E3A5F' }}>
+            <div>
+              <p style={{ fontWeight: 600, fontSize: 14, color: '#F0F4F8', margin: 0 }}>
+                Transfer ownership
+              </p>
+              <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>
+                Transfer this organization to another member
+              </p>
+            </div>
+            <button style={{ padding: '0.5rem 1rem', borderRadius: 8, fontSize: 13,
+                             border: '1px solid #EF4444', background: 'transparent',
+                             color: '#EF4444', cursor: 'pointer', fontWeight: 600 }}>
+              Transfer
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

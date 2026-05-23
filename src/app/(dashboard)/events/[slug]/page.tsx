@@ -63,20 +63,35 @@ export default async function EventDetailPage({ params }: Props) {
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
     const todayEnd   = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString()
 
-    const { data: todaysSessions } = await supabase
-      .from('sessions')
-      .select('id, title, starts_at, ends_at, rooms(name)')
-      .eq('event_id', (event as any).id)
-      .gte('starts_at', todayStart)
-      .lt('starts_at', todayEnd)
-      .order('starts_at', { ascending: true })
+    const [todaysSessionsRes, currentCueRes] = await Promise.all([
+      supabase
+        .from('sessions')
+        .select('id, title, starts_at, ends_at, rooms(name)')
+        .eq('event_id', (event as any).id)
+        .gte('starts_at', todayStart)
+        .lt('starts_at', todayEnd)
+        .order('starts_at', { ascending: true }),
+      supabase
+        .from('run_of_show_items')
+        .select('id, title, time_at, duration_minutes, responsible_person, status')
+        .eq('event_id', (event as any).id)
+        .in('status', ['in_progress', 'upcoming'])
+        .order('time_at', { ascending: true })
+        .limit(5),
+    ])
+
+    const rosItems = (currentCueRes.data ?? []) as any[]
+    const currentCue = rosItems.find((i: any) => i.status === 'in_progress') ?? null
+    const nextCue = rosItems.find((i: any) => i.status === 'upcoming') ?? null
 
     return (
       <StaffDashboard
         event={{ slug: event.slug, title: event.title }}
         checkedInCount={counts.checkedIn}
         registrationCount={counts.total}
-        todaysSessions={(todaysSessions ?? []) as any}
+        todaysSessions={(todaysSessionsRes.data ?? []) as any}
+        currentCue={currentCue}
+        nextCue={nextCue}
       />
     )
   }
@@ -113,6 +128,17 @@ export default async function EventDetailPage({ params }: Props) {
                        border: '1px solid var(--pz-border)', borderRadius: 6, padding: '4px 10px' }}
             >
               📺 Lobby display
+            </a>
+          )}
+          {(event as any).mc_token && (
+            <a
+              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/mc/${(event as any).mc_token}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 12, color: 'var(--pz-muted)', textDecoration: 'none',
+                       border: '1px solid var(--pz-border)', borderRadius: 6, padding: '4px 10px' }}
+            >
+              🎙️ MC hub
             </a>
           )}
           <Link
