@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 
 export interface EventAnalytics {
@@ -34,7 +33,6 @@ export interface EventAnalytics {
 
 export async function getEventAnalytics(eventId: string): Promise<EventAnalytics> {
   const supabase = await createClient()
-  const admin = createAdminClient()
   await requireUser()
 
   const now = new Date()
@@ -60,9 +58,9 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
     supabase.from('survey_responses').select('id, surveys!inner(event_id)').eq('surveys.event_id', eventId),
     supabase.from('announcements').select('id').eq('event_id', eventId),
     supabase.from('ticket_types').select('id, name, type').eq('event_id', eventId),
-    admin.from('check_ins').select('id', { count: 'exact', head: true })
+    supabase.from('check_ins').select('id', { count: 'exact', head: true })
       .eq('event_id', eventId).is('session_id', null).gte('created_at', last30m),
-    admin.from('check_ins').select('id', { count: 'exact', head: true })
+    supabase.from('check_ins').select('id', { count: 'exact', head: true })
       .eq('event_id', eventId).is('session_id', null).gte('created_at', last60m),
   ])
 
