@@ -14,6 +14,35 @@ type Props = {
   searchParams: Promise<{ reg?: string }>
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const event = await getPublicEvent(slug)
+  if (!event) return { title: 'Event not found' }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const title = `${(event as any).title} | Prezva`
+  const description = (event as any).description
+    ?? `Register for ${(event as any).title}${(event as any).venue_city ? ` in ${(event as any).venue_city}` : ''}`
+  const image = (event as any).cover_image_url ?? `${appUrl}/og-default.png`
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: `${appUrl}/e/${slug}`,
+      images: [{ url: image, width: 1200, height: 630 }],
+      siteName: 'Prezva',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+  }
+}
+
 export default async function PublicEventPage({ params, searchParams }: Props) {
   const { slug } = await params
   const { reg: regParam } = await searchParams
@@ -145,7 +174,10 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
         ) : (
           <Link href="/" style={{ fontWeight:800, fontSize:18, color:'var(--color-teal)', textDecoration:'none', letterSpacing:-0.5 }}>P Prezva</Link>
         )}
-        <Link href="/login" style={{ fontSize:13, color:'rgba(255,255,255,0.7)', textDecoration:'none' }}>Sign in</Link>
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          <a href="/discover" style={{ fontSize:12, color:'var(--pz-muted)', textDecoration:'none' }}>Discover events</a>
+          <Link href="/login" style={{ fontSize:13, color:'rgba(255,255,255,0.7)', textDecoration:'none' }}>Sign in</Link>
+        </div>
       </header>
 
       {/* ── HERO ───────────────────────────────────────────────────────────── */}

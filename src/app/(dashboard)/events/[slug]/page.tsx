@@ -104,6 +104,17 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           <SaveAsTemplateButton eventId={event.id} defaultName={event.title} />
+          {(event as any).lobby_token && (
+            <a
+              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/lobby/${(event as any).lobby_token}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 12, color: 'var(--pz-muted)', textDecoration: 'none',
+                       border: '1px solid var(--pz-border)', borderRadius: 6, padding: '4px 10px' }}
+            >
+              📺 Lobby display
+            </a>
+          )}
           <Link
             href={`/e/${slug}`}
             target="_blank"

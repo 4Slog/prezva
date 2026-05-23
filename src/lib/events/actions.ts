@@ -364,3 +364,29 @@ export async function updateBadgeRules(eventId: string, rules: unknown[]) {
   revalidatePath(`/events/[slug]/badges`, 'page')
   return { ok: true }
 }
+
+// ── Tags and category ─────────────────────────────────────────────────────────
+
+export async function updateEventTagsAndCategory(
+  eventId: string,
+  category: string | null,
+  tags: string[],
+) {
+  const user = await requireUser()
+  const supabase = await createClient()
+
+  try {
+    await assertEventAccess(supabase, eventId, user.id)
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .update({ category: category || null, tags })
+    .eq('id', eventId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/[slug]/settings`, 'page')
+  return { ok: true }
+}
