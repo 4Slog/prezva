@@ -1,12 +1,54 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-22
+## Last updated: 2026-05-23
 
-## Status: bundle12c complete | Gates PASS | Committed 50064e1, ready for PR
+## Status: bundle13b complete | Gates PASS | Committed 4e40429, ready for PR
 
 ---
 
-## This Session — Bundle 12c (B12-09, B12-14, B12-15)
+## This Session — Bundle 13b (B13-14/15/16, B13-17/18/19, B13-20, B13-01/02)
+
+### Branch
+`bundle13b` (created from `main`)
+
+### What was done
+
+**B13-14/15/16 — Run of Show**
+- Migration `0081_run_of_show.sql`: `run_of_show_items` table with RLS (org_members policy)
+- `src/lib/events/run-of-show-actions.ts`: getRunOfShow, upsertRosItem, updateRosItemStatus, deleteRosItem, importSessionsToRos
+- `src/app/(dashboard)/events/[slug]/run-of-show/page.tsx` + `run-of-show-client.tsx`: Timeline view, add form, status buttons (▶ Start / ✓ Done / ↷ Skip / ✕ Delete), Import from sessions
+- "Run of Show" tile added to Advanced category in admin-tiles.ts
+- `staff-dashboard.tsx` + `page.tsx`: current in-progress cue + next upcoming cue shown in staff view
+- `src/trigger/jobs/run-of-show-cue.ts`: Cron every minute, emails responsible_email 10min before each cue via Resend; `src/trigger/index.ts` created
+
+**B13-17/18/19 — MC Hub**
+- Migration `0082_mc_token.sql`: `events.mc_token uuid` added
+- `src/app/mc/[token]/page.tsx` + `mc-hub-client.tsx`: Token-gated hub (no login), 3 tabs: Run of Show (Start/Done controls), Speakers (bio/photo cards), Q&A (session-filtered live feed)
+- Event admin page: "🎙️ MC hub" link added alongside Lobby display link
+
+**B13-20 — SMS Announcements via Twilio**
+- `src/lib/announcements/sms-actions.ts`: sendSMSAnnouncement (Twilio REST, no SDK), getSMSEligibleCount; 160-char limit, 500 recipient cap
+- `announcements/client.tsx`: SMS panel below announcement list — eligible count on load, character counter, send button
+
+**B13-01/02 — Admin scoping + role permissions**
+- `orgs/[slug]/settings/page.tsx`: Role permission matrix table (13 actions × Owner/Admin/Staff), Danger Zone section (owner-only) with Transfer Ownership button
+
+### Gate results
+- `npx tsc --noEmit` — PASS (1 error fixed: result.failed possibly undefined)
+- `npm run build` — PASS (compiled 8.2s, 77 routes)
+- `npx vitest run` — 318/318 PASS
+
+### Commit
+`4e40429` on `bundle13b`
+
+### Next
+- Open PR: bundle13b → main
+- Next migration: 0083
+- Next bundle: B13c (TBD)
+
+---
+
+## Previous Session — Bundle 12c (B12-09, B12-14, B12-15)
 
 ### Branch
 `bundle12c` (created from `main`)

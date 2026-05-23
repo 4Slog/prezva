@@ -153,14 +153,15 @@ describe('Sprint 21 — Attendee App Surface', () => {
     expect(src).toContain('createAdminClient')
   })
 
-  // Onboarding polish
-  it('onboarding page has attendee event input component', () => {
+  // Onboarding wizard (replaced attendee-input with 3-step org creation flow)
+  it('onboarding page is a 3-step wizard client component', () => {
     const page = join(SRC, 'app/onboarding/page.tsx')
     const client = join(SRC, 'app/onboarding/client.tsx')
     expect(existsSync(page)).toBe(true)
     expect(existsSync(client)).toBe(true)
     const pageSrc = readFileSync(page, 'utf-8')
-    expect(pageSrc).toContain('OnboardingAttendeeInput')
+    expect(pageSrc).toContain("'use client'")
+    expect(pageSrc).toContain('useRouter')
     const clientSrc = readFileSync(client, 'utf-8')
     expect(clientSrc).toContain("'use client'")
     expect(clientSrc).toContain('/e/')
