@@ -1,15 +1,28 @@
 'use client'
 
+interface CueItem {
+  id: string
+  title: string
+  time_at: string
+  duration_minutes: number
+  responsible_person?: string | null
+  status: string
+}
+
 export function StaffDashboard({
   event,
   checkedInCount,
   registrationCount,
   todaysSessions,
+  currentCue,
+  nextCue,
 }: {
   event: { slug: string; title: string }
   checkedInCount: number
   registrationCount: number
   todaysSessions: { id: string; title: string; starts_at: string; rooms: { name: string } | null }[] | null
+  currentCue?: CueItem | null
+  nextCue?: CueItem | null
 }) {
   const slug = event.slug
   const remaining = registrationCount - checkedInCount
@@ -55,6 +68,45 @@ export function StaffDashboard({
           </a>
         ))}
       </div>
+
+      {(currentCue || nextCue) && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-muted)',
+                       marginBottom: 10, textTransform: 'uppercase' as const }}>
+            Current Cue
+          </h2>
+          {currentCue ? (
+            <div style={{ padding: '0.875rem', background: 'var(--pz-surface)', borderRadius: 10,
+                          border: '1px solid var(--pz-teal)', marginBottom: 8 }}>
+              <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--pz-teal)', margin: '0 0 4px' }}>
+                ▶ {currentCue.title}
+              </p>
+              {currentCue.responsible_person && (
+                <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '0 0 4px' }}>
+                  → {currentCue.responsible_person}
+                </p>
+              )}
+              <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>
+                Started at {new Date(currentCue.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · {currentCue.duration_minutes}m
+              </p>
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginBottom: 8 }}>No item currently in progress.</p>
+          )}
+          {nextCue && (
+            <div style={{ padding: '0.75rem', background: 'var(--pz-surface)', borderRadius: 10,
+                          border: '1px solid var(--pz-border)' }}>
+              <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: '0 0 2px', textTransform: 'uppercase' as const }}>Up next</p>
+              <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>
+                {nextCue.title}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>
+                {new Date(nextCue.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · {nextCue.duration_minutes}m
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {todaysSessions && todaysSessions.length > 0 && (
         <div>

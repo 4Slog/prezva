@@ -1,9 +1,10 @@
 'use client'
-import { useState, useTransition, useRef } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Send, Trash2, Mail, Bell, BellRing, Sparkles } from 'lucide-react'
 import { createAnnouncement, deleteAnnouncement } from '@/lib/announcements/actions'
 import { draftAnnouncement } from '@/lib/announcements/ai-draft-actions'
+import { sendSMSAnnouncement, getSMSEligibleCount } from '@/lib/announcements/sms-actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { AnnouncementTemplate } from '@/lib/templates/types'
 
@@ -31,6 +32,14 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
   const [aiDrafting, setAiDrafting] = useState(false)
   const [aiError, setAiError] = useState('')
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [smsMessage, setSmsMessage] = useState('')
+  const [smsSending, setSmsSending] = useState(false)
+  const [smsResult, setSmsResult] = useState<string | null>(null)
+  const [smsEligible, setSmsEligible] = useState<number>(0)
+
+  useEffect(() => {
+    getSMSEligibleCount(eventId).then(setSmsEligible).catch(() => {})
+  }, [eventId])
 
   function handleTemplatePick(raw: unknown) {
     setShowPicker(false)
@@ -70,6 +79,20 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
       await deleteAnnouncement(id, eventId)
       setAnnouncements(prev => prev.filter(a => a.id !== id))
     })
+  }
+
+  async function handleSendSMS() {
+    if (!smsMessage.trim()) return
+    setSmsSending(true)
+    const result = await sendSMSAnnouncement(eventId, smsMessage)
+    setSmsSending(false)
+    if ('error' in result && result.error) {
+      setSmsResult('Error: ' + result.error)
+    } else if ('sent' in result) {
+      const failed = result.failed ?? 0
+      setSmsResult(`✓ Sent to ${result.sent} of ${result.total} attendees${failed > 0 ? ` (${failed} failed)` : ''}`)
+      setSmsMessage('')
+    }
   }
 
   async function handleAiDraft(type: string) {
@@ -208,6 +231,57 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
             </div>
           )
         })}
+      </div>
+
+      {/* SMS Announcements */}
+      <div style={{ marginTop: '2rem', padding: '1.25rem', background: 'var(--color-surface)',
+                    borderRadius: 12, border: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
+            📱 SMS Announcement
+          </h2>
+          <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+            {smsEligible} attendee{smsEligible !== 1 ? 's' : ''} with phone numbers
+          </span>
+        </div>
+        {smsEligible === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            No attendees have provided phone numbers yet.
+          </p>
+        ) : (
+          <>
+            <textarea
+              value={smsMessage}
+              onChange={e => setSmsMessage(e.target.value.slice(0, 160))}
+              placeholder="Type your SMS message (160 characters max)..."
+              rows={3}
+              style={{ width: '100%', padding: '0.625rem', borderRadius: 8, fontSize: 14,
+                       border: '1px solid var(--color-border)', background: 'var(--color-bg)',
+                       color: 'var(--color-text)', resize: 'none', marginBottom: 8,
+                       boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: smsMessage.length > 140 ? '#F59E0B' : 'var(--color-text-muted)' }}>
+                {smsMessage.length}/160 characters
+              </span>
+              <button
+                onClick={handleSendSMS}
+                disabled={smsSending || !smsMessage.trim()}
+                style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
+                         background: 'var(--color-teal)', color: '#fff',
+                         fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                         opacity: smsSending || !smsMessage.trim() ? 0.5 : 1 }}>
+                {smsSending ? 'Sending…' : `Send SMS to ${smsEligible} attendees`}
+              </button>
+            </div>
+            {smsResult && (
+              <p style={{ fontSize: 12, marginTop: 8,
+                          color: smsResult.startsWith('Error') ? '#EF4444' : '#22C55E' }}>
+                {smsResult}
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

@@ -37,6 +37,7 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'analytics',      label: 'Analytics',       icon: '📈', category: 'advanced',    description: 'Registration trends, engagement, survey results',    href: s => `/events/${s}/analytics`,      min_role: 'admin' },
   { key: 'audit-log',      label: 'Audit Log',       icon: '🔍', category: 'advanced',    description: 'Track all admin actions, exports, and changes',      href: s => `/events/${s}/audit-log` },
   { key: 'dead-letters',   label: 'Failed Jobs',     icon: '⚠️', category: 'advanced',    description: 'View and retry failed background jobs and emails',   href: s => `/events/${s}/dead-letters`,   min_role: 'admin' },
+  { key: 'run-of-show',   label: 'Run of Show',     icon: '📋', category: 'advanced',    description: 'Day-of timeline, cue notifications, status tracking', href: s => `/events/${s}/run-of-show` },
 
   // Integration
   { key: 'integrations',   label: 'Integrations',    icon: '🔌', category: 'integration', description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',   href: s => `/events/${s}/integrations`,   min_role: 'admin' },
