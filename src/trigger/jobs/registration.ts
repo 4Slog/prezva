@@ -33,6 +33,64 @@ export const sendConfirmationEmail = schemaTask({
     const unsubUrl   = `${BASE_URL}/api/unsubscribe?token=${regIdB64}&type=reminders`
     const unsubAllUrl = `${BASE_URL}/api/unsubscribe?token=${regIdB64}&type=all`
 
+    // Look up extra roles for this attendee at this event
+    const { createClient: createSupa } = await import('@supabase/supabase-js')
+    const admin = createSupa(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: eventRow } = await admin.from('events').select('id').eq('slug', payload.eventSlug).maybeSingle()
+    const eventId = eventRow?.id
+    let speakerMatch: { event_role: string; confirmation_token: string } | null = null
+    let volunteerMatch: { role: string | null; portal_access_token: string } | null = null
+    if (eventId) {
+      const [spRes, volRes] = await Promise.all([
+        admin.from('speakers')
+          .select('event_role, confirmation_token')
+          .eq('event_id', eventId)
+          .eq('email', payload.attendeeEmail.toLowerCase())
+          .eq('status', 'confirmed')
+          .maybeSingle(),
+        admin.from('volunteers')
+          .select('role, portal_access_token')
+          .eq('event_id', eventId)
+          .eq('email', payload.attendeeEmail.toLowerCase())
+          .maybeSingle(),
+      ])
+      speakerMatch = spRes.data
+      volunteerMatch = volRes.data
+    }
+
+    const speakerSection = speakerMatch ? `
+      <div style="margin-top:16px;padding:12px 16px;background:#00BFA615;border-left:3px solid #00BFA6;border-radius:4px;">
+        <p style="margin:0 0 4px;font-weight:700;color:#00BFA6;font-size:13px;">
+          🎤 You're also ${speakerMatch.event_role === 'mc' ? 'the MC' : 'a speaker'} at this event
+        </p>
+        <p style="margin:0;font-size:13px;color:#374151;">
+          <a href="${BASE_URL}/speaker/${speakerMatch.confirmation_token}" style="color:#00BFA6;">
+            Access your speaker hub →
+          </a>
+        </p>
+      </div>
+    ` : ''
+
+    const volunteerSection = volunteerMatch ? `
+      <div style="margin-top:12px;padding:12px 16px;background:#3B82F615;border-left:3px solid #3B82F6;border-radius:4px;">
+        <p style="margin:0 0 4px;font-weight:700;color:#3B82F6;font-size:13px;">
+          🙋 You're also volunteering at this event${volunteerMatch.role ? ` as ${volunteerMatch.role}` : ''}
+        </p>
+        <p style="margin:0;font-size:13px;color:#374151;">
+          <a href="${BASE_URL}/volunteer/${volunteerMatch.portal_access_token}" style="color:#3B82F6;">
+            Access your volunteer portal →
+          </a>
+        </p>
+      </div>
+    ` : ''
+
+    const roleNote = speakerMatch
+      ? ` (You're also ${speakerMatch.event_role === 'mc' ? 'the MC' : 'speaking'}!)`
+      : volunteerMatch ? ` (You're also volunteering!)` : ''
+
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -75,6 +133,7 @@ export const sendConfirmationEmail = schemaTask({
             </tr>
             ${payload.eventVenue ? `<tr><td colspan="2" style="padding:6px 0;"><a href="https://maps.google.com/?q=${encodeURIComponent(payload.eventVenue)}" style="color:#00BFA6;font-size:14px;text-decoration:none;">→ Get directions</a></td></tr>` : ''}
           </table>
+          ${speakerSection}${volunteerSection}
           <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
           <p style="color:#475569;font-size:12px;margin:0;">
             Sent by ${payload.orgName} via <a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
@@ -97,7 +156,7 @@ export const sendConfirmationEmail = schemaTask({
       body: JSON.stringify({
         from:      `${payload.orgName} <noreply@prezva.app>`,
         to:        payload.attendeeEmail,
-        subject:   `${payload.orgName}: You're registered for ${payload.eventTitle}`,
+        subject:   `${payload.orgName}: You're registered for ${payload.eventTitle}${roleNote}`,
         html,
         reply_to:  payload.orgEmail || undefined,
         headers:   { 'List-Unsubscribe': `<${unsubAllUrl}>` },
