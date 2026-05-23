@@ -29,6 +29,13 @@ export interface EventAnalytics {
   paidTicketCount: number
   freeTicketCount: number
   averageTicketValueCents: number
+  sessionPopularity: {
+    session_id: string
+    title: string
+    feedback_count: number
+    avg_rating: number
+    attendee_count: number
+  }[]
 }
 
 export async function getEventAnalytics(eventId: string): Promise<EventAnalytics> {
@@ -67,6 +74,51 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
   const regs = registrations ?? []
   const confirmed = regs.filter((r: any) => r.status === 'confirmed')
   const totalRevenue = confirmed.reduce((sum: number, r: any) => sum + (r.amount_paid_cents ?? 0), 0)
+
+  // Session popularity
+  const { data: sessionData } = await supabase
+    .from('sessions')
+    .select('id, title')
+    .eq('event_id', eventId)
+
+  const sessionIds = ((sessionData ?? []) as any[]).map(s => s.id)
+
+  let sessionPopularity: {
+    session_id: string
+    title: string
+    feedback_count: number
+    avg_rating: number
+    attendee_count: number
+  }[] = []
+
+  if (sessionIds.length > 0) {
+    const [feedbackRes, sessionCheckInsRes] = await Promise.all([
+      supabase.from('session_feedback')
+        .select('session_id, rating')
+        .in('session_id', sessionIds),
+      supabase.from('check_ins')
+        .select('session_id, id')
+        .in('session_id', sessionIds)
+        .not('session_id', 'is', null),
+    ])
+
+    sessionPopularity = ((sessionData ?? []) as any[]).map(s => {
+      const fb = ((feedbackRes.data ?? []) as any[]).filter(f => f.session_id === s.id)
+      const ratings = fb.map((f: any) => f.rating).filter(Boolean)
+      const avgRating = ratings.length > 0
+        ? Math.round((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length) * 10) / 10
+        : 0
+      const attendeeCount = ((sessionCheckInsRes.data ?? []) as any[]).filter(c => c.session_id === s.id).length
+
+      return {
+        session_id: s.id,
+        title: s.title,
+        feedback_count: fb.length,
+        avg_rating: avgRating,
+        attendee_count: attendeeCount,
+      }
+    }).sort((a: any, b: any) => b.feedback_count - a.feedback_count)
+  }
 
   // Registration pace from already-fetched data
   const registrationsLast24h = regs.filter((r: any) =>
@@ -152,5 +204,6 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
     paidTicketCount: paidCount,
     freeTicketCount,
     averageTicketValueCents: avgCents,
+    sessionPopularity,
   }
 }

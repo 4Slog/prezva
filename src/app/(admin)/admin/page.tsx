@@ -1,50 +1,120 @@
-import { requireAdmin } from '@/lib/admin/gate'
-import { createAdminClient } from '@/lib/supabase/admin'
-import Link from 'next/link'
+import { getPlatformStats, getRecentOrgs, getRecentEvents } from '@/lib/admin/platform-actions'
+import type { PlatformStats } from '@/lib/admin/platform-actions'
 
-export default async function AdminOverviewPage() {
-  await requireAdmin()
-  const admin = createAdminClient()
+export default async function AdminDashboard() {
+  let stats: PlatformStats | null = null
+  let recentOrgs: any[] = []
+  let recentEvents: any[] = []
+  let error: string | null = null
 
-  const [orgsResult, eventsResult, regsResult] = await Promise.all([
-    admin.from('organizations').select('id', { count: 'exact', head: true }),
-    admin.from('events').select('id', { count: 'exact', head: true }),
-    admin.from('registrations').select('amount_paid_cents').eq('status', 'confirmed'),
-  ])
+  try {
+    ;[stats, recentOrgs, recentEvents] = await Promise.all([
+      getPlatformStats(),
+      getRecentOrgs(5),
+      getRecentEvents(5),
+    ])
+  } catch (e: any) {
+    error = e.message
+  }
 
-  const totalOrgs = orgsResult.count ?? 0
-  const totalEvents = eventsResult.count ?? 0
-  const grossRevenue = (regsResult.data ?? []).reduce((sum, r) => sum + (r.amount_paid_cents ?? 0), 0)
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: 900 }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pz-text)' }}>Platform Admin</h1>
+        <p style={{ color: '#EF4444' }}>{error === 'Not authorized' ? 'Access denied. Super admin only.' : error}</p>
+      </div>
+    )
+  }
 
-  const stats = [
-    { label: 'Organizations', value: totalOrgs.toLocaleString(), href: '/admin/orgs' },
-    { label: 'Total Events', value: totalEvents.toLocaleString(), href: '/admin/events' },
-    { label: 'Gross Revenue', value: `$${(grossRevenue / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, href: '/admin/revenue' },
+  if (!stats) return null
+
+  const statCards = [
+    { label: 'Organizations', value: stats.totalOrgs, sub: `+${stats.newOrgsLast30d} last 30d`, color: 'var(--pz-teal)' },
+    { label: 'Total Events', value: stats.totalEvents, sub: `${stats.activeEvents} live now`, color: '#3B82F6' },
+    { label: 'Registrations', value: stats.totalRegistrations.toLocaleString(), sub: `+${stats.newRegsLast30d} last 30d`, color: '#8B5CF6' },
+    { label: 'Platform Revenue', value: `$${(stats.totalRevenueCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sub: 'all time', color: '#22C55E' },
+    { label: 'Published Events', value: stats.publishedEvents, sub: 'awaiting go-live', color: '#F59E0B' },
+    { label: 'Avg Regs / Event', value: stats.avgRegsPerEvent, sub: 'across all events', color: 'var(--pz-muted)' },
   ]
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold text-[#F0F4F8]">Platform Overview</h1>
-        <p className="text-sm text-[#64748B] mt-1">Internal admin dashboard — restricted access</p>
+    <div style={{ padding: '2rem', maxWidth: 1000 }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pz-text)', margin: 0 }}>
+          Platform Health
+        </h1>
+        <p style={{ color: 'var(--pz-muted)', fontSize: 13, margin: '4px 0 0' }}>
+          Super admin view — {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        {stats.map(s => (
-          <Link key={s.label} href={s.href} className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-5 hover:border-[#00BFA6]/40 transition-colors">
-            <p className="text-xs text-[#64748B] mb-1">{s.label}</p>
-            <p className="text-2xl font-bold text-[#F0F4F8]">{s.value}</p>
-          </Link>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: '2rem' }}>
+        {statCards.map(({ label, value, sub, color }) => (
+          <div key={label} style={{ background: 'var(--pz-surface)', borderRadius: 12,
+                                     padding: '1.25rem', border: '1px solid var(--pz-border)' }}>
+            <p style={{ fontSize: 28, fontWeight: 800, color, margin: '0 0 4px' }}>{value}</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>{label}</p>
+            <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: '2px 0 0' }}>{sub}</p>
+          </div>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <Link href="/admin/audit" className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-5 hover:border-[#00BFA6]/40 transition-colors">
-          <p className="text-sm font-semibold text-[#F0F4F8]">Audit Log</p>
-          <p className="text-xs text-[#64748B] mt-1">View all system events</p>
-        </Link>
-        <Link href="/admin/orgs" className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-5 hover:border-[#00BFA6]/40 transition-colors">
-          <p className="text-sm font-semibold text-[#F0F4F8]">Manage Organizations</p>
-          <p className="text-xs text-[#64748B] mt-1">Suspend, unsuspend, offboard</p>
-        </Link>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.25rem',
+                      border: '1px solid var(--pz-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>Recent orgs</p>
+            <a href="/admin/orgs" style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>View all →</a>
+          </div>
+          {recentOrgs.map(org => (
+            <div key={org.id} style={{ display: 'flex', justifyContent: 'space-between',
+                                       padding: '6px 0', borderBottom: '1px solid var(--pz-border)' }}>
+              <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>{org.name}</span>
+              <span style={{ fontSize: 11, color: 'var(--pz-muted)' }}>
+                {new Date(org.created_at).toLocaleDateString()}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.25rem',
+                      border: '1px solid var(--pz-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>Recent events</p>
+            <a href="/admin/events" style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>View all →</a>
+          </div>
+          {recentEvents.map(event => (
+            <div key={event.id} style={{ display: 'flex', justifyContent: 'space-between',
+                                          padding: '6px 0', borderBottom: '1px solid var(--pz-border)' }}>
+              <div>
+                <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>{event.title}</span>
+                <span style={{ fontSize: 11, color: 'var(--pz-muted)', marginLeft: 6 }}>
+                  {(event.organizations as any)?.name}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600,
+                             color: event.status === 'live' ? 'var(--pz-teal)' : 'var(--pz-muted)' }}>
+                {event.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: '1.5rem', flexWrap: 'wrap' }}>
+        {[
+          { label: 'All Organizations', href: '/admin/orgs' },
+          { label: 'All Events', href: '/admin/events' },
+          { label: 'Revenue', href: '/admin/revenue' },
+          { label: 'Audit Log', href: '/admin/audit' },
+        ].map(({ label, href }) => (
+          <a key={href} href={href}
+            style={{ padding: '0.5rem 1rem', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                     border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
+                     textDecoration: 'none' }}>
+            {label}
+          </a>
+        ))}
       </div>
     </div>
   )

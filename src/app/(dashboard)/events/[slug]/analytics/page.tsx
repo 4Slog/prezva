@@ -150,6 +150,49 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
         </div>
       )}
 
+      {analytics.sessionPopularity.length > 0 && (
+        <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.25rem',
+                      border: '1px solid var(--pz-border)', marginBottom: 12 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', margin: '0 0 12px' }}>
+            Session insights
+          </p>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr>
+                {['Session', 'Attendees', 'Feedback', 'Avg Rating'].map(h => (
+                  <th key={h} style={{ textAlign: h === 'Session' ? 'left' : 'center',
+                                       padding: '4px 8px', color: 'var(--pz-muted)',
+                                       fontWeight: 600, fontSize: 11,
+                                       textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.sessionPopularity.map(s => (
+                <tr key={s.session_id} style={{ borderTop: '1px solid var(--pz-border)' }}>
+                  <td style={{ padding: '8px 8px', color: 'var(--pz-text)', maxWidth: 200,
+                               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.title}
+                  </td>
+                  <td style={{ textAlign: 'center', padding: '8px 8px', color: 'var(--pz-text)' }}>
+                    {s.attendee_count}
+                  </td>
+                  <td style={{ textAlign: 'center', padding: '8px 8px', color: 'var(--pz-text)' }}>
+                    {s.feedback_count}
+                  </td>
+                  <td style={{ textAlign: 'center', padding: '8px 8px',
+                               color: s.avg_rating >= 4 ? '#22C55E' : s.avg_rating >= 3 ? 'var(--pz-teal)' : '#F59E0B' }}>
+                    {s.avg_rating > 0 ? `${s.avg_rating} ⭐` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div style={{ border: '1px solid var(--color-border)', borderRadius: 10, padding: '1.25rem', background: 'var(--color-surface)' }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: '1rem' }}>Registrations by Day (last 14 days)</h2>

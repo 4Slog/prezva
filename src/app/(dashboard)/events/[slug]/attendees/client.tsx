@@ -7,6 +7,8 @@ import { AddAttendeeModal } from '@/components/attendees/AddAttendeeModal'
 import { removeAttendee } from '@/lib/attendees/actions'
 import { approveRegistration, rejectRegistration, promoteFromWaitlist, cancelRegistration } from '@/lib/registrations/actions'
 import type { AttendeeWithTicket, AttendeeFilters, AttendeePage } from '@/lib/attendees/actions'
+import { getAttendeeEngagementScores } from '@/lib/analytics/engagement-actions'
+import type { AttendeeEngagement } from '@/lib/analytics/engagement-actions'
 
 interface AttendeesClientProps {
   eventId: string
@@ -21,7 +23,10 @@ interface AttendeesClientProps {
 export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialData, tickets, integrations }: AttendeesClientProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const [activeTab, setActiveTab] = useState<'attendees' | 'pending' | 'waitlist'>('attendees')
+  const [activeTab, setActiveTab] = useState<'attendees' | 'pending' | 'waitlist' | 'engagement'>('attendees')
+  const [engagementScores, setEngagementScores] = useState<AttendeeEngagement[]>([])
+  const [engagementLoaded, setEngagementLoaded] = useState(false)
+  const [engagementLoading, setEngagementLoading] = useState(false)
   const [pendingRegs, setPendingRegs] = useState<any[]>([])
   const [pendingLoaded, setPendingLoaded] = useState(false)
   const [pendingMsg, setPendingMsg] = useState('')
@@ -120,10 +125,43 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
     setWaitlistLoaded(true)
   }
 
-  async function switchTab(tab: 'attendees' | 'pending' | 'waitlist') {
+  async function loadEngagement() {
+    setEngagementLoading(true)
+    const scores = await getAttendeeEngagementScores(eventId)
+    setEngagementScores(scores)
+    setEngagementLoaded(true)
+    setEngagementLoading(false)
+  }
+
+  async function switchTab(tab: 'attendees' | 'pending' | 'waitlist' | 'engagement') {
     setActiveTab(tab)
     if (tab === 'pending' && !pendingLoaded) await loadPending()
     if (tab === 'waitlist' && !waitlistLoaded) await loadWaitlist()
+    if (tab === 'engagement' && !engagementLoaded) await loadEngagement()
+  }
+
+  function exportEngagementCsv() {
+    const headers = ['Rank', 'Name', 'Email', 'Score', 'Checked In', 'Points', 'Trivia', 'Icebreakers', 'Posts', 'Feedback']
+    const rows = engagementScores.map((s, i) => [
+      i + 1,
+      s.attendee_name,
+      s.attendee_email,
+      s.score,
+      s.checked_in ? 'Yes' : 'No',
+      s.points,
+      s.trivia_answers,
+      s.icebreaker_responses,
+      s.community_posts,
+      s.feedback_given,
+    ])
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `engagement-${eventSlug}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function handlePromote(regId: string) {
@@ -230,6 +268,12 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
         >
           Waitlist
         </button>
+        <button
+          onClick={() => switchTab('engagement')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'engagement' ? 'border-[var(--brand-teal)] text-[var(--brand-teal)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+        >
+          Engagement
+        </button>
       </div>
 
       {activeTab === 'pending' && (
@@ -255,6 +299,74 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
           {waitlistRegs.map((reg: any, idx: number) => (
             <WaitlistRow key={reg.id} reg={reg} position={idx + 1} onPromote={handlePromote} onRemove={handleWaitlistRemove} />
           ))}
+        </div>
+      )}
+
+      {activeTab === 'engagement' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[var(--text-secondary)]">
+              {engagementLoading ? 'Loading…' : engagementLoaded ? `${engagementScores.length} attendees scored` : ''}
+            </p>
+            {engagementLoaded && engagementScores.length > 0 && (
+              <button
+                onClick={exportEngagementCsv}
+                className="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)]"
+              >
+                Export CSV
+              </button>
+            )}
+          </div>
+          {engagementLoaded && engagementScores.length === 0 && (
+            <p className="text-sm text-[var(--text-secondary)]">No engagement data yet.</p>
+          )}
+          {engagementLoaded && engagementScores.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    {['#', 'Name', 'Score', 'Checked In', 'Points', 'Trivia', 'Icebreakers', 'Posts', 'Feedback'].map(h => (
+                      <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {engagementScores.map((s, i) => (
+                    <tr key={s.registration_id} className="border-b border-[var(--border)] hover:bg-[var(--surface-hover)]">
+                      <td className="py-2 px-3 text-[var(--text-secondary)] font-mono text-xs">{i + 1}</td>
+                      <td className="py-2 px-3">
+                        <p className="font-medium text-[var(--text-primary)]">{s.attendee_name}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{s.attendee_email}</p>
+                      </td>
+                      <td className="py-2 px-3">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ width: 60, height: 6, background: 'var(--pz-border)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${s.score}%`,
+                              background: s.score >= 70 ? '#22C55E' : s.score >= 40 ? 'var(--pz-teal)' : '#F59E0B',
+                              borderRadius: 3,
+                            }} />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-text)', minWidth: 28 }}>{s.score}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        {s.checked_in ? <span className="text-green-500">✓</span> : <span className="text-[var(--text-secondary)]">—</span>}
+                      </td>
+                      <td className="py-2 px-3 text-center text-[var(--text-primary)]">{s.points}</td>
+                      <td className="py-2 px-3 text-center text-[var(--text-primary)]">{s.trivia_answers}</td>
+                      <td className="py-2 px-3 text-center text-[var(--text-primary)]">{s.icebreaker_responses}</td>
+                      <td className="py-2 px-3 text-center text-[var(--text-primary)]">{s.community_posts}</td>
+                      <td className="py-2 px-3 text-center text-[var(--text-primary)]">{s.feedback_given}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

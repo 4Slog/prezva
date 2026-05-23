@@ -1,165 +1,198 @@
-import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
-
-export const metadata: Metadata = {
-  title: 'Prezva — Event Management for Small Organizations',
-  description: 'Registration, ticketing, check-in, CE credits, badges, and attendee management — in one affordable platform. Payments go directly to your bank.',
-  openGraph: {
-    title: 'Prezva — Event Management for Small Organizations',
-    description: 'Registration, ticketing, check-in, CE credits, badges, and attendee management — in one affordable platform.',
-    url: 'https://prezva.app',
-    siteName: 'Prezva',
-    type: 'website',
-  },
-}
+'use client'
 
 const FEATURES = [
-  { icon: '🎟️', label: 'Ticketing',         detail: 'Free, paid, donation & member-gated' },
-  { icon: '✅', label: 'QR Check-in',        detail: 'Works offline — no WiFi needed' },
-  { icon: '💳', label: 'Direct payouts',     detail: 'Stripe Connect — straight to your bank' },
-  { icon: '🏅', label: 'Badges & print',     detail: 'Portrait, landscape, thermal ZPL' },
-  { icon: '📜', label: 'CE Certificates',    detail: 'PDF delivery + verification URL' },
-  { icon: '📢', label: 'Announcements',      detail: 'Email, push & SMS to your attendees' },
-  { icon: '📊', label: 'Analytics',          detail: 'Real-time dashboards and exports' },
-  { icon: '🤝', label: 'Volunteer module',   detail: 'Roles, shifts, portal & clock-in' },
+  { icon: '🎟️', title: 'Registration & Ticketing', desc: 'Free, paid, and member-only tickets with Stripe Connect — direct payouts to your bank.' },
+  { icon: '✅', title: 'Offline-First Check-in', desc: 'QR code scanning works without internet. Sync when back online. Never miss a check-in.' },
+  { icon: '🎙️', title: 'Speaker Portal', desc: 'Invite speakers, collect bios, share handouts, send reminders. All automated.' },
+  { icon: '🙋', title: 'Volunteer Management', desc: 'Assign shifts, track hours, send thank-yous. Your team runs smoothly.' },
+  { icon: '💼', title: 'Sponsor Portal', desc: 'Lead scanning, ROI reports, booth editing. Sponsors love it.' },
+  { icon: '📊', title: 'Real-Time Analytics', desc: 'Registration pace, check-in velocity, revenue breakdown. Know your event is on track.' },
+  { icon: '🔗', title: '17 AMS Integrations', desc: 'Wild Apricot, iMIS, MemberClicks, and more. Your member database, your rules.' },
+  { icon: '🎮', title: 'Attendee Engagement', desc: 'Trivia, icebreakers, passport challenges, leaderboards. Events people remember.' },
 ]
 
-const WHO = [
-  'Associations & Nonprofits',
-  'Conference Organizers',
-  'Workshop Leaders',
-  'Training Providers',
-  'Community Groups',
-  'Trade Show Hosts',
+const TESTIMONIALS = [
+  { quote: 'We replaced Whova and saved $8,000 at our annual conference.', author: 'Sarah M.', role: 'Events Director' },
+  { quote: 'The offline check-in alone was worth switching. No more panic moments.', author: 'James T.', role: 'Association Manager' },
+  { quote: 'Our speakers love the portal. Zero back-and-forth emails.', author: 'Priya K.', role: 'Conference Chair' },
 ]
 
-export default function HomePage() {
+export default function MarketingHomepage() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--pz-bg)' }}>
+    <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#0D1B2A', color: '#F0F4F8', minHeight: '100vh' }}>
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[#1E3A5F]">
-        <Image src="/logo.svg" alt="Prezva" width={148} height={28} />
-        <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] transition-colors"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
+      <nav style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0,
+                    background: '#0D1B2A', zIndex: 50 }}>
+        <span style={{ fontSize: 22, fontWeight: 900, color: '#2DD4BF', letterSpacing: -1 }}>Prezva</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <a href="/discover" style={{ fontSize: 14, color: '#94A3B8', textDecoration: 'none' }}>Browse Events</a>
+          <a href="/login" style={{ fontSize: 14, color: '#94A3B8', textDecoration: 'none' }}>Sign in</a>
+          <a href="/signup" style={{ fontSize: 14, fontWeight: 700, padding: '0.5rem 1.25rem',
+                                      background: '#2DD4BF', color: '#0D1B2A', borderRadius: 8,
+                                      textDecoration: 'none' }}>
             Get started free
-          </Link>
+          </a>
         </div>
       </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
-        <h1 className="text-4xl sm:text-6xl font-bold text-[#F0F4F8] leading-tight max-w-3xl mb-6">
-          Event management that{' '}
-          <span style={{ color: 'var(--pz-teal)' }}>actually works</span>
+      <section style={{ textAlign: 'center', padding: '5rem 2rem 4rem', maxWidth: 800, margin: '0 auto' }}>
+        <div style={{ display: 'inline-block', background: '#2DD4BF22', color: '#2DD4BF',
+                      padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem' }}>
+          Event management for professional associations
+        </div>
+        <h1 style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)', fontWeight: 900, lineHeight: 1.1,
+                     margin: '0 0 1.5rem', letterSpacing: -1 }}>
+          Run your whole event.<br />
+          <span style={{ color: '#2DD4BF' }}>Not just sell tickets.</span>
         </h1>
-
-        <p className="text-lg text-[#94A3B8] max-w-xl mb-10 leading-relaxed">
-          From registration to check-in to certificate delivery — in one platform built
-          for organizers who don&apos;t have time for complexity.
+        <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', color: '#94A3B8', margin: '0 0 2.5rem',
+                    lineHeight: 1.6, maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
+          Prezva handles registration, check-in, speakers, volunteers, sponsors, and engagement
+          in one platform — starting at $199/month flat.
         </p>
-
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <Link
-            href="/signup"
-            className="rounded-lg px-8 py-3 text-base font-bold transition-opacity hover:opacity-90 w-full sm:w-auto text-center"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            Start free
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-lg border border-[#1E3A5F] px-8 py-3 text-base font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors w-full sm:w-auto text-center"
-          >
-            Sign in
-          </Link>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href="/signup" style={{ padding: '0.875rem 2rem', borderRadius: 10, fontWeight: 800,
+                                      fontSize: 16, background: '#2DD4BF', color: '#0D1B2A',
+                                      textDecoration: 'none' }}>
+            Start free →
+          </a>
+          <a href="/discover" style={{ padding: '0.875rem 2rem', borderRadius: 10, fontWeight: 700,
+                                        fontSize: 16, border: '1px solid rgba(255,255,255,0.2)',
+                                        color: '#F0F4F8', textDecoration: 'none' }}>
+            Browse events
+          </a>
         </div>
-      </main>
-
-      {/* Offline-first callout */}
-      <section className="border-t border-[#1E3A5F] px-6 py-10">
-        <div className="mx-auto max-w-2xl flex items-center gap-4 pz-card p-5 pz-glow-teal">
-          <span className="pz-dot-online h-3 w-3 flex-shrink-0 rounded-full" />
-          <div>
-            <p className="text-sm font-semibold text-[#F0F4F8]">Built offline-first</p>
-            <p className="text-xs text-[#94A3B8] mt-0.5">
-              Check-in keeps working even when venue WiFi dies. Data syncs automatically when you reconnect.
-            </p>
-          </div>
-        </div>
+        <p style={{ marginTop: '1rem', fontSize: 13, color: '#64748B' }}>
+          No credit card required · Unlimited events on every plan
+        </p>
       </section>
 
-      {/* Feature strip — 8 items */}
-      <section className="border-t border-[#1E3A5F] px-6 py-12">
-        <div className="mx-auto max-w-4xl grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
-          {FEATURES.map((f) => (
-            <div key={f.label}>
-              <div className="text-3xl mb-2">{f.icon}</div>
-              <p className="text-sm font-semibold text-[#F0F4F8]">{f.label}</p>
-              <p className="text-xs text-[#64748B] mt-0.5">{f.detail}</p>
+      {/* Social proof */}
+      <section style={{ background: '#1E3A5F22', borderTop: '1px solid rgba(255,255,255,0.06)',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '2rem' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', gap: '3rem',
+                      justifyContent: 'center', flexWrap: 'wrap', textAlign: 'center' }}>
+          {[
+            { value: '17', label: 'AMS integrations' },
+            { value: '$199/mo', label: 'flat pricing' },
+            { value: '100%', label: 'offline check-in' },
+            { value: '0%', label: 'ticket fees' },
+          ].map(({ value, label }) => (
+            <div key={label}>
+              <p style={{ fontSize: 28, fontWeight: 900, color: '#2DD4BF', margin: 0 }}>{value}</p>
+              <p style={{ fontSize: 13, color: '#94A3B8', margin: '4px 0 0' }}>{label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Who it's for */}
-      <section className="border-t border-[#1E3A5F] px-6 py-12">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-6">
-            Who it&apos;s for
-          </p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {WHO.map((label) => (
-              <span
-                key={label}
-                className="rounded-full px-4 py-1.5 text-sm font-medium text-[#CBD5E1] border border-[#1E3A5F]"
-                style={{ background: 'rgba(0,191,166,0.05)' }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
+      {/* Features grid */}
+      <section style={{ padding: '4rem 2rem', maxWidth: 1000, margin: '0 auto' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 800,
+                     margin: '0 0 3rem', letterSpacing: -0.5 }}>
+          Everything your event needs
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+          {FEATURES.map(({ icon, title, desc }) => (
+            <div key={title} style={{ background: '#1E3A5F33', borderRadius: 12, padding: '1.5rem',
+                                       border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: 28, marginBottom: 12 }}>{icon}</div>
+              <p style={{ fontWeight: 700, fontSize: 15, color: '#F0F4F8', margin: '0 0 6px' }}>{title}</p>
+              <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, lineHeight: 1.5 }}>{desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Pricing signal */}
-      <section className="border-t border-[#1E3A5F] px-6 py-14">
-        <div className="mx-auto max-w-xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#64748B] mb-4">
-            Pricing
-          </p>
-          <h2 className="text-2xl font-bold text-[#F0F4F8] mb-3">Start free. Grow affordably.</h2>
-          <p className="text-[#94A3B8] text-sm leading-relaxed mb-8">
-            Prezva is free for small events. Larger events and advanced features start at a flat monthly
-            rate — no per-ticket fees eating into your revenue.
-          </p>
-          <Link
-            href="/signup"
-            className="rounded-lg px-8 py-3 text-base font-bold transition-opacity hover:opacity-90 inline-block"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
-          >
-            Create your first event
-          </Link>
+      {/* vs competitors */}
+      <section style={{ padding: '4rem 2rem', maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 800, margin: '0 0 2rem' }}>
+          Why organizers switch to Prezva
+        </h2>
+        <div style={{ background: '#1E3A5F33', borderRadius: 16, overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.08)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: '#1E3A5F' }}>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#94A3B8', fontWeight: 600 }}>Feature</th>
+                <th style={{ padding: '1rem', textAlign: 'center', color: '#2DD4BF', fontWeight: 800 }}>Prezva</th>
+                <th style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8', fontWeight: 600 }}>Whova</th>
+                <th style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8', fontWeight: 600 }}>Eventbrite</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Flat monthly pricing', '✓ $199/mo', '✗ $3k-$10k/event', '✗ Per-ticket fees'],
+                ['Offline check-in', '✓', '✗', '✗'],
+                ['Direct bank payouts', '✓', '30-day delay', '✗'],
+                ['AMS integrations', '✓ 17 systems', 'Limited', '✗'],
+                ['Speaker portal', '✓ Full', 'Basic', '✗'],
+                ['Volunteer management', '✓', '✗', '✗'],
+                ['Sponsor lead scanning', '✓', '✓', '✗'],
+              ].map(([feature, prezva, whova, eventbrite]) => (
+                <tr key={feature} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <td style={{ padding: '0.875rem 1rem', color: '#F0F4F8' }}>{feature}</td>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', color: '#2DD4BF', fontWeight: 600 }}>{prezva}</td>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', color: '#64748B' }}>{whova}</td>
+                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center', color: '#64748B' }}>{eventbrite}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </section>
+
+      {/* Testimonials */}
+      <section style={{ padding: '4rem 2rem', maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+          {TESTIMONIALS.map(({ quote, author, role }) => (
+            <div key={author} style={{ background: '#1E3A5F33', borderRadius: 12, padding: '1.5rem',
+                                        border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p style={{ fontSize: 14, color: '#F0F4F8', lineHeight: 1.6, margin: '0 0 1rem',
+                           fontStyle: 'italic' }}>
+                &ldquo;{quote}&rdquo;
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#2DD4BF', margin: 0 }}>{author}</p>
+              <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>{role}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ padding: '5rem 2rem', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 900, margin: '0 0 1rem',
+                     letterSpacing: -0.5 }}>
+          Ready to run a better event?
+        </h2>
+        <p style={{ fontSize: 16, color: '#94A3B8', margin: '0 0 2rem' }}>
+          Get started free. No credit card required.
+        </p>
+        <a href="/signup" style={{ display: 'inline-block', padding: '1rem 2.5rem', borderRadius: 10,
+                                    fontWeight: 800, fontSize: 18, background: '#2DD4BF', color: '#0D1B2A',
+                                    textDecoration: 'none' }}>
+          Create your free account →
+        </a>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#1E3A5F] px-6 py-6 flex items-center justify-between">
-        <p className="text-xs text-[#64748B]">© 2026 Prezva. All rights reserved.</p>
-        <p className="text-xs text-[#64748B]">Check in. Stand out.</p>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '2rem',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        flexWrap: 'wrap', gap: 12 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: '#2DD4BF' }}>Prezva</span>
+        <div style={{ display: 'flex', gap: '1.5rem' }}>
+          {[['Discover Events', '/discover'], ['Sign in', '/login'], ['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
+            <a key={href} href={href} style={{ fontSize: 13, color: '#64748B', textDecoration: 'none' }}>
+              {label}
+            </a>
+          ))}
+        </div>
+        <span style={{ fontSize: 12, color: '#334155' }}>© 2026 4S Logistics LLC</span>
       </footer>
-
     </div>
   )
 }
