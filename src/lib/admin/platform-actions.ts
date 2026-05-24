@@ -86,3 +86,62 @@ export async function getRecentEvents(limit = 10) {
     .limit(limit)
   return (data ?? []) as any[]
 }
+
+export async function sendPlatformAnnouncement(subject: string, message: string): Promise<{ sent: number }> {
+  await requireSuperAdmin()
+  const admin = createAdminClient()
+
+  const { data: owners } = await admin
+    .from('org_members')
+    .select('user_id, profiles(email)')
+    .eq('role', 'owner')
+
+  const emails = new Set<string>()
+  for (const o of (owners ?? []) as any[]) {
+    const email = o.profiles?.email
+    if (email) emails.add(email)
+  }
+
+  const emailList = [...emails]
+  const batchSize = 50
+  let sent = 0
+
+  for (let i = 0; i < emailList.length; i += batchSize) {
+    const batch = emailList.slice(i, i + batchSize)
+    await Promise.all(batch.map(to =>
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Prezva <noreply@prezva.app>',
+          to,
+          subject,
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:2rem">
+              <div style="background:#00BFA6;padding:1rem 1.5rem;border-radius:8px 8px 0 0">
+                <h1 style="color:#0D1B2A;margin:0;font-size:1.25rem;font-weight:800">Prezva Platform Notice</h1>
+              </div>
+              <div style="background:#112240;padding:1.5rem;border-radius:0 0 8px 8px;border:1px solid #1E3A5F">
+                <div style="color:#F0F4F8;font-size:1rem;line-height:1.6;white-space:pre-wrap">${message}</div>
+                <hr style="border:none;border-top:1px solid #1E3A5F;margin:1.5rem 0" />
+                <p style="color:#64748B;font-size:0.75rem;margin:0">
+                  To manage your notification preferences, visit
+                  <a href="https://prezva.app/settings" style="color:#00BFA6">prezva.app/settings</a>
+                </p>
+              </div>
+            </div>
+          `,
+        }),
+      })
+    ))
+    sent += batch.length
+    if (i + batchSize < emailList.length) {
+      await new Promise(r => setTimeout(r, 1000))
+    }
+  }
+
+  return { sent }
+}

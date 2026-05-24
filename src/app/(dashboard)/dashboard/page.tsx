@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { SetupChecklist } from '@/components/dashboard/SetupChecklist'
 import { StaffOnboardingModal } from '@/components/staff/StaffOnboardingModal'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 type Props = { searchParams: Promise<{ error?: string }> }
 
@@ -12,6 +13,15 @@ export default async function DashboardPage({ searchParams }: Props) {
   const { error: errorParam } = await searchParams
   const user = await requireUser()
   const supabase = await createClient()
+
+  // Impersonation cookie — set by super admin
+  const cookieStore = await cookies()
+  const impersonateCookie = cookieStore.get('pz_impersonate_org')?.value
+  let impersonateOrg: { id: string; name: string; slug: string } | null = null
+  if (impersonateCookie) {
+    try { impersonateOrg = JSON.parse(impersonateCookie) } catch { /* ignore */ }
+  }
+
   const orgs = await getUserOrgs()
 
   // Users with no org membership are attendees — route them to their event or onboarding.
@@ -32,12 +42,26 @@ export default async function DashboardPage({ searchParams }: Props) {
     redirect('/onboarding')
   }
 
-  // Auto-select: use first org (single-org owners get stats immediately)
-  const firstOrg = orgs[0] as any
-  const orgData = firstOrg.organizations
-  const orgId = orgData?.id
-  const orgSlug = orgData?.slug
-  const myRole = firstOrg.role as string
+  // Impersonation: use the impersonated org instead of the user's own org
+  let orgId: string
+  let orgSlug: string
+  let orgName: string
+  let myRole: string
+
+  if (impersonateOrg) {
+    orgId = impersonateOrg.id
+    orgSlug = impersonateOrg.slug
+    orgName = impersonateOrg.name
+    myRole = 'owner'
+  } else {
+    // Auto-select: use first org (single-org owners get stats immediately)
+    const firstOrg = orgs[0] as any
+    const orgData = firstOrg.organizations
+    orgId = orgData?.id
+    orgSlug = orgData?.slug
+    orgName = orgData?.name
+    myRole = firstOrg.role as string
+  }
 
   // Fetch profile for greeting
   const { data: profile } = await supabase
@@ -102,8 +126,19 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div>
+      {impersonateOrg && (
+        <div className="mb-6 rounded-lg px-4 py-3 flex items-center justify-between"
+          style={{ background: '#F59E0B22', border: '1px solid #F59E0B' }}>
+          <span className="text-sm font-medium" style={{ color: '#F59E0B' }}>
+            You are viewing as owner of {impersonateOrg.name} (Support mode)
+          </span>
+          <a href="/admin/impersonate/exit" className="text-sm underline" style={{ color: '#F59E0B' }}>
+            Exit impersonation
+          </a>
+        </div>
+      )}
       {myRole === 'staff' && (
-        <StaffOnboardingModal userId={user.id} orgName={orgData?.name ?? 'your organization'} />
+        <StaffOnboardingModal userId={user.id} orgName={orgName ?? 'your organization'} />
       )}
       {errorParam === 'admin_required' && (
         <div

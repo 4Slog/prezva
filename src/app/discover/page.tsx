@@ -1,16 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
+import { Suspense } from 'react'
+import { NearMeButton } from '@/components/discover/NearMeButton'
 
-type SearchParams = { q?: string; city?: string; category?: string; type?: string; when?: string }
+type SearchParams = {
+  q?: string; city?: string; category?: string; type?: string; when?: string
+  lat?: string; lng?: string; radius?: string; view?: string
+}
 type Props = { searchParams: Promise<SearchParams> }
 
 export default async function DiscoverPage({ searchParams }: Props) {
-  const { q, city, category, type, when } = await searchParams
+  const { q, city, category, type, when, lat, lng, radius, view } = await searchParams
   const supabase = await createClient()
 
   const now = new Date()
   let query = supabase
     .from('events')
-    .select('id, title, slug, start_at, end_at, venue_city, venue_state, event_type, cover_image_url, registration_count, category, tags, organizations(name, logo_url, slug)')
+    .select('id, title, slug, start_at, end_at, venue_city, venue_state, event_type, cover_image_url, registration_count, category, tags, venue_lat, venue_lng, organizations(name, logo_url, slug)')
     .eq('is_discoverable', true)
     .in('status', ['published', 'live'])
 
@@ -18,7 +23,20 @@ export default async function DiscoverPage({ searchParams }: Props) {
     query = query.ilike('title', `%${q.trim()}%`)
   }
 
-  if (city?.trim()) {
+  if (lat && lng) {
+    const latF = parseFloat(lat)
+    const lngF = parseFloat(lng)
+    const radiusMiles = parseFloat(radius ?? '50')
+    const latDelta = radiusMiles / 69.0
+    const lngDelta = radiusMiles / (69.0 * Math.cos(latF * Math.PI / 180))
+    query = query
+      .gte('venue_lat', latF - latDelta)
+      .lte('venue_lat', latF + latDelta)
+      .gte('venue_lng', lngF - lngDelta)
+      .lte('venue_lng', lngF + lngDelta)
+      .not('venue_lat', 'is', null)
+      .not('venue_lng', 'is', null)
+  } else if (city?.trim()) {
     query = query.ilike('venue_city', `%${city.trim()}%`)
   }
 
@@ -45,7 +63,94 @@ export default async function DiscoverPage({ searchParams }: Props) {
     .limit(24)
 
   const results = (events ?? []) as any[]
-  const hasFilters = !!(q || city || category || type || when)
+  const hasFilters = !!(q || city || category || type || when || lat)
+
+  // Personalized recommendations — only when no filters and user is logged in
+  let recommendations: any[] = []
+  let recommendationReason = ''
+  if (!hasFilters) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: pastRegs } = await supabase
+        .from('registrations')
+        .select('event_id, events(category, org_id, event_type)')
+        .eq('user_id', user.id)
+        .in('status', ['confirmed', 'checked_in'])
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      const regs = (pastRegs ?? []) as any[]
+      const registeredEventIds = regs.map((r: any) => r.event_id).filter(Boolean)
+      const orgIds: string[] = []
+      const categoryCounts: Record<string, number> = {}
+
+      for (const r of regs) {
+        const ev = r.events as any
+        if (ev?.org_id) orgIds.push(ev.org_id)
+        if (ev?.category) categoryCounts[ev.category] = (categoryCounts[ev.category] ?? 0) + 1
+      }
+
+      const uniqueOrgIds = [...new Set(orgIds)]
+      const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
+
+      const baseRecQuery = () => {
+        let q2 = supabase
+          .from('events')
+          .select('id, title, slug, start_at, venue_city, event_type, cover_image_url, registration_count, category, organizations(name, logo_url, slug)')
+          .eq('is_discoverable', true)
+          .in('status', ['published', 'live'])
+          .gt('start_at', now.toISOString())
+          .limit(3)
+        if (registeredEventIds.length > 0) {
+          q2 = q2.not('id', 'in', `(${registeredEventIds.map(id => `"${id}"`).join(',')})`)
+        }
+        return q2
+      }
+
+      if (uniqueOrgIds.length > 0) {
+        const { data: orgRecs } = await baseRecQuery().in('org_id', uniqueOrgIds)
+        if ((orgRecs ?? []).length > 0) {
+          recommendations = orgRecs as any[]
+          recommendationReason = 'From organizations you have attended'
+        }
+      }
+
+      if (recommendations.length === 0 && topCategory) {
+        const { data: catRecs } = await baseRecQuery().eq('category', topCategory)
+        if ((catRecs ?? []).length > 0) {
+          recommendations = catRecs as any[]
+          recommendationReason = `More ${topCategory} events you might like`
+        }
+      }
+    }
+  }
+
+  // Build currentParams for toggle links (only defined non-empty values)
+  const paramEntries: Record<string, string> = {}
+  if (q) paramEntries.q = q
+  if (city) paramEntries.city = city
+  if (category) paramEntries.category = category
+  if (type) paramEntries.type = type
+  if (when) paramEntries.when = when
+  if (lat) paramEntries.lat = lat
+  if (lng) paramEntries.lng = lng
+  if (radius) paramEntries.radius = radius
+  // view excluded intentionally — toggled below
+
+  const listParams = new URLSearchParams({ ...paramEntries }).toString()
+  const mapParams = new URLSearchParams({ ...paramEntries, view: 'map' }).toString()
+
+  const isMapView = view === 'map'
+
+  // City-grouped layout for map view
+  const cityGroups: Record<string, any[]> = {}
+  if (isMapView) {
+    for (const e of results) {
+      const key = e.venue_city ?? 'Unknown'
+      if (!cityGroups[key]) cityGroups[key] = []
+      cityGroups[key].push(e)
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
@@ -111,6 +216,9 @@ export default async function DiscoverPage({ searchParams }: Props) {
                 Clear
               </a>
             )}
+            <Suspense fallback={<div style={{ width: 120 }} />}>
+              <NearMeButton />
+            </Suspense>
           </form>
         </div>
       </div>
@@ -130,47 +238,145 @@ export default async function DiscoverPage({ searchParams }: Props) {
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginBottom: '1.5rem' }}>
-              {results.length} event{results.length !== 1 ? 's' : ''} found
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-              {results.map((e: any) => (
-                <a key={e.id} href={`/e/${e.slug}`}
-                  style={{ display: 'block', background: 'var(--pz-surface)', borderRadius: 12,
-                           border: '1px solid var(--pz-border)', overflow: 'hidden',
-                           textDecoration: 'none' }}>
-                  {e.cover_image_url && (
-                    <img src={e.cover_image_url} alt={e.title}
-                      style={{ width: '100%', height: 140, objectFit: 'cover' }} />
-                  )}
-                  <div style={{ padding: '1rem' }}>
-                    {e.category && (
-                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                                     color: 'var(--pz-teal)', letterSpacing: '0.05em' }}>
-                        {e.category}
+            {/* View toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: 0 }}>
+                {results.length} event{results.length !== 1 ? 's' : ''} found
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a href={`/discover${listParams ? '?' + listParams : ''}`}
+                  style={{ padding: '0.375rem 0.875rem', borderRadius: 6, fontSize: 13,
+                           border: '1px solid var(--pz-border)', textDecoration: 'none',
+                           background: !isMapView ? 'var(--pz-teal)' : 'transparent',
+                           color: !isMapView ? '#0D1B2A' : 'var(--pz-muted)',
+                           fontWeight: !isMapView ? 700 : 400 }}>
+                  List
+                </a>
+                <a href={`/discover?${mapParams}`}
+                  style={{ padding: '0.375rem 0.875rem', borderRadius: 6, fontSize: 13,
+                           border: '1px solid var(--pz-border)', textDecoration: 'none',
+                           background: isMapView ? 'var(--pz-teal)' : 'transparent',
+                           color: isMapView ? '#0D1B2A' : 'var(--pz-muted)',
+                           fontWeight: isMapView ? 700 : 400 }}>
+                  Map
+                </a>
+              </div>
+            </div>
+
+            {/* Personalized recommendations */}
+            {!isMapView && recommendations.length > 0 && (
+              <>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-teal)', textTransform: 'uppercase',
+                               letterSpacing: '0.05em', margin: '0 0 0.75rem' }}>
+                    {recommendationReason}
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                    {recommendations.map((e: any) => (
+                      <a key={e.id} href={`/e/${e.slug}`}
+                        style={{ display: 'block', background: 'var(--pz-surface)', borderRadius: 12,
+                                 border: '1px solid var(--pz-teal)44', overflow: 'hidden',
+                                 textDecoration: 'none' }}>
+                        {e.cover_image_url && (
+                          <img src={e.cover_image_url} alt={e.title}
+                            style={{ width: '100%', height: 140, objectFit: 'cover' }} />
+                        )}
+                        <div style={{ padding: '1rem' }}>
+                          {e.category && (
+                            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                           color: 'var(--pz-teal)', letterSpacing: '0.05em' }}>
+                              {e.category}
+                            </span>
+                          )}
+                          <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--pz-text)', margin: '4px 0 4px' }}>
+                            {e.title}
+                          </p>
+                          <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '0 0 8px' }}>
+                            {new Date(e.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {e.venue_city ? ` · ${e.venue_city}` : ''}
+                          </p>
+                          <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
+                            {(e.organizations as any)?.name ?? ''}
+                          </span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--pz-border)', margin: '0 0 1.5rem' }} />
+              </>
+            )}
+
+            {isMapView ? (
+              /* City-grouped map view */
+              <div>
+                {Object.entries(cityGroups).map(([cityName, cityEvents]) => (
+                  <div key={cityName} style={{ marginBottom: '2rem' }}>
+                    <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--pz-text)', margin: '0 0 0.75rem',
+                                 display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {cityName}
+                      <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--pz-muted)' }}>
+                        ({cityEvents.length} event{cityEvents.length !== 1 ? 's' : ''})
                       </span>
-                    )}
-                    <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--pz-text)',
-                                margin: '4px 0 4px' }}>
-                      {e.title}
-                    </p>
-                    <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '0 0 8px' }}>
-                      {new Date(e.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {e.venue_city ? ` · ${e.venue_city}` : ''}
-                      {e.event_type === 'virtual' ? ' · Virtual' : e.event_type === 'hybrid' ? ' · Hybrid' : ''}
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
-                        {(e.organizations as any)?.name ?? ''}
-                      </span>
-                      <span style={{ fontSize: 12, color: 'var(--pz-teal)', fontWeight: 600 }}>
-                        {e.registration_count ?? 0} registered
-                      </span>
+                    </h2>
+                    <div style={{ border: '1px solid var(--pz-border)', borderRadius: 8, overflow: 'hidden' }}>
+                      {cityEvents.map((e: any, idx: number) => (
+                        <a key={e.id} href={`/e/${e.slug}`}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                   padding: '0.75rem 1rem', textDecoration: 'none',
+                                   background: 'var(--pz-surface)',
+                                   borderTop: idx > 0 ? '1px solid var(--pz-border)' : 'none' }}>
+                          <span style={{ fontSize: 14, color: 'var(--pz-text)', fontWeight: 500 }}>{e.title}</span>
+                          <span style={{ fontSize: 12, color: 'var(--pz-muted)', whiteSpace: 'nowrap', marginLeft: 16 }}>
+                            {new Date(e.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </a>
+                      ))}
                     </div>
                   </div>
-                </a>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              /* Default grid view */
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                {results.map((e: any) => (
+                  <a key={e.id} href={`/e/${e.slug}`}
+                    style={{ display: 'block', background: 'var(--pz-surface)', borderRadius: 12,
+                             border: '1px solid var(--pz-border)', overflow: 'hidden',
+                             textDecoration: 'none' }}>
+                    {e.cover_image_url && (
+                      <img src={e.cover_image_url} alt={e.title}
+                        style={{ width: '100%', height: 140, objectFit: 'cover' }} />
+                    )}
+                    <div style={{ padding: '1rem' }}>
+                      {e.category && (
+                        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                       color: 'var(--pz-teal)', letterSpacing: '0.05em' }}>
+                          {e.category}
+                        </span>
+                      )}
+                      <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--pz-text)',
+                                  margin: '4px 0 4px' }}>
+                        {e.title}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '0 0 8px' }}>
+                        {new Date(e.start_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {e.venue_city ? ` · ${e.venue_city}` : ''}
+                        {e.event_type === 'virtual' ? ' · Virtual' : e.event_type === 'hybrid' ? ' · Hybrid' : ''}
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
+                          {(e.organizations as any)?.name ?? ''}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--pz-teal)', fontWeight: 600 }}>
+                          {e.registration_count ?? 0} registered
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

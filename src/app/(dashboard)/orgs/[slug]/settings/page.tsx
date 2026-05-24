@@ -68,6 +68,10 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#F0F4F8]">{org.name}</h1>
         <p className="text-sm text-[#94A3B8]">Organization settings</p>
+        <div className="flex gap-4 mt-3">
+          <span className="text-sm font-semibold text-[#F0F4F8] border-b-2 border-[#00BFA6] pb-1">Settings</span>
+          <a href={`/orgs/${org.slug}/billing`} className="text-sm text-[#64748B] hover:text-[#94A3B8] pb-1">Billing</a>
+        </div>
       </div>
 
       {/* Connect status banner */}
