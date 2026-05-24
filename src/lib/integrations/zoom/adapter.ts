@@ -61,6 +61,7 @@ class ZoomAdapter implements IntegrationAdapter {
     if (!data?.encrypted_refresh_token) return null
     try {
       const refreshToken = decryptToken(data.encrypted_refresh_token)
+      if (!refreshToken) return null
       return refreshAccessToken(PROVIDER, refreshToken, process.env.ZOOM_CLIENT_ID!, process.env.ZOOM_CLIENT_SECRET!)
     } catch (err: any) {
       await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err)

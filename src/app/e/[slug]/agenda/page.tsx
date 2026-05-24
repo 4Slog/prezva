@@ -26,6 +26,18 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
     }
   }
 
+  let registrationId: string | null = null
+  if (user) {
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('id')
+      .eq('event_id', event.id)
+      .eq('user_id', user.id)
+      .eq('status', 'confirmed')
+      .maybeSingle()
+    registrationId = reg?.id ?? null
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       <div style={{ background: 'var(--color-navy)', color: '#fff', padding: '2rem 1.5rem' }}>
@@ -35,7 +47,7 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
-        <AgendaClient sessions={sessions} eventId={event.id} userId={user?.id ?? null} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={(event as any).timezone ?? 'UTC'} />
+        <AgendaClient sessions={sessions} eventId={event.id} userId={user?.id ?? null} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={(event as any).timezone ?? 'UTC'} registrationId={registrationId} />
       </div>
     </div>
   )

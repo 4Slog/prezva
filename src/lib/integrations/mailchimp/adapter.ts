@@ -55,6 +55,7 @@ class MailchimpAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token, directionality_preferences').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return null
     const token = decryptToken(data.encrypted_refresh_token)
+    if (!token) return null
     const dc = (data.directionality_preferences as any)?.dc ?? 'us1'
     return { token, dc }
   }

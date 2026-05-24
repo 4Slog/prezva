@@ -52,7 +52,9 @@ class IMISAdapter implements IntegrationAdapter {
     if (!data?.encrypted_refresh_token) return false
     const baseUrl: string = (data.directionality_preferences as any)?.baseUrl ?? 'https://api.imis.com'
     try {
-      const token = await refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), process.env.IMIS_CLIENT_ID!, process.env.IMIS_CLIENT_SECRET!)
+      const decrypted = decryptToken(data.encrypted_refresh_token)
+      if (!decrypted) return false
+      const token = await refreshAccessToken(PROVIDER, decrypted, process.env.IMIS_CLIENT_ID!, process.env.IMIS_CLIENT_SECRET!)
       const res = await fetch(`${baseUrl}/api/Party?Email=${encodeURIComponent(email)}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       })

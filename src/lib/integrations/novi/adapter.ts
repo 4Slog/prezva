@@ -76,12 +76,14 @@ class NoviAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return null
     try {
+      const decrypted = decryptToken(data.encrypted_refresh_token)
+      if (!decrypted) return null
       const res = await fetch(`${baseUrl}/oauth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
-          refresh_token: decryptToken(data.encrypted_refresh_token),
+          refresh_token: decrypted,
           client_id: process.env.NOVI_CLIENT_ID!,
           client_secret: process.env.NOVI_CLIENT_SECRET!,
         }),
