@@ -63,6 +63,7 @@ export default async function AdminOrgsPage({ searchParams }: {
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <Link href={`/admin/orgs/${org.id}`} className="text-xs text-[#00BFA6] hover:underline">View</Link>
+                    <Link href={`/admin/impersonate/${org.slug}`} style={{ fontSize: 12, color: 'var(--pz-teal)' }} className="hover:underline">View as owner</Link>
                     {!org.suspended && !org.deleted_at && (
                       <form action={`/api/admin/orgs/${org.id}/suspend`} method="POST">
                         <button type="submit" className="text-xs text-yellow-400 hover:underline">Suspend</button>
