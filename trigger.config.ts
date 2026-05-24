@@ -1,7 +1,7 @@
 import { defineConfig } from '@trigger.dev/sdk'
 
 export default defineConfig({
-  project: 'prezva',
+  project: 'proj_lgsbkvkrgmhovexfaoxc',
   dirs: ['./src/trigger'],
   maxDuration: 300,
   retries: {

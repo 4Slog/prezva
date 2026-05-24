@@ -1,7 +1,4 @@
 import type { IntegrationAdapter } from './adapter'
-import { validateEncryptionKey } from './encryption'
-
-validateEncryptionKey()
 import { outlookAdapter } from '../outlook/adapter'
 import { zoomAdapter } from '../zoom/adapter'
 import { teamsAdapter } from '../teams/adapter'
