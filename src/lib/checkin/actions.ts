@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
@@ -285,6 +286,56 @@ export async function processOfflineQueue(raw: unknown) {
   }
 
   return { processed, total: entries.length, errors }
+}
+
+export async function checkInToSession(
+  registrationId: string,
+  sessionId: string,
+  method: string = 'self',
+): Promise<{ ok: boolean; alreadyCheckedIn?: boolean; error?: string }> {
+  const supabase = createAdminClient()
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select('id, event_id, status')
+    .eq('id', registrationId)
+    .maybeSingle()
+
+  if (!reg) return { ok: false, error: 'Registration not found' }
+  if (reg.status !== 'confirmed' && reg.status !== 'checked_in') {
+    return { ok: false, error: 'Registration is not confirmed' }
+  }
+
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('id, event_id')
+    .eq('id', sessionId)
+    .maybeSingle()
+
+  if (!session || session.event_id !== reg.event_id) {
+    return { ok: false, error: 'Session not found for this event' }
+  }
+
+  const { data: existing } = await supabase
+    .from('check_ins')
+    .select('id')
+    .eq('registration_id', registrationId)
+    .eq('session_id', sessionId)
+    .maybeSingle()
+
+  if (existing) return { ok: true, alreadyCheckedIn: true }
+
+  const { error } = await supabase.from('check_ins').insert({
+    registration_id: registrationId,
+    event_id: reg.event_id,
+    session_id: sessionId,
+    method,
+    checked_in_at: new Date().toISOString(),
+    synced_at: new Date().toISOString(),
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, alreadyCheckedIn: false }
 }
 
 export async function searchAttendeesForCheckIn(eventId: string, query: string) {

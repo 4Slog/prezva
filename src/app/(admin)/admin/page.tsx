@@ -28,6 +28,15 @@ export default async function AdminDashboard() {
 
   if (!stats) return null
 
+  const missingVars: string[] = []
+  if (!process.env.RESEND_API_KEY) missingVars.push('RESEND_API_KEY')
+  if (!process.env.STRIPE_SECRET_KEY) missingVars.push('STRIPE_SECRET_KEY')
+  if (!process.env.STRIPE_WEBHOOK_SECRET) missingVars.push('STRIPE_WEBHOOK_SECRET')
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) missingVars.push('NEXT_PUBLIC_VAPID_PUBLIC_KEY')
+  if (!process.env.VAPID_PRIVATE_KEY) missingVars.push('VAPID_PRIVATE_KEY')
+  if (!process.env.INTEGRATION_ENCRYPTION_KEY) missingVars.push('INTEGRATION_ENCRYPTION_KEY')
+  if (!process.env.TRIGGER_SECRET_KEY) missingVars.push('TRIGGER_SECRET_KEY')
+
   const statCards = [
     { label: 'Organizations', value: stats.totalOrgs, sub: `+${stats.newOrgsLast30d} last 30d`, color: 'var(--pz-teal)' },
     { label: 'Total Events', value: stats.totalEvents, sub: `${stats.activeEvents} live now`, color: '#3B82F6' },
@@ -39,6 +48,16 @@ export default async function AdminDashboard() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1000 }}>
+      {missingVars.length > 0 && (
+        <div style={{ border: '1px solid #EF4444', borderRadius: 10, padding: '1rem 1.25rem', background: '#FEF2F2', marginBottom: '1.5rem' }}>
+          <p style={{ fontWeight: 700, color: '#DC2626', fontSize: 14, margin: '0 0 8px' }}>
+            {missingVars.length} production env var{missingVars.length > 1 ? 's' : ''} missing
+          </p>
+          {missingVars.map(v => (
+            <p key={v} style={{ fontSize: 13, color: '#DC2626', margin: '2px 0', fontFamily: 'monospace' }}>{v}</p>
+          ))}
+        </div>
+      )}
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pz-text)', margin: 0 }}>
           Platform Health

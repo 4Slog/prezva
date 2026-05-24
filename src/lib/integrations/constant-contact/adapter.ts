@@ -46,7 +46,9 @@ class ConstantContactAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return null
     try {
-      return refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), process.env.CONSTANT_CONTACT_CLIENT_ID!, process.env.CONSTANT_CONTACT_CLIENT_SECRET!)
+      const decrypted = decryptToken(data.encrypted_refresh_token)
+      if (!decrypted) return null
+      return refreshAccessToken(PROVIDER, decrypted, process.env.CONSTANT_CONTACT_CLIENT_ID!, process.env.CONSTANT_CONTACT_CLIENT_SECRET!)
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err); return null }
   }
 

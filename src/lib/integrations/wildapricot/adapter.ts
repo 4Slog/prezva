@@ -83,11 +83,13 @@ class WildApricotAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token, directionality_preferences').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return null
     try {
+      const decrypted = decryptToken(data.encrypted_refresh_token)
+      if (!decrypted) return null
       const credentials = Buffer.from(`${process.env.WILDAPRICOT_CLIENT_ID!}:${process.env.WILDAPRICOT_CLIENT_SECRET!}`).toString('base64')
       const res = await fetch(TOKEN_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Basic ${credentials}` },
-        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: decryptToken(data.encrypted_refresh_token) }),
+        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: decrypted }),
       })
       if (!res.ok) throw new Error(await res.text())
       const tokens = await res.json()

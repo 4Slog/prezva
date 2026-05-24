@@ -6,6 +6,7 @@ import { markSessionAttendance } from '@/lib/checkin/session-checkin-actions'
 import { submitVote } from '@/lib/engagement/poll-actions'
 import { createCommunityPost, getCommunityPosts } from '@/lib/networking/sprint8-actions'
 import { createClient } from '@/lib/supabase/client'
+import SessionCheckInButton from '@/components/sessions/SessionCheckInButton'
 
 interface Session {
   id: string; title: string; session_type: string
@@ -382,6 +383,9 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     })()}
                     {userId && (isActive || isEnded) && (
                       <MarkAttendanceButton sessionId={s.id} eventId={eventId} userId={userId} />
+                    )}
+                    {registrationId && (
+                      <SessionCheckInButton registrationId={registrationId} sessionId={s.id} sessionStartsAt={s.starts_at} />
                     )}
                     {eventSlug && isEnded && (
                       <a

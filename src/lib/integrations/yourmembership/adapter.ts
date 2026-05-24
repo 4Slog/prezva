@@ -51,7 +51,9 @@ class YourMembershipAdapter implements IntegrationAdapter {
     const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
     if (!data?.encrypted_refresh_token) return false
     try {
-      const token = await refreshAccessToken(PROVIDER, decryptToken(data.encrypted_refresh_token), process.env.YOURMEMBERSHIP_CLIENT_ID!, process.env.YOURMEMBERSHIP_CLIENT_SECRET!)
+      const decrypted = decryptToken(data.encrypted_refresh_token)
+      if (!decrypted) return false
+      const token = await refreshAccessToken(PROVIDER, decrypted, process.env.YOURMEMBERSHIP_CLIENT_ID!, process.env.YOURMEMBERSHIP_CLIENT_SECRET!)
       const res = await fetch(`https://api.yourmembership.com/api/v3/members?email=${encodeURIComponent(email)}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       })

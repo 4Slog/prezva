@@ -61,6 +61,7 @@ class TeamsAdapter implements IntegrationAdapter {
     if (!data?.encrypted_refresh_token) return null
     try {
       const refreshToken = decryptToken(data.encrypted_refresh_token)
+      if (!refreshToken) return null
       return refreshAccessToken(PROVIDER, refreshToken, (process.env.TEAMS_CLIENT_ID ?? process.env.MICROSOFT_CLIENT_ID)!, (process.env.TEAMS_CLIENT_SECRET ?? process.env.MICROSOFT_CLIENT_SECRET)!)
     } catch (err: any) {
       await logIntegrationError(orgId, PROVIDER, 'getAccessToken', err)
