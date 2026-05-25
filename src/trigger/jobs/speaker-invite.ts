@@ -57,7 +57,7 @@ export const sendSpeakerInviteEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:     'Prezva Events <events@prezva.app>',
+        from:     'Prezva Events <noreply@prezva.app>',
         to:       payload.speakerEmail,
         subject:  `You're speaking at ${payload.eventTitle} — here's your portal`,
         html,

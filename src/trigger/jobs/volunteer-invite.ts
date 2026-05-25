@@ -64,7 +64,7 @@ export const sendVolunteerInviteEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:     'Prezva Events <events@prezva.app>',
+        from:     'Prezva Events <noreply@prezva.app>',
         to:       payload.volunteerEmail,
         subject:  `You're volunteering at ${payload.eventTitle} — here's your portal`,
         html,
