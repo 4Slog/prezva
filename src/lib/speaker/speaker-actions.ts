@@ -67,7 +67,7 @@ export async function getOrCreateSpeakerToken(eventId: string, speakerId: string
 }
 
 export async function validateSpeakerToken(token: string) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data } = await supabase
     .from('speaker_tokens')
     .select('event_id, speaker_id, expires_at, speakers(name, email, event_id)')

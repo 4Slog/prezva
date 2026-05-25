@@ -26,7 +26,7 @@ export default async function MCHubPage({ params }: Props) {
 
   const { data: sessions } = await admin
     .from('sessions')
-    .select('id, title, starts_at, ends_at, description, type, rooms(name), session_speakers(role, speakers(id, name, job_title, company, bio, photo_url, event_role))')
+    .select('id, title, starts_at, ends_at, description, session_type, rooms(name), session_speakers(role, speakers(id, name, job_title, company, bio, photo_url, event_role))')
     .eq('event_id', eventId)
     .order('starts_at', { ascending: true })
 

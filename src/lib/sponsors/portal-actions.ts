@@ -14,12 +14,60 @@ async function validateToken(token: string) {
   return sponsor ?? null
 }
 
+export async function getSponsorPortalDataByToken(token: string) {
+  const admin = createAdminClient()
+
+  const { data: sponsor } = await admin
+    .from('event_sponsors')
+    .select('id, name, slug, tier, logo_url, website_url, description, contact_email, materials, portal_access_token, event_id')
+    .eq('portal_access_token', token)
+    .maybeSingle()
+
+  if (!sponsor) return { error: 'Invalid portal link' }
+
+  const { data: event } = await admin
+    .from('events')
+    .select('id, title, slug, start_at, end_at, status, registration_count')
+    .eq('id', (sponsor as any).event_id)
+    .maybeSingle()
+
+  if (!event) return { error: 'Event not found' }
+
+  const { data: leads } = await admin
+    .from('sponsor_leads')
+    .select('id, attendee_name, attendee_email, company, job_title, note, quality, scanned_by_contact_name, created_at')
+    .eq('sponsor_id', (sponsor as any).id)
+    .order('created_at', { ascending: false })
+
+  return {
+    event: {
+      id: (event as any).id,
+      title: (event as any).title,
+      slug: (event as any).slug as string,
+      starts_at: (event as any).start_at as string,
+      ends_at: (event as any).end_at as string,
+      registration_count: (event as any).registration_count ?? null,
+    },
+    sponsor: {
+      id: (sponsor as any).id,
+      name: (sponsor as any).name,
+      tier: (sponsor as any).tier,
+      logo_url: (sponsor as any).logo_url,
+      website_url: (sponsor as any).website_url,
+      description: (sponsor as any).description,
+      contact_email: (sponsor as any).contact_email,
+      materials: (sponsor as any).materials ?? [],
+    },
+    leads: (leads ?? []) as SponsorLead[],
+  }
+}
+
 export async function getSponsorPortalData(eventSlug: string, sponsorSlug: string, token: string) {
   const admin = createAdminClient()
 
   const { data: event } = await admin
     .from('events')
-    .select('id, title, slug, starts_at, ends_at, status, registration_count')
+    .select('id, title, slug, start_at, end_at, status, registration_count')
     .eq('slug', eventSlug)
     .maybeSingle()
 
@@ -48,8 +96,8 @@ export async function getSponsorPortalData(eventSlug: string, sponsorSlug: strin
     event: {
       id: event.id,
       title: event.title,
-      starts_at: event.starts_at,
-      ends_at: event.ends_at,
+      starts_at: (event as any).start_at as string,
+      ends_at: (event as any).end_at as string,
       registration_count: (event as any).registration_count ?? null,
     },
     sponsor: {

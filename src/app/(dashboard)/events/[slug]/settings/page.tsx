@@ -346,7 +346,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Danger zone */}
 
-      {!isStaff && ['draft', 'cancelled'].includes(event.status) && (
+      {!isStaff && event.status !== 'live' && (
         <section className="rounded-lg border border-[#EF4444]/30 bg-[#EF4444]/5 p-6">
           <h2 className="text-sm font-semibold text-[#EF4444] mb-2">Danger zone</h2>
           <p className="text-sm text-[#94A3B8] mb-4">

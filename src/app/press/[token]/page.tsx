@@ -11,7 +11,7 @@ export default async function PressPortalPage({ params }: Props) {
     .from('registrations')
     .select('id, attendee_name, attendee_email, event_id, events(id, title, slug, start_at, end_at, timezone, description, venue_name, venue_city)')
     .eq('press_token', token)
-    .in('status', ['confirmed', 'checked_in'])
+    .eq('status', 'confirmed')
     .single()
 
   if (!reg) notFound()
@@ -19,7 +19,7 @@ export default async function PressPortalPage({ params }: Props) {
 
   const [sessionsRes, speakersRes] = await Promise.all([
     admin.from('sessions')
-      .select('id, title, starts_at, ends_at, description, type, rooms(name), session_speakers(speakers(name, job_title, company, bio, photo_url))')
+      .select('id, title, starts_at, ends_at, description, session_type, rooms(name), session_speakers(speakers(name, job_title, company, bio, photo_url))')
       .eq('event_id', (reg as any).event_id)
       .order('starts_at', { ascending: true }),
     admin.from('speakers')

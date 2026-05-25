@@ -81,7 +81,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
         .select('id, events!inner(org_id)', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('events.org_id', orgId)
-        .in('status', ['confirmed', 'checked_in'])
+        .eq('status', 'confirmed')
         .neq('event_id', eventId)
       previousCount = count ?? 0
     }

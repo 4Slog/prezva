@@ -1,0 +1,221 @@
+{
+  "seeded_at": "2026-05-25T16:41:00Z",
+  "user_id": "43280c9b-60a7-4884-94b0-1c80e5af1a9d",
+  "org_id": "3020e87a-b048-42a8-8766-829b1ca1012b",
+  "org_slug": "gapp-test",
+  "org_member_id": "5d9df964-ed5c-4e70-ba82-8d14f9f9803b",
+  "event_id": "7b744d7e-6a7a-474a-b0dd-db17886d10e7",
+  "event_slug": "gapp-annual-summit-2026",
+  "event_start_at": "2026-06-08T16:39:22Z",
+  "event_end_at": "2026-06-10T16:39:22Z",
+  "lobby_token": "795358a0-e9d1-4a29-b353-6efe56b749d7",
+  "mc_token": "0baad50d-1e19-41c6-8287-94baeb2d3408",
+  "certificate_template_id": "743c7404-648d-4f0f-92cf-af46c30fb940",
+  "invite_codes": {
+    "admin": "PHASE2-ADMIN",
+    "staff": "PHASE2-STAFF",
+    "attendee1": "PHASE2-ATT1",
+    "attendee2": "PHASE2-ATT2",
+    "attendee3": "PHASE2-ATT3",
+    "guest1": "PHASE2-GUEST1",
+    "guest2": "PHASE2-GUEST2",
+    "guest3": "PHASE2-GUEST3",
+    "press": "PHASE2-PRESS1",
+    "owner2": "PHASE2-OWNER2"
+  },
+  "ticket_types": {
+    "general_admission": "e8ed8b05-7825-47c7-b038-0f2b6c28f600",
+    "vip": "2771423a-b7d6-45ca-9ea5-4daf2475be23",
+    "virtual": "9dd791ab-9fc9-47c2-a0b6-a78d4aad7064",
+    "press": "155b6b8d-bd40-4f40-9066-bbc3b5984523"
+  },
+  "discount_code": "PHASE2TEST",
+  "discount_code_id": "5e97d905-b7af-4e06-b860-cc17a368dd02",
+  "sessions": {
+    "session_1_keynote": "c2283fe2-a11d-4d7d-aa91-328598bc7a74",
+    "session_2_workshop": "e48d41ad-46a4-4126-948c-b0346cece0b0",
+    "session_3_panel": "6ba9fd48-1fb6-4d09-b078-08f9234cff9c",
+    "session_4_closing_draft": "d1ee6a73-7eec-4c8f-9f51-056819fe478c"
+  },
+  "speakers": {
+    "speaker_1_marcus_webb": {
+      "id": "61f22a12-3929-4be9-a1bd-c38cb94780a6",
+      "email": "speaker1@phase2test.prezva.app",
+      "confirmation_token": "1f27ccbed807bb01c95bb55520168a07c2daf67a83af8880",
+      "hub_token": "0db1dd9ed3c349471b53065eb4e8ad2dcbc53137a21f00dea282bb4aa89b795c",
+      "status": "confirmed",
+      "event_role": "speaker",
+      "note": "confirmation_token = slot confirmation (/speaker/confirm/[token]); hub_token = day-of hub (/speaker/[token])"
+    },
+    "speaker_2_jennifer_okafor": {
+      "id": "07834d50-c27f-457f-bd57-faf4d43e09c3",
+      "email": "speaker2@phase2test.prezva.app",
+      "confirmation_token": "65cab2069d23f670f4920f4e8b557faf673181a4baa0becb",
+      "hub_token": "790fa541d019f719f024dc8ee35075b52a043323e75b3de53f5215b3be26c451",
+      "status": "confirmed",
+      "event_role": "speaker"
+    },
+    "speaker_3_robert_chen": {
+      "id": "8c0801a8-1038-4296-9b30-5b0cfd053fd1",
+      "email": "speaker3@phase2test.prezva.app",
+      "confirmation_token": "a359ab91f5a1db3607a3093a7367ee0093a8f9fd9c8465e2",
+      "hub_token": "ff8d5ed41fdff72511d29daea7bc607b5d13d35aaabae50f4fe62adb130070a5",
+      "status": "pending",
+      "event_role": "speaker",
+      "is_published": false
+    }
+  },
+  "volunteers": {
+    "volunteer_1_alicia": {
+      "id": "5605ffed-efa1-4f93-9d8c-88dd8501fb1c",
+      "email": "volunteer1@phase2test.prezva.app",
+      "portal_access_token": "762e6258eca87208afa2f7054865063a",
+      "status": "confirmed",
+      "role": "registration-desk"
+    },
+    "volunteer_2_devon": {
+      "id": "1f06ef13-5d4d-47df-8530-3d05bd4aaec3",
+      "email": "volunteer2@phase2test.prezva.app",
+      "portal_access_token": "79fe4bfed7573040d6baa69aed38370a",
+      "status": "invited",
+      "role": "session-monitor",
+      "note": "status stored as 'invited'; 'pending' not a valid enum value"
+    }
+  },
+  "sponsors": {
+    "sponsor_1_eventtechpro": {
+      "id": "25238167-648b-43a6-b5e4-313acc31d081",
+      "portal_access_token": "20694e6e0d6d20740cc6aa5791a8152e",
+      "contact_id": "24346f89-6985-40b3-92bf-dc5f760c43f7",
+      "contact_portal_token": "440e3198-b25e-441d-986a-de46badc527f",
+      "tier": "gold"
+    },
+    "sponsor_2_atlanta_convention": {
+      "id": "de3f05c1-f371-409f-918d-ad16e86e0f5d",
+      "portal_access_token": "4e0a66e7c56bae120912deb2c69a3758",
+      "contact_id": "00510729-95f6-4fd9-bc2d-733abcf39340",
+      "contact_portal_token": "9aaee2ad-8743-4cca-b331-31b25656c4a5",
+      "tier": "silver"
+    }
+  },
+  "registrations": {
+    "reg_1_patricia_confirmed": {
+      "id": "82f6072b-09f6-4704-b854-7b340c026d4a",
+      "qr_code": "4b1e07cd4f868a52b36a7cb96efcba81",
+      "status": "confirmed",
+      "ticket": "general_admission"
+    },
+    "reg_2_carlos_confirmed": {
+      "id": "0d449867-1611-4978-941b-537458d00d0d",
+      "qr_code": "c14be8b5e20d90e1ca6ecaa9a1fd09a5",
+      "status": "confirmed",
+      "ticket": "general_admission"
+    },
+    "reg_3_yolanda_checked_in": {
+      "id": "8bca6214-f304-4602-b438-45346a749c1b",
+      "qr_code": "d3214c133e5976ea855626e475e4da2b",
+      "status": "confirmed",
+      "note": "registration status is 'confirmed'; check-in recorded in check_ins table (event + sessions 1+2)",
+      "ticket": "general_admission",
+      "check_in_ids": {
+        "event_level": "fa8131a9-c6db-4592-8701-0d87b142050e",
+        "session_1_keynote": "de10c6b4-afce-49d8-a725-0ffdfcbf1aa0",
+        "session_2_workshop": "f374582e-9954-4b5c-a7a6-92d052af08c5"
+      },
+      "certificate_eligible": true,
+      "sessions_attended_pct": 66.7
+    },
+    "reg_4_brian_waitlisted": {
+      "id": "bb46359f-055b-4868-984f-56dcdc06710f",
+      "qr_code": "dcdba40e0b2fe8c07917a69ad3bfeac7",
+      "status": "waitlisted",
+      "ticket": "general_admission"
+    },
+    "reg_5_helen_cancelled": {
+      "id": "72ce6391-88e3-44c0-8238-d77d8a725ac8",
+      "qr_code": "434831bd6d8ee986f6666ee9ae109896",
+      "status": "cancelled",
+      "ticket": "general_admission"
+    },
+    "reg_6_james_confirmed": {
+      "id": "ad14d640-17a6-4881-b818-9889d8bf04de",
+      "qr_code": "02ec05a0c42c88ba775db9e18663e90f",
+      "status": "confirmed",
+      "ticket": "general_admission"
+    },
+    "reg_7_rosa_confirmed": {
+      "id": "13a27a7f-50c5-46d0-92b1-bfe00324b4f7",
+      "qr_code": "32db85852988145de36266c0a52f0b14",
+      "status": "confirmed",
+      "ticket": "general_admission"
+    },
+    "reg_8_derek_confirmed": {
+      "id": "ea01f8d1-5ad8-4197-aaff-7a633ea45992",
+      "qr_code": "0328f43be88d193f2f2ccfb5c8b1dce9",
+      "status": "confirmed",
+      "ticket": "general_admission"
+    },
+    "reg_9_elizabeth_vip": {
+      "id": "58c1d7c2-4c63-41ac-95dd-c68e15cd7b01",
+      "qr_code": "892e708c89bacec67b8722a1a254d79c",
+      "status": "confirmed",
+      "ticket": "vip",
+      "amount_paid_cents": 14900,
+      "stripe_payment_intent_id": "pi_phase2_test_vip1"
+    },
+    "reg_10_thomas_refunded": {
+      "id": "b6039b69-2b43-44de-a0b2-c8054ff2fc43",
+      "qr_code": "571eca37a6973ce3798c3ae467517154",
+      "status": "refunded",
+      "ticket": "vip",
+      "amount_paid_cents": 14900,
+      "refund_amount_cents": 14900,
+      "stripe_payment_intent_id": "pi_phase2_test_vip2"
+    },
+    "reg_11_michelle_virtual": {
+      "id": "3c241f28-f6e8-4666-bb2b-0994abde5a78",
+      "qr_code": "007f5c83a07929a2e0c506c6efacbfbb",
+      "status": "confirmed",
+      "ticket": "virtual",
+      "amount_paid_cents": 4900,
+      "stripe_payment_intent_id": "pi_phase2_test_virtual1"
+    },
+    "reg_12_nina_press": {
+      "id": "946249bb-1aa1-4cbf-97ed-4e40cdaef795",
+      "qr_code": "603aa9a9540567a4d47a6a90c80803e2",
+      "status": "confirmed",
+      "ticket": "press",
+      "press_token": "3f05ceec-9880-4b33-a64c-b17b4beddf02",
+      "amount_paid_cents": 0,
+      "payment_method": "comp"
+    }
+  },
+  "announcement_id": "910f4007-66bd-46c1-9f93-134dc7ed0f50",
+  "schema_notes": {
+    "registration_status_checked_in": "No 'checked_in' enum value — Yolanda (reg_3) is 'confirmed' with check_in records",
+    "registration_status_waitlist": "Enum value is 'waitlisted' not 'waitlist'",
+    "volunteer_status_pending": "No 'pending' enum value — Devon is 'invited'",
+    "speakers_event_role": "No 'keynote_speaker' or 'panelist' enum — all speakers use 'speaker'; panelist/moderator roles are in session_speakers table",
+    "session_speakers_role": "Uses 'presenter' not 'speaker'; 'panelist' and 'moderator' are valid",
+    "events_category": "Must be one of: conference, workshop, webinar, gala, training, networking, other — used 'conference'",
+    "volunteer_role": "Must be one of: check-in, session-monitor, registration-desk, vip-support, general"
+  },
+  "urls": {
+    "event_public": "https://prezva.app/e/gapp-annual-summit-2026",
+    "event_dashboard": "https://prezva.app/events/gapp-annual-summit-2026",
+    "org_public": "https://prezva.app/o/gapp-test",
+    "lobby": "https://prezva.app/lobby/795358a0-e9d1-4a29-b353-6efe56b749d7",
+    "mc_hub": "https://prezva.app/mc/0baad50d-1e19-41c6-8287-94baeb2d3408",
+    "speaker_1_hub": "https://prezva.app/speaker/0db1dd9ed3c349471b53065eb4e8ad2dcbc53137a21f00dea282bb4aa89b795c",
+    "speaker_2_hub": "https://prezva.app/speaker/790fa541d019f719f024dc8ee35075b52a043323e75b3de53f5215b3be26c451",
+    "speaker_3_hub": "https://prezva.app/speaker/ff8d5ed41fdff72511d29daea7bc607b5d13d35aaabae50f4fe62adb130070a5",
+    "speaker_1_confirm": "https://prezva.app/speaker/confirm/1f27ccbed807bb01c95bb55520168a07c2daf67a83af8880",
+    "speaker_2_confirm": "https://prezva.app/speaker/confirm/65cab2069d23f670f4920f4e8b557faf673181a4baa0becb",
+    "speaker_3_confirm": "https://prezva.app/speaker/confirm/a359ab91f5a1db3607a3093a7367ee0093a8f9fd9c8465e2",
+    "volunteer_1_portal": "https://prezva.app/volunteer/762e6258eca87208afa2f7054865063a",
+    "volunteer_2_portal": "https://prezva.app/volunteer/79fe4bfed7573040d6baa69aed38370a",
+    "sponsor_1_portal": "https://prezva.app/sponsor-portal/20694e6e0d6d20740cc6aa5791a8152e",
+    "sponsor_2_portal": "https://prezva.app/sponsor-portal/4e0a66e7c56bae120912deb2c69a3758",
+    "press_portal": "https://prezva.app/press/3f05ceec-9880-4b33-a64c-b17b4beddf02"
+  }
+}

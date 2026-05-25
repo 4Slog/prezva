@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, use } from 'react'
 
-export default function LobbyDisplay({ params }: { params: { token: string } }) {
-  const token = params.token
+export default function LobbyDisplay({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params)
   const [data, setData] = useState<any>(null)
   const [tick, setTick] = useState(0)
 

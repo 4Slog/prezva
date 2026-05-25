@@ -15,7 +15,7 @@ export default async function SpeakerHubPage({ params }: Props) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, start_date, end_date, speaker_day_of_info')
+    .select('id, title, slug, start_at, end_at, speaker_day_of_info')
     .eq('id', eventId)
     .single()
 
