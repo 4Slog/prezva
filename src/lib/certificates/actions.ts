@@ -117,11 +117,19 @@ export async function getMyIssuedCertificates() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
+  const { data: regs } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('user_id', user.id)
+
+  const regIds = regs?.map(r => r.id) ?? []
+  if (regIds.length === 0) return []
+
   const admin = createAdminClient()
   const { data } = await admin
     .from('issued_certificates')
     .select('*, events(title, slug, start_at), certificate_templates(name, payload)')
-    .in('registration_id', supabase.from('registrations').select('id').eq('user_id', user.id) as any)
+    .in('registration_id', regIds)
     .order('created_at', { ascending: false })
 
   return (data ?? []) as any[]

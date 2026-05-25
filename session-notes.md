@@ -1,12 +1,71 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-23
+## Last updated: 2026-05-24
 
-## Status: bundle13b complete | Gates PASS | Committed 4e40429, ready for PR
+## Status: Phase 0 audit in progress | branch: bundle14d | pushed to origin
+
+### Phase 0 Audit — Task Status
+- Task 1 (Branch Status): DONE — bundle14d fully on main, no merge needed
+- Task 2 (Vercel ENV Audit): DONE — all vars present (pagination false alarm); SUPER_ADMIN_IDS updated to 43280c9b-60a7-4884-94b0-1c80e5af1a9d; added to .env.local
+- Task 3 (Trigger.dev Jobs): DONE — 11 tasks deployed (was 0); fixed: CLI package (trigger.dev not @trigger.dev/cli), project ref (proj_lgsbkvkrgmhovexfaoxc), removed top-level validateEncryptionKey crash in registry.ts, added syncVercelEnvVars to trigger.config.ts; VERCEL_ACCESS_TOKEN added to Trigger.dev dashboard
+- Task 4 (Resend DNS): IN PROGRESS
+- Tasks 5-8: PENDING
+
+### Commits on bundle14d (pushed to origin)
+- c5b168e fix: trigger.dev v4 deploy - correct CLI package, project ref, remove top-level validateEncryptionKey crash
+- d8bd415 fix: add syncVercelEnvVars to trigger.config — auto-sync Vercel env to Trigger.dev on deploy
+
+### Key facts discovered this session
+- TRIGGER_PROJECT_REF must be proj_lgsbkvkrgmhovexfaoxc (not "prezva")
+- @trigger.dev/cli is v3-only; v4 uses bare "trigger.dev" package
+- run-of-show-cue runs every minute (cron: '* * * * *')
+- Vercel env API paginates at 36 vars — always use limit=100
 
 ---
 
-## This Session — Bundle 13b (B13-14/15/16, B13-17/18/19, B13-20, B13-01/02)
+## This Session — Bundle 14d (B14-13a/b/c/d)
+
+### Branch
+`bundle14d` (created from `main`)
+
+### What was done
+
+**B14-13a — press_token migration + session check-in**
+- Migration `0083_fix_press_token.sql`: `registrations.press_token uuid` added; backfills existing press registrations
+- `src/lib/checkin/actions.ts`: new `checkInToSession(registrationId, sessionId, method)` server action — uses createAdminClient, verifies registration status + session event match, idempotent
+- `src/components/sessions/SessionCheckInButton.tsx`: 'use client' component — hides before session starts, teal outline button, green ✓ on success, muted "Already checked in" on repeat
+- `src/app/e/[slug]/agenda/page.tsx`: fetches registrationId for logged-in user and passes to AgendaClient
+- `src/app/e/[slug]/agenda/client.tsx`: imports SessionCheckInButton, renders per session when registrationId present
+
+**B14-13b — Trigger.dev jobs + .env.example**
+- `src/trigger/index.ts`: added exports for all 9 remaining jobs (was only exporting rosCueNotificationTask)
+- `.env.example`: added TWILIO_*, ADMIN_EMAILS, SUPER_ADMIN_IDS, updated INTEGRATION_ENCRYPTION_KEY generation comment
+
+**B14-13c — Encryption graceful degradation + error boundaries**
+- `src/lib/integrations/_shared/encryption.ts`: getKey() returns Buffer | null; encryptToken returns string | null with console.warn; decryptToken returns string | null with try/catch
+- All 11 adapter files updated: null check on decryptToken result before using as string
+- `src/app/(admin)/error.tsx`: new admin error boundary (event + dashboard already existed)
+- `supabase/storage-buckets.sql`: reference SQL for creating all 7 required storage buckets
+
+**B14-13d — Production checklist + admin env warning**
+- `PRODUCTION_CHECKLIST.md`: 7 P0 steps (Resend domain, Stripe Connect, storage buckets, env vars, Trigger.dev, webhook, DB reset)
+- `src/app/(admin)/admin/page.tsx`: checks 7 critical env vars on render, shows red warning box listing missing vars
+
+### Gate results
+- `npx tsc --noEmit` — PASS (after each task)
+- `npm run build` — PASS (compiled 7.4s, 77+ routes)
+- `npx vitest run` — 318/318 PASS
+
+### Commit
+`c910e69` on `bundle14d`
+
+### Next
+- Open PR: bundle14d → main
+- Next migration: 0084
+
+---
+
+## Previous Session — Bundle 13b (B13-14/15/16, B13-17/18/19, B13-20, B13-01/02)
 
 ### Branch
 `bundle13b` (created from `main`)
