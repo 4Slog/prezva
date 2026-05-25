@@ -1,13 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export function StaffOnboardingModal({ userId, orgName }: { userId: string; orgName: string }) {
-  const [show, setShow] = useState(false)
   const key = `prezva_staff_onboarded_${userId}`
-
-  useEffect(() => {
-    if (!localStorage.getItem(key)) setShow(true)
-  }, [key])
+  const [show, setShow] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !localStorage.getItem(key)
+  })
 
   function dismiss() {
     localStorage.setItem(key, '1')

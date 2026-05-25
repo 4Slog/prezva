@@ -114,7 +114,7 @@ export async function getAttendeeDirectory(eventId: string) {
 
   // Fetch interests from attendee_profiles (event-specific networking profiles)
   const regIds = (regs as any[]).map(r => r.id)
-  let interestMap: Record<string, string[]> = {}
+  const interestMap: Record<string, string[]> = {}
   if (regIds.length > 0) {
     const { data: atProfiles } = await supabase
       .from('attendee_profiles')

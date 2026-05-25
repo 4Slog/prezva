@@ -102,7 +102,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
       {isLinkedUser && (
         <div style={{ background: 'var(--pz-teal, #00BFA6)22', borderBottom: '1px solid var(--pz-teal, #00BFA6)', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <p style={{ fontSize: 13, color: 'var(--pz-teal, #00BFA6)', margin: 0 }}>
-            🎙️ You're viewing this as a speaker
+            🎙️ You&apos;re viewing this as a speaker
           </p>
           <a href="/dashboard" style={{ fontSize: 12, color: 'var(--pz-teal, #00BFA6)', textDecoration: 'underline' }}>
             Back to organizer dashboard →

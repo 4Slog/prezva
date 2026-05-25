@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getPlatformStats, getRecentOrgs, getRecentEvents } from '@/lib/admin/platform-actions'
 import type { PlatformStats } from '@/lib/admin/platform-actions'
 
@@ -83,7 +84,7 @@ export default async function AdminDashboard() {
                       border: '1px solid var(--pz-border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
             <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>Recent orgs</p>
-            <a href="/admin/orgs" style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>View all →</a>
+            <Link href="/admin/orgs" style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>View all →</Link>
           </div>
           {recentOrgs.map(org => (
             <div key={org.id} style={{ display: 'flex', justifyContent: 'space-between',

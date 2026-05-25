@@ -58,7 +58,7 @@ function LivePollCard({ poll, userId, registrationId }: { poll: LivePoll; userId
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_poll_votes', filter: `poll_id=eq.${poll.id}` }, () => fetchCounts())
       .subscribe()
     return () => { sb.removeChannel(ch) }
-  }, [poll.id, poll.options.length])
+  }, [poll.id, poll.options])
 
   async function handleVote(i: number) {
     if (voted) return

@@ -184,7 +184,7 @@ export default async function MyEventsPage() {
 
       {events.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--pz-muted)', fontSize: 14 }}>
-          You haven't registered for any events yet.
+          You haven&apos;t registered for any events yet.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

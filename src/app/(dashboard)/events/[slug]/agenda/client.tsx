@@ -229,11 +229,15 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
 
   useEffect(() => {
     if (!selectedSessionId) return
-    loadPolls(selectedSessionId)
+    async function load() {
+      const data = await getPollsForSession(selectedSessionId)
+      setPolls(data as Poll[])
+    }
+    load()
     const sb = createClient()
     const ch = sb.channel(`polls:${selectedSessionId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'session_polls', filter: `session_id=eq.${selectedSessionId}` }, () => loadPolls(selectedSessionId))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_poll_votes' }, () => loadPolls(selectedSessionId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'session_polls', filter: `session_id=eq.${selectedSessionId}` }, () => { load() })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_poll_votes' }, () => { load() })
       .subscribe()
     return () => { sb.removeChannel(ch) }
   }, [selectedSessionId])

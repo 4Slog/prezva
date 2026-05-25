@@ -50,9 +50,11 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
     }
   }, [state, active, onScan])
 
-  useEffect(() => {
+  const [prevActive, setPrevActive] = useState(active)
+  if (prevActive !== active) {
+    setPrevActive(active)
     if (!active) setState('prompt')
-  }, [active])
+  }
 
   if (!active) return null
 

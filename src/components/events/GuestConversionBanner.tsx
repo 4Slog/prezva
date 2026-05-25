@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 interface Props {
   regId: string
@@ -8,12 +8,10 @@ interface Props {
 }
 
 export function GuestConversionBanner({ regId, email, slug }: Props) {
-  const [dismissed, setDismissed] = useState(true)
-
-  useEffect(() => {
-    const key = `pz_guest_banner_dismissed_${regId}`
-    if (!sessionStorage.getItem(key)) setDismissed(false)
-  }, [regId])
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return !!sessionStorage.getItem(`pz_guest_banner_dismissed_${regId}`)
+  })
 
   function dismiss() {
     sessionStorage.setItem(`pz_guest_banner_dismissed_${regId}`, '1')

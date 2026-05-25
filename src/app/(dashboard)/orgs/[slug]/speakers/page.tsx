@@ -6,6 +6,10 @@ import { SpeakerLibraryClient } from './speaker-library-client'
 
 type Props = { params: Promise<{ slug: string }> }
 
+function daysAgoDateString(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
+
 export default async function OrgSpeakerLibraryPage({ params }: Props) {
   const { slug } = await params
   const user = await requireUser()
@@ -32,7 +36,7 @@ export default async function OrgSpeakerLibraryPage({ params }: Props) {
       .from('events')
       .select('id, title, slug, start_date')
       .eq('org_id', (org as any).id)
-      .gte('start_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+      .gte('start_date', daysAgoDateString(30))
       .order('start_date', { ascending: true })
       .limit(20),
   ])

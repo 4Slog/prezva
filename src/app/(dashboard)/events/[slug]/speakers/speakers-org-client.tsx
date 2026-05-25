@@ -240,7 +240,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                 )}
                 {sp.decline_reason && (
                   <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 2, fontStyle: 'italic' }}>
-                    "{sp.decline_reason}"
+                    &ldquo;{sp.decline_reason}&rdquo;
                   </p>
                 )}
                 {inviteResult[sp.id] && (

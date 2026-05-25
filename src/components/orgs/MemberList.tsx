@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { removeMember, revokeInvite, resendInvite } from '@/lib/orgs/actions'
 
+function getTimestampMs() { return Date.now() }
+
 interface Member {
   id: string
   role: string
@@ -78,6 +80,7 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
     setTimeout(() => setResent(null), 3000)
   }
 
+  const now = getTimestampMs()
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--pz-border)' }}>
       <div className="px-5 py-4 flex items-center justify-between"
@@ -136,9 +139,9 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
           {pendingInvites.map((invite) => {
             const role = ROLE_STYLE[invite.role] ?? ROLE_STYLE.staff
             const daysLeft = invite.expires_at
-              ? Math.ceil((new Date(invite.expires_at).getTime() - Date.now()) / 86400000)
+              ? Math.ceil((new Date(invite.expires_at).getTime() - now) / 86400000)
               : null
-            const daysSince = Math.floor((Date.now() - new Date(invite.created_at).getTime()) / 86400000)
+            const daysSince = Math.floor((now - new Date(invite.created_at).getTime()) / 86400000)
             return (
               <li key={invite.id} className="flex items-center justify-between px-5 py-4"
                 style={{ borderTop: '1px solid var(--pz-border)', opacity: 0.85 }}>

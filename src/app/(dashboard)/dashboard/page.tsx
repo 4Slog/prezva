@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { getUserOrgs } from '@/lib/orgs/actions'
@@ -132,9 +133,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           <span className="text-sm font-medium" style={{ color: '#F59E0B' }}>
             You are viewing as owner of {impersonateOrg.name} (Support mode)
           </span>
-          <a href="/admin/impersonate/exit" className="text-sm underline" style={{ color: '#F59E0B' }}>
+          <Link href="/admin/impersonate/exit" className="text-sm underline" style={{ color: '#F59E0B' }}>
             Exit impersonation
-          </a>
+          </Link>
         </div>
       )}
       {myRole === 'staff' && (

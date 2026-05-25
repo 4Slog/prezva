@@ -1,26 +1,22 @@
 'use client'
-import { useEffect, useState, useCallback, use } from 'react'
+import { useEffect, useState, use } from 'react'
 
 export default function LobbyDisplay({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
   const [data, setData] = useState<any>(null)
-  const [tick, setTick] = useState(0)
 
-  const fetchData = useCallback(async () => {
-    const res = await fetch(`/api/lobby/${token}`)
-    if (res.ok) setData(await res.json())
-    else setData({ error: true })
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const res = await fetch(`/api/lobby/${token}`)
+      if (cancelled) return
+      if (res.ok) setData(await res.json())
+      else setData({ error: true })
+    }
+    load()
+    const interval = setInterval(load, 30000)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [token])
-
-  useEffect(() => {
-    fetchData()
-    const interval = setInterval(() => setTick(t => t + 1), 30000)
-    return () => clearInterval(interval)
-  }, [fetchData])
-
-  useEffect(() => {
-    if (tick > 0) fetchData()
-  }, [tick, fetchData])
 
   if (!data) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center',

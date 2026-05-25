@@ -160,7 +160,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
       {isLinkedUser && (
         <div style={{ background: 'rgba(0,191,166,0.08)', borderBottom: '1px solid #00BFA6', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <p style={{ fontSize: 13, color: '#00BFA6', margin: 0 }}>
-            🏢 You're viewing this as a sponsor
+            🏢 You&apos;re viewing this as a sponsor
           </p>
           <a href="/dashboard" style={{ fontSize: 12, color: '#00BFA6', textDecoration: 'underline' }}>
             Back to organizer dashboard →
