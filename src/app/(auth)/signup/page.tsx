@@ -1,12 +1,39 @@
 'use client'
 
-import { useActionState } from 'react'
+import { Suspense, useActionState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { signUp } from '@/lib/auth/actions'
 import { GoogleOAuthButton } from '@/components/auth/GoogleOAuthButton'
 
 export default function SignupPage() {
-  const [state, formAction] = useActionState(signUp, {})
+  return (
+    <Suspense fallback={<SignupFormView next="" state={{}} loginHref="/login" />}>
+      <SignupFormConnected />
+    </Suspense>
+  )
+}
 
+function SignupFormConnected() {
+  const params = useSearchParams()
+  const rawNext = params.get('next') ?? ''
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : ''
+  const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : '/login'
+  const [state, formAction] = useActionState(signUp, {})
+  return <SignupFormView next={next} state={state} formAction={formAction} loginHref={loginHref} />
+}
+
+function SignupFormView({
+  next,
+  state,
+  formAction,
+  loginHref,
+}: {
+  next: string
+  state: { error?: string; success?: string }
+  formAction?: (formData: FormData) => void
+  loginHref: string
+}) {
   return (
     <div
       className="rounded-xl p-8"
@@ -48,6 +75,7 @@ export default function SignupPage() {
       )}
 
       <form action={formAction} className="space-y-4">
+        {next && <input type="hidden" name="next" value={next} />}
         <div>
           <label htmlFor="invite_code" className="block text-sm font-medium mb-1" style={{ color: 'var(--pz-text)' }}>
             Invite code <span style={{ color: 'var(--pz-teal)' }}>*</span>
@@ -120,9 +148,9 @@ export default function SignupPage() {
 
       <p className="mt-6 text-center text-sm" style={{ color: 'var(--pz-text-muted)' }}>
         Already have an account?{' '}
-        <a href="/login" className="font-medium hover:underline" style={{ color: 'var(--pz-teal)' }}>
+        <Link href={loginHref} className="font-medium hover:underline" style={{ color: 'var(--pz-teal)' }}>
           Sign in
-        </a>
+        </Link>
       </p>
       <p className="mt-3 text-center text-xs" style={{ color: 'var(--pz-text-muted)' }}>
         Don&apos;t have an invite code?{' '}

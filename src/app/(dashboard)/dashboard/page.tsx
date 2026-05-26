@@ -2,16 +2,15 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { getUserOrgs } from '@/lib/orgs/actions'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { SetupChecklist } from '@/components/dashboard/SetupChecklist'
 import { StaffOnboardingModal } from '@/components/staff/StaffOnboardingModal'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 
-type Props = { searchParams: Promise<{ error?: string }> }
+type Props = { searchParams: Promise<{ error?: string; joined?: string; role?: string }> }
 
 export default async function DashboardPage({ searchParams }: Props) {
-  const { error: errorParam } = await searchParams
+  const { error: errorParam, joined: joinedOrg, role: joinedRole } = await searchParams
   const user = await requireUser()
   const supabase = await createClient()
 
@@ -25,22 +24,10 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const orgs = await getUserOrgs()
 
-  // Users with no org membership are attendees — route them to their event or onboarding.
+  // Anyone landing on /dashboard without an org belongs in their personal hub.
+  // /onboarding is only reachable now by explicit click from /me.
   if (orgs.length === 0) {
-    // Admin client: bypass RLS to look up registrations by email (anon registrants have no auth.uid)
-    const admin = createAdminClient()
-    const { data: recentReg } = await admin
-      .from('registrations')
-      .select('event_id, events(slug)')
-      .eq('attendee_email', user.email)
-      .eq('status', 'confirmed')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const slug = (recentReg?.events as { slug?: string } | null)?.slug
-    if (slug) redirect(`/e/${slug}/my-agenda`)
-    redirect('/onboarding')
+    redirect('/me')
   }
 
   // Impersonation: use the impersonated org instead of the user's own org
@@ -147,6 +134,14 @@ export default async function DashboardPage({ searchParams }: Props) {
           style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#FCD34D' }}
         >
           You don&apos;t have admin access. Contact Paul if you think you should.
+        </div>
+      )}
+      {joinedOrg && (
+        <div
+          className="mb-6 rounded-lg px-4 py-3 text-sm"
+          style={{ background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.3)', color: '#2DD4BF' }}
+        >
+          You&apos;ve joined <strong>{joinedOrg}</strong>{joinedRole ? ` as ${joinedRole}` : ''}.
         </div>
       )}
       <div className="mb-6">

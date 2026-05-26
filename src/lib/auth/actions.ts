@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getPostLoginRedirect } from '@/lib/auth/post-login-redirect'
 
 export async function signUp(_prevState: unknown, formData: FormData): Promise<{ error?: string; success?: string }> {
   const supabase = await createClient()
@@ -50,12 +51,19 @@ export async function signIn(_prevState: unknown, formData: FormData): Promise<{
   const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const nextParam = (formData.get('next') as string | null)?.trim() || null
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) return { error: error.message }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+
+  // Honor explicit deep links (e.g. /invite/[token]); otherwise route by relationships.
+  if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) {
+    redirect(nextParam)
+  }
+  const target = await getPostLoginRedirect(data.user.id, data.user.email)
+  redirect(target)
 }
 
 export async function signOut(): Promise<void> {
@@ -81,9 +89,13 @@ export async function updatePassword(_prevState: unknown, formData: FormData): P
   const supabase = await createClient()
   const password = formData.get('password') as string
 
-  const { error } = await supabase.auth.updateUser({ password })
+  const { data, error } = await supabase.auth.updateUser({ password })
   if (error) return { error: error.message }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  if (data.user) {
+    const target = await getPostLoginRedirect(data.user.id, data.user.email)
+    redirect(target)
+  }
+  redirect('/me')
 }

@@ -1,12 +1,39 @@
 'use client'
 
-import { useActionState } from 'react'
+import { Suspense, useActionState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { signIn } from '@/lib/auth/actions'
 import { GoogleOAuthButton } from '@/components/auth/GoogleOAuthButton'
 
 export default function LoginPage() {
-  const [state, formAction] = useActionState(signIn, {})
+  return (
+    <Suspense fallback={<LoginFormView next="" state={{}} signupHref="/signup" />}>
+      <LoginFormConnected />
+    </Suspense>
+  )
+}
 
+function LoginFormConnected() {
+  const params = useSearchParams()
+  const rawNext = params.get('next') ?? ''
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : ''
+  const signupHref = next ? `/signup?next=${encodeURIComponent(next)}` : '/signup'
+  const [state, formAction] = useActionState(signIn, {})
+  return <LoginFormView next={next} state={state} formAction={formAction} signupHref={signupHref} />
+}
+
+function LoginFormView({
+  next,
+  state,
+  formAction,
+  signupHref,
+}: {
+  next: string
+  state: { error?: string }
+  formAction?: (formData: FormData) => void
+  signupHref: string
+}) {
   return (
     <div
       className="rounded-xl p-8"
@@ -40,6 +67,7 @@ export default function LoginPage() {
       )}
 
       <form action={formAction} className="space-y-4">
+        {next && <input type="hidden" name="next" value={next} />}
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: 'var(--pz-text)' }}>
             Email
@@ -86,9 +114,9 @@ export default function LoginPage() {
 
       <p className="mt-6 text-center text-sm" style={{ color: 'var(--pz-text-muted)' }}>
         Don&apos;t have an account?{' '}
-        <a href="/signup" className="font-medium hover:underline" style={{ color: 'var(--pz-teal)' }}>
+        <Link href={signupHref} className="font-medium hover:underline" style={{ color: 'var(--pz-teal)' }}>
           Sign up
-        </a>
+        </Link>
       </p>
     </div>
   )

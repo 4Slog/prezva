@@ -59,16 +59,21 @@ describe('Sprint 21 — Attendee App Surface', () => {
     expect(src).toContain('UserMenu')
   })
 
-  // /me landing
-  it('/me landing page exists with profile completeness', () => {
+  // /me landing — rebuilt in Sprint A as the cross-role identity hub
+  it('/me landing page is the identity hub with cross-role queries', () => {
     const path = join(SRC, 'app/me/page.tsx')
     expect(existsSync(path)).toBe(true)
     const src = readFileSync(path, 'utf-8')
-    expect(src).toContain('getMyRegistrations')
-    expect(src).toContain('getUserProfile')
-    expect(src).toContain('calcCompleteness')
-    expect(src).toContain('Upcoming events')
-    expect(src).toContain('Quick actions')
+    expect(src).toContain('requireUser')
+    expect(src).toContain('createAdminClient')
+    // Queries all four relationship sources for the unified hub
+    expect(src).toContain('org_members')
+    expect(src).toContain("from('registrations')")
+    expect(src).toContain("from('speakers')")
+    expect(src).toContain("from('volunteers')")
+    // Sections rendered
+    expect(src).toContain('Upcoming')
+    expect(src).toContain('My organizations')
   })
 
   // /me/events
@@ -153,17 +158,21 @@ describe('Sprint 21 — Attendee App Surface', () => {
     expect(src).toContain('createAdminClient')
   })
 
-  // Onboarding wizard (replaced attendee-input with 3-step org creation flow)
-  it('onboarding page is a 3-step wizard client component', () => {
+  // Onboarding (Sprint A: server gate redirects existing org members to /dashboard;
+  // the 3-step wizard now lives in onboarding-client.tsx)
+  it('onboarding page is a server gate and the wizard is the client component', () => {
     const page = join(SRC, 'app/onboarding/page.tsx')
-    const client = join(SRC, 'app/onboarding/client.tsx')
+    const client = join(SRC, 'app/onboarding/onboarding-client.tsx')
     expect(existsSync(page)).toBe(true)
     expect(existsSync(client)).toBe(true)
     const pageSrc = readFileSync(page, 'utf-8')
-    expect(pageSrc).toContain("'use client'")
-    expect(pageSrc).toContain('useRouter')
+    // Server gate: not a client component, redirects existing members to /dashboard
+    expect(pageSrc).not.toContain("'use client'")
+    expect(pageSrc).toContain('org_members')
+    expect(pageSrc).toContain("redirect('/dashboard')")
+    // Wizard stays a client component with useRouter
     const clientSrc = readFileSync(client, 'utf-8')
     expect(clientSrc).toContain("'use client'")
-    expect(clientSrc).toContain('/e/')
+    expect(clientSrc).toContain('useRouter')
   })
 })
