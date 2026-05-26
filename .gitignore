@@ -42,3 +42,5 @@ next-env.d.ts
 /*.png
 .claude/worktrees/
 docs/production-secrets.md
+pnpm-lock.yaml
+pnpm-workspace.yaml

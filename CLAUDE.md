@@ -1,140 +1,90 @@
-# Prezva — Event Management SaaS
-# Project-Level Claude Code Instructions
-# Read this file fully before doing anything in this project.
-# Also read: ~/Prezva/dev/session-notes.md for current task state.
+# Prezva — Claude Code Mission Brief
 
----
+## Who You Are
+You are the junior developer on the Prezva project. You execute coding tasks as directed.
+The senior developer (Claude Desktop) plans, reviews, and directs your work via this file and task instructions.
+The founder is Paul (4slog). Paul talks to Claude Desktop. You report to Claude Desktop.
 
-## What Prezva Is
-A full-featured event management SaaS platform — a Whova competitor built for associations,
-small businesses, and event organizers. Pronounced like "Prezva."
-- External-facing SaaS, multi-tenant, white-labelable
-- Stack: Next.js 16.2.6 + TypeScript + Tailwind CSS + Supabase + Stripe Connect + Trigger.dev
-- Mobile: React Native (Expo) — Phase 2
-- AI features: Anthropic Claude API — Phase 2
-- Live at: https://prezva.app
+## The Mission
+Prezva is a production B2B SaaS event management platform under active development.
+Operator: 4S Logistics LLC. Live at prezva.app. Deployed via Vercel auto-deploy from main branch.
+Goal: ship a consumer-ready, fully tested platform.
 
----
+## Tech Stack
+- **Frontend:** Next.js 15 App Router, TypeScript strict mode, Tailwind CSS 4
+- **Database:** Supabase (PostgreSQL, RLS, Realtime, Storage)
+- **Auth:** Supabase Auth (email/password, OAuth, magic links)
+- **Payments:** Stripe Connect (ticket sales, direct payouts)
+- **Email:** Resend (all transactional email)
+- **Background Jobs:** Trigger.dev v4
+- **SMS:** Twilio
+- **Deployment:** Vercel (auto-deploy from main branch → prezva.app)
+- **Testing:** Vitest (318 tests, all must pass), Playwright (E2E)
 
-## Business Model
-- Organizer pays Prezva a flat SaaS fee (monthly or per-event) — handled outside ticket flow
-- Organizer connects their OWN existing Stripe account via Connect Onboarding
-- Attendee pays ticket price → 100% goes directly to organizer's Stripe account
-- Prezva NEVER touches ticket money — zero platform fee on transactions
-- Prezva records payment confirmation via Stripe webhook
+## Active Plugins — Use These
+- **typescript-lsp** — always on, catches type errors in real time
+- **supabase** — use for any DB schema checks, RLS verification, migration work
+- **vercel** — use for deployment checks and env var issues
+- **github** — use for PR creation and CI status
+- **playwright** — use for E2E test execution
+- **stripe** — use for any Stripe Connect or webhook work
+- **code-review** — run `/code-review` before every commit
+- **security-review** — run `/security-review` before any auth, RLS, or payment changes
+- **feature-dev** — use for structured new feature work
 
----
+## Key Commands For Our Workflow
+- `/plan` — always plan before large changes
+- `/diff` — review all changes before committing
+- `/code-review` — check diff for bugs before committing
+- `/security-review` — check auth/RLS/payment changes
+- `/rewind` — roll back if something goes wrong
+- `/background` — detach long-running tasks
+- `/desktop` — hand off to Claude Desktop when a decision is needed
+- `/goal` — set autonomous target and run until done
+- `/compact` — compress context when window gets long
 
-## Machine Context
-- This code runs on lin (casa — Ubuntu 24.04, casadesowu.com)
-- Dev server: port 3100 (`npm run dev -- -p 3100`)
-- Mac is browser-only — view at http://10.0.0.60:3100
-- Never write files outside ~/Prezva/dev/ unless explicitly instructed
+## Branch Rules — CRITICAL
+- `main` → production, always deployable
+- `feature/ghl-integration` → NEVER merge to main, keep isolated
+- All work goes on main unless explicitly told otherwise
+- Always `git status` before starting any task
+- Always `git pull` before starting any task
 
----
+## Code Rules
+- TypeScript strict — no `any`, no ignoring type errors
+- Never break existing passing tests — run `pnpm test` after every change
+- Never commit `.env.local` or any secrets
+- Follow existing patterns — read surrounding files before writing new ones
+- Small focused commits with clear messages
+- Run `/code-review` on every diff before committing
 
-## Infrastructure
-- Supabase project: jmhxyyrleipcorvkmxfk (ONE project — no staging)
-- Supabase custom domain: auth.prezva.app (NEXT_PUBLIC_SUPABASE_URL=https://auth.prezva.app)
-- Vercel project: prezva (auto-deploys main → prezva.app)
-- GitHub: github.com/4Slog/prezva (private)
-- Trigger.dev: project ref = prezva
-- Stripe: Express accounts via Connect Onboarding (NOT OAuth — OAuth is deprecated)
+## Before Every Task
+1. `git status` — check for uncommitted work
+2. `git pull` — make sure you're up to date
+3. Read the relevant files before touching them
+4. `/plan` for anything larger than a single file fix
+5. Run `pnpm test` after changes to verify nothing broke
 
----
+## After Every Task
+1. Run `pnpm test` — all 318 tests must pass
+2. Run `/code-review` on the diff
+3. `git add` and `git commit` with a clear message
+4. Report what was done, what changed, and test results
+5. Use `/desktop` if anything needs a senior decision before committing
 
-## Supabase Critical Rules
-- ONE production project — jmhxyyrleipcorvkmxfk — no separate staging
-- ALWAYS enable RLS on every new table immediately after creation
-- Migration naming: 0037_description.sql (next after 0036)
-- Use createAdminClient() for: webhooks, cron jobs, GDPR routes, any server-side without user session
-- Use createClient() for: user-facing server actions, authenticated routes
-- NEVER use createClient() in webhook handlers — auth.uid() returns null, RLS blocks updates silently
+## Key File Paths
+- Brand constants: `src/lib/brand.ts`
+- Environment: `.env.local` (never commit)
+- PWA icons: `public/icons/`
+- PWA manifest: `public/manifest.json`
+- Integration adapters: `src/lib/integrations/`
+- Routes: `src/app/`
 
----
-
-## Stripe Connect Rules
-- Uses Express accounts via stripe.accountLinks.create() — NOT oauth/authorize
-- startConnectOnboarding() creates Express account + returns account link URL
-- Checkout uses stripeAccount header — money goes direct to organizer, never through Prezva
-- disconnectConnectAccount() clears charges_enabled/payouts_enabled only — NEVER calls stripe.accounts.del()
-- STRIPE_CLIENT_ID env var exists but is no longer used (OAuth deprecated)
-
----
-
-## Critical Client Rules
-- createAdminClient() — bypasses RLS, use for webhooks/cron/admin operations
-- createClient() — user session, use for authenticated user actions
-- NEVER mix these up — wrong client = silent data corruption in webhook context
-
----
-
-## After Every Code Change (MANDATORY)
-1. npm run build — must be clean, zero errors
-2. npx vitest run — all 318 tests must pass
-3. npx tsc --noEmit — zero src/ errors
-Report results before saying task is done. If any fail: fix before moving on.
-
----
-
-## Git & Deployment
-- main branch → auto-deploys to prezva.app via Vercel
-- Branch per bundle: bundle5-background-jobs, bundle6-storage, etc.
-- Never push directly to main — always PR
-- Conventional commits: feat: | fix: | chore: | docs: | test: | perf:
-- Commit after EVERY task — not at end of bundle
-- Current migrations: 0001–0036 exist. Next migration: 0037_xxx.sql
-
----
-
-## Code Style
-- TypeScript strict mode — minimize (as any) casts, annotate when unavoidable
-- Named exports preferred over default exports
-- File naming: kebab-case for files, PascalCase for components
-- Tailwind CSS only — no custom CSS files
-- Zod for all input validation
-- No prompt() or alert() — use state-driven modals
-
----
-
-## Testing
-- Unit tests: Vitest — src/__tests__/ — 318 tests across 22 files
-- E2E tests: Playwright — e2e/ (minimal coverage, needs expansion)
-- Every new API route needs a test case
-- Run: npx vitest run
-
----
-
-## Session Protocol
-- Start every session: read session-notes.md first
-- End every session: update session-notes.md with decisions + next action
-- Batch related changes — no 5-message follow-up chains
-- No thank-you messages — wastes tokens
-
----
-
-## Key File Locations
-- Stripe Connect: src/lib/connect/actions.ts
-- Stripe Checkout: src/lib/stripe/checkout.ts
-- Stripe Webhook: src/app/api/webhooks/stripe/route.ts
-- GDPR: src/app/api/gdpr/delete/route.ts + export/route.ts
-- Integrations: src/lib/integrations/ (_shared/, google-drive/, google-forms/, mailchimp/, etc.)
-- Trigger.dev jobs: src/trigger/jobs/
-- Trigger.dev helper: src/lib/trigger.ts
-- Supabase clients: src/lib/supabase/server.ts | admin.ts | client.ts
-- Production secrets doc: docs/production-secrets.md
-
----
-
-## Completed Bundles (do not redo)
-- Bundle 1: Env & Infrastructure (Permissions-Policy, INTEGRATION_ENCRYPTION_KEY, sw.js)
-- Bundle 2: DB Migrations (0029–0035, audit log columns, RLS fixes)
-- Bundle 3: Backend Wiring (webhook adminClient, GDPR delete, Mailchimp, stripe_session_id)
-- Bundle 4: Stripe Connect (Express Onboarding, direct charges, disconnect preserves account)
-
----
-
-## Memory & Docs
-- Project memory: ~/.claude/global-memory/prezva_project.md
-- Production secrets: ~/Prezva/dev/docs/production-secrets.md
-- Build plan: ~/Prezva/docs/Prezva_Master_Build_Plan.docx
+## What You Never Do
+- Never merge feature/ghl-integration into main
+- Never delete migration files
+- Never rotate INTEGRATION_ENCRYPTION_KEY without migrating org_integrations table first
+- Never commit secrets or .env.local
+- Never push to main without passing tests
+- Never skip `/code-review` before a commit
+- Never make architectural decisions alone — use `/desktop` to escalate
