@@ -64,6 +64,6 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Deploy Trigger.dev jobs
-        run: npx trigger deploy
+        run: ./node_modules/.bin/trigger deploy
         env:
           TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}
