@@ -11,9 +11,9 @@ function escapeIcs(s: string) {
 
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ eventId: string; sessionId: string }> }
+  { params }: { params: Promise<{ id: string; sessionId: string }> }
 ) {
-  const { eventId, sessionId } = await params
+  const { id, sessionId } = await params
   const admin = createAdminClient()
 
   const [{ data: session }, { data: event }] = await Promise.all([
@@ -21,12 +21,12 @@ export async function GET(
       .from('sessions')
       .select('title, description, starts_at, ends_at, rooms(name), session_speakers(speakers(name))')
       .eq('id', sessionId)
-      .eq('event_id', eventId)
+      .eq('event_id', id)
       .maybeSingle(),
     admin
       .from('events')
       .select('title, slug, timezone, venue_name, venue_city')
-      .eq('id', eventId)
+      .eq('id', id)
       .maybeSingle(),
   ])
 

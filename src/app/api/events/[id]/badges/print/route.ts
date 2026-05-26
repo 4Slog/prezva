@@ -133,13 +133,13 @@ function badgeToZpl(template: BadgeTemplate, bindings: BindingMap): string {
   return `^XA\n^PW${pw}\n^LL${ph}\n${fields}\n^XZ`
 }
 
-type Params = { params: Promise<{ eventId: string }> }
+type Params = { params: Promise<{ id: string }> }
 
 export async function GET(
   req: NextRequest,
   { params }: Params,
 ) {
-  const { eventId } = await params
+  const { id } = await params
   const { searchParams } = req.nextUrl
   const templateId = searchParams.get('templateId')
   const registrationId = searchParams.get('registrationId')
@@ -158,7 +158,7 @@ export async function GET(
   const { data: event } = await supabase
     .from('events')
     .select('id, title, org_id, badge_rules')
-    .eq('id', eventId)
+    .eq('id', id)
     .single()
   if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 })
 
@@ -193,7 +193,7 @@ export async function GET(
   let query = supabase
     .from('registrations')
     .select('id, attendee_name, attendee_email, attendee_company, attendee_job_title, qr_code, ticket_type_id, ticket_types(name, is_press)')
-    .eq('event_id', eventId)
+    .eq('event_id', id)
     .eq('status', 'confirmed')
 
   if (registrationId) query = query.eq('id', registrationId)
@@ -209,7 +209,7 @@ export async function GET(
   const { data: confirmedSpeakers } = await admin
     .from('speakers')
     .select('email, event_role, photo_url')
-    .eq('event_id', eventId)
+    .eq('event_id', id)
     .eq('status', 'confirmed')
 
   const speakerByEmail = new Map<string, { event_role: string; photo_url: string | null }>()
@@ -275,7 +275,7 @@ export async function GET(
     return new NextResponse(zplPages.join('\n'), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': `attachment; filename="badges-${eventId}.zpl"`,
+        'Content-Disposition': `attachment; filename="badges-${id}.zpl"`,
       },
     })
   }

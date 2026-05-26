@@ -11,9 +11,9 @@ function escapeIcs(s: string) {
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ eventId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { eventId } = await params
+  const { id } = await params
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId')
   if (!userId) return new NextResponse('userId required', { status: 400 })
@@ -25,11 +25,11 @@ export async function GET(
       .from('session_bookmarks')
       .select('session_id')
       .eq('user_id', userId)
-      .eq('event_id', eventId),
+      .eq('event_id', id),
     admin
       .from('events')
       .select('title, slug, timezone, venue_name, venue_city')
-      .eq('id', eventId)
+      .eq('id', id)
       .maybeSingle(),
   ])
 

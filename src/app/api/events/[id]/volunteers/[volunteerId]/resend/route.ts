@@ -5,16 +5,16 @@ import { sendVolunteerInvite } from '@/lib/trigger'
 
 export async function POST(
   _req: Request,
-  { params }: { params: Promise<{ slug: string; id: string }> }
+  { params }: { params: Promise<{ id: string; volunteerId: string }> }
 ) {
   await requireUser()
-  const { slug, id } = await params
+  const { id, volunteerId } = await params
   // Admin client: read volunteer + event for resend
   const admin = createAdminClient()
   const { data: volunteer } = await admin
     .from('volunteers')
     .select('*, events(title, start_at, slug)')
-    .eq('id', id)
+    .eq('id', volunteerId)
     .maybeSingle()
 
   if (!volunteer) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -26,7 +26,7 @@ export async function POST(
     volunteerName:  volunteer.name,
     volunteerEmail: volunteer.email,
     volunteerRole:  volunteer.role,
-    eventTitle:     event?.title ?? slug,
+    eventTitle:     event?.title ?? id,
     eventDate:      event?.start_at ?? '',
     shiftStart:     volunteer.shift_start ?? null,
     shiftEnd:       volunteer.shift_end ?? null,

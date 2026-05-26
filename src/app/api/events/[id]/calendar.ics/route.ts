@@ -9,14 +9,14 @@ function escapeIcs(s: string) {
   return s.replace(/[\\;,]/g, '\\$&').replace(/\n/g, '\\n')
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   // Admin client: public ICS download for event
   const admin = createAdminClient()
   const { data: event } = await admin
     .from('events')
     .select('title, description, start_at, end_at, venue_name, venue_city, venue_state')
-    .eq('slug', slug)
+    .eq('slug', id)
     .maybeSingle()
 
   if (!event) return new NextResponse('Not found', { status: 404 })
@@ -36,8 +36,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     `SUMMARY:${escapeIcs(event.title)}`,
     event.description ? `DESCRIPTION:${escapeIcs(event.description)}` : '',
     location ? `LOCATION:${escapeIcs(location)}` : '',
-    `URL:${appUrl}/e/${slug}`,
-    `UID:event-${slug}@prezva.app`,
+    `URL:${appUrl}/e/${id}`,
+    `UID:event-${id}@prezva.app`,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean).join('\r\n')
@@ -45,7 +45,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   return new NextResponse(ics, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${slug}.ics"`,
+      'Content-Disposition': `attachment; filename="${id}.ics"`,
     },
   })
 }

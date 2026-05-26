@@ -4,16 +4,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(
   _req: Request,
-  { params }: { params: Promise<{ slug: string; id: string }> }
+  { params }: { params: Promise<{ id: string; letterId: string }> }
 ) {
   await requireUser()
-  const { id } = await params
+  const { letterId } = await params
   // Admin client: read the dead-letter item to determine replay type
   const admin = createAdminClient()
   const { data: item } = await admin
     .from('dead_letter_items')
     .select('*')
-    .eq('id', id)
+    .eq('id', letterId)
     .maybeSingle()
 
   if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
@@ -29,7 +29,7 @@ export async function POST(
         body: JSON.stringify(payload),
       })
       if (res.ok) {
-        await admin.from('dead_letter_items').update({ resolved_at: new Date().toISOString() }).eq('id', id)
+        await admin.from('dead_letter_items').update({ resolved_at: new Date().toISOString() }).eq('id', letterId)
         return NextResponse.json({ message: 'Replayed and resolved' })
       }
     }
@@ -39,7 +39,7 @@ export async function POST(
   await admin
     .from('dead_letter_items')
     .update({ retry_count: item.retry_count + 1, last_failed_at: new Date().toISOString() })
-    .eq('id', id)
+    .eq('id', letterId)
 
   return NextResponse.json({ message: `Replay attempted (type: ${item.type})` })
 }

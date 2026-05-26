@@ -17,11 +17,11 @@ const Schema = z.object({
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireUser()
-    const { slug } = await params
+    const { id } = await params
     const body = await req.json()
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
@@ -33,7 +33,7 @@ export async function POST(
     const { data: event } = await admin
       .from('events')
       .select('id, title, start_at, slug')
-      .eq('slug', slug)
+      .eq('slug', id)
       .maybeSingle()
 
     if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 })

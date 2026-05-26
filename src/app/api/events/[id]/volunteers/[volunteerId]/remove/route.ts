@@ -4,16 +4,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(
   _req: Request,
-  { params }: { params: Promise<{ slug: string; id: string }> }
+  { params }: { params: Promise<{ id: string; volunteerId: string }> }
 ) {
   await requireUser()
-  const { id } = await params
-  // Admin client: update volunteer status
+  const { volunteerId } = await params
+  // Admin client: delete volunteer record
   const admin = createAdminClient()
-  const { error } = await admin
-    .from('volunteers')
-    .update({ status: 'checked_in', clocked_in_at: new Date().toISOString() })
-    .eq('id', id)
+  const { error } = await admin.from('volunteers').delete().eq('id', volunteerId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

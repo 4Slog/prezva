@@ -92,7 +92,7 @@ describe('Sprint 24 — Polish & Reconciliation', () => {
   })
 
   it('public event calendar ICS API route exists', () => {
-    const path = join(SRC, 'app/api/events/[slug]/calendar.ics/route.ts')
+    const path = join(SRC, 'app/api/events/[id]/calendar.ics/route.ts')
     expect(existsSync(path)).toBe(true)
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain('VCALENDAR')
