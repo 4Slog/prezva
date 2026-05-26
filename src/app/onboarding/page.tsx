@@ -10,6 +10,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>(1)
   const [orgName, setOrgName] = useState('')
   const [orgSlug, setOrgSlug] = useState('')
+  const [slugEdited, setSlugEdited] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -85,7 +86,11 @@ export default function OnboardingPage() {
                 </label>
                 <input
                   value={orgName}
-                  onChange={e => { setOrgName(e.target.value); setOrgSlug(toSlug(e.target.value)) }}
+                  onChange={e => {
+                    setOrgName(e.target.value)
+                    // Only auto-fill slug while the user hasn't manually edited it.
+                    if (!slugEdited) setOrgSlug(toSlug(e.target.value))
+                  }}
                   placeholder="e.g. State Association of Educators"
                   style={{ width: '100%', padding: '0.75rem', borderRadius: 8, fontSize: 15,
                            border: '1px solid rgba(255,255,255,0.15)', background: '#0D1B2A',
@@ -105,7 +110,10 @@ export default function OnboardingPage() {
                   </span>
                   <input
                     value={orgSlug}
-                    onChange={e => setOrgSlug(toSlug(e.target.value))}
+                    onChange={e => {
+                      setOrgSlug(toSlug(e.target.value))
+                      setSlugEdited(true)
+                    }}
                     style={{ flex: 1, padding: '0.75rem', fontSize: 14, border: 'none',
                              background: 'transparent', color: '#F0F4F8', outline: 'none' }}
                   />

@@ -58,15 +58,21 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   const isWaitlist = waitlist === 'true'
 
-  // Store reg token in cookie so getSessionIdentity() can use it server-side
+  // Store reg token in cookie so getSessionIdentity() can use it server-side.
+  // Cookie writes from Server Components throw in Next.js 16 — wrap in try/catch
+  // so the page still renders if this code path is hit outside a Server Action.
   if (resolvedRegId && reg && !isWaitlist) {
-    const jar = await cookies()
-    jar.set(`pz_reg_${slug}`, resolvedRegId, {
-      path: `/e/${slug}`,
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 90, // 90 days
-    })
+    try {
+      const jar = await cookies()
+      jar.set(`pz_reg_${slug}`, resolvedRegId, {
+        path: `/e/${slug}`,
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 90, // 90 days
+      })
+    } catch {
+      // Cookie set isn't supported in this render context — non-fatal.
+    }
   }
 
   // Repeat attendee recognition

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { z } from 'zod'
 
@@ -12,14 +12,16 @@ const Schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser()
-    const supabase = await createClient()
+    // Admin client: org + first owner member require service role (chicken-and-egg RLS).
+    // Matches the pattern in src/lib/orgs/actions.ts createOrg().
+    const admin = createAdminClient()
     const body = await req.json()
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from('organizations')
       .select('id')
       .eq('slug', parsed.data.slug)
@@ -28,21 +30,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slug already taken' }, { status: 409 })
     }
 
-    const { data: org, error: orgErr } = await supabase
+    const { data: org, error: orgErr } = await admin
       .from('organizations')
       .insert({ ...parsed.data, created_by: user.id })
       .select()
       .single()
     if (orgErr || !org) {
+      if ((orgErr as { code?: string } | null)?.code === '23505') {
+        return NextResponse.json({ error: 'Slug already taken' }, { status: 409 })
+      }
       return NextResponse.json({ error: orgErr?.message ?? 'Failed' }, { status: 500 })
     }
 
-    await supabase.from('org_members').insert({
+    const { error: memberErr } = await admin.from('org_members').insert({
       org_id: org.id,
       user_id: user.id,
       role: 'owner',
       invited_by: user.id,
     })
+    if (memberErr) {
+      return NextResponse.json({ error: memberErr.message }, { status: 500 })
+    }
 
     return NextResponse.json(org, { status: 201 })
   } catch {

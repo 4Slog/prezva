@@ -68,15 +68,38 @@ export async function getOrCreateSpeakerToken(eventId: string, speakerId: string
 
 export async function validateSpeakerToken(token: string) {
   const supabase = createAdminClient()
-  const { data } = await supabase
+
+  // Try speaker_tokens table first (legacy magic-link tokens, 64-char hex)
+  const { data: tokenRow } = await supabase
     .from('speaker_tokens')
     .select('event_id, speaker_id, expires_at, speakers(name, email, event_id)')
     .eq('token', token)
-    .single()
+    .maybeSingle()
 
-  if (!data) return null
-  if (new Date((data as any).expires_at) < new Date()) return null
-  return data as any
+  if (tokenRow) {
+    if (new Date((tokenRow as any).expires_at) < new Date()) return null
+    return tokenRow as any
+  }
+
+  // Fallback: look up by speakers.confirmation_token (48-char hex, used in invite/reminder URLs)
+  const { data: speakerRow } = await supabase
+    .from('speakers')
+    .select('id, event_id, name, email')
+    .eq('confirmation_token', token)
+    .maybeSingle()
+
+  if (!speakerRow) return null
+
+  return {
+    event_id: (speakerRow as any).event_id,
+    speaker_id: (speakerRow as any).id,
+    expires_at: null,
+    speakers: {
+      name: (speakerRow as any).name,
+      email: (speakerRow as any).email,
+      event_id: (speakerRow as any).event_id,
+    },
+  }
 }
 
 // ── T-095b: magic link invite ─────────────────────────────────────────────────
