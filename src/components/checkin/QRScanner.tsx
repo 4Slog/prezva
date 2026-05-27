@@ -68,6 +68,25 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
     }
   }, [state, active, onScan])
 
+  // Auto-start if camera permission is already granted on mount
+  useEffect(() => {
+    if (!active) return
+    try {
+      navigator.permissions.query({ name: 'camera' as PermissionName }).then(result => {
+        if (result.state === 'granted') setState('scanning')
+        // Listen for changes — if user grants in browser settings, auto-start
+        result.onchange = () => {
+          if (result.state === 'granted') setState('scanning')
+          if (result.state === 'denied') setState('denied')
+        }
+      }).catch(() => {
+        // navigator.permissions not supported (iOS Safari) — fall through to prompt
+      })
+    } catch {
+      // Silently fall through to prompt screen
+    }
+  }, [active])
+
   const [prevActive, setPrevActive] = useState(active)
   if (prevActive !== active) {
     setPrevActive(active)
