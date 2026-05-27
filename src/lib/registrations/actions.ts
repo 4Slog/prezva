@@ -11,7 +11,7 @@ export async function refundRegistration(registrationId: string, force?: boolean
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, event_id, stripe_charge_id, amount_paid_cents, status, events(organizations(id))')
+    .select('id, event_id, stripe_charge_id, amount_paid_cents, status, events(organizations(id, stripe_account_id))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -33,12 +33,16 @@ export async function refundRegistration(registrationId: string, force?: boolean
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
+  const stripeAccountId = ev?.organizations?.stripe_account_id as string | null
+  if (!stripeAccountId) return { error: 'Organization is not connected to Stripe' }
+
   await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
 
   const { stripe } = await import('@/lib/stripe/client')
   try {
     // stripe_charge_id may store either a payment_intent (pi_...) or charge (ch_...) ID
     // depending on how the payment was captured. Handle both.
+    // Charge lives on the connected account (Direct Charges) — must pass stripeAccount.
     const chargeId = reg.stripe_charge_id as string
     const refundParams: Record<string, string> = { reason: 'requested_by_customer' }
     if (chargeId.startsWith('pi_')) {
@@ -46,7 +50,7 @@ export async function refundRegistration(registrationId: string, force?: boolean
     } else {
       refundParams.charge = chargeId
     }
-    const refund = await stripe.refunds.create(refundParams as any)
+    const refund = await stripe.refunds.create(refundParams as any, { stripeAccount: stripeAccountId })
     if (refund.status !== 'succeeded' && refund.status !== 'pending') {
       return { error: `Refund failed with status: ${refund.status}` }
     }
