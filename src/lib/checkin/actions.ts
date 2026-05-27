@@ -166,14 +166,14 @@ export async function checkInBySearch(
     event_id: eventId,
     registration_id: registrationId,
     checked_in_by: user.id,
-    method: 'manual_search',
+    method: 'manual',
     device_id: deviceId,
     synced_at: new Date().toISOString(),
   })
 
   if (error) return { success: false, error: error.message }
 
-  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual_search' })
+  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual' })
 
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
