@@ -121,6 +121,14 @@ export const sendConfirmationEmail = schemaTask({
           <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> is confirmed.</p>
           <p style="margin:4px 0;">📅 ${dateStr}</p>
           ${payload.eventVenue ? `<p style="margin:4px 0;">📍 ${payload.eventVenue}</p>` : ''}
+          <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
+            <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
+            <img
+              src="${qrImgUrl}"
+              alt="QR Code" width="160" style="border-radius:4px;"
+            />
+            <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${payload.qrCode}</p>
+          </div>
           ${['virtual','hybrid'].includes(payload.eventType ?? '') && payload.virtualUrl ? `
           <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Join link</p>
@@ -131,14 +139,6 @@ export const sendConfirmationEmail = schemaTask({
             <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Press credentials</p>
             <a href="${BASE_URL}/press/${payload.pressToken}" style="color:#00BFA6;font-size:15px;font-weight:700;text-decoration:none;">Access your press portal →</a>
           </div>` : ''}
-          <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
-            <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
-            <img
-              src="${qrImgUrl}"
-              alt="QR Code" width="160" style="border-radius:4px;"
-            />
-            <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${payload.qrCode}</p>
-          </div>
           <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
             <tr>
               <td style="padding:6px 0;">
@@ -151,10 +151,12 @@ export const sendConfirmationEmail = schemaTask({
             ${payload.eventVenue ? `<tr><td colspan="2" style="padding:6px 0;"><a href="https://maps.google.com/?q=${encodeURIComponent(payload.eventVenue)}" style="color:#00BFA6;font-size:14px;text-decoration:none;">→ Get directions</a></td></tr>` : ''}
           </table>
           ${speakerSection}${volunteerSection}
+          <p style="color:#94A3B8;font-size:13px;margin:20px 0 0;">
+            Questions? Just reply to this email.
+          </p>
           <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
           <p style="color:#475569;font-size:12px;margin:0;">
             Sent by ${payload.orgName} via <a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
-            Questions? Reply to this email.
           </p>
           <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">
             <a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from reminder emails</a> ·
@@ -304,10 +306,12 @@ export const processWaitlist = schemaTask({
             <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${next.qr_code}</p>
           </div>
           ${eventUrl ? `<p style="margin:12px 0;"><a href="${eventUrl}" style="color:#00BFA6;font-size:14px;text-decoration:none;">→ View event page</a></p>` : ''}
+          <p style="color:#94A3B8;font-size:13px;margin:20px 0 0;">
+            Reply to this email with any questions.
+          </p>
           <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
           <p style="color:#475569;font-size:12px;margin:0;">
             Powered by <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
-            Reply to this email with any questions.
           </p>
           <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">
             <a href="${wlUnsubUrl}" style="color:#64748B;">Unsubscribe from reminder emails</a> ·
