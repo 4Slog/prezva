@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendVolunteerInvite } from '@/lib/trigger'
+import { enqueueVolunteerInvite } from '@/lib/trigger'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -63,7 +63,7 @@ export async function POST(
 
     // Enqueue invite email (non-blocking)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
-    void sendVolunteerInvite({
+    void enqueueVolunteerInvite({
       volunteerName:  volunteer.name,
       volunteerEmail: volunteer.email,
       volunteerRole:  volunteer.role,

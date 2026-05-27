@@ -63,7 +63,7 @@ export async function enqueueAnnouncementDelivery(payload: AnnouncementPayload) 
 
 type VolunteerInvitePayload = Parameters<typeof sendVolunteerInviteEmail.trigger>[0]
 
-export async function sendVolunteerInvite(payload: VolunteerInvitePayload) {
+export async function enqueueVolunteerInvite(payload: VolunteerInvitePayload) {
   if (!process.env.TRIGGER_SECRET_KEY) {
     console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping volunteer invite')
     return null

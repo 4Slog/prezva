@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/client'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { enqueueConfirmationEmail } from '@/lib/trigger'
+import { enqueueConfirmationEmail, enqueueWaitlistProcessing } from '@/lib/trigger'
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -89,11 +89,17 @@ export async function POST(req: NextRequest) {
     const session = event.data.object
     const regId   = session.metadata?.registration_id
     if (regId) {
-      await supabase
+      const { data: cancelled } = await supabase
         .from('registrations')
         .update({ status: 'cancelled' })
         .eq('id', regId)
         .eq('status', 'pending')
+        .select('event_id, events(title, slug)')
+        .maybeSingle()
+      const ev = (cancelled?.events ?? null) as unknown as { title: string; slug: string } | null
+      if (cancelled?.event_id && ev) {
+        await enqueueWaitlistProcessing({ eventId: cancelled.event_id, eventTitle: ev.title, eventSlug: ev.slug })
+      }
     }
   }
 
@@ -101,11 +107,17 @@ export async function POST(req: NextRequest) {
     const pi    = event.data.object
     const regId = pi.metadata?.registration_id
     if (regId) {
-      await supabase
+      const { data: cancelled } = await supabase
         .from('registrations')
         .update({ status: 'cancelled' })
         .eq('id', regId)
         .eq('status', 'pending')
+        .select('event_id, events(title, slug)')
+        .maybeSingle()
+      const ev = (cancelled?.events ?? null) as unknown as { title: string; slug: string } | null
+      if (cancelled?.event_id && ev) {
+        await enqueueWaitlistProcessing({ eventId: cancelled.event_id, eventTitle: ev.title, eventSlug: ev.slug })
+      }
     }
   }
 
@@ -138,7 +150,7 @@ export async function POST(req: NextRequest) {
     // stripe_charge_id stores the payment_intent ID (pi_...) — match on either
     const { data: reg } = await supabase
       .from('registrations')
-      .select('id, amount_paid_cents, status')
+      .select('id, event_id, amount_paid_cents, status, events(title, slug)')
       .or(`stripe_charge_id.eq.${charge.payment_intent},stripe_charge_id.eq.${charge.id}`)
       .maybeSingle()
 
@@ -151,6 +163,14 @@ export async function POST(req: NextRequest) {
           refund_amount_cents: charge.amount_refunded,
         })
         .eq('id', reg.id)
+
+      // Full refund frees a confirmed seat — promote next waitlisted attendee
+      if (isFullRefund && reg.event_id) {
+        const ev = (reg.events ?? null) as unknown as { title: string; slug: string } | null
+        if (ev) {
+          await enqueueWaitlistProcessing({ eventId: reg.event_id, eventTitle: ev.title, eventSlug: ev.slug })
+        }
+      }
     }
   }
 

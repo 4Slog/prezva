@@ -11,7 +11,7 @@ export async function refundRegistration(registrationId: string, force?: boolean
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, event_id, stripe_charge_id, amount_paid_cents, status, events(organizations(id, stripe_account_id))')
+    .select('id, event_id, stripe_charge_id, amount_paid_cents, status, events(title, slug, organizations(id, stripe_account_id))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -68,6 +68,16 @@ export async function refundRegistration(registrationId: string, force?: boolean
     })
     .eq('id', registrationId)
 
+  // Confirmed seat freed — promote next waitlisted attendee
+  if (reg.event_id) {
+    const { enqueueWaitlistProcessing } = await import('@/lib/trigger')
+    await enqueueWaitlistProcessing({
+      eventId:    reg.event_id,
+      eventTitle: (ev?.title as string) ?? '',
+      eventSlug:  (ev?.slug as string) ?? undefined,
+    })
+  }
+
   return { ok: true, refundAmount: reg.amount_paid_cents }
 }
 
@@ -115,7 +125,7 @@ export async function cancelRegistration(registrationId: string) {
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, status, event_id, events(organizations(id))')
+    .select('id, status, event_id, events(title, slug, organizations(id))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -128,6 +138,7 @@ export async function cancelRegistration(registrationId: string) {
 
   await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
 
+  const priorStatus = reg.status
   const admin = createAdminClient()
   const { error } = await admin
     .from('registrations')
@@ -135,6 +146,19 @@ export async function cancelRegistration(registrationId: string) {
     .eq('id', registrationId)
 
   if (error) return { error: error.message }
+
+  // Only promote from waitlist when a capacity-counted seat is freed.
+  // Capacity counts ['confirmed', 'pending', 'checked_in'] — cancelling a 'waitlisted' reg
+  // doesn't free a seat, so don't auto-promote.
+  if (reg.event_id && ['confirmed', 'pending', 'checked_in'].includes(priorStatus)) {
+    const { enqueueWaitlistProcessing } = await import('@/lib/trigger')
+    await enqueueWaitlistProcessing({
+      eventId:    reg.event_id,
+      eventTitle: (ev?.title as string) ?? '',
+      eventSlug:  (ev?.slug as string) ?? undefined,
+    })
+  }
+
   return { ok: true }
 }
 
