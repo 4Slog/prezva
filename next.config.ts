@@ -8,15 +8,14 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // Order matters: Next.js applies all matching entries in order, and a
+    // later entry wins per-header-key. The restrictive baseline goes first
+    // so the check-in overrides below replace it on those routes.
+    const checkinPermissions = {
+      key: 'Permissions-Policy',
+      value: 'camera=(self), microphone=(), geolocation=()',
+    }
     return [
-      {
-        source: '/(events|kiosk)/:path*/checkin/:path*',
-        headers: [{ key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' }],
-      },
-      {
-        source: '/e/:slug/sessions/:sessionId/checkin',
-        headers: [{ key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' }],
-      },
       {
         source: '/(.*)',
         headers: [
@@ -26,6 +25,10 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
+      { source: '/e/:slug/checkin',       headers: [checkinPermissions] },
+      { source: '/checkin/:path*',        headers: [checkinPermissions] },
+      { source: '/events/:slug/check-in', headers: [checkinPermissions] },
+      { source: '/events/:slug/checkin',  headers: [checkinPermissions] },
     ]
   },
 }
