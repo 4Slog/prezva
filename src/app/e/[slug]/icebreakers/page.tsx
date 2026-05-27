@@ -30,11 +30,19 @@ export default async function IcebreakersPage({ params, searchParams }: Props) {
         const { data: all } = await admin.from('icebreaker_questions')
           .select('id, question, question_text, prompt, category, is_active')
           .eq('event_id', (event as any).id)
-          .order('created_at', { ascending: true })
         questions = (all ?? []) as any[]
       }
     }
   }
+
+  // Resolve {event_title} merge tag at read time
+  const eventTitle = (event as any).title as string
+  questions = questions.map((q: any) => ({
+    ...q,
+    question: typeof q.question === 'string' ? q.question.replaceAll('{event_title}', eventTitle) : q.question,
+    question_text: typeof q.question_text === 'string' ? q.question_text.replaceAll('{event_title}', eventTitle) : q.question_text,
+    prompt: typeof q.prompt === 'string' ? q.prompt.replaceAll('{event_title}', eventTitle) : q.prompt,
+  }))
 
   const isPreview = preview === '1' && questions.some((q: any) => !q.is_active)
 

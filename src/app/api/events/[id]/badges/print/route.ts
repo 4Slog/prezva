@@ -189,8 +189,11 @@ export async function GET(
 
   if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 })
 
-  // Fetch registrations
-  let query = supabase
+  // Fetch registrations — use admin client since org-member auth was verified above.
+  // The user RLS path filters too narrowly here, and joining ticket_types via PostgREST
+  // surfaces schema issues to the whole query; admin client is the right surface for print.
+  const admin = createAdminClient()
+  let query = admin
     .from('registrations')
     .select('id, attendee_name, attendee_email, attendee_company, attendee_job_title, qr_code, ticket_type_id, ticket_types(name, is_press)')
     .eq('event_id', id)
@@ -199,13 +202,29 @@ export async function GET(
   if (registrationId) query = query.eq('id', registrationId)
   if (preview) query = query.limit(1) // Preview: show just the first badge
 
-  const { data: regs } = await query
+  let { data: regs, error: regsError } = await query
+  // Defensive fallback: if ticket_types.is_press column is missing in DB,
+  // retry without the press flag — press routing simply won't trigger.
+  if (regsError && regsError.code === '42703') {
+    let retry = admin
+      .from('registrations')
+      .select('id, attendee_name, attendee_email, attendee_company, attendee_job_title, qr_code, ticket_type_id, ticket_types(name)')
+      .eq('event_id', id)
+      .eq('status', 'confirmed')
+    if (registrationId) retry = retry.eq('id', registrationId)
+    if (preview) retry = retry.limit(1)
+    const r = await retry
+    regs = r.data as any
+    regsError = r.error
+  }
+  if (regsError) {
+    return NextResponse.json({ error: regsError.message }, { status: 500 })
+  }
   if (!regs || regs.length === 0) {
     return NextResponse.json({ error: 'No confirmed registrations found' }, { status: 404 })
   }
 
   // Fetch confirmed speakers for this event (for auto-detection)
-  const admin = createAdminClient()
   const { data: confirmedSpeakers } = await admin
     .from('speakers')
     .select('email, event_role, photo_url')

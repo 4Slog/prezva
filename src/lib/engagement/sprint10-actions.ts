@@ -426,20 +426,31 @@ export async function seedIcebreakerPrompts(eventId: string, prompts: { text: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  // Resolve {event_title} merge tag
-  const { data: event } = await supabase.from('events').select('title').eq('id', eventId).single()
-  const eventTitle = (event as any)?.title ?? 'this event'
+  // Verify caller is an org member of the event's org, then insert via admin client.
+  // The user-scoped RLS path is too narrow for org-staff seed actions on older policies.
+  const { data: event } = await supabase
+    .from('events')
+    .select('id, org_id')
+    .eq('id', eventId)
+    .single()
+  if (!event) return { error: 'Event not found' }
+  const admin = createAdminClient()
+  const { data: member } = await admin
+    .from('org_members')
+    .select('role')
+    .eq('org_id', (event as any).org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) return { error: 'Forbidden' }
 
-  const rows = prompts.map((p) => {
-    const text = p.text.replace(/\{event_title\}/g, eventTitle)
-    return {
-      event_id: eventId,
-      question: text,
-      question_text: text,
-      prompt: text,
-    }
-  })
-  const { error } = await supabase.from('icebreaker_questions').insert(rows)
+  // Store {event_title} as-is — resolve at read time so prompts stay in sync if title changes.
+  const rows = prompts.map((p) => ({
+    event_id: eventId,
+    question: p.text,
+    question_text: p.text,
+    prompt: p.text,
+  }))
+  const { error } = await admin.from('icebreaker_questions').insert(rows)
   if (error) return { error: error.message }
   return { count: rows.length }
 }
@@ -448,6 +459,30 @@ export async function seedTriviaQuestions(eventId: string, questions: { q: strin
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+
+  // Validate before hitting the DB so the client sees a useful message
+  for (const q of questions) {
+    if (!Array.isArray(q.options) || q.options.filter((o) => typeof o === 'string' && o.trim().length > 0).length < 2) {
+      return { error: 'Questions must have at least 2 answer options' }
+    }
+  }
+
+  // Verify caller is an org member, then insert via admin client
+  const { data: event } = await supabase
+    .from('events')
+    .select('id, org_id')
+    .eq('id', eventId)
+    .single()
+  if (!event) return { error: 'Event not found' }
+  const admin = createAdminClient()
+  const { data: member } = await admin
+    .from('org_members')
+    .select('role')
+    .eq('org_id', (event as any).org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) return { error: 'Forbidden' }
+
   const rows = questions.map((q) => ({
     event_id: eventId,
     body: q.q,              // primary display column (what getTriviaQuestions reads)
@@ -457,7 +492,7 @@ export async function seedTriviaQuestions(eventId: string, questions: { q: strin
     category: q.category,
     difficulty: q.difficulty,
   }))
-  const { error } = await supabase.from('trivia_questions').insert(rows)
+  const { error } = await admin.from('trivia_questions').insert(rows)
   if (error) return { error: error.message }
   return { count: rows.length }
 }

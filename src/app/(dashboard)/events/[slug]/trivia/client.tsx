@@ -47,13 +47,16 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
   const [newCategory, setNewCategory] = useState('general')
   const [newDifficulty, setNewDifficulty] = useState('medium')
 
+  // Starter pack ships the first 10 — full bank can be added manually
+  const STARTER_PACK = TRIVIA_QUESTIONS.slice(0, 10)
+
   function handleLoadStarter() {
     setShowPreview(false)
     startTransition(async () => {
-      const res = await seedTriviaQuestions(eventId, TRIVIA_QUESTIONS)
+      const res = await seedTriviaQuestions(eventId, STARTER_PACK)
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} trivia questions.`)
-      const newItems = TRIVIA_QUESTIONS.map((q, i) => ({
+      const newItems = STARTER_PACK.map((q, i) => ({
         id: `tmp-${i}`, body: q.q, question_text: q.q,
         options: q.options, correct_index: q.correct,
         category: q.category, difficulty: q.difficulty,
@@ -198,7 +201,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
               <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {TRIVIA_QUESTIONS.map((q, i) => (
+              {STARTER_PACK.map((q, i) => (
                 <div key={q.id} style={{ border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.875rem 1rem', background: '#0D1B2A' }}>
                   <p style={{ color: '#F0F4F8', fontSize: 13, fontWeight: 600, margin: '0 0 8px' }}>{i + 1}. {q.q}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>

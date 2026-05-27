@@ -17,14 +17,22 @@ export default async function IcebreakersAdminPage({ params }: Props) {
     .single()
   if (!event) notFound()
 
-  const { data: questions } = await supabase
+  const { data: rawQuestions } = await supabase
     .from('icebreaker_questions')
     .select('id, question, question_text, prompt, category, is_active')
     .eq('event_id', (event as any).id)
-    .order('created_at', { ascending: true })
     .limit(100)
 
-  const isActive = (questions ?? []).some((q: any) => q.is_active)
+  // Resolve {event_title} merge tag at read time so prompts stay current
+  const eventTitle = (event as any).title as string
+  const questions = (rawQuestions ?? []).map((q: any) => ({
+    ...q,
+    question: typeof q.question === 'string' ? q.question.replaceAll('{event_title}', eventTitle) : q.question,
+    question_text: typeof q.question_text === 'string' ? q.question_text.replaceAll('{event_title}', eventTitle) : q.question_text,
+    prompt: typeof q.prompt === 'string' ? q.prompt.replaceAll('{event_title}', eventTitle) : q.prompt,
+  }))
+
+  const isActive = questions.some((q: any) => q.is_active)
 
   return (
     <div style={{ padding: '2rem', maxWidth: 800 }}>
