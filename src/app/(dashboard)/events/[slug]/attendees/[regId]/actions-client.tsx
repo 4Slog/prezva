@@ -122,11 +122,30 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
           confirming === 'refund' ? (
             <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 12 }}>Refund ${((amountPaidCents ?? 0) / 100).toFixed(2)}?</span>
-              <button className={btnDanger} onClick={() => run(
-                () => refundRegistration(registrationId),
-                () => setMessage({ text: 'Refund processed.', ok: true })
-              )}>Yes, Refund</button>
+              <button className={btnDanger} onClick={() => {
+                setMessage(null)
+                startTransition(async () => {
+                  const result = await refundRegistration(registrationId)
+                  if (result.error) {
+                    setMessage({ text: result.error, ok: false })
+                  } else if (result.warning === 'checked_in') {
+                    setConfirming('refund_checked_in')
+                  } else {
+                    setMessage({ text: 'Refund processed.', ok: true })
+                    setConfirming(null)
+                  }
+                })
+              }}>Yes, Refund</button>
               <button className={btnNeutral} onClick={() => setConfirming(null)}>No</button>
+            </span>
+          ) : confirming === 'refund_checked_in' ? (
+            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 12 }}>This attendee has already checked in. Are you sure you want to issue a refund?</span>
+              <button className={btnDanger} onClick={() => run(
+                () => refundRegistration(registrationId, true),
+                () => setMessage({ text: 'Refund processed.', ok: true })
+              )}>Yes, refund anyway</button>
+              <button className={btnNeutral} onClick={() => setConfirming(null)}>Cancel</button>
             </span>
           ) : (
             <button className={btnDanger} onClick={() => setConfirming('refund')}>

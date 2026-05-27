@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { assertOrgRole } from '@/lib/orgs/actions'
 import { logAudit } from '@/lib/audit/log'
 
-export async function refundRegistration(registrationId: string) {
+export async function refundRegistration(registrationId: string, force?: boolean) {
   const user = await requireUser()
   const supabase = await createClient()
 
@@ -19,6 +19,15 @@ export async function refundRegistration(registrationId: string) {
   if (reg.status === 'refunded') return { error: 'Already refunded' }
   if (!reg.stripe_charge_id) return { error: 'No payment on record — this was a free registration' }
   if ((reg.amount_paid_cents ?? 0) === 0) return { error: 'No amount to refund' }
+
+  if (!force) {
+    const { data: checkin } = await supabase
+      .from('check_ins')
+      .select('id')
+      .eq('registration_id', registrationId)
+      .maybeSingle()
+    if (checkin) return { warning: 'checked_in' as const }
+  }
 
   const ev = reg.events as any
   const orgId = ev?.organizations?.id

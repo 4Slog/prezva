@@ -1,7 +1,8 @@
 // IMPORTANT: This webhook endpoint must be registered in Stripe Dashboard
 // with "Events from: Connected accounts" enabled (already done May 16 2026).
 // Required events: checkout.session.completed, checkout.session.expired,
-// payment_intent.payment_failed, account.updated, account.application.deauthorized
+// payment_intent.payment_failed, charge.refunded, account.updated,
+// account.application.deauthorized
 // Stripe sends a Stripe-Account header identifying which connected account
 // triggered the event. We capture it below for logging purposes.
 
@@ -130,6 +131,27 @@ export async function POST(req: NextRequest) {
       .from('organizations')
       .update({ stripe_account_id: null })
       .eq('stripe_account_id', account.id)
+  }
+
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object
+    // stripe_charge_id stores the payment_intent ID (pi_...) — match on either
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('id, amount_paid_cents, status')
+      .or(`stripe_charge_id.eq.${charge.payment_intent},stripe_charge_id.eq.${charge.id}`)
+      .maybeSingle()
+
+    if (reg && reg.status !== 'refunded') {
+      const isFullRefund = charge.amount_refunded >= charge.amount
+      await supabase
+        .from('registrations')
+        .update({
+          ...(isFullRefund ? { status: 'refunded', refunded_at: new Date().toISOString() } : {}),
+          refund_amount_cents: charge.amount_refunded,
+        })
+        .eq('id', reg.id)
+    }
   }
 
   return NextResponse.json({ received: true })
