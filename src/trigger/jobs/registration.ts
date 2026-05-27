@@ -91,6 +91,16 @@ export const sendConfirmationEmail = schemaTask({
       ? ` (You're also ${speakerMatch.event_role === 'mc' ? 'the MC' : 'speaking'}!)`
       : volunteerMatch ? ` (You're also volunteering!)` : ''
 
+    // Generate QR code as inline base64 data URL (renders without external requests)
+    let qrDataUrl = ''
+    try {
+      const QRCode = (await import('qrcode')).default
+      qrDataUrl = await QRCode.toDataURL(payload.qrCode, { width: 200, margin: 1 })
+    } catch (err) {
+      console.error('[trigger] QR generation failed, falling back to api.qrserver.com:', err)
+      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload.qrCode)}`
+    }
+
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -117,7 +127,7 @@ export const sendConfirmationEmail = schemaTask({
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
-              src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload.qrCode)}"
+              src="${qrDataUrl}"
               alt="QR Code" width="160" style="border-radius:4px;"
             />
             <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${payload.qrCode}</p>
@@ -147,6 +157,31 @@ export const sendConfirmationEmail = schemaTask({
       </div>
     `
 
+    // Plain-text fallback — improves deliverability and renders in non-HTML clients
+    const textParts = [
+      `Hi ${payload.attendeeName},`,
+      ``,
+      `Your registration for ${payload.eventTitle} is confirmed.`,
+      ``,
+      `When: ${dateStr}`,
+      payload.eventVenue ? `Where: ${payload.eventVenue}` : '',
+      ['virtual','hybrid'].includes(payload.eventType ?? '') && payload.virtualUrl ? `Join online: ${payload.virtualUrl}` : '',
+      payload.pressToken ? `Press portal: ${BASE_URL}/press/${payload.pressToken}` : '',
+      ``,
+      `Your check-in code: ${payload.qrCode}`,
+      ``,
+      `Agenda:        ${agendaLink}`,
+      `Add to calendar: ${icsUrl}`,
+      payload.eventVenue ? `Directions:    https://maps.google.com/?q=${encodeURIComponent(payload.eventVenue)}` : '',
+      speakerMatch ? `Speaker hub:   ${BASE_URL}/speaker/${speakerMatch.confirmation_token}` : '',
+      volunteerMatch ? `Volunteer portal: ${BASE_URL}/volunteer/${volunteerMatch.portal_access_token}` : '',
+      ``,
+      `Sent by ${payload.orgName} via Prezva. Reply to this email with any questions.`,
+      ``,
+      `Unsubscribe from reminders: ${unsubUrl}`,
+      `Unsubscribe from all emails: ${unsubAllUrl}`,
+    ].filter(Boolean).join('\n')
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -158,6 +193,7 @@ export const sendConfirmationEmail = schemaTask({
         to:        payload.attendeeEmail,
         subject:   `${payload.orgName}: You're registered for ${payload.eventTitle}${roleNote}`,
         html,
+        text:      textParts,
         reply_to:  payload.orgEmail || undefined,
         headers:   { 'List-Unsubscribe': `<${unsubAllUrl}>` },
       }),
@@ -225,6 +261,14 @@ export const processWaitlist = schemaTask({
     const wlUnsubUrl = `${BASE_URL}/api/unsubscribe?token=${wlRegIdB64}&type=reminders`
     const wlUnsubAllUrl = `${BASE_URL}/api/unsubscribe?token=${wlRegIdB64}&type=all`
 
+    let wlQrDataUrl = ''
+    try {
+      const QRCode = (await import('qrcode')).default
+      wlQrDataUrl = await QRCode.toDataURL(next.qr_code, { width: 200, margin: 1 })
+    } catch {
+      wlQrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(next.qr_code)}`
+    }
+
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -239,7 +283,7 @@ export const processWaitlist = schemaTask({
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
-              src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(next.qr_code)}"
+              src="${wlQrDataUrl}"
               alt="QR Code" width="160" style="border-radius:4px;"
             />
             <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${next.qr_code}</p>
@@ -258,6 +302,21 @@ export const processWaitlist = schemaTask({
       </div>
     `
 
+    const wlText = [
+      `Hi ${next.attendee_name.trim().split(/\s+/)[0]},`,
+      ``,
+      `A spot opened up for ${payload.eventTitle} and you've been confirmed off the waitlist.`,
+      ``,
+      `Your check-in code: ${next.qr_code}`,
+      ``,
+      eventUrl ? `Event page: ${eventUrl}` : '',
+      ``,
+      `Powered by Prezva — reply to this email with any questions.`,
+      ``,
+      `Unsubscribe from reminders: ${wlUnsubUrl}`,
+      `Unsubscribe from all emails: ${wlUnsubAllUrl}`,
+    ].filter(Boolean).join('\n')
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -269,6 +328,7 @@ export const processWaitlist = schemaTask({
         to: next.attendee_email,
         subject: `Good news — a spot opened up for ${payload.eventTitle}`,
         html,
+        text: wlText,
         headers: { 'List-Unsubscribe': `<${wlUnsubAllUrl}>` },
       }),
     })

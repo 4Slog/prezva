@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', regId)
       .eq('status', 'pending') // idempotency guard
-      .select('*, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(name))')
+      .select('*, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(name, email))')
       .single()
 
     if (error || !reg) {
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     // Enqueue confirmation email
     const ev  = reg.events as Record<string, unknown>
-    const org = ev?.organizations as { name: string } | null
+    const org = ev?.organizations as { name: string; email?: string | null } | null
     await enqueueConfirmationEmail({
       registrationId: reg.id,
       attendeeEmail:  reg.attendee_email,
@@ -75,8 +75,12 @@ export async function POST(req: NextRequest) {
       eventSlug:      ev?.slug as string ?? '',
       eventVenue:     [ev?.venue_name, ev?.venue_city, ev?.venue_state]
         .filter(Boolean).join(', ') || undefined,
-      qrCode:  reg.qr_code,
-      orgName: org?.name ?? 'Prezva',
+      qrCode:     reg.qr_code,
+      orgName:    org?.name ?? 'Prezva',
+      orgEmail:   org?.email || undefined,
+      virtualUrl: (ev?.virtual_url as string) || undefined,
+      eventType:  (ev?.event_type as string) || undefined,
+      pressToken: ((reg as Record<string, unknown>).press_token as string) || undefined,
     })
   }
 

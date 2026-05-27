@@ -169,7 +169,7 @@ export async function approveRegistration(registrationId: string) {
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name, email))')
+    .select('id, status, attendee_email, attendee_name, qr_code, press_token, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(id, name, email))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -202,6 +202,9 @@ export async function approveRegistration(registrationId: string) {
     qrCode: reg.qr_code,
     orgName,
     orgEmail: ev?.organizations?.email || undefined,
+    virtualUrl: ev.virtual_url || undefined,
+    eventType: ev.event_type || undefined,
+    pressToken: (reg as any).press_token || undefined,
   })
 
   return { ok: true }
@@ -267,7 +270,7 @@ export async function promoteFromWaitlist(registrationId: string) {
   const admin = createAdminClient()
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, status, attendee_email, attendee_name, qr_code, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, organizations(id, name, email))')
+    .select('id, status, attendee_email, attendee_name, qr_code, press_token, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(id, name, email))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -298,6 +301,9 @@ export async function promoteFromWaitlist(registrationId: string) {
     qrCode: reg.qr_code,
     orgName,
     orgEmail: ev?.organizations?.email || undefined,
+    virtualUrl: ev.virtual_url || undefined,
+    eventType: ev.event_type || undefined,
+    pressToken: (reg as any).press_token || undefined,
   })
 
   return { ok: true }

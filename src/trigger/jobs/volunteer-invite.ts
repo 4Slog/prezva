@@ -57,6 +57,29 @@ export const sendVolunteerInviteEmail = schemaTask({
       </div>
     `
 
+    const shiftText = payload.shiftStart
+      ? `Shift: ${new Date(payload.shiftStart).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}${payload.shiftEnd ? ' – ' + new Date(payload.shiftEnd).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}`
+      : ''
+
+    const text = [
+      `Hi ${payload.volunteerName},`,
+      ``,
+      `Thank you for giving your time to ${payload.eventTitle}. Here's what you need before the event:`,
+      ``,
+      `Your role:   ${payload.volunteerRole}`,
+      `Event date:  ${fmtDate(payload.eventDate)}`,
+      shiftText,
+      ``,
+      `Your volunteer portal gives you clock-in/out, role briefings, and day-of contacts.`,
+      `Save this email — your portal link is below.`,
+      ``,
+      `Access your portal: ${payload.portalUrl}`,
+      ``,
+      `No Prezva account needed — your portal link stays active through the event.`,
+      ``,
+      `Questions? Reply to this email or reach out to the event organizer directly.`,
+    ].filter(Boolean).join('\n')
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -68,6 +91,7 @@ export const sendVolunteerInviteEmail = schemaTask({
         to:       payload.volunteerEmail,
         subject:  `You're volunteering at ${payload.eventTitle} — here's your portal`,
         html,
+        text,
         reply_to: payload.orgEmail || undefined,
       }),
     })

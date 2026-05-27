@@ -107,6 +107,20 @@ export const sendAnnouncement = schemaTask({
         </div>
       `
 
+      const text = [
+        `Hi ${reg.attendee_name.trim().split(/\s+/)[0]},`,
+        ``,
+        ann.body,
+        ``,
+        eventUrl ? `Event page: ${eventUrl}` : '',
+        ``,
+        `Sent by ${orgName} via Prezva — ${eventTitle}.`,
+        `You received this because you are registered for this event.`,
+        ``,
+        `Unsubscribe from announcements: ${unsubUrl}`,
+        `Unsubscribe from all emails: ${unsubAllUrl}`,
+      ].filter(Boolean).join('\n')
+
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -118,6 +132,7 @@ export const sendAnnouncement = schemaTask({
           to:       reg.attendee_email,
           subject:  `${orgName}: ${ann.title}`,
           html,
+          text,
           reply_to: orgEmail,
           headers:  { 'List-Unsubscribe': `<${unsubAllUrl}>` },
         }),

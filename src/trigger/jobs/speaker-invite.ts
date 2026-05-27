@@ -50,6 +50,24 @@ export const sendSpeakerInviteEmail = schemaTask({
       </div>
     `
 
+    const text = [
+      `Hi ${payload.speakerName},`,
+      ``,
+      `We're excited to have you speak at ${payload.eventTitle} on ${fmtDate(payload.eventDate)}.`,
+      ``,
+      `Your speaker portal includes:`,
+      ` - Session details and room assignment`,
+      ` - A/V and slide submission`,
+      ` - Attendee Q&A and engagement tools`,
+      ` - Complimentary badge and check-in QR code`,
+      ``,
+      `Access your portal: ${payload.portalUrl}`,
+      ``,
+      `No Prezva account required — your portal link stays active through the event.`,
+      ``,
+      `Questions about your session? Reply to this email and the organizer will follow up.`,
+    ].join('\n')
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -61,6 +79,7 @@ export const sendSpeakerInviteEmail = schemaTask({
         to:       payload.speakerEmail,
         subject:  `You're speaking at ${payload.eventTitle} — here's your portal`,
         html,
+        text,
         reply_to: payload.orgEmail || undefined,
       }),
     })
