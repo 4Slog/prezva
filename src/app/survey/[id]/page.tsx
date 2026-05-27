@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { SurveyGuestForm } from '@/components/surveys/SurveyGuestForm'
 
@@ -9,12 +9,15 @@ export default async function PublicSurveyPage({ params, searchParams }: {
   const { id } = await params
   const { token } = await searchParams
 
-  const supabase = await createClient()
+  // Admin client: surveys RLS only allows staff or registered attendees. This
+  // route is the public response page, so we bypass RLS and gate access by
+  // survey status (active only) and—for inserts—the qr_code token.
+  const admin = createAdminClient()
 
-  const { data: survey } = await supabase.from('surveys').select('id, title, description, status').eq('id', id).maybeSingle()
+  const { data: survey } = await admin.from('surveys').select('id, title, description, status').eq('id', id).maybeSingle()
   if (!survey || survey.status !== 'active') notFound()
 
-  const { data: questions } = await supabase
+  const { data: questions } = await admin
     .from('survey_questions')
     .select('id, question_text, question_type, options, is_required, sort_order')
     .eq('survey_id', id)

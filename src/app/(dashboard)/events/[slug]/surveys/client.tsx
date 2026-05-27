@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { Plus, ChevronDown, ChevronUp, Send, Lock, Link, Mail } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, Send, Lock, Link, Mail, Pencil } from 'lucide-react'
+import NextLink from 'next/link'
 import { createSurvey, createSurveyFromTemplate, publishSurvey, closeSurvey, sendSurveyToAllAttendees } from '@/lib/surveys/actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { SurveyTemplate } from '@/lib/templates/types'
@@ -14,7 +15,7 @@ function extractGFormId(input: string): string {
   return match ? match[1] : input.trim()
 }
 
-export default function SurveysClient({ surveys: init, eventId, orgId, googleFormsConnected }: {
+export default function SurveysClient({ surveys: init, eventId, slug, orgId, googleFormsConnected }: {
   surveys: Survey[]; eventId: string; slug: string; orgId: string; googleFormsConnected: boolean
 }) {
   const [surveys, setSurveys] = useState(init)
@@ -209,6 +210,12 @@ export default function SurveysClient({ surveys: init, eventId, orgId, googleFor
                   {sendMsg[s.id] && <p style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>{sendMsg[s.id]}</p>}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <NextLink
+                    href={`/events/${slug}/surveys/${s.id}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 10px', fontSize: 12, textDecoration: 'none' }}
+                  >
+                    <Pencil size={12} /> Edit Questions
+                  </NextLink>
                   {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#059669', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
                   {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
                   {isPublished && (

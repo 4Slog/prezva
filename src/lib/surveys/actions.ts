@@ -79,6 +79,34 @@ export async function addQuestion(surveyId: string, formData: FormData) {
   return { data }
 }
 
+export async function updateQuestion(questionId: string, formData: FormData) {
+  const supabase = await createClient()
+  await requireUser()
+  const raw = { question_text: formData.get('question_text'), question_type: formData.get('question_type'), options: formData.get('options') as string, required: formData.get('required'), sort_order: formData.get('sort_order') }
+  const parsed = QuestionSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const options = parsed.data.question_type === 'multiple_choice' && parsed.data.options
+    ? parsed.data.options.split('\n').map(o => o.trim()).filter(Boolean)
+    : null
+  const { data, error } = await supabase
+    .from('survey_questions').update({
+      question_text: parsed.data.question_text,
+      question_type: parsed.data.question_type, options,
+      is_required: parsed.data.required === 'true',
+      sort_order: parseInt(parsed.data.sort_order ?? '0', 10),
+    }).eq('id', questionId).select().single()
+  if (error) return { error: error.message }
+  return { data }
+}
+
+export async function deleteQuestion(questionId: string) {
+  const supabase = await createClient()
+  await requireUser()
+  const { error } = await supabase.from('survey_questions').delete().eq('id', questionId)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
 export async function publishSurvey(surveyId: string) {
   const supabase = await createClient()
   const user = await requireUser()
@@ -125,20 +153,25 @@ export async function submitSurveyResponse(surveyId: string, answers: Record<str
 }
 
 export async function submitSurveyResponseByToken(surveyId: string, token: string, answers: Record<string, string>) {
-  const supabase = await createClient()
+  // Admin client: anon inserts on survey_answers are blocked by RLS
+  // (requires sr.user_id = auth.uid()). The token check below provides authz.
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
 
-  const { data: reg } = await supabase
+  if (!token) return { error: 'Invalid or expired token' }
+
+  const { data: reg } = await admin
     .from('registrations')
     .select('id, event_id')
     .eq('qr_code', token)
     .maybeSingle()
   if (!reg) return { error: 'Invalid or expired token' }
 
-  const { data: survey } = await supabase.from('surveys').select('event_id, status').eq('id', surveyId).maybeSingle()
+  const { data: survey } = await admin.from('surveys').select('event_id, status').eq('id', surveyId).maybeSingle()
   if (!survey || survey.event_id !== (reg as any).event_id) return { error: 'Survey not found' }
   if (survey.status !== 'active') return { error: 'This survey is not accepting responses' }
 
-  const { data: resp, error: respErr } = await supabase
+  const { data: resp, error: respErr } = await admin
     .from('survey_responses')
     .insert({ survey_id: surveyId, user_id: null, registration_id: (reg as any).id })
     .select().single()
@@ -148,7 +181,7 @@ export async function submitSurveyResponseByToken(surveyId: string, token: strin
     response_id: resp.id, question_id: questionId, answer_text: answer,
   }))
   if (answerRows.length > 0) {
-    const { error: ansErr } = await supabase.from('survey_answers').insert(answerRows)
+    const { error: ansErr } = await admin.from('survey_answers').insert(answerRows)
     if (ansErr) return { error: ansErr.message }
   }
   return { success: true }

@@ -1,23 +1,25 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 type Props = { params: Promise<{ slug: string }> }
 
 export default async function PublicOrgPage({ params }: Props) {
   const { slug } = await params
-  const supabase = await createClient()
+  // Admin client: organizations RLS only allows org members. This route is
+  // intentionally public, so we bypass RLS and project only safe columns.
+  const admin = createAdminClient()
 
-  const { data: org } = await supabase
+  const { data: org } = await admin
     .from('organizations')
     .select('id, name, slug, logo_url, website, description')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
   if (!org) notFound()
 
   const now = new Date().toISOString()
 
-  const { data: upcomingEvents } = await supabase
+  const { data: upcomingEvents } = await admin
     .from('events')
     .select('id, title, slug, start_at, end_at, venue_city, venue_state, event_type, cover_image_url, registration_count, status')
     .eq('org_id', (org as any).id)
@@ -27,7 +29,7 @@ export default async function PublicOrgPage({ params }: Props) {
     .order('start_at', { ascending: true })
     .limit(6)
 
-  const { data: pastEvents } = await supabase
+  const { data: pastEvents } = await admin
     .from('events')
     .select('id, title, slug, start_at, venue_city, venue_state, registration_count')
     .eq('org_id', (org as any).id)
