@@ -1,17 +1,41 @@
 // One-off test email to verify Resend + domain delivery end-to-end.
+// Generates a QR PNG, uploads it to the qr-codes Supabase Storage bucket,
+// then sends a confirmation-style email pointing <img src> at the public URL.
+// (Gmail strips data: URLs, so the email must use a real URL.)
 // Run: node scripts/send-test-email.mjs
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import QRCode from 'qrcode'
+import { createClient } from '@supabase/supabase-js'
 
-const envPath = resolve(process.cwd(), '.env.local')
-const env = readFileSync(envPath, 'utf8')
-const match = env.match(/^RESEND_API_KEY=(.+)$/m)
-if (!match) { console.error('RESEND_API_KEY not found'); process.exit(1) }
-const key = match[1].trim().replace(/^["']|["']$/g, '')
+function envValue(env, key) {
+  const m = env.match(new RegExp(`^${key}=(.+)$`, 'm'))
+  return m ? m[1].trim().replace(/^["']|["']$/g, '') : null
+}
+
+const env = readFileSync(resolve(process.cwd(), '.env.local'), 'utf8')
+const resendKey   = envValue(env, 'RESEND_API_KEY')
+const supabaseUrl = envValue(env, 'NEXT_PUBLIC_SUPABASE_URL')
+const serviceKey  = envValue(env, 'SUPABASE_SERVICE_ROLE_KEY')
+if (!resendKey || !supabaseUrl || !serviceKey) {
+  console.error('Missing one of: RESEND_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY')
+  process.exit(1)
+}
 
 const qrText = 'PREZVA-TEST1234'
-const qrDataUrl = await QRCode.toDataURL(qrText, { width: 200, margin: 1 })
+const registrationId = `test-${Date.now()}`
+
+const qrBuffer = await QRCode.toBuffer(qrText, { width: 200, margin: 1 })
+
+const admin = createClient(supabaseUrl, serviceKey)
+const fileName = `qr-${registrationId}.png`
+const { error: upErr } = await admin.storage
+  .from('qr-codes')
+  .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true })
+if (upErr) { console.error('QR upload failed:', upErr); process.exit(1) }
+const { data: pub } = admin.storage.from('qr-codes').getPublicUrl(fileName)
+const qrImgUrl = pub.publicUrl
+console.log('Hosted QR URL:', qrImgUrl)
 
 const BASE_URL = 'https://prezva.app'
 const attendeeName = 'Paul Sowu'
@@ -30,13 +54,13 @@ const html = `
     </div>
     <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
       <p style="font-size:15px;">Hi ${attendeeName},</p>
-      <p style="font-size:14px;color:#F59E0B;">⚠ This is a test email sent by Claude Code from Prezva to verify end-to-end Resend delivery on prezva.app.</p>
+      <p style="font-size:14px;color:#F59E0B;">⚠ This is a test email sent by Claude Code from Prezva to verify end-to-end Resend delivery and the hosted-QR rendering path used in production.</p>
       <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${eventTitle}</strong> is confirmed.</p>
       <p style="margin:4px 0;">📅 ${dateStr}</p>
       <p style="margin:4px 0;">📍 ${eventVenue}</p>
       <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
         <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
-        <img src="${qrDataUrl}" alt="QR Code" width="160" style="border-radius:4px;" />
+        <img src="${qrImgUrl}" alt="QR Code" width="160" style="border-radius:4px;" />
         <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${qrText}</p>
       </div>
       <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
@@ -65,7 +89,7 @@ const text = [
 const res = await fetch('https://api.resend.com/emails', {
   method: 'POST',
   headers: {
-    Authorization: `Bearer ${key}`,
+    Authorization: `Bearer ${resendKey}`,
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
@@ -79,6 +103,6 @@ const res = await fetch('https://api.resend.com/emails', {
 })
 
 const body = await res.text()
-console.log('Status:', res.status)
-console.log('Body:', body)
+console.log('Resend status:', res.status)
+console.log('Resend body:', body)
 process.exit(res.ok ? 0 : 1)

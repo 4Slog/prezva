@@ -91,14 +91,21 @@ export const sendConfirmationEmail = schemaTask({
       ? ` (You're also ${speakerMatch.event_role === 'mc' ? 'the MC' : 'speaking'}!)`
       : volunteerMatch ? ` (You're also volunteering!)` : ''
 
-    // Generate QR code as inline base64 data URL (renders without external requests)
-    let qrDataUrl = ''
+    // Generate QR as PNG and host on Supabase Storage.
+    // Gmail strips data: URLs in <img src>, so we need a real URL.
+    let qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload.qrCode)}`
     try {
       const QRCode = (await import('qrcode')).default
-      qrDataUrl = await QRCode.toDataURL(payload.qrCode, { width: 200, margin: 1 })
+      const qrBuffer = await QRCode.toBuffer(payload.qrCode, { width: 200, margin: 1 })
+      const fileName = `qr-${payload.registrationId}.png`
+      const { error: upErr } = await admin.storage
+        .from('qr-codes')
+        .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true })
+      if (upErr) throw upErr
+      const { data: pub } = admin.storage.from('qr-codes').getPublicUrl(fileName)
+      qrImgUrl = pub.publicUrl
     } catch (err) {
-      console.error('[trigger] QR generation failed, falling back to api.qrserver.com:', err)
-      qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload.qrCode)}`
+      console.error('[trigger] QR upload failed, falling back to api.qrserver.com:', err)
     }
 
     const html = `
@@ -127,7 +134,7 @@ export const sendConfirmationEmail = schemaTask({
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
-              src="${qrDataUrl}"
+              src="${qrImgUrl}"
               alt="QR Code" width="160" style="border-radius:4px;"
             />
             <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${payload.qrCode}</p>
@@ -261,12 +268,20 @@ export const processWaitlist = schemaTask({
     const wlUnsubUrl = `${BASE_URL}/api/unsubscribe?token=${wlRegIdB64}&type=reminders`
     const wlUnsubAllUrl = `${BASE_URL}/api/unsubscribe?token=${wlRegIdB64}&type=all`
 
-    let wlQrDataUrl = ''
+    // Generate QR as PNG and host on Supabase Storage (Gmail strips data: URLs).
+    let wlQrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(next.qr_code)}`
     try {
       const QRCode = (await import('qrcode')).default
-      wlQrDataUrl = await QRCode.toDataURL(next.qr_code, { width: 200, margin: 1 })
-    } catch {
-      wlQrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(next.qr_code)}`
+      const qrBuffer = await QRCode.toBuffer(next.qr_code, { width: 200, margin: 1 })
+      const fileName = `qr-${next.id}.png`
+      const { error: upErr } = await supabase.storage
+        .from('qr-codes')
+        .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('qr-codes').getPublicUrl(fileName)
+      wlQrImgUrl = pub.publicUrl
+    } catch (err) {
+      console.error('[trigger] Waitlist QR upload failed, falling back to api.qrserver.com:', err)
     }
 
     const html = `
@@ -283,7 +298,7 @@ export const processWaitlist = schemaTask({
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
-              src="${wlQrDataUrl}"
+              src="${wlQrImgUrl}"
               alt="QR Code" width="160" style="border-radius:4px;"
             />
             <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${next.qr_code}</p>
