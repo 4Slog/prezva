@@ -1,5 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
+import { createAdminClient } from '../lib/supabase-admin'
 
 export const sendAnnouncement = schemaTask({
   id: 'send-announcement',
@@ -7,11 +8,7 @@ export const sendAnnouncement = schemaTask({
     announcementId: z.string(),
   }),
   run: async (payload) => {
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    const supabase = createAdminClient()
 
     const { data: ann } = await supabase
       .from('announcements')
@@ -155,10 +152,7 @@ export const sendAnnouncement = schemaTask({
     }
 
     // Update announcement status based on delivery outcome
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    const admin = createAdminClient()
     if (sent > 0) {
       await admin
         .from('announcements')

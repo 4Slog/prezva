@@ -1,5 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
+import { createAdminClient } from '../lib/supabase-admin'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
@@ -34,11 +35,7 @@ export const sendConfirmationEmail = schemaTask({
     const unsubAllUrl = `${BASE_URL}/api/unsubscribe?token=${regIdB64}&type=all`
 
     // Look up extra roles for this attendee at this event
-    const { createClient: createSupa } = await import('@supabase/supabase-js')
-    const admin = createSupa(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    const admin = createAdminClient()
     const { data: eventRow } = await admin.from('events').select('id').eq('slug', payload.eventSlug).maybeSingle()
     const eventId = eventRow?.id
     let speakerMatch: { event_role: string; confirmation_token: string } | null = null
@@ -227,11 +224,7 @@ export const processWaitlist = schemaTask({
     eventSlug:  z.string().optional(),
   }),
   run: async (payload) => {
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    const supabase = createAdminClient()
 
     // Find highest-priority waitlisted registration
     const { data: next } = await supabase
