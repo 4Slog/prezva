@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { validateSpeakerToken } from '@/lib/speaker/speaker-actions'
+import { speakerHandoutLimiter, checkRateLimit } from '@/lib/ratelimit'
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
   const tokenData = await validateSpeakerToken(token)
   if (!tokenData || tokenData.speaker_id !== speakerId || tokenData.event_id !== eventId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Rate limit per speaker — uploads cascade into attendee email notifications.
+  const { limited } = await checkRateLimit(speakerHandoutLimiter, `${eventId}:${speakerId}`)
+  if (limited) {
+    return NextResponse.json(
+      { error: 'Too many uploads — try again later.' },
+      { status: 429 },
+    )
   }
 
   if (!ALLOWED_TYPES.includes(file.type)) {

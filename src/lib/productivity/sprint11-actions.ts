@@ -1,6 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { requireUser } from '@/lib/auth/get-user'
+import { assertOrgRole } from '@/lib/orgs/actions'
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -115,9 +118,13 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
 
 export async function saveEventAsTemplate(eventId: string, name: string, description: string) {
   const supabase = await createClient()
+  const user = await requireUser()
 
   const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
+
+  // event_templates is service-role only; require org membership before writing.
+  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin'])
 
   const { data: sessions } = await supabase.from('sessions').select('*').eq('event_id', eventId)
   const { data: tickets } = await supabase.from('ticket_types').select('*').eq('event_id', eventId)
@@ -130,7 +137,8 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
     speakers: (speakers ?? []) as any[],
   }
 
-  const { error } = await supabase.from('event_templates').insert({
+  const admin = createAdminClient()
+  const { error } = await admin.from('event_templates').insert({
     org_id: (event as any).org_id,
     name,
     description,
@@ -142,7 +150,11 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
 
 export async function getEventTemplates(orgId: string) {
   const supabase = await createClient()
-  const { data } = await supabase
+  const user = await requireUser()
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('event_templates')
     .select('id, name, description, created_at')
     .eq('org_id', orgId)
@@ -152,8 +164,13 @@ export async function getEventTemplates(orgId: string) {
 
 export async function createEventFromTemplate(templateId: string, orgId: string, title: string, slug: string) {
   const supabase = await createClient()
-  const { data: tpl } = await supabase.from('event_templates').select('*').eq('id', templateId).single()
+  const user = await requireUser()
+  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+
+  const admin = createAdminClient()
+  const { data: tpl } = await admin.from('event_templates').select('*').eq('id', templateId).single()
   if (!tpl) return { error: 'Template not found' }
+  if ((tpl as any).org_id !== orgId) return { error: 'Template not found' }
 
   const td = (tpl as any).template_data
   const { data: newEvent, error: evError } = await supabase.from('events').insert({

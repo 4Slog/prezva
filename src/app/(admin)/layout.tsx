@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/admin/gate'
 import { UserMenu } from '@/components/auth/UserMenu'
 
 const NAV = [
@@ -12,6 +13,8 @@ const NAV = [
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Hard gate: must be a platform admin (ADMIN_EMAILS allowlist). Redirects otherwise.
+  await requireAdmin()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

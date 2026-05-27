@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-// Simple admin secret check — add ADMIN_SECRET to Vercel env vars
-function isAdmin(req: NextRequest): boolean {
-  const secret = req.headers.get('x-admin-secret')
-  return !!process.env.ADMIN_SECRET && secret === process.env.ADMIN_SECRET
-}
+import { requireAdmin } from '@/lib/admin/gate'
 
 // GET /api/admin/invite-codes — list all codes
-export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export async function GET() {
+  await requireAdmin()
 
   const admin = createAdminClient()
   const { data } = await admin
@@ -23,7 +18,7 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/invite-codes — generate new code(s)
 // Body: { email?: string, note?: string, count?: number }
 export async function POST(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const adminEmail = await requireAdmin()
 
   const { email, note, count = 1 } = await req.json()
   const admin = createAdminClient()
@@ -35,7 +30,7 @@ export async function POST(req: NextRequest) {
       code,
       email: email ?? null,
       note: note ?? null,
-      created_by: 'admin-api',
+      created_by: adminEmail,
     })
   }
 

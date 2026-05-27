@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { assertOrgRole } from '@/lib/orgs/actions'
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string; letterId: string }> }
 ) {
-  await requireUser()
-  const { letterId } = await params
-  // Admin client: read the dead-letter item to determine replay type
+  const user = await requireUser()
+  const { id: eventId, letterId } = await params
   const admin = createAdminClient()
+
+  // Verify the dead-letter item belongs to the event in the URL.
   const { data: item } = await admin
     .from('dead_letter_items')
     .select('*')
@@ -17,6 +20,24 @@ export async function POST(
     .maybeSingle()
 
   if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+  if (item.event_id && item.event_id !== eventId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  // Require org staff+ on the event before allowing replay.
+  const { data: event } = await admin
+    .from('events')
+    .select('org_id')
+    .eq('id', eventId)
+    .maybeSingle()
+  if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const supabase = await createClient()
+  try {
+    await assertOrgRole(supabase, event.org_id as string, user.id, ['owner', 'admin', 'staff'])
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   // For check_in_sync type: re-attempt the sync via the check-in API
   if (item.type === 'check_in_sync') {

@@ -7,11 +7,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
   const { data: event } = await admin
     .from('events')
-    .select('id, title, org_id, registration_count, checked_in_count, organizations(name)')
+    .select('id, title, org_id, registration_count, checked_in_count, end_at, organizations(name)')
     .eq('lobby_token', token)
     .single()
 
   if (!event) return NextResponse.json({ error: 'Invalid token' }, { status: 404 })
+
+  // Auto-expire 3 days after the event ends — lobby displays at venues often stay
+  // logged in long after the event, and stale tokens shouldn't keep leaking
+  // attendee names. Organizer-side notification of expiry is Sprint B.
+  const endAt = (event as any).end_at
+  if (endAt) {
+    const expiresAt = new Date(endAt).getTime() + 3 * 24 * 60 * 60 * 1000
+    if (Date.now() > expiresAt) {
+      return NextResponse.json(
+        { expired: true, message: 'This event has ended' },
+        { status: 410 },
+      )
+    }
+  }
 
   const eventId = (event as any).id
   const now = new Date().toISOString()

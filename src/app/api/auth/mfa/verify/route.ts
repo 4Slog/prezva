@@ -1,6 +1,7 @@
 'use server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { mfaVerifyLimiter, checkRateLimit } from '@/lib/ratelimit'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -10,7 +11,17 @@ const Schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  await requireUser()
+  const user = await requireUser()
+
+  // Rate limit per user to prevent brute-force of the 6-digit TOTP code.
+  const { limited } = await checkRateLimit(mfaVerifyLimiter, user.id)
+  if (limited) {
+    return NextResponse.json(
+      { error: 'Too many attempts — try again in a minute.' },
+      { status: 429 },
+    )
+  }
+
   const supabase = await createClient()
 
   const body = await req.json()

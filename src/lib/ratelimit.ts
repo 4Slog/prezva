@@ -25,6 +25,16 @@ export const myQrLimiter = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'rl:qr' })
   : null
 
+// 5 MFA verify attempts per user per minute (prevents 6-digit TOTP brute force)
+export const mfaVerifyLimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'rl:mfa' })
+  : null
+
+// 10 handout uploads per speaker token per hour (prevents attendee notification spam)
+export const speakerHandoutLimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 h'), prefix: 'rl:handout' })
+  : null
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string

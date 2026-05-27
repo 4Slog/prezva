@@ -44,9 +44,11 @@ export async function createSpeaker(eventId: string, input: {
 }
 
 export async function getOrCreateSpeakerToken(eventId: string, speakerId: string) {
-  const supabase = await createClient()
+  // speaker_tokens is service-role only — bearer tokens must never be exposed
+  // via RLS. Callers of this function are already org-staff-gated upstream.
+  const admin = createAdminClient()
 
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('speaker_tokens')
     .select('token, expires_at')
     .eq('event_id', eventId)
@@ -57,7 +59,7 @@ export async function getOrCreateSpeakerToken(eventId: string, speakerId: string
     return existing.token as string
   }
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('speaker_tokens')
     .upsert({ event_id: eventId, speaker_id: speakerId }, { onConflict: 'event_id,speaker_id' })
     .select('token')
@@ -237,8 +239,9 @@ export async function saveSpeakerFormSchema(eventId: string, schema: any[]) {
 }
 
 export async function getSpeakerFormSubmission(eventId: string, speakerId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+  // speaker_form_submissions is service-role only.
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('speaker_form_submissions')
     .select('data')
     .eq('event_id', eventId)
@@ -248,8 +251,8 @@ export async function getSpeakerFormSubmission(eventId: string, speakerId: strin
 }
 
 export async function saveSpeakerFormSubmission(eventId: string, speakerId: string, formData: Record<string, string>) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('speaker_form_submissions')
     .upsert({ event_id: eventId, speaker_id: speakerId, data: formData, updated_at: new Date().toISOString() }, { onConflict: 'event_id,speaker_id' })
   return { error: error?.message }
@@ -258,8 +261,10 @@ export async function saveSpeakerFormSubmission(eventId: string, speakerId: stri
 // ── T-095f: handouts ──────────────────────────────────────────────────────────
 
 export async function getSessionHandouts(sessionId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+  // Speaker portal context has no auth.uid so the user-scoped RLS policy
+  // returns nothing. Speakers are gated by the speaker_token upstream.
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('session_handouts')
     .select('id, filename, storage_path, created_at')
     .eq('session_id', sessionId)
@@ -268,16 +273,16 @@ export async function getSessionHandouts(sessionId: string) {
 }
 
 export async function deleteHandout(handoutId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('session_handouts')
     .select('storage_path')
     .eq('id', handoutId)
     .single()
   if ((data as any)?.storage_path) {
-    await supabase.storage.from('speaker-handouts').remove([(data as any).storage_path])
+    await admin.storage.from('speaker-handouts').remove([(data as any).storage_path])
   }
-  const { error } = await supabase.from('session_handouts').delete().eq('id', handoutId)
+  const { error } = await admin.from('session_handouts').delete().eq('id', handoutId)
   return { error: error?.message }
 }
 
@@ -285,8 +290,10 @@ export async function deleteHandout(handoutId: string) {
 
 export async function getSessionFeedbackForSpeaker(sessionIds: string[]) {
   if (sessionIds.length === 0) return {}
-  const supabase = await createClient()
-  const { data } = await supabase
+  // Speaker portal context has no auth.uid; attendees see only their own
+  // feedback via RLS. Speakers reach this through speaker_token validation.
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('session_feedback')
     .select('session_id, rating, comment, created_at')
     .in('session_id', sessionIds)
@@ -320,7 +327,9 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
   if (sessionIds.length === 0) return []
 
   const [{ data: questions }, { data: coSpeakerRows }, { data: handoutRows }] = await Promise.all([
-    supabase
+    // session_questions read uses admin client — speaker portal has no auth.uid
+    // and the user-scoped policy would only return the speaker's own questions.
+    admin
       .from('session_questions')
       .select('id, session_id, body, upvote_count, is_poll, poll_options, answered_at, is_hidden, is_pinned, organizer_answer, created_at')
       .in('session_id', sessionIds)
@@ -357,10 +366,13 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
 export async function createPoll(sessionId: string, eventId: string, body: string, options: string[]) {
   const supabase = await createClient()
   const user = await supabase.auth.getUser()
-  const { error } = await supabase.from('session_questions').insert({
+  // Speakers can create polls from the token-gated portal (no auth.uid); use
+  // admin client so both authenticated staff and token-only speakers work.
+  const admin = createAdminClient()
+  const { error } = await admin.from('session_questions').insert({
     session_id: sessionId,
     event_id: eventId,
-    user_id: user.data.user?.id,
+    user_id: user.data.user?.id ?? null,
     body,
     is_poll: true,
     poll_options: options.map(opt => ({ label: opt, votes: 0 })),
@@ -369,8 +381,8 @@ export async function createPoll(sessionId: string, eventId: string, body: strin
 }
 
 export async function markQuestionAnswered(questionId: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('session_questions')
     .update({ answered_at: new Date().toISOString() })
     .eq('id', questionId)
@@ -380,8 +392,10 @@ export async function markQuestionAnswered(questionId: string) {
 // ── T-095d: speaker messaging ─────────────────────────────────────────────────
 
 export async function getOrCreateSpeakerConversation(eventId: string, speakerId: string) {
-  const supabase = await createClient()
-  const { data: existing } = await supabase
+  // speaker_conversations is service-role only; called from speaker portal and
+  // org dashboard contexts.
+  const admin = createAdminClient()
+  const { data: existing } = await admin
     .from('speaker_conversations')
     .select('id')
     .eq('event_id', eventId)
@@ -390,7 +404,7 @@ export async function getOrCreateSpeakerConversation(eventId: string, speakerId:
 
   if (existing) return (existing as any).id as string
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('speaker_conversations')
     .insert({ event_id: eventId, speaker_id: speakerId })
     .select('id')
@@ -399,8 +413,8 @@ export async function getOrCreateSpeakerConversation(eventId: string, speakerId:
 }
 
 export async function getSpeakerMessages(conversationId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('speaker_messages')
     .select('id, sender_role, body, created_at')
     .eq('conversation_id', conversationId)
@@ -409,15 +423,13 @@ export async function getSpeakerMessages(conversationId: string) {
 }
 
 export async function sendSpeakerMessage(conversationId: string, senderRole: 'organizer' | 'speaker', body: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('speaker_messages')
     .insert({ conversation_id: conversationId, sender_role: senderRole, body })
   if (error) return { error: error.message }
 
   if (senderRole === 'organizer') {
-    const admin = createAdminClient()
-
     const { data: conv } = await admin
       .from('speaker_conversations')
       .select('speaker_id, event_id, speakers(name, email, confirmation_token), events(title, organizations(name))')
@@ -466,8 +478,9 @@ export async function sendSpeakerMessage(conversationId: string, senderRole: 'or
 }
 
 export async function getSpeakerConversations(eventId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+  // speaker_conversations + speaker_messages are service-role only.
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('speaker_conversations')
     .select('id, speaker_id, speakers(name, email), speaker_messages(body, created_at, sender_role)')
     .eq('event_id', eventId)
@@ -479,11 +492,12 @@ export async function getSpeakerConversations(eventId: string) {
 
 export async function getSpeakersWithMissingInfo(eventId: string, missingField: string) {
   const supabase = await createClient()
+  const admin = createAdminClient()
   let q = supabase.from('speakers').select('id, name, email, status').eq('event_id', eventId)
   if (missingField === 'bio') q = q.is('bio', null)
   if (missingField === 'photo') q = q.is('photo_url', null)
   if (missingField === 'form') {
-    const { data: submissions } = await supabase
+    const { data: submissions } = await admin
       .from('speaker_form_submissions')
       .select('speaker_id')
       .eq('event_id', eventId)

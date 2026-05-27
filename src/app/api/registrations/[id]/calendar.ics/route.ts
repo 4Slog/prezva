@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(
@@ -7,7 +8,22 @@ export async function GET(
 ) {
   const { id } = await params
 
-  // Admin client: registration ICS is accessible by anyone with the ID (unguessable UUID)
+  // ICS bodies embed the registrant's email — gate this so only the registrant
+  // or org staff can download. RLS on `registrations` enforces (user_id = auth.uid()
+  // OR has_org_role(event_org_id, 'staff')), so the user-context client returns
+  // nothing for unrelated callers.
+  const supabase = await createClient()
+  const { data: ownReg } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (!ownReg) {
+    return new NextResponse('Registration not found', { status: 404 })
+  }
+
+  // Once authorized, use admin client to assemble the ICS payload with joins.
   const admin = createAdminClient()
   const { data: reg } = await admin
     .from('registrations')

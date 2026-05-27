@@ -29,15 +29,18 @@ export async function castPollVote(questionId: string, optionIndex: number) {
   }, { onConflict: 'question_id,user_id' })
   if (error) return { error: error.message }
 
-  // Update poll_options vote counts
-  const { data: q } = await supabase
+  // Vote-count rollup runs on behalf of the voter. Reading peer votes and
+  // updating the question are not permitted under the user-scoped policies,
+  // so use admin client for the tally + write-back.
+  const admin = createAdminClient()
+  const { data: q } = await admin
     .from('session_questions')
     .select('poll_options')
     .eq('id', questionId)
     .single()
 
   const options = ((q as any)?.poll_options ?? []) as any[]
-  const { data: votes } = await supabase
+  const { data: votes } = await admin
     .from('poll_votes')
     .select('option_index')
     .eq('question_id', questionId)
@@ -48,7 +51,7 @@ export async function castPollVote(questionId: string, optionIndex: number) {
   }
 
   const updatedOptions = options.map((opt: any, i: number) => ({ ...opt, votes: counts[i] ?? 0 }))
-  await supabase.from('session_questions').update({ poll_options: updatedOptions }).eq('id', questionId)
+  await admin.from('session_questions').update({ poll_options: updatedOptions }).eq('id', questionId)
 
   return { ok: true }
 }
@@ -158,7 +161,9 @@ export async function awardPoints(eventId: string, userId: string, action: strin
     // fall back to default
   }
 
-  const { error } = await supabase
+  // leaderboard_points is service-role only; insert via admin client.
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('leaderboard_points')
     .insert({ event_id: eventId, user_id: userId, action, points })
   // Ignore unique constraint violations (23505) — duplicate award attempt, silently skip
@@ -178,8 +183,8 @@ export async function updateLeaderboardPointConfig(eventId: string, config: Reco
 }
 
 export async function getLeaderboard(eventId: string, limit = 50) {
-  const supabase = await createClient()
-  const { data } = await supabase
+  const admin = createAdminClient()
+  const { data } = await admin
     .from('leaderboard_points')
     .select('user_id, points')
     .eq('event_id', eventId)
@@ -215,13 +220,15 @@ export async function voteForPhoto(entryId: string) {
     user_id: user.data.user.id,
   })
   if (error) return { error: error.message }
-  // Increment vote_count
-  const { data: entry } = await supabase
+  // Vote count is bumped on behalf of the voter, who doesn't own the entry —
+  // use admin client to perform the increment.
+  const admin = createAdminClient()
+  const { data: entry } = await admin
     .from('photo_contest_entries')
     .select('vote_count')
     .eq('id', entryId)
     .single()
-  await supabase.from('photo_contest_entries')
+  await admin.from('photo_contest_entries')
     .update({ vote_count: ((entry as any)?.vote_count ?? 0) + 1 })
     .eq('id', entryId)
   return { ok: true }
@@ -252,7 +259,10 @@ export async function submitTriviaAnswer(questionId: string, answerIndex: number
   const { data: { user } } = await supabase.auth.getUser()
   if (!user && !registrationId) return { error: 'Enter your registration code to participate', correct: false }
 
-  const { data: q } = await supabase
+  // Read trivia question via admin client — guest path has no auth.uid() so
+  // the user-scoped RLS policy would return nothing.
+  const triviaAdmin = createAdminClient()
+  const { data: q } = await triviaAdmin
     .from('trivia_questions')
     .select('correct_index, points, event_id')
     .eq('id', questionId)

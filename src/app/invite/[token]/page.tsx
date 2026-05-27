@@ -1,4 +1,4 @@
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { acceptInvite } from '@/lib/orgs/actions'
 import { redirect } from 'next/navigation'
@@ -9,10 +9,9 @@ type Props = { params: Promise<{ token: string }> }
 export default async function InvitePage({ params }: Props) {
   const { token } = await params
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  // Admin client: invite lookup by token is intentionally pre-auth — the token
+  // is the capability that lets a user accept the invite.
+  const service = createAdminClient()
 
   const { data: invite } = await service
     .from('org_member_invites')
