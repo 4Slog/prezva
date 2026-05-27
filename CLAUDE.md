@@ -39,7 +39,7 @@ Goal: ship a consumer-ready, fully tested platform.
 - `/security-review` — check auth/RLS/payment changes
 - `/rewind` — roll back if something goes wrong
 - `/background` — detach long-running tasks
-- `/desktop` — hand off to Claude Desktop when a decision is needed
+- `/handoff` — hand off to Claude Desktop when a decision is needed (writes `/tmp/prezva-handoff.md`)
 - `/goal` — set autonomous target and run until done
 - `/compact` — compress context when window gets long
 
@@ -70,7 +70,7 @@ Goal: ship a consumer-ready, fully tested platform.
 2. Run `/code-review` on the diff
 3. `git add` and `git commit` with a clear message
 4. Report what was done, what changed, and test results
-5. Use `/desktop` if anything needs a senior decision before committing
+5. Use `/handoff` if anything needs a senior decision before committing
 
 ## Key File Paths
 - Brand constants: `src/lib/brand.ts`
@@ -87,4 +87,4 @@ Goal: ship a consumer-ready, fully tested platform.
 - Never commit secrets or .env.local
 - Never push to main without passing tests
 - Never skip `/code-review` before a commit
-- Never make architectural decisions alone — use `/desktop` to escalate
+- Never make architectural decisions alone — use `/handoff` to escalate

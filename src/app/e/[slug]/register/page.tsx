@@ -11,7 +11,7 @@ export default async function RegisterPage({ params }: Props) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, start_at, end_at, timezone, venue_name, venue_city, venue_state, organizations(name)')
+    .select('id, title, slug, status, start_at, end_at, timezone, venue_name, venue_city, venue_state, organizations(name, stripe_account_id, charges_enabled)')
     .eq('slug', slug)
     .in('status', ['published', 'live'])
     .maybeSingle()
@@ -29,11 +29,15 @@ export default async function RegisterPage({ params }: Props) {
     getFormFields(event.id),
   ])
 
+  const org = (event as unknown as { organizations: { stripe_account_id: string | null; charges_enabled: boolean } | null }).organizations
+  const paymentsEnabled = !!(org?.stripe_account_id && org?.charges_enabled)
+
   return (
     <RegisterPageClient
       event={event as unknown as Parameters<typeof RegisterPageClient>[0]["event"]}
       tickets={(ticketsResult.data ?? []) as Parameters<typeof RegisterPageClient>[0]['tickets']}
       formFields={formFields as Parameters<typeof RegisterPageClient>[0]['formFields']}
+      paymentsEnabled={paymentsEnabled}
     />
   )
 }

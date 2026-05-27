@@ -44,6 +44,7 @@ interface RegisterPageClientProps {
   event: Event
   tickets: TicketType[]
   formFields?: FormField[]
+  paymentsEnabled?: boolean
 }
 
 function fmtPrice(cents: number, currency: string) {
@@ -60,9 +61,13 @@ function fmtDate(iso: string, tz: string) {
   })
 }
 
-export function RegisterPageClient({ event, tickets, formFields = [] }: RegisterPageClientProps) {
+export function RegisterPageClient({ event, tickets, formFields = [], paymentsEnabled = true }: RegisterPageClientProps) {
+  // Paid tickets are unavailable if the organizer's Stripe Connect is not ready
+  function isPayable(t: TicketType) {
+    return t.price_cents === 0 || paymentsEnabled
+  }
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(
-    tickets.length === 1 ? tickets[0] : null,
+    tickets.length === 1 && isPayable(tickets[0]) ? tickets[0] : null,
   )
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [discountCode, setDiscountCode] = useState('')
@@ -155,12 +160,14 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
           <div className="flex flex-col gap-3">
             {tickets.map((t) => {
               const soldOut = t.quantity !== null && t.quantity_sold >= t.quantity
+              const unpaidUnavailable = t.price_cents > 0 && !paymentsEnabled
+              const disabled = soldOut || unpaidUnavailable
               const selected = selectedTicket?.id === t.id
               return (
-                <div key={t.id} className={`pz-card p-4 transition-all ${soldOut ? 'opacity-50' : ''} ${selected ? 'border-[#00BFA6] pz-glow-teal' : ''}`}>
+                <div key={t.id} className={`pz-card p-4 transition-all ${disabled ? 'opacity-50' : ''} ${selected ? 'border-[#00BFA6] pz-glow-teal' : ''}`}>
                   <button
                     type="button"
-                    disabled={soldOut}
+                    disabled={disabled}
                     onClick={() => { setSelectedTicket(t); setDiscount(null); setDiscountCode('') }}
                     className="w-full text-left"
                   >
@@ -169,6 +176,9 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
                         <p className="font-medium text-[#F0F4F8]">{t.name}</p>
                         {t.description && <p className="text-xs text-[#94A3B8] mt-0.5">{t.description}</p>}
                         {soldOut && <p className="text-xs text-[#EF4444] mt-1">Sold out</p>}
+                        {!soldOut && unpaidUnavailable && (
+                          <p className="text-xs text-[#F59E0B] mt-1">Payment not yet configured for this event</p>
+                        )}
                       </div>
                       <div className="text-right ml-4 flex-shrink-0">
                         <p className="font-bold text-[#00BFA6]">{fmtPrice(t.price_cents, t.currency)}</p>
@@ -180,7 +190,7 @@ export function RegisterPageClient({ event, tickets, formFields = [] }: Register
                       </div>
                     </div>
                   </button>
-                  {selected && !soldOut && (
+                  {selected && !disabled && (
                     <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#1E3A5F]">
                       <span className="text-sm text-[#94A3B8]">Quantity:</span>
                       <div className="flex items-center gap-2">

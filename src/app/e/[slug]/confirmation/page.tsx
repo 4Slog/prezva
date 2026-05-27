@@ -51,10 +51,19 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const { data: reg } = resolvedRegId
     ? await admin
         .from('registrations')
-        .select('*, ticket_types(name, price_cents), events(id, org_id, title, start_at, timezone, certificate_enabled)')
+        .select('*, ticket_types(name, price_cents), events(id, org_id, title, start_at, timezone, certificate_enabled, venue_name, venue_city, venue_state)')
         .eq('id', resolvedRegId)
         .maybeSingle()
     : { data: null }
+
+  function fmtEventDate(iso: string | undefined, tz: string | undefined) {
+    if (!iso) return null
+    return new Date(iso).toLocaleString('en-US', {
+      timeZone: tz || 'UTC',
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    })
+  }
 
   const isWaitlist = waitlist === 'true'
 
@@ -114,9 +123,20 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
               <h1 className="text-xl font-bold text-[#F0F4F8] mb-2">You&apos;re registered!</h1>
               {reg && (
                 <>
-                  <p className="text-sm text-[#94A3B8] mb-1">
+                  <p className="text-base font-semibold text-[#F0F4F8] mb-1">
                     {(reg.events as { title: string } | null)?.title}
                   </p>
+                  {(() => {
+                    const ev = reg.events as { start_at?: string; timezone?: string } | null
+                    const when = fmtEventDate(ev?.start_at, ev?.timezone)
+                    return when ? <p className="text-xs text-[#94A3B8] mb-1">{when}</p> : null
+                  })()}
+                  {(reg.ticket_types as { name: string } | null)?.name && (
+                    <p className="text-xs text-[#64748B] mb-3">
+                      {(reg.ticket_types as { name: string }).name}
+                      {reg.attendee_name ? ` — ${reg.attendee_name}` : ''}
+                    </p>
+                  )}
                   <p className="text-sm text-[#94A3B8] mb-6">
                     A confirmation with your QR code has been emailed to{' '}
                     <strong className="text-[#F0F4F8]">{reg.attendee_email}</strong>
