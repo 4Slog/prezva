@@ -443,7 +443,9 @@ async function createPaidRegistration(
 
     await saveFieldResponses(admin, reg.id, fieldResponses)
     redirect(session.url!)
-  } catch {
+  } catch (err) {
+    // Next.js redirect() throws internally — must re-throw or it gets swallowed
+    if (err instanceof Error && err.message === 'NEXT_REDIRECT') throw err
     // Clean up pending registration if Stripe fails
     await admin.from('registrations').delete().eq('id', reg.id)
     return { error: 'Payment setup failed — please try again' }
