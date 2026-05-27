@@ -272,6 +272,13 @@ export async function rejectRegistration(registrationId: string, reason?: string
     .update({ status: 'cancelled' })
     .eq('id', registrationId)
 
+  const { enqueueWaitlistProcessing } = await import('@/lib/trigger')
+  await enqueueWaitlistProcessing({
+    eventId:    reg.event_id,
+    eventTitle: (ev?.title as string) ?? '',
+    eventSlug:  (ev?.slug as string) ?? undefined,
+  })
+
   const orgName = ev?.organizations?.name ?? 'Prezva'
   const reasonText = reason ? `<p style="font-size:15px;">Reason: ${reason}</p>` : ''
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
@@ -427,6 +434,15 @@ export async function selfCancelRegistration(registrationId: string) {
         }),
       })
     }
+  }
+
+  if (!isPaid) {
+    const { enqueueWaitlistProcessing } = await import('@/lib/trigger')
+    await enqueueWaitlistProcessing({
+      eventId:    reg.event_id,
+      eventTitle: (ev?.title as string) ?? '',
+      eventSlug:  (ev?.slug as string) ?? undefined,
+    })
   }
 
   return { ok: true, isPaid }
