@@ -30,10 +30,23 @@ function MiniBar({ label, count, max, revenue }: { label: string; count: number;
 
 export default async function AnalyticsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  await requireUser()
+  const user = await requireUser()
   const supabase = await createClient()
-  const { data: event } = await supabase.from('events').select('id,title,status').eq('slug', slug).single()
+  const { data: event } = await supabase.from('events').select('id,title,status,org_id').eq('slug', slug).single()
   if (!event) notFound()
+
+  // Staff cannot view analytics / revenue — owner and admin only
+  const { data: member } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', event.org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (member?.role === 'staff') {
+    const { redirect } = await import('next/navigation')
+    redirect(`/events/${slug}`)
+  }
 
   const analytics = await getEventAnalytics(event.id)
   const revenue = (analytics.totalRevenueCents / 100).toFixed(2)

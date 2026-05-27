@@ -20,7 +20,7 @@ export default async function BillingPage({ params }: Props) {
   if (!org) redirect('/dashboard')
 
   const myRole = (org.org_members as { role: string }[])[0]?.role ?? 'staff'
-  if (!['owner', 'admin'].includes(myRole)) redirect(`/orgs/${slug}/settings`)
+  if (myRole !== 'owner') redirect(`/orgs/${slug}/settings`)
 
   const hasStripe = !!org.stripe_account_id
   const fullyEnabled = org.charges_enabled && org.payouts_enabled

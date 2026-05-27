@@ -86,8 +86,11 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   // Repeat attendee recognition
   let previousCount = 0
+  let isGuest = false
   if (reg && !isWaitlist) {
     const { data: { user } } = await supabase.auth.getUser()
+    // Guest = registration has no linked account
+    isGuest = !reg.user_id && !user
     const orgId = (reg.events as any)?.org_id
     const eventId = (reg.events as any)?.id
     if (user && orgId && eventId) {
@@ -169,6 +172,21 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                   eventTitle={(reg.events as any)?.title ?? ''}
                   eventUrl={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/e/${slug}`}
                 />
+              )}
+              {isGuest && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(45,212,191,0.08)', borderRadius: 10, border: '1px solid rgba(45,212,191,0.25)', textAlign: 'left' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#F0F4F8', margin: '0 0 4px' }}>💡 Save your registration</p>
+                  <p style={{ fontSize: 12, color: '#94A3B8', margin: '0 0 10px' }}>
+                    Create a free Prezva account to manage your tickets, track your event history, and get personalized recommendations.
+                  </p>
+                  <Link
+                    href="/signup"
+                    className="inline-block rounded-lg px-4 py-1.5 text-xs font-semibold"
+                    style={{ background: 'var(--pz-teal, #2DD4BF)', color: '#0D1B2A' }}
+                  >
+                    Create free account →
+                  </Link>
+                </div>
               )}
               <div className="flex flex-col gap-3 items-center">
                 <Link
