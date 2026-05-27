@@ -20,6 +20,24 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
     let mounted = true
 
     async function init() {
+      // Prompt for camera permission ourselves *before* loading html5-qrcode.
+      // If we don't, the library renders its own "Request Camera Permissions"
+      // button and the user has to click twice.
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        // Release the stream — html5-qrcode opens its own once permission is granted.
+        stream.getTracks().forEach(t => t.stop())
+      } catch (err: any) {
+        if (!mounted) return
+        if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+          setState('denied')
+        } else {
+          // No camera, hardware busy, insecure context, etc. — same fallback UX.
+          setState('denied')
+        }
+        return
+      }
+
       try {
         const { Html5QrcodeScanner } = await import('html5-qrcode')
         if (!mounted || !divRef.current) return
