@@ -1,5 +1,5 @@
 import { schedules } from '@trigger.dev/sdk/v3'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient } from '../lib/supabase-admin'
 import { getAdapter } from '@/lib/integrations/_shared/registry'
 
 // Runs every 5 minutes — refreshes tokens expiring within 10 minutes

@@ -1,5 +1,5 @@
 import { schedules } from '@trigger.dev/sdk/v3'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient } from '../lib/supabase-admin'
 
 export const rosCueNotificationTask = schedules.task({
   id: 'run-of-show-cue-notifications',

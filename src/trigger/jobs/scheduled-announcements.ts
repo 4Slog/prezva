@@ -1,5 +1,5 @@
 import { schedules } from '@trigger.dev/sdk/v3'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient } from '../lib/supabase-admin'
 import { tasks } from '@trigger.dev/sdk/v3'
 import type { sendAnnouncement } from './announcement'
 
