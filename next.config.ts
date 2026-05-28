@@ -7,6 +7,17 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.in' },
     ],
   },
+  async rewrites() {
+    return [
+      // Public-facing calendar ICS URL used in confirmation emails.
+      // Next.js does not register directories with dots as App Router routes,
+      // so we rewrite /e/:slug/calendar.ics → the existing API route handler.
+      {
+        source: '/e/:slug/calendar.ics',
+        destination: '/api/events/:slug/calendar.ics',
+      },
+    ]
+  },
   async headers() {
     // Order matters: Next.js applies all matching entries in order, and a
     // later entry wins per-header-key. The restrictive baseline goes first
