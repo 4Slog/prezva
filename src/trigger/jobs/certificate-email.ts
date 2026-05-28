@@ -26,11 +26,28 @@ export const sendCertificateEmail = schemaTask({
       ? `<p style="color:#64748B;font-size:12px;margin:12px 0 0;">Certificate ID: <span style="font-family:monospace;color:#94A3B8;">${payload.certificateId}</span></p>`
       : ''
 
+    const ceText = payload.ceCredits && payload.ceCredits > 0
+      ? `This certificate represents ${payload.ceCredits} CE credit hour${payload.ceCredits !== 1 ? 's' : ''}. Submit it to your licensing board to claim credit.\n\n`
+      : ''
+    const certIdText = payload.certificateId
+      ? `Certificate ID: ${payload.certificateId}\n`
+      : ''
+
+    const text = [
+      `Hi ${payload.attendeeName},`,
+      `Congratulations on completing ${payload.eventTitle}. Your certificate of attendance is ready to download.`,
+      ceText.trim(),
+      `Download Certificate (PDF): ${payload.certDownloadUrl}`,
+      `Verify this certificate: ${payload.verifyUrl}`,
+      certIdText.trim(),
+    ].filter(Boolean).join('\n\n')
+
     await resend.emails.send({
       from:     'Prezva <noreply@prezva.app>',
       to:       payload.attendeeEmail,
       subject:  `${payload.eventTitle}: Your certificate is ready`,
       replyTo:  payload.orgEmail || undefined,
+      text,
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">

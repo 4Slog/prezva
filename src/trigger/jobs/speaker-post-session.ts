@@ -61,6 +61,10 @@ export const speakerPostSessionTask = schedules.task({
              ${comments.length ? `<p><em>What attendees said:</em></p><ul>${comments.map((c: string) => `<li>"${c}"</li>`).join('')}</ul>` : ''}`
           : `<p>No ratings yet — check back in your speaker hub for feedback.</p>`
 
+        const feedbackText = avg
+          ? `Your session received ${ratings.length} rating${ratings.length !== 1 ? 's' : ''} with an average of ${avg}/5.\n\n${comments.length ? 'What attendees said:\n' + comments.map((c: string) => `"${c}"`).join('\n') : ''}`
+          : 'No ratings yet — check back in your speaker hub for feedback.'
+
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -71,6 +75,14 @@ export const speakerPostSessionTask = schedules.task({
             from: `${orgName} <noreply@prezva.app>`,
             to: speaker.email,
             subject: `Thank you for speaking at ${eventTitle}!`,
+            text: [
+              `Hi ${speaker.name},`,
+              `Thank you for delivering "${session.title}" at ${eventTitle}. We hope it went well!`,
+              feedbackText,
+              `View full feedback in your speaker hub: ${hubUrl}`,
+              `We hope to see you at a future event.`,
+              `— ${orgName}`,
+            ].filter(Boolean).join('\n\n'),
             html: `<p>Hi ${speaker.name},</p>
                    <p>Thank you for delivering <strong>${session.title}</strong> at ${eventTitle}. We hope it went well!</p>
                    ${feedbackHtml}

@@ -54,6 +54,12 @@ export const speakerSessionReminderTask = schedules.task({
             from: `${orgName} <noreply@prezva.app>`,
             to: speaker.email,
             subject: `Your session starts in ~15 minutes — ${session.title}`,
+            text: [
+              `Hi ${speaker.name},`,
+              `Just a reminder: "${session.title}" begins at ${sessionTime}${room}.`,
+              `Head to your speaker hub for last-minute details: ${hubUrl}`,
+              `— ${orgName}`,
+            ].join('\n\n'),
             html: `<p>Hi ${speaker.name},</p>
                    <p>Just a reminder: <strong>${session.title}</strong> begins at <strong>${sessionTime}${room}</strong>.</p>
                    <p>Head to your speaker hub for last-minute details:</p>
