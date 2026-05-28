@@ -106,6 +106,9 @@ export const sendAnnouncement = schemaTask({
               <a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from announcements</a> ·
               <a href="${unsubAllUrl}" style="color:#64748B;">Unsubscribe from all emails</a>
             </p>
+            <p style="font-size:11px;color:#475569;text-align:center;margin-top:8px;">
+              4S Logistics LLC · 300 Colonial Center Pkwy, Ste 100N, Roswell, GA 30076, USA
+            </p>
           </div>
         </div>
       `
@@ -122,6 +125,7 @@ export const sendAnnouncement = schemaTask({
         ``,
         `Unsubscribe from announcements: ${unsubUrl}`,
         `Unsubscribe from all emails: ${unsubAllUrl}`,
+        `4S Logistics LLC · 300 Colonial Center Pkwy, Ste 100N, Roswell, GA 30076, USA`,
       ].filter(Boolean).join('\n')
 
       const res = await fetch('https://api.resend.com/emails', {
