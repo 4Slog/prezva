@@ -28,7 +28,10 @@ export const speakerSessionReminderTask = schedules.task({
       if (!assigned?.length) continue
 
       const eventTitle = session.events?.title ?? 'your event'
-      const orgName = session.events?.organizations?.name ?? 'Event organizer'
+      const orgName = session.events?.organizations?.name as string | undefined
+      if (!orgName?.trim()) {
+        throw new Error(`merge-tag: session-reminder orgName is empty (sessionId=${session.id})`)
+      }
       const tz = session.events?.timezone ?? 'UTC'
       const sessionTime = new Date(session.starts_at).toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', timeZone: tz,

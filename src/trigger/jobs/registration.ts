@@ -238,6 +238,10 @@ export const processWaitlist = schemaTask({
 
     if (!next) return { processed: false, reason: 'no waitlisted registrations' }
 
+    if (!next.qr_code?.trim()) {
+      throw new Error(`merge-tag: processWaitlist qr_code is empty (registrationId=${next.id})`)
+    }
+
     // Promote to confirmed
     const { error } = await supabase
       .from('registrations')

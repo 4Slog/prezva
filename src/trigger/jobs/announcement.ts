@@ -28,11 +28,17 @@ export const sendAnnouncement = schemaTask({
       .eq('id', ann.event_id)
       .maybeSingle()
 
-    const eventTitle = (ev as any)?.title ?? 'your event'
+    const eventTitle = (ev as any)?.title as string | undefined
+    if (!eventTitle?.trim()) {
+      throw new Error(`merge-tag: announcement eventTitle is empty (announcementId=${payload.announcementId}, eventId=${ann.event_id})`)
+    }
     const eventSlug  = (ev as any)?.slug ?? ''
     const orgInfo    = (ev as any)?.organizations as { name: string; email?: string } | null
-    const orgName    = orgInfo?.name ?? 'Your organizer'
-    const orgEmail   = orgInfo?.email || undefined
+    if (!orgInfo?.name?.trim()) {
+      throw new Error(`merge-tag: announcement orgName is empty (announcementId=${payload.announcementId}, eventId=${ann.event_id})`)
+    }
+    const orgName    = orgInfo.name
+    const orgEmail   = orgInfo.email || undefined
     const eventUrl   = eventSlug ? `https://prezva.app/e/${eventSlug}` : ''
 
     const regQuery = supabase

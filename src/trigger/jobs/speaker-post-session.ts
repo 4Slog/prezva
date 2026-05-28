@@ -41,8 +41,14 @@ export const speakerPostSessionTask = schedules.task({
         .slice(0, 3)
         .map(f => f.comment.trim())
 
-      const eventTitle = session.events?.title ?? 'the event'
-      const orgName = session.events?.organizations?.name ?? 'The organizer'
+      const eventTitle = session.events?.title as string | undefined
+      if (!eventTitle?.trim()) {
+        throw new Error(`merge-tag: post-session eventTitle is empty (sessionId=${session.id})`)
+      }
+      const orgName = session.events?.organizations?.name as string | undefined
+      if (!orgName?.trim()) {
+        throw new Error(`merge-tag: post-session orgName is empty (sessionId=${session.id})`)
+      }
 
       for (const row of assigned as any[]) {
         const speaker = row.speakers
