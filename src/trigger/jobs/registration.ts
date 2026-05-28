@@ -99,8 +99,9 @@ export const sendConfirmationEmail = schemaTask({
         .from('qr-codes')
         .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true })
       if (upErr) throw upErr
-      const { data: pub } = admin.storage.from('qr-codes').getPublicUrl(fileName)
-      qrImgUrl = pub.publicUrl
+      // Proxy through prezva.app to avoid embedding the vowel-free Supabase
+      // project subdomain in outbound email (SpamAssassin URI_NOVOWEL).
+      qrImgUrl = `${BASE_URL}/api/storage/qr/${fileName}`
     } catch (err) {
       console.error('[trigger] QR upload failed, falling back to api.qrserver.com:', err)
     }
@@ -277,8 +278,9 @@ export const processWaitlist = schemaTask({
         .from('qr-codes')
         .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true })
       if (upErr) throw upErr
-      const { data: pub } = supabase.storage.from('qr-codes').getPublicUrl(fileName)
-      wlQrImgUrl = pub.publicUrl
+      // Proxy through prezva.app to avoid embedding the vowel-free Supabase
+      // project subdomain in outbound email (SpamAssassin URI_NOVOWEL).
+      wlQrImgUrl = `${BASE_URL}/api/storage/qr/${fileName}`
     } catch (err) {
       console.error('[trigger] Waitlist QR upload failed, falling back to api.qrserver.com:', err)
     }
