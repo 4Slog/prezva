@@ -31,7 +31,7 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
     .from('registrations')
     .select('id, attendee_name, attendee_phone')
     .eq('event_id', eventId)
-    .in('status', ['confirmed', 'checked_in'])
+    .in('status', ['confirmed'])
     .not('attendee_phone', 'is', null)
     .limit(500)
 
@@ -80,7 +80,7 @@ export async function getSMSEligibleCount(eventId: string): Promise<number> {
     .from('registrations')
     .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId)
-    .in('status', ['confirmed', 'checked_in'])
+    .in('status', ['confirmed'])
     .not('attendee_phone', 'is', null)
   return count ?? 0
 }
