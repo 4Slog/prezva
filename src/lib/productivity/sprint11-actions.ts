@@ -260,32 +260,60 @@ export async function createEventFromTemplate(
     ts ? new Date(new Date(ts).getTime() + delta).toISOString() : ts
 
   if (td.tickets?.length > 0) {
-    await supabase.from('ticket_types').insert(
-      td.tickets.map((t: any) => ({ ...t, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined }))
+    const { error: ticketErr } = await supabase.from('ticket_types').insert(
+      td.tickets.map((t: any) => ({
+        event_id: newEventId,
+        name: t.name,
+        description: t.description ?? null,
+        type: t.type ?? 'free',
+        price_cents: t.price_cents ?? 0,
+        currency: t.currency ?? 'usd',
+        quantity: t.quantity ?? null,
+        max_per_order: t.max_per_order ?? 10,
+        sort_order: t.sort_order ?? 0,
+        delivery_method: t.delivery_method ?? 'in_person',
+        is_press: t.is_press ?? false,
+        invite_only: t.invite_only ?? false,
+        is_visible: t.is_visible ?? true,
+        is_active: t.is_active ?? true,
+        waitlist_enabled: t.waitlist_enabled ?? false,
+        membership_required: t.membership_required ?? false,
+        membership_provider: t.membership_provider ?? null,
+        early_bird_price_cents: t.early_bird_price_cents ?? null,
+        confirmation_email_subject: t.confirmation_email_subject ?? null,
+        confirmation_email_body: t.confirmation_email_body ?? null,
+        // intentionally NOT copied: id, created_at, updated_at, quantity_sold (runtime),
+        // sale_starts_at/sale_ends_at/early_bird_ends_at (last cycle's absolute dates — organizer sets fresh)
+      }))
     )
+    if (ticketErr) return { error: `Tickets failed to copy: ${ticketErr.message}` }
   }
 
   if (td.sessions?.length > 0) {
-    await supabase.from('sessions').insert(
+    const { error: sessionErr } = await supabase.from('sessions').insert(
       td.sessions.map((s: any) => ({
-        ...s,
-        id: undefined,
         event_id: newEventId,
-        track_id: null,
-        room_id: null,
-        sponsored_by_id: null,
+        title: s.title,
+        description: s.description ?? null,
+        session_type: s.session_type ?? 'talk',
+        capacity: s.capacity ?? null,
+        ce_credit_hours: s.ce_credit_hours ?? 0,
+        tags: s.tags ?? [],
+        sort_order: s.sort_order ?? 0,
+        is_published: s.is_published ?? true,
         starts_at: shift(s.starts_at),
         ends_at: shift(s.ends_at),
         visible_from: shift(s.visible_from),
         visible_until: shift(s.visible_until),
-        created_at: undefined,
-        updated_at: undefined,
+        // intentionally NOT copied: id, created_at, updated_at, track_id/room_id/sponsored_by_id
+        // (dangling FKs to old event), recording_url/slides_url/video_url (last event's media)
       }))
     )
+    if (sessionErr) return { error: `Sessions failed to copy: ${sessionErr.message}` }
   }
 
   if (td.speakers?.length > 0) {
-    await supabase.from('speakers').insert(
+    const { error: speakerErr } = await supabase.from('speakers').insert(
       td.speakers.map((sp: any) => ({
         name: sp.name,
         email: sp.email,
@@ -295,6 +323,7 @@ export async function createEventFromTemplate(
         event_id: newEventId,
       }))
     )
+    if (speakerErr) return { error: `Speakers failed to copy: ${speakerErr.message}` }
   }
 
   return { id: newEventId, slug }
