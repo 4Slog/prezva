@@ -273,15 +273,19 @@ export async function processOfflineQueue(raw: unknown) {
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
 
+  const results = await Promise.all(
+    entries.map(entry => checkInByQR(eventId, entry.qr_code.toLowerCase(), deviceId))
+  )
+
   let processed = 0
   const errors: string[] = []
 
-  for (const entry of entries) {
-    const result = await checkInByQR(eventId, entry.qr_code.toLowerCase(), deviceId)
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
     if (result.success && !result.registration?.already_checked_in) {
       processed++
     } else if (!result.success) {
-      errors.push(entry.qr_code + ': ' + result.error)
+      errors.push(entries[i].qr_code + ': ' + result.error)
     }
   }
 
