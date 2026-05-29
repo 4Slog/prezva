@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth/get-user'
 import { getLeaderboard } from '@/lib/engagement/sprint10-actions'
+import { POINT_VALUES } from '@/lib/engagement/point-values'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -11,7 +12,7 @@ export default async function LeaderboardPage({ params }: Props) {
   const user = await getUser()
 
   const { data: event } = await supabase
-    .from('events').select('id, title').eq('slug', slug).single()
+    .from('events').select('id, title, leaderboard_point_config').eq('slug', slug).single()
   if (!event) notFound()
 
   const leaders = await getLeaderboard((event as any).id)
@@ -66,16 +67,29 @@ export default async function LeaderboardPage({ params }: Props) {
 
         <div className="pz-card p-4 mt-6">
           <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-label)', marginBottom: 8 }}>How to earn points</p>
-          <ul style={{ fontSize: 12, color: 'var(--pz-muted)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: 0 }}>
-            <li>Check in to the event — 10 pts</li>
-            <li>Complete your profile — 15 pts</li>
-            <li>Attend a session — 5 pts each</li>
-            <li>Post in community — 3 pts</li>
-            <li>Complete an icebreaker — 5 pts</li>
-            <li>Visit a passport location — 5 pts each</li>
-            <li>Answer trivia correctly — 10 pts each</li>
-            <li>Upload a photo — 3 pts</li>
-          </ul>
+          {(() => {
+            const dbConfig = ((event as any).leaderboard_point_config ?? {}) as Record<string, number>
+            const cfg = { ...POINT_VALUES, ...dbConfig }
+            const labels: Record<string, string> = {
+              checkin: 'Check in to the event',
+              session_attend: 'Attend a session',
+              survey_complete: 'Complete a survey',
+              profile_complete: 'Complete your profile',
+              community_post: 'Post in community',
+              icebreaker: 'Complete an icebreaker',
+              passport_visit: 'Visit a passport location',
+              trivia_correct: 'Answer trivia correctly',
+              photo_upload: 'Upload a photo',
+              passport_complete: 'Complete the passport',
+            }
+            return (
+              <ul style={{ fontSize: 12, color: 'var(--pz-muted)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: 0 }}>
+                {Object.entries(cfg).filter(([k]) => labels[k]).map(([k, v]) => (
+                  <li key={k}>{labels[k]} — {v} pts</li>
+                ))}
+              </ul>
+            )
+          })()}
         </div>
       </div>
     </div>

@@ -34,7 +34,7 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
     admin.from('registrations')
       .select('id, user_id, attendee_name, attendee_email')
       .eq('event_id', eventId)
-      .in('status', ['confirmed', 'checked_in']),
+      .in('status', ['confirmed']),
     admin.from('check_ins')
       .select('registration_id')
       .eq('event_id', eventId)
