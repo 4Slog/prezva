@@ -12,11 +12,14 @@ export const sendAnnouncement = schemaTask({
 
     const { data: ann } = await supabase
       .from('announcements')
-      .select('id, event_id, title, body, channel, audience_filter, exclude_filter')
+      .select('id, event_id, title, body, channel, audience_filter, exclude_filter, status')
       .eq('id', payload.announcementId)
       .maybeSingle()
 
     if (!ann) return { sent: 0, failed: 0, reason: 'announcement not found' }
+    if (ann.status === 'sent' || ann.status === 'sending') {
+      return { sent: 0, failed: 0, reason: `already ${ann.status} — duplicate trigger ignored` }
+    }
     if (ann.channel === 'push') return { sent: 0, failed: 0, reason: 'push-only — no email sent' }
 
     const audienceTypes: string[] = ann.audience_filter?.types ?? []
@@ -77,13 +80,18 @@ export const sendAnnouncement = schemaTask({
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
-    for (const reg of regs) {
-      // Default opt-in; skip only if user explicitly set email_announcements = false
-      if ((reg as any).user_id && prefMap[(reg as any).user_id] === false) continue
+    // Apply opt-out filter before chunking. Default opt-in; skip only if user explicitly opted out.
+    const eligibleRegs = regs.filter(
+      (reg: any) => !(reg.user_id && prefMap[reg.user_id] === false),
+    )
 
-      const regIdB64 = Buffer.from((reg as any).id).toString('base64url')
+    if (eligibleRegs.length === 0) return { sent: 0, failed: 0 }
+
+    const buildEmailPayload = (reg: any) => {
+      const regIdB64 = Buffer.from(reg.id).toString('base64url')
       const unsubUrl = `${appUrl}/api/unsubscribe?token=${regIdB64}&type=announcements`
       const unsubAllUrl = `${appUrl}/api/unsubscribe?token=${regIdB64}&type=all`
+      const firstName = reg.attendee_name.trim().split(/\s+/)[0]
 
       const html = `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
@@ -94,7 +102,7 @@ export const sendAnnouncement = schemaTask({
             <h1 style="color:#F0F4F8;font-size:20px;margin:0;">${ann.title}</h1>
           </div>
           <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-            <p style="font-size:15px;">Hi ${reg.attendee_name.trim().split(/\s+/)[0]},</p>
+            <p style="font-size:15px;">Hi ${firstName},</p>
             <p style="white-space:pre-line;font-size:15px;line-height:1.6;">${ann.body}</p>
             ${eventUrl ? `<p style="margin:16px 0;"><a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;font-size:14px;">→ View event page</a></p>` : ''}
             <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
@@ -114,7 +122,7 @@ export const sendAnnouncement = schemaTask({
       `
 
       const text = [
-        `Hi ${reg.attendee_name.trim().split(/\s+/)[0]},`,
+        `Hi ${firstName},`,
         ``,
         ann.body,
         ``,
@@ -128,37 +136,57 @@ export const sendAnnouncement = schemaTask({
         `4S Logistics LLC · 300 Colonial Center Pkwy, Ste 100N, Roswell, GA 30076, USA`,
       ].filter(Boolean).join('\n')
 
-      const res = await fetch('https://api.resend.com/emails', {
+      return {
+        from:     `${orgName} <noreply@prezva.app>`,
+        to:       reg.attendee_email,
+        subject:  `${orgName}: ${ann.title}`,
+        html,
+        text,
+        reply_to: orgEmail,
+        headers:  { 'List-Unsubscribe': `<${unsubAllUrl}>` },
+      }
+    }
+
+    const CHUNK_SIZE = 100
+    const chunks: any[][] = []
+    for (let i = 0; i < eligibleRegs.length; i += CHUNK_SIZE) {
+      chunks.push(eligibleRegs.slice(i, i + CHUNK_SIZE))
+    }
+
+    const deliveredUserIds: string[] = []
+
+    for (const chunk of chunks) {
+      const emails = chunk.map(buildEmailPayload)
+      const res = await fetch('https://api.resend.com/emails/batch', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          from:     `${orgName} <noreply@prezva.app>`,
-          to:       reg.attendee_email,
-          subject:  `${orgName}: ${ann.title}`,
-          html,
-          text,
-          reply_to: orgEmail,
-          headers:  { 'List-Unsubscribe': `<${unsubAllUrl}>` },
-        }),
+        body: JSON.stringify(emails),
       })
       if (res.ok) {
-        sent++
-        // Create in-app notification for users who have an account
-        if ((reg as any).user_id) {
-          await supabase.from('user_notifications').insert({
-            user_id: (reg as any).user_id,
-            type: 'announcement',
-            title: ann.title,
-            body: ann.body ? ann.body.slice(0, 120) : undefined,
-            url: eventUrl || undefined,
-          }).then(() => {})
+        sent += chunk.length
+        for (const reg of chunk) {
+          if ((reg as any).user_id) deliveredUserIds.push((reg as any).user_id)
         }
       } else {
-        failed++
+        const err = await res.text()
+        console.error(`[announcement] batch failed (${chunk.length} recipients): ${err}`)
+        failed += chunk.length
       }
+    }
+
+    // Single bulk insert for in-app notifications — only for successfully sent recipients.
+    if (deliveredUserIds.length > 0) {
+      const notifRows = deliveredUserIds.map((user_id) => ({
+        user_id,
+        type: 'announcement' as const,
+        title: ann.title,
+        body: ann.body ? ann.body.slice(0, 120) : undefined,
+        url: eventUrl || undefined,
+      }))
+      await supabase.from('user_notifications').insert(notifRows)
     }
 
     // Update announcement status based on delivery outcome
