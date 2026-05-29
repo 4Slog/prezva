@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { VolunteersClient } from './volunteers-client'
@@ -7,16 +7,8 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function VolunteersPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
-
+  const { event } = await requireEventOrgAccess(slug)
   const admin = createAdminClient()
-  const { data: event } = await admin
-    .from('events')
-    .select('id, title, org_id')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  if (!event) return <p style={{ color: 'var(--pz-muted)', padding: '2rem' }}>Event not found.</p>
 
   const { data: volunteers } = await admin
     .from('volunteers')

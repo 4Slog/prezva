@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
@@ -6,20 +6,15 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function EventPhotosAdminPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
-
-  // Admin client: photo count for admin view
+  const { event } = await requireEventOrgAccess(slug)
   const admin = createAdminClient()
-  const { data: event } = await admin.from('events').select('id, title').eq('slug', slug).maybeSingle()
-  const { count } = event
-    ? await admin.from('community_photos').select('*', { count: 'exact', head: true }).eq('event_id', event.id)
-    : { count: 0 }
+  const { count } = await admin.from('community_photos').select('*', { count: 'exact', head: true }).eq('event_id', event.id)
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Link href={`/events/${slug}`} style={{ color: 'var(--pz-teal)', fontSize: 13, textDecoration: 'none' }}>
-          ← {event?.title ?? slug}
+          ← {event.title}
         </Link>
         <span style={{ color: 'var(--pz-border)' }}>/</span>
         <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Photos</span>

@@ -1,5 +1,4 @@
-import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createClient } from '@/lib/supabase/server'
 import { IcebreakersAdminClient } from './client'
 
@@ -7,24 +6,17 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function IcebreakersAdminPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
+  const { event } = await requireEventOrgAccess(slug)
   const supabase = await createClient()
-
-  const { data: event } = await supabase
-    .from('events')
-    .select('id, title, org_id')
-    .eq('slug', slug)
-    .single()
-  if (!event) notFound()
 
   const { data: rawQuestions } = await supabase
     .from('icebreaker_questions')
     .select('id, question, question_text, prompt, category, is_active')
-    .eq('event_id', (event as any).id)
+    .eq('event_id', event.id)
     .limit(100)
 
   // Resolve {event_title} merge tag at read time so prompts stay current
-  const eventTitle = (event as any).title as string
+  const eventTitle = event.title
   const questions = (rawQuestions ?? []).map((q: any) => ({
     ...q,
     question: typeof q.question === 'string' ? q.question.replaceAll('{event_title}', eventTitle) : q.question,
@@ -45,8 +37,8 @@ export default async function IcebreakersAdminPage({ params }: Props) {
       <IcebreakersAdminClient
           eventSlug={slug}
         questions={(questions ?? []) as any[]}
-        eventId={(event as any).id}
-        orgId={(event as any).org_id}
+        eventId={event.id}
+        orgId={event.org_id}
         isActive={isActive}
       />
     </div>

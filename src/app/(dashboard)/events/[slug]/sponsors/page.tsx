@@ -1,5 +1,4 @@
-import { requireUser } from '@/lib/auth/get-user'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getSponsors } from '@/lib/sponsors/actions'
 import Link from 'next/link'
 import { SponsorsClient } from './sponsors-client'
@@ -8,17 +7,7 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function EventSponsorsAdminPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
-
-  // Admin client: read event for admin view
-  const admin = createAdminClient()
-  const { data: event } = await admin
-    .from('events')
-    .select('id, title')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  if (!event) return <p style={{ color: 'var(--pz-muted)', padding: '2rem' }}>Event not found.</p>
+  const { event } = await requireEventOrgAccess(slug)
 
   const sponsors = await getSponsors(event.id)
 

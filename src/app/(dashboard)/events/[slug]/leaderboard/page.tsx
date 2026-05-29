@@ -1,5 +1,4 @@
-import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
 import { getLeaderboard } from '@/lib/engagement/sprint10-actions'
@@ -10,32 +9,30 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function EventLeaderboardAdminPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
-
+  const { event } = await requireEventOrgAccess(slug)
   const admin = createAdminClient()
-  const { data: event } = await admin
+
+  const { data: eventConfig } = await admin
     .from('events')
-    .select('id, title, leaderboard_point_config')
-    .eq('slug', slug)
-    .maybeSingle()
+    .select('leaderboard_point_config')
+    .eq('id', event.id)
+    .single()
 
-  if (!event) notFound()
-
-  const leaders = await getLeaderboard((event as any).id)
+  const leaders = await getLeaderboard(event.id)
 
   const nameMap: Record<string, string> = {}
   if (leaders.length > 0) {
     const { data: regs } = await admin
       .from('registrations')
       .select('user_id, attendee_name, attendee_email')
-      .eq('event_id', (event as any).id)
+      .eq('event_id', event.id)
       .in('user_id', leaders.map(l => l.userId))
     for (const r of (regs ?? []) as any[]) {
       nameMap[r.user_id] = r.attendee_name ?? r.attendee_email ?? 'Attendee'
     }
   }
 
-  const dbConfig = ((event as any)?.leaderboard_point_config ?? {}) as Record<string, number>
+  const dbConfig = ((eventConfig as any)?.leaderboard_point_config ?? {}) as Record<string, number>
   const mergedConfig: Record<string, number> = { ...POINT_VALUES, ...dbConfig }
   const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
@@ -43,7 +40,7 @@ export default async function EventLeaderboardAdminPage({ params }: Props) {
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Link href={`/events/${slug}`} style={{ color: 'var(--pz-teal)', fontSize: 13, textDecoration: 'none' }}>
-          ← {(event as any).title ?? slug}
+          ← {event.title}
         </Link>
         <span style={{ color: 'var(--pz-border)' }}>/</span>
         <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Leaderboard</span>
@@ -73,7 +70,7 @@ export default async function EventLeaderboardAdminPage({ params }: Props) {
           ))}
         </div>
       )}
-      <PointConfigEditor eventId={(event as any).id} initialConfig={mergedConfig} />
+      <PointConfigEditor eventId={event.id} initialConfig={mergedConfig} />
     </div>
   )
 }

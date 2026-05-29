@@ -1,5 +1,5 @@
-import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
+import { redirect } from 'next/navigation'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createClient } from '@/lib/supabase/server'
 import { getEventAnalytics } from '@/lib/analytics/actions'
 
@@ -30,23 +30,13 @@ function MiniBar({ label, count, max, revenue }: { label: string; count: number;
 
 export default async function AnalyticsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const user = await requireUser()
-  const supabase = await createClient()
-  const { data: event } = await supabase.from('events').select('id,title,status,org_id').eq('slug', slug).single()
-  if (!event) notFound()
+  const { event, role } = await requireEventOrgAccess(slug)
 
   // Staff cannot view analytics / revenue — owner and admin only
-  const { data: member } = await supabase
-    .from('org_members')
-    .select('role')
-    .eq('org_id', event.org_id)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  if (role === 'staff') redirect(`/events/${slug}`)
 
-  if (member?.role === 'staff') {
-    const { redirect } = await import('next/navigation')
-    redirect(`/events/${slug}`)
-  }
+  const supabase = await createClient()
+  const { data: evtRow } = await supabase.from('events').select('status').eq('id', event.id).single()
 
   const analytics = await getEventAnalytics(event.id)
   const revenue = (analytics.totalRevenueCents / 100).toFixed(2)
@@ -109,7 +99,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
       )}
 
       {/* Check-in velocity — live events only */}
-      {(event as any).status === 'live' && analytics.checkInsLast30min > 0 && (
+      {evtRow?.status === 'live' && analytics.checkInsLast30min > 0 && (
         <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.25rem',
                       border: '1px solid var(--pz-teal)44', marginBottom: 12 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-teal)', margin: '0 0 8px' }}>

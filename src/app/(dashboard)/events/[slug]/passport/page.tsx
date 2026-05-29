@@ -1,17 +1,11 @@
-import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
-import { createClient } from '@/lib/supabase/server'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import PassportAdminClient from './client'
 
 type Props = { params: Promise<{ slug: string }> }
 
 export default async function PassportAdminPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
-  const supabase = await createClient()
-
-  const { data: event } = await supabase.from('events').select('id, title').eq('slug', slug).maybeSingle()
-  if (!event) notFound()
+  const { event } = await requireEventOrgAccess(slug)
 
   const { getPassportAdmin } = await import('@/lib/engagement/passport-admin-actions')
   const result = await getPassportAdmin(event.id)

@@ -1,16 +1,11 @@
-import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
-import { createClient } from '@/lib/supabase/server'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getAttendeeDirectory, getSuggestedConnectionsByInterest } from '@/lib/messaging/actions'
 import NetworkingClient from './client'
 import Link from 'next/link'
 
 export default async function NetworkingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const user = await requireUser()
-  const supabase = await createClient()
-  const { data: event } = await supabase.from('events').select('id,title').eq('slug', slug).single()
-  if (!event) notFound()
+  const { event, user } = await requireEventOrgAccess(slug)
 
   const [attendees, suggestions] = await Promise.all([
     getAttendeeDirectory(event.id) as Promise<any[]>,

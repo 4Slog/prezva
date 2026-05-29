@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
@@ -6,24 +6,21 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function EventAuditLogPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
-
-  // Admin client: audit log reads require elevated access
+  const { event } = await requireEventOrgAccess(slug)
   const admin = createAdminClient()
-  const { data: event } = await admin.from('events').select('id, title').eq('slug', slug).maybeSingle()
 
-  const { data: logs } = event ? await admin
+  const { data: logs } = await admin
     .from('audit_logs')
     .select('id, action, table_name, created_at, user_id, old_data, new_data')
     .eq('event_id', event.id)
     .order('created_at', { ascending: false })
-    .limit(100) : { data: [] }
+    .limit(100)
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Link href={`/events/${slug}`} style={{ color: 'var(--pz-teal)', fontSize: 13, textDecoration: 'none' }}>
-          ← {event?.title ?? slug}
+          ← {event.title}
         </Link>
         <span style={{ color: 'var(--pz-border)' }}>/</span>
         <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Audit Log</span>

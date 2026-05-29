@@ -1,5 +1,4 @@
-import { notFound } from 'next/navigation'
-import { getEventBySlug } from '@/lib/events/actions'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getEventTickets } from '@/lib/registration/ticket-actions'
 import { TicketManager } from '@/components/registration/TicketManager'
 import { DiscountCodeManager } from '@/components/registration/DiscountCodeManager'
@@ -14,8 +13,7 @@ const ASSOCIATION_PROVIDERS = ['wildapricot', 'imis', 'memberclicks', 'yourmembe
 
 export default async function TicketsPage({ params }: Props) {
   const { slug } = await params
-  const event = await getEventBySlug(slug)
-  if (!event) notFound()
+  const { event } = await requireEventOrgAccess(slug)
 
   const [tickets, discountCodes, formFields] = await Promise.all([
     getEventTickets(event.id),
@@ -27,7 +25,7 @@ export default async function TicketsPage({ params }: Props) {
   const { data: assocRows } = await supabase
     .from('org_integrations')
     .select('provider')
-    .eq('org_id', (event as any).org_id)
+    .eq('org_id', event.org_id)
     .eq('status', 'connected')
     .in('provider', ASSOCIATION_PROVIDERS)
   const connectedAssociations = (assocRows ?? []).map(r => r.provider)

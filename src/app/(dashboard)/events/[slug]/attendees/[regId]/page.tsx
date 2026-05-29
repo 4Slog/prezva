@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { AttendeeActions } from './actions-client'
@@ -17,17 +17,14 @@ function Field({ label, value }: { label: string; value: string | null | undefin
 
 export default async function AttendeeDetailPage({ params }: Props) {
   const { slug, regId } = await params
-  await requireUser()
-
-  // Admin client: read registration + associated data across RLS
+  const { event } = await requireEventOrgAccess(slug)
   const admin = createAdminClient()
 
-  const { data: event } = await admin
+  const { data: eventExtra } = await admin
     .from('events')
-    .select('id, title, timezone')
-    .eq('slug', slug)
-    .maybeSingle()
-  if (!event) notFound()
+    .select('timezone')
+    .eq('id', event.id)
+    .single()
 
   const { data: reg } = await admin
     .from('registrations')
@@ -50,7 +47,7 @@ export default async function AttendeeDetailPage({ params }: Props) {
       .order('created_at' as any, { ascending: true }),
   ])
 
-  const tz = event.timezone ?? 'UTC'
+  const tz = (eventExtra as any)?.timezone ?? 'UTC'
   const fmtDate = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : null
 
