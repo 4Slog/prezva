@@ -10,20 +10,28 @@ export interface CertificateProps {
   orgName: string
   orgLogoUrl?: string | null
   verificationId: string
+  issueDate: string
   template: CertificateTemplatePayload
 }
 
 const BASE = 'https://prezva.app'
 
-function renderBody(template: string, props: CertificateProps): string {
-  return template
-    .replace('{attendee_name}', props.attendeeName)
-    .replace('{event_title}', props.eventTitle)
-    .replace('{event_date}', props.eventDate)
-    .replace('{sessions_attended}', String(props.sessionsAttended))
-    .replace('{ce_credit_hours}', String(props.ceCredits))
-    .replace('{org_name}', props.orgName)
-    .replace('{verification_url}', `${BASE}/verify/${props.verificationId}`)
+export function renderBody(template: string, props: CertificateProps): string {
+  const values: Record<string, string> = {
+    attendee_name: props.attendeeName,
+    event_title: props.eventTitle,
+    event_date: props.eventDate,
+    sessions_attended: String(props.sessionsAttended),
+    ce_credit_hours: String(props.ceCredits),
+    ce_hours: String(props.ceCredits),
+    org_name: props.orgName,
+    verification_url: `${BASE}/verify/${props.verificationId}`,
+    issue_date: props.issueDate,
+  }
+  return template.replace(/\{\{?\s*([a-z_]+)\s*\}?\}/gi, (match, key) => {
+    const k = String(key).toLowerCase()
+    return k in values ? values[k] : match
+  })
 }
 
 export function Certificate(props: CertificateProps) {

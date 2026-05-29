@@ -47,7 +47,7 @@ export async function GET(
 
   const { data: issued } = await admin
     .from('issued_certificates')
-    .select('verification_id')
+    .select('verification_id, created_at')
     .eq('registration_id', regId)
     .maybeSingle()
 
@@ -72,6 +72,9 @@ export async function GET(
     orgName: org?.name ?? 'Organizer',
     orgLogoUrl: org?.logo_url ?? null,
     verificationId: issued?.verification_id ?? 'N/A',
+    issueDate: issued?.created_at
+      ? new Date(issued.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
     template: templatePayload,
   }
 
