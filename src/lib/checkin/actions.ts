@@ -64,7 +64,7 @@ export async function checkInByQR(
     .from('registrations')
     .select('id, user_id, attendee_name, attendee_email, status, ticket_types(name)')
     .eq('event_id', eventId)
-    .eq('qr_code', qrCode)
+    .eq('qr_code', qrCode.toLowerCase())
     .single()
 
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
@@ -277,7 +277,7 @@ export async function processOfflineQueue(raw: unknown) {
   const errors: string[] = []
 
   for (const entry of entries) {
-    const result = await checkInByQR(eventId, entry.qr_code, deviceId)
+    const result = await checkInByQR(eventId, entry.qr_code.toLowerCase(), deviceId)
     if (result.success && !result.registration?.already_checked_in) {
       processed++
     } else if (!result.success) {

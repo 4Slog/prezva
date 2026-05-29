@@ -132,16 +132,18 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
     if (scanning) return
     setScanning(true)
 
+    const normalizedCode = code.toLowerCase()
+
     if (!navigator.onLine) {
       const deviceId = getDeviceId()
-      await queueCheckIn(eventId, code, deviceId)
+      await queueCheckIn(eventId, normalizedCode, deviceId)
       await refreshPending()
       setLastResult({ success: true, registration: { id: 'offline', attendee_name: 'Queued (offline)', attendee_email: '', ticket_name: '', already_checked_in: false } })
       scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setScanning(false) }, 3000)
       return
     }
 
-    const result = await checkInByQR(eventId, code)
+    const result = await checkInByQR(eventId, normalizedCode)
     setLastResult(result)
     if (result.success) await refreshStats()
     scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setScanning(false) }, 3000)

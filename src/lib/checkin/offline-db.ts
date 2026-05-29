@@ -31,7 +31,7 @@ export async function queueCheckIn(eventId: string, qrCode: string, deviceId: st
   const db = getOfflineDB()
   await db.pending.add({
     eventId,
-    qrCode,
+    qrCode: qrCode.toLowerCase(),
     deviceId,
     scannedAt: new Date().toISOString(),
     synced: false,
