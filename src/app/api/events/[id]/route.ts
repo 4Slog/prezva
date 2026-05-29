@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { enqueueVolunteerThankYou } from '@/lib/trigger'
 import { z } from 'zod'
 
 const UpdateSchema = z.object({
@@ -92,6 +93,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
       const { error } = await supabase.from('events').update({ status: body.status }).eq('id', id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+      if (body.status === 'ended') {
+        const { data: event } = await supabase
+          .from('events')
+          .select('id, title, start_at, organizations(name, email)')
+          .eq('id', id)
+          .maybeSingle()
+
+        if (event) {
+          const org = (event as unknown as { organizations: { name: string | null; email: string | null } | null }).organizations
+          void enqueueVolunteerThankYou({
+            eventId:    id,
+            eventTitle: event.title,
+            eventDate:  event.start_at,
+            orgName:    org?.name ?? 'The organizer',
+            orgEmail:   org?.email ?? undefined,
+          })
+        }
+      }
+
       const { data } = await supabase.from('events').select('*').eq('id', id).single()
       return NextResponse.json(data)
     }

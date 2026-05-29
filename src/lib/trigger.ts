@@ -7,6 +7,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import type { sendConfirmationEmail, processWaitlist } from '@/trigger/jobs/registration'
 import type { sendAnnouncement } from '@/trigger/jobs/announcement'
 import type { sendVolunteerInviteEmail } from '@/trigger/jobs/volunteer-invite'
+import type { sendVolunteerThankYouEmail } from '@/trigger/jobs/volunteer-thank-you'
 import type { sendCertificateEmail } from '@/trigger/jobs/certificate-email'
 import type { sendSpeakerInviteEmail } from '@/trigger/jobs/speaker-invite'
 
@@ -76,6 +77,25 @@ export async function enqueueVolunteerInvite(payload: VolunteerInvitePayload) {
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue volunteer invite:', err)
+    return null
+  }
+}
+
+type VolunteerThankYouPayload = Parameters<typeof sendVolunteerThankYouEmail.trigger>[0]
+
+export async function enqueueVolunteerThankYou(payload: VolunteerThankYouPayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping volunteer thank-you')
+    return null
+  }
+  try {
+    const handle = await tasks.trigger<typeof sendVolunteerThankYouEmail>(
+      'send-volunteer-thank-you',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue volunteer thank-you:', err)
     return null
   }
 }
