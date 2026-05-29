@@ -1,5 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
+import { escapeHtml } from '../lib/escape'
 
 export const sendVolunteerInviteEmail = schemaTask({
   id: 'send-volunteer-invite',
@@ -28,20 +29,20 @@ export const sendVolunteerInviteEmail = schemaTask({
           <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
             <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
           </div>
-          <h1 style="color:#F0F4F8;font-size:20px;margin:0;">You're Volunteering at ${payload.eventTitle}</h1>
+          <h1 style="color:#F0F4F8;font-size:20px;margin:0;">You're Volunteering at ${escapeHtml(payload.eventTitle)}</h1>
         </div>
         <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-          <p style="font-size:15px;">Hi ${payload.volunteerName},</p>
-          <p style="font-size:15px;">Thank you for giving your time to <strong style="color:#F0F4F8;">${payload.eventTitle}</strong>. Here's everything you need to know before the event:</p>
+          <p style="font-size:15px;">Hi ${escapeHtml(payload.volunteerName)},</p>
+          <p style="font-size:15px;">Thank you for giving your time to <strong style="color:#F0F4F8;">${escapeHtml(payload.eventTitle)}</strong>. Here's everything you need to know before the event:</p>
           <ul style="padding-left:20px;line-height:1.8;font-size:15px;">
-            <li>📋 <strong>Your role:</strong> ${payload.volunteerRole}</li>
-            <li>📅 <strong>Event date:</strong> ${fmtDate(payload.eventDate)}</li>
+            <li>📋 <strong>Your role:</strong> ${escapeHtml(payload.volunteerRole)}</li>
+            <li>📅 <strong>Event date:</strong> ${escapeHtml(fmtDate(payload.eventDate))}</li>
             ${shiftLine}
             <li>🔑 Your volunteer portal gives you clock-in/out, role briefings, and day-of contacts</li>
             <li>📱 Save this email — your portal link is below</li>
           </ul>
           <div style="margin:24px 0;">
-            <a href="${payload.portalUrl}"
+            <a href="${escapeHtml(payload.portalUrl)}"
                style="background:#00BFA6;color:#0D1B2A;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
               Access Your Volunteer Portal
             </a>

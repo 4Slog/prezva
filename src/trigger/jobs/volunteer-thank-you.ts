@@ -1,6 +1,7 @@
 import { schemaTask, logger } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
+import { escapeHtml } from '../lib/escape'
 
 type VolunteerRow = {
   name: string | null
@@ -11,13 +12,6 @@ type VolunteerRow = {
   clocked_in_at: string | null
   clocked_out_at: string | null
 }
-
-const escHtml = (s: string): string =>
-  s.replace(/&/g, '&amp;')
-   .replace(/</g, '&lt;')
-   .replace(/>/g, '&gt;')
-   .replace(/"/g, '&quot;')
-   .replace(/'/g, '&#39;')
 
 function formatHours(ms: number): string {
   const hours = ms / (1000 * 60 * 60)
@@ -95,9 +89,9 @@ export const sendVolunteerThankYouEmail = schemaTask({
       const hours = hoursContributed(v)
 
       const hoursLineHtml = hours
-        ? `<li>⏱️ <strong>Time contributed:</strong> ${escHtml(hours)}</li>`
+        ? `<li>⏱️ <strong>Time contributed:</strong> ${escapeHtml(hours)}</li>`
         : ''
-      const roleLineHtml = role ? `<li>🎯 <strong>Your role:</strong> ${escHtml(role)}</li>` : ''
+      const roleLineHtml = role ? `<li>🎯 <strong>Your role:</strong> ${escapeHtml(role)}</li>` : ''
 
       const html = `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
@@ -108,10 +102,10 @@ export const sendVolunteerThankYouEmail = schemaTask({
             <h1 style="color:#F0F4F8;font-size:20px;margin:0;">Thank you for volunteering</h1>
           </div>
           <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-            <p style="font-size:15px;">Hi ${escHtml(name)},</p>
+            <p style="font-size:15px;">Hi ${escapeHtml(name)},</p>
             <p style="font-size:15px;">
-              <strong style="color:#F0F4F8;">${escHtml(payload.eventTitle)}</strong> wouldn't have happened without people like you.
-              On behalf of <strong style="color:#F0F4F8;">${escHtml(payload.orgName)}</strong>, thank you for giving your time on ${escHtml(fmtDate(payload.eventDate))}.
+              <strong style="color:#F0F4F8;">${escapeHtml(payload.eventTitle)}</strong> wouldn't have happened without people like you.
+              On behalf of <strong style="color:#F0F4F8;">${escapeHtml(payload.orgName)}</strong>, thank you for giving your time on ${escapeHtml(fmtDate(payload.eventDate))}.
             </p>
             <ul style="padding-left:20px;line-height:1.8;font-size:15px;">
               ${roleLineHtml}
@@ -121,13 +115,13 @@ export const sendVolunteerThankYouEmail = schemaTask({
               We hope you enjoyed being part of it. If you'd like to revisit the event, the page is still live:
             </p>
             <div style="margin:24px 0;">
-              <a href="${escHtml(eventUrl)}"
+              <a href="${escapeHtml(eventUrl)}"
                  style="background:#00BFA6;color:#0D1B2A;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
                 View Event Page
               </a>
             </div>
             <p style="color:#94A3B8;font-size:13px;">
-              With gratitude,<br/>${escHtml(payload.orgName)}
+              With gratitude,<br/>${escapeHtml(payload.orgName)}
             </p>
             <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
             <p style="color:#475569;font-size:12px;margin:0;">

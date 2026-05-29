@@ -1,6 +1,7 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
+import { escapeHtml } from '../lib/escape'
 
 export const sendAnnouncement = schemaTask({
   id: 'send-announcement',
@@ -110,15 +111,15 @@ export const sendAnnouncement = schemaTask({
             <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
               <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
             </div>
-            <h1 style="color:#F0F4F8;font-size:20px;margin:0;">${ann.title}</h1>
+            <h1 style="color:#F0F4F8;font-size:20px;margin:0;">${escapeHtml(ann.title)}</h1>
           </div>
           <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-            <p style="font-size:15px;">Hi ${firstName},</p>
-            <p style="white-space:pre-line;font-size:15px;line-height:1.6;">${ann.body}</p>
+            <p style="font-size:15px;">Hi ${escapeHtml(firstName)},</p>
+            <p style="white-space:pre-line;font-size:15px;line-height:1.6;">${escapeHtml(ann.body)}</p>
             ${eventUrl ? `<p style="margin:16px 0;"><a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;font-size:14px;">→ View event page</a></p>` : ''}
             <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
             <p style="color:#475569;font-size:12px;margin:0;">
-              Sent by ${orgName} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a> · ${eventTitle}<br/>
+              Sent by ${escapeHtml(orgName)} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a> · ${escapeHtml(eventTitle)}<br/>
               You received this because you are registered for this event.
             </p>
             <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">

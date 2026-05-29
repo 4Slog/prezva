@@ -1,5 +1,6 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
+import { escapeHtml } from '../lib/escape'
 
 export const speakerPostSessionTask = schedules.task({
   id: 'speaker-post-session-summary',
@@ -58,7 +59,7 @@ export const speakerPostSessionTask = schedules.task({
 
         const feedbackHtml = avg
           ? `<p>Your session received <strong>${ratings.length} rating${ratings.length !== 1 ? 's' : ''}</strong> with an average of <strong>${avg}/5 ⭐</strong>.</p>
-             ${comments.length ? `<p><em>What attendees said:</em></p><ul>${comments.map((c: string) => `<li>"${c}"</li>`).join('')}</ul>` : ''}`
+             ${comments.length ? `<p><em>What attendees said:</em></p><ul>${comments.map((c: string) => `<li>"${escapeHtml(c)}"</li>`).join('')}</ul>` : ''}`
           : `<p>No ratings yet — check back in your speaker hub for feedback.</p>`
 
         const feedbackText = avg
@@ -83,12 +84,12 @@ export const speakerPostSessionTask = schedules.task({
               `We hope to see you at a future event.`,
               `— ${orgName}`,
             ].filter(Boolean).join('\n\n'),
-            html: `<p>Hi ${speaker.name},</p>
-                   <p>Thank you for delivering <strong>${session.title}</strong> at ${eventTitle}. We hope it went well!</p>
+            html: `<p>Hi ${escapeHtml(speaker.name)},</p>
+                   <p>Thank you for delivering <strong>${escapeHtml(session.title)}</strong> at ${escapeHtml(eventTitle)}. We hope it went well!</p>
                    ${feedbackHtml}
                    <p><a href="${hubUrl}">View full feedback in your speaker hub →</a></p>
                    <p>We hope to see you at a future event.</p>
-                   <p>— ${orgName}</p>`,
+                   <p>— ${escapeHtml(orgName)}</p>`,
           }),
         }).catch((err: unknown) => console.error('[post-session] email error:', err))
 

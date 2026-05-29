@@ -1,5 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
+import { escapeHtml } from '../lib/escape'
 
 export const sendSpeakerInviteEmail = schemaTask({
   id: 'send-speaker-invite',
@@ -21,11 +22,11 @@ export const sendSpeakerInviteEmail = schemaTask({
           <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
             <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
           </div>
-          <h1 style="color:#F0F4F8;font-size:20px;margin:0;">You're Speaking at ${payload.eventTitle}</h1>
+          <h1 style="color:#F0F4F8;font-size:20px;margin:0;">You're Speaking at ${escapeHtml(payload.eventTitle)}</h1>
         </div>
         <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-          <p style="font-size:15px;">Hi ${payload.speakerName},</p>
-          <p style="font-size:15px;">We're excited to have you speak at <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> on <strong style="color:#F0F4F8;">${fmtDate(payload.eventDate)}</strong>.</p>
+          <p style="font-size:15px;">Hi ${escapeHtml(payload.speakerName)},</p>
+          <p style="font-size:15px;">We're excited to have you speak at <strong style="color:#F0F4F8;">${escapeHtml(payload.eventTitle)}</strong> on <strong style="color:#F0F4F8;">${escapeHtml(fmtDate(payload.eventDate))}</strong>.</p>
           <p style="font-size:15px;">Your speaker portal gives you access to:</p>
           <ul style="padding-left:20px;line-height:1.8;font-size:15px;">
             <li>📋 Your session details and room assignment</li>
@@ -34,7 +35,7 @@ export const sendSpeakerInviteEmail = schemaTask({
             <li>🎟 Complimentary badge and check-in QR code</li>
           </ul>
           <div style="margin:24px 0;">
-            <a href="${payload.portalUrl}"
+            <a href="${escapeHtml(payload.portalUrl)}"
                style="background:#00BFA6;color:#0D1B2A;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
               Access Your Speaker Portal
             </a>

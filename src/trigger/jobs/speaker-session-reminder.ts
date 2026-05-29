@@ -1,5 +1,6 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
+import { escapeHtml } from '../lib/escape'
 
 export const speakerSessionReminderTask = schedules.task({
   id: 'speaker-session-reminder',
@@ -36,7 +37,9 @@ export const speakerSessionReminderTask = schedules.task({
       const sessionTime = new Date(session.starts_at).toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', timeZone: tz,
       })
-      const room = session.rooms?.name ? ` in ${session.rooms.name}` : ''
+      const roomName = session.rooms?.name as string | undefined
+      const room = roomName ? ` in ${roomName}` : ''
+      const roomHtml = roomName ? ` in ${escapeHtml(roomName)}` : ''
 
       for (const row of assigned as any[]) {
         const speaker = row.speakers
@@ -60,11 +63,11 @@ export const speakerSessionReminderTask = schedules.task({
               `Head to your speaker hub for last-minute details: ${hubUrl}`,
               `— ${orgName}`,
             ].join('\n\n'),
-            html: `<p>Hi ${speaker.name},</p>
-                   <p>Just a reminder: <strong>${session.title}</strong> begins at <strong>${sessionTime}${room}</strong>.</p>
+            html: `<p>Hi ${escapeHtml(speaker.name)},</p>
+                   <p>Just a reminder: <strong>${escapeHtml(session.title)}</strong> begins at <strong>${sessionTime}${roomHtml}</strong>.</p>
                    <p>Head to your speaker hub for last-minute details:</p>
                    <p><a href="${hubUrl}">Open speaker hub →</a></p>
-                   <p>— ${orgName}</p>`,
+                   <p>— ${escapeHtml(orgName)}</p>`,
           }),
         }).catch((err: unknown) => console.error('[speaker-reminder] email error:', err))
 
