@@ -57,8 +57,11 @@ export default function NewEventPage() {
     if (useTemplate && selectedTemplate) {
       const title = fd.get('title') as string
       const slug = (document.getElementById('slug') as HTMLInputElement)?.value
-      if (!title || !slug) { setError('Title and slug required'); setPending(false); return }
-      const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug)
+      const startAt = fd.get('start_at') as string
+      const endAt = fd.get('end_at') as string
+      if (!title || !slug) { setError('Title and slug are required'); setPending(false); return }
+      if (!startAt || !endAt) { setError('Start and end date/time are required'); setPending(false); return }
+      const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug, startAt, endAt)
       setPending(false)
       if (result.error) setError(result.error)
       else window.location.href = `/events/${result.slug}`

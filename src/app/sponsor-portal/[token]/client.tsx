@@ -41,6 +41,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
     })
   }, [sponsor.contact_email])
   const [exporting, setExporting] = useState(false)
+  const [exportNote, setExportNote] = useState<string | null>(null)
   const [scanCode, setScanCode] = useState('')
   const [scanNote, setScanNote] = useState('')
   const [scanResult, setScanResult] = useState<{ ok?: boolean; attendee_name?: string; error?: string } | null>(null)
@@ -56,6 +57,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
 
   async function handleExport() {
     setExporting(true)
+    setExportNote(null)
     const result = await exportSponsorLeads(eventSlug, token)
     if (result.csv) {
       const blob = new Blob([result.csv], { type: 'text/csv' })
@@ -65,6 +67,11 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
       a.download = `${eventSlug}-leads.csv`
       a.click()
       URL.revokeObjectURL(url)
+      const rowCount = Math.max(0, result.csv.split('\n').filter(l => l.trim().length > 0).length - 1)
+      setExportNote(rowCount === 0
+        ? 'No leads yet — exported an empty template.'
+        : `Exported ${rowCount} lead${rowCount === 1 ? '' : 's'}.`)
+      setTimeout(() => setExportNote(null), 4000)
     }
     setExporting(false)
   }
@@ -287,15 +294,20 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
 
             {/* Lead list */}
             <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
                 <h2 style={{ fontSize: 14, fontWeight: 700 }}>Captured Leads ({leads.length})</h2>
-                <button
-                  onClick={handleExport}
-                  disabled={exporting}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exporting ? 0.6 : 1 }}
-                >
-                  <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {exportNote && (
+                    <span style={{ fontSize: 12, color: '#94A3B8' }}>{exportNote}</span>
+                  )}
+                  <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exporting ? 0.6 : 1 }}
+                  >
+                    <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
+                  </button>
+                </div>
               </div>
               {leads.length === 0 ? (
                 <p style={{ color: '#94A3B8', fontSize: 14 }}>No leads captured yet. Scan a badge above to start.</p>
@@ -404,6 +416,9 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                        color: '#00BFA6', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
               {exporting ? 'Exporting…' : 'Export leads as CSV'}
             </button>
+            {exportNote && (
+              <p style={{ marginTop: 8, fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>{exportNote}</p>
+            )}
           </div>
         )}
 

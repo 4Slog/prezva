@@ -130,8 +130,37 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
   const { data: tickets } = await supabase.from('ticket_types').select('*').eq('event_id', eventId)
   const { data: speakers } = await supabase.from('speakers').select('name, email, bio, job_title, company').eq('event_id', eventId)
 
+  const ev = event as any
   const templateData = {
-    event: { title: (event as any).title, description: (event as any).description, timezone: (event as any).timezone, speaker_form_schema: (event as any).speaker_form_schema },
+    event: {
+      title: ev.title,
+      description: ev.description,
+      timezone: ev.timezone,
+      speaker_form_schema: ev.speaker_form_schema,
+      // dates captured ONLY to compute session offset on restore — new event uses user-entered dates
+      start_at: ev.start_at,
+      end_at: ev.end_at,
+      event_type: ev.event_type,
+      virtual_url: ev.virtual_url,
+      capacity: ev.capacity,
+      venue_name: ev.venue_name,
+      venue_address: ev.venue_address,
+      venue_city: ev.venue_city,
+      venue_state: ev.venue_state,
+      venue_country: ev.venue_country,
+      venue_zip: ev.venue_zip,
+      venue_map_url: ev.venue_map_url,
+      cover_image_url: ev.cover_image_url,
+      category: ev.category,
+      tags: ev.tags,
+      waitlist_enabled: ev.waitlist_enabled,
+      require_approval: ev.require_approval,
+      allow_public_attendee_list: ev.allow_public_attendee_list,
+      certificate_enabled: ev.certificate_enabled,
+      certificate_min_session_attendance_pct: ev.certificate_min_session_attendance_pct,
+      leaderboard_point_config: ev.leaderboard_point_config,
+      pass_fees_to_registrant: ev.pass_fees_to_registrant,
+    },
     sessions: (sessions ?? []) as any[],
     tickets: (tickets ?? []) as any[],
     speakers: (speakers ?? []) as any[],
@@ -162,7 +191,14 @@ export async function getEventTemplates(orgId: string) {
   return (data ?? []) as any[]
 }
 
-export async function createEventFromTemplate(templateId: string, orgId: string, title: string, slug: string) {
+export async function createEventFromTemplate(
+  templateId: string,
+  orgId: string,
+  title: string,
+  slug: string,
+  startAt: string,
+  endAt: string,
+) {
   const supabase = await createClient()
   const user = await requireUser()
   await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
@@ -173,27 +209,91 @@ export async function createEventFromTemplate(templateId: string, orgId: string,
   if ((tpl as any).org_id !== orgId) return { error: 'Template not found' }
 
   const td = (tpl as any).template_data
+  const ev = td.event ?? {}
+
+  // Mirror createEvent's datetime-local → ISO conversion (src/lib/events/actions.ts:20-21)
+  const normalizeDate = (v: string) => (v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString())
+  const startAtIso = normalizeDate(startAt)
+  const endAtIso = normalizeDate(endAt)
+
   const { data: newEvent, error: evError } = await supabase.from('events').insert({
+    created_by: user.id,
     org_id: orgId,
     title,
     slug,
-    description: td.event?.description,
-    timezone: td.event?.timezone ?? 'America/New_York',
-    speaker_form_schema: td.event?.speaker_form_schema ?? [],
+    start_at: startAtIso,
+    end_at: endAtIso,
+    description: ev.description ?? null,
+    timezone: ev.timezone ?? 'America/New_York',
+    event_type: ev.event_type ?? 'in_person',
+    virtual_url: ev.virtual_url ?? null,
+    capacity: ev.capacity ?? null,
+    venue_name: ev.venue_name ?? null,
+    venue_address: ev.venue_address ?? null,
+    venue_city: ev.venue_city ?? null,
+    venue_state: ev.venue_state ?? null,
+    venue_country: ev.venue_country ?? 'US',
+    venue_zip: ev.venue_zip ?? null,
+    venue_map_url: ev.venue_map_url ?? null,
+    cover_image_url: ev.cover_image_url ?? null,
+    category: ev.category ?? null,
+    tags: ev.tags ?? [],
+    waitlist_enabled: ev.waitlist_enabled ?? false,
+    require_approval: ev.require_approval ?? false,
+    allow_public_attendee_list: ev.allow_public_attendee_list ?? true,
+    certificate_enabled: ev.certificate_enabled ?? false,
+    certificate_min_session_attendance_pct: ev.certificate_min_session_attendance_pct ?? 60,
+    speaker_form_schema: ev.speaker_form_schema ?? [],
+    pass_fees_to_registrant: ev.pass_fees_to_registrant ?? false,
+    ...(ev.leaderboard_point_config ? { leaderboard_point_config: ev.leaderboard_point_config } : {}),
     status: 'draft',
   }).select('id').single()
 
   if (evError) return { error: evError.message }
   const newEventId = (newEvent as any).id
 
+  // Date-shift sessions relative to the change in event start, preserving relative timing
+  const oldStartMs = ev.start_at ? new Date(ev.start_at).getTime() : NaN
+  const newStartMs = new Date(startAtIso).getTime()
+  const delta = !isNaN(oldStartMs) && !isNaN(newStartMs) ? newStartMs - oldStartMs : 0
+  const shift = (ts: string | null | undefined) =>
+    ts ? new Date(new Date(ts).getTime() + delta).toISOString() : ts
+
   if (td.tickets?.length > 0) {
     await supabase.from('ticket_types').insert(
-      td.tickets.map((t: any) => ({ ...t, id: undefined, event_id: newEventId, created_at: undefined }))
+      td.tickets.map((t: any) => ({ ...t, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined }))
     )
   }
+
   if (td.sessions?.length > 0) {
     await supabase.from('sessions').insert(
-      td.sessions.map((s: any) => ({ ...s, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined }))
+      td.sessions.map((s: any) => ({
+        ...s,
+        id: undefined,
+        event_id: newEventId,
+        track_id: null,
+        room_id: null,
+        sponsored_by_id: null,
+        starts_at: shift(s.starts_at),
+        ends_at: shift(s.ends_at),
+        visible_from: shift(s.visible_from),
+        visible_until: shift(s.visible_until),
+        created_at: undefined,
+        updated_at: undefined,
+      }))
+    )
+  }
+
+  if (td.speakers?.length > 0) {
+    await supabase.from('speakers').insert(
+      td.speakers.map((sp: any) => ({
+        name: sp.name,
+        email: sp.email,
+        bio: sp.bio,
+        job_title: sp.job_title,
+        company: sp.company,
+        event_id: newEventId,
+      }))
     )
   }
 
