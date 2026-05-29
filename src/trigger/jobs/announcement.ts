@@ -85,7 +85,18 @@ export const sendAnnouncement = schemaTask({
       (reg: any) => !(reg.user_id && prefMap[reg.user_id] === false),
     )
 
-    if (eligibleRegs.length === 0) return { sent: 0, failed: 0 }
+    // Skip addresses that hard-bounced or filed spam complaints — protects domain reputation.
+    const { data: suppressions } = await supabase
+      .from('email_suppressions')
+      .select('email')
+    const suppressedSet = new Set(
+      (suppressions ?? []).map((s: any) => (s.email as string).toLowerCase()),
+    )
+    const finalRegs = eligibleRegs.filter(
+      (reg: any) => !suppressedSet.has(reg.attendee_email.toLowerCase()),
+    )
+
+    if (finalRegs.length === 0) return { sent: 0, failed: 0 }
 
     const buildEmailPayload = (reg: any) => {
       const regIdB64 = Buffer.from(reg.id).toString('base64url')
@@ -149,8 +160,8 @@ export const sendAnnouncement = schemaTask({
 
     const CHUNK_SIZE = 100
     const chunks: any[][] = []
-    for (let i = 0; i < eligibleRegs.length; i += CHUNK_SIZE) {
-      chunks.push(eligibleRegs.slice(i, i + CHUNK_SIZE))
+    for (let i = 0; i < finalRegs.length; i += CHUNK_SIZE) {
+      chunks.push(finalRegs.slice(i, i + CHUNK_SIZE))
     }
 
     const deliveredUserIds: string[] = []
