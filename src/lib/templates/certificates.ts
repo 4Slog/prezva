@@ -16,6 +16,7 @@ export interface CertificateTemplatePayload {
   accent_color: string
   org_logo_position: 'top-center'
   title: string
+  subtitle?: string
   body: string
   footer: string
   signature_image_url: string | null

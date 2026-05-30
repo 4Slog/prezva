@@ -25,7 +25,7 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
         const isCore = cat === 'core'
 
         return (
-          <details key={cat} open={isCore || cat === 'engagement' || expandAll} style={{ marginBottom: 24 }}>
+          <details key={cat} open={isCore || cat === 'engagement' || cat === 'advanced' || cat === 'integration' || expandAll} style={{ marginBottom: 24 }}>
             <summary style={{
               cursor: isCore ? 'default' : 'pointer',
               listStyle: 'none',
@@ -42,7 +42,7 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
               <span style={{ fontSize: 11, color: 'var(--pz-muted)' }}>{tiles.length}</span>
             </summary>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isCore ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
               {tiles.map(tile => {
                 const badge = badges[tile.key]
                 const href = tile.key === 'integrations' && orgSlug

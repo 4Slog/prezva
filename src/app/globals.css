@@ -9,7 +9,7 @@
   --pz-border:      #1E3A5F;   /* subtle border    */
 
   /* Accent */
-  --pz-teal:        #00BFA6;   /* primary action   */
+  --pz-teal:        #2DD4BF;   /* primary action   */
   --pz-teal-light:  #00E5CC;   /* hover / glow     */
   --pz-teal-dim:    #007A6B;   /* muted teal       */
 
@@ -30,7 +30,7 @@
 
   /* Shadows */
   --pz-shadow:      0 4px 24px rgba(0, 0, 0, 0.4);
-  --pz-shadow-teal: 0 0 16px rgba(0, 191, 166, 0.25);
+  --pz-shadow-teal: 0 0 16px rgba(45, 212, 191, 0.25);
 
   /* Mapped to shadcn CSS vars */
   --background:         13 27% 11%;   /* #0D1B2A */
@@ -39,7 +39,7 @@
   --card-foreground:    210 40% 95%;
   --popover:            220 58% 16%;
   --popover-foreground: 210 40% 95%;
-  --primary:            174 100% 37%; /* #00BFA6 */
+  --primary:            172 66% 50%;  /* #2DD4BF */
   --primary-foreground: 0 0% 100%;
   --secondary:          220 44% 20%;  /* #1A2F4A */
   --secondary-foreground: 210 40% 95%;

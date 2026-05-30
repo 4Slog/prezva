@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 
 export function SyncHealthPill() {
-  const [online, setOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true)
+  const [online, setOnline] = useState(true)
   const [pending, setPending] = useState(0)
 
   useEffect(() => {
+    setOnline(navigator.onLine)
     const handleOnline = () => setOnline(true)
     const handleOffline = () => setOnline(false)
     window.addEventListener('online', handleOnline)

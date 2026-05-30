@@ -54,8 +54,9 @@ export function OrgSwitcher({ orgs, currentSlug }: OrgSwitcherProps) {
                     router.push(`/dashboard`)
                   }}
                   className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left hover:bg-gray-50 ${
-                    org.slug === activeSlug ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                    org.slug === activeSlug ? 'font-semibold' : 'text-gray-700'
                   }`}
+                  style={org.slug === activeSlug ? { background: 'rgba(45,212,191,0.1)', color: 'var(--pz-teal, #2DD4BF)' } : {}}
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-200 text-xs font-bold uppercase">
                     {org.name[0]}

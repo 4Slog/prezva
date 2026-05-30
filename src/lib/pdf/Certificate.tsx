@@ -78,6 +78,12 @@ export function Certificate(props: CertificateProps) {
       textAlign: 'center',
       marginBottom: 4,
     },
+    orgSubtitle: {
+      fontSize: 13,
+      color: '#4a5568',
+      textAlign: 'center',
+      marginBottom: 2,
+    },
     subtitle: {
       fontSize: 12,
       color: '#718096',
@@ -173,6 +179,7 @@ export function Certificate(props: CertificateProps) {
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           {props.orgLogoUrl && <Image src={props.orgLogoUrl} style={styles.logo} />}
           <Text style={styles.title}>{template.title}</Text>
+          {template.subtitle ? <Text style={styles.orgSubtitle}>{template.subtitle}</Text> : null}
           <View style={styles.accentBar} />
           <Text style={styles.subtitle}>Proudly presented to</Text>
         </View>

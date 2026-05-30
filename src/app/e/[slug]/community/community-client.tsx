@@ -66,6 +66,10 @@ export function CommunityClient({
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({})
   const [replies, setReplies] = useState<Record<string, any[]>>({})
   const [replyBody, setReplyBody] = useState<Record<string, string>>({})
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [reportReason, setReportReason] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportDone, setReportDone] = useState(false)
   const supabaseRef = useRef(createClient())
 
   useEffect(() => {
@@ -139,10 +143,19 @@ export function CommunityClient({
     setPosts(prev => prev.filter(p => p.id !== postId))
   }
 
-  async function handleReport(postId: string) {
-    const reason = prompt('Reason for report (optional):') ?? ''
-    await reportCommunityContent(postId, null, reason || 'Reported by user')
-    alert('Reported. Our team will review.')
+  function handleReport(postId: string) {
+    setReportingPostId(postId)
+    setReportReason('')
+    setReportDone(false)
+  }
+
+  async function submitReport() {
+    if (!reportingPostId) return
+    setReportSubmitting(true)
+    await reportCommunityContent(reportingPostId, null, reportReason.trim() || 'Reported by user')
+    setReportSubmitting(false)
+    setReportDone(true)
+    setTimeout(() => { setReportingPostId(null); setReportDone(false) }, 1500)
   }
 
   async function toggleReplies(postId: string) {
@@ -171,6 +184,32 @@ export function CommunityClient({
 
   return (
     <div>
+      {/* Report modal */}
+      {reportingPostId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.5rem', width: '100%', maxWidth: 400 }}>
+            {reportDone
+              ? <p style={{ textAlign: 'center', color: 'var(--pz-teal)', fontWeight: 600 }}>Reported. Our team will review.</p>
+              : <>
+                  <h3 style={{ fontWeight: 700, color: 'var(--pz-text)', marginBottom: 12 }}>Report Post</h3>
+                  <textarea
+                    value={reportReason}
+                    onChange={e => setReportReason(e.target.value)}
+                    placeholder="Reason for report (optional)"
+                    rows={3}
+                    style={{ width: '100%', background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                    <button onClick={() => setReportingPostId(null)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+                    <button onClick={submitReport} disabled={reportSubmitting} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--pz-teal)', color: '#0D1B2A', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: reportSubmitting ? 0.6 : 1 }}>
+                      {reportSubmitting ? 'Reporting…' : 'Submit Report'}
+                    </button>
+                  </div>
+                </>
+            }
+          </div>
+        </div>
+      )}
       {/* Compose */}
       {!userId && (
         <div className="pz-card p-4 mb-6 text-center">

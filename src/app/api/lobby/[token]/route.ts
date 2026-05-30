@@ -38,10 +38,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
       .order('starts_at', { ascending: true })
       .limit(4),
     admin.from('leaderboard_points')
-      .select('user_id, registration_id, points, registrations(attendee_name)')
-      .eq('event_id', eventId)
-      .order('points', { ascending: false })
-      .limit(5),
+      .select('user_id, registration_id, points')
+      .eq('event_id', eventId),
     admin.from('event_sponsors')
       .select('id, name, logo_url, tier')
       .eq('event_id', eventId)
@@ -49,9 +47,32 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
       .order('sort_order', { ascending: true }),
   ])
 
-  const leaderboard = ((leaderboardRes.data ?? []) as any[]).map(row => ({
-    name: (row.registrations as any)?.attendee_name ?? 'Attendee',
-    points: row.points ?? 0,
+  // Aggregate points by user_id (rows can be multiple per user)
+  const pointsRows = (leaderboardRes.data ?? []) as any[]
+  const totals: Record<string, number> = {}
+  for (const row of pointsRows) {
+    if (row.user_id) totals[row.user_id] = (totals[row.user_id] ?? 0) + (row.points ?? 0)
+  }
+  const topUserIds = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([uid]) => uid)
+
+  let nameMap: Record<string, string> = {}
+  if (topUserIds.length > 0) {
+    const { data: regs } = await admin
+      .from('registrations')
+      .select('user_id, attendee_name, attendee_email')
+      .eq('event_id', eventId)
+      .in('user_id', topUserIds)
+    for (const r of (regs ?? []) as any[]) {
+      if (r.user_id) nameMap[r.user_id] = r.attendee_name ?? r.attendee_email ?? 'Attendee'
+    }
+  }
+
+  const leaderboard = topUserIds.map(uid => ({
+    name: nameMap[uid] ?? 'Attendee',
+    points: totals[uid],
   }))
 
   return NextResponse.json({

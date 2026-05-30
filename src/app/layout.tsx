@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   description: BRAND.tagline,
   metadataBase: new URL(BRAND.url),
   manifest: '/manifest.json',
-  themeColor: '#00BFA6',
+  themeColor: BRAND.colors.teal,
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
