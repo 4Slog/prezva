@@ -116,6 +116,13 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
     setPending(true)
     setError(null)
     const fd = new FormData(e.currentTarget)
+    const smsChecked = fd.get('sms_opt_in') === 'on'
+    const phoneVal = (fd.get('attendee_phone') as string || '').trim()
+    if (smsChecked && !phoneVal) {
+      setError('Please enter your phone number to receive SMS updates.')
+      setPending(false)
+      return
+    }
     fd.set('event_id', event.id)
     fd.set('ticket_type_id', selectedTicket.id)
     fd.set('quantity', String(qty))
@@ -395,6 +402,23 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                 <p className="text-xs text-[#64748B] mt-1">This event requires an invite code to register.</p>
               </div>
             )}
+
+            {/* SMS consent */}
+            <div className="pz-card p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="sms_opt_in"
+                  defaultChecked={false}
+                  className="mt-0.5 flex-shrink-0 accent-[#00BFA6]"
+                />
+                <span className="text-xs leading-relaxed" style={{ color: 'var(--pz-text-muted)' }}>
+                  Text me event updates. I agree to receive recurring automated SMS messages from Prezva about this event (session reminders, schedule changes, and check-in confirmations) at the number above. Consent is not a condition of registration. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. See our{' '}
+                  <a href="/privacy" className="underline" style={{ color: 'var(--pz-teal)' }}>Privacy Policy</a>{' '}and{' '}
+                  <a href="/terms" className="underline" style={{ color: 'var(--pz-teal)' }}>Terms</a>.
+                </span>
+              </label>
+            </div>
 
             {error && (
               <p className="rounded-lg bg-[#EF4444]/10 px-4 py-3 text-sm text-[#EF4444]">{error}</p>

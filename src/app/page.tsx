@@ -349,6 +349,7 @@ export default function MarketingHomepage() {
             ['Sign in', '/login'],
             ['Privacy', '/privacy'],
             ['Terms', '/terms'],
+            ['SMS Program', '/sms'],
           ].map(([label, href]) => (
             <a key={href} href={href} style={{ fontSize: 13, color: '#64748B', textDecoration: 'none' }}>
               {label}

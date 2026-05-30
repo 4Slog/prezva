@@ -20,6 +20,7 @@ const RegisterSchema = z.object({
   attendee_job_title: z.string().optional(),
   discount_code:      z.string().optional(),
   delivery_method:    z.enum(['in_person', 'virtual']).optional(),
+  sms_opt_in:         z.boolean().optional(),
 })
 
 // ── Validate discount code ────────────────────────────────────────────────────
@@ -84,6 +85,11 @@ export async function startRegistration(formData: FormData) {
     attendee_job_title: formData.get('attendee_job_title') || undefined,
     discount_code:      formData.get('discount_code') || undefined,
     delivery_method:    formData.get('delivery_method') || undefined,
+    sms_opt_in: (() => {
+      const checked = formData.get('sms_opt_in') === 'on'
+      const phone = (formData.get('attendee_phone') as string || '').trim()
+      return checked && !!phone
+    })(),
   }
 
   const parsed = RegisterSchema.safeParse(raw)
@@ -292,6 +298,8 @@ async function confirmFreeRegistration(
     confirmation_sent_at: requireApproval ? null : now,
     delivery_method: data.delivery_method ?? 'in_person',
     press_token: isPressTicket ? crypto.randomUUID() : null,
+    sms_opt_in:    data.sms_opt_in ?? false,
+    sms_opt_in_at: data.sms_opt_in ? now : null,
   }))
 
   const { data: regs, error } = await admin
@@ -398,6 +406,8 @@ async function createPaidRegistration(
       discount_amount_cents: discountAmountCents,
       delivery_method: data.delivery_method ?? 'in_person',
       press_token: (ticket as any).is_press === true ? crypto.randomUUID() : null,
+      sms_opt_in:    data.sms_opt_in ?? false,
+      sms_opt_in_at: data.sms_opt_in ? new Date().toISOString() : null,
     })
     .select()
     .single()
@@ -516,6 +526,8 @@ async function addToWaitlist(
       status:          'waitlisted',
       amount_paid_cents: 0,
       waitlist_position: position,
+      sms_opt_in:    data.sms_opt_in ?? false,
+      sms_opt_in_at: data.sms_opt_in ? new Date().toISOString() : null,
     })
     .select()
     .single()
