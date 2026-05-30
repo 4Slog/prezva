@@ -23,7 +23,7 @@ export async function GET(
 
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, user_id, certificate_token, attendee_name, attendee_email, events(id, title, start_at, certificate_enabled, certificate_min_session_attendance_pct, organizations(name, logo_url))')
+    .select('id, user_id, certificate_token, attendee_name, attendee_email, events(id, title, start_at, certificate_enabled, certificate_min_session_attendance_pct, organizations(id, name, logo_url))')
     .eq('id', regId)
     .maybeSingle()
 
@@ -54,12 +54,13 @@ export async function GET(
   const ev = reg.events as any
   const org = ev?.organizations as any
 
-  const { data: tmplRow } = await admin
+  const { data: tmplRow, error: tmplErr } = await admin
     .from('certificate_templates')
     .select('payload')
     .eq('org_id', org?.id ?? '')
     .eq('is_default', true)
     .maybeSingle()
+  if (tmplErr) console.error('[certificate] template fetch failed', { regId, orgId: org?.id, error: tmplErr.message })
 
   const templatePayload: CertificateTemplatePayload = tmplRow?.payload ?? DEFAULT_CERTIFICATE_TEMPLATE.payload
 
