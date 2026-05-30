@@ -145,17 +145,30 @@ export async function scanLead(
 
   if (!reg) return { error: 'QR code not recognized' }
 
-  const { error } = await admin.from('sponsor_leads').insert({
-    event_id: sponsor.event_id,
-    sponsor_id: sponsor.id,
-    registration_id: (reg as any).id,
-    attendee_name: (reg as any).attendee_name,
-    attendee_email: (reg as any).attendee_email,
-    note: note ?? null,
-    scanned_by_contact_name: contactName ?? null,
-  })
+  const { data: existing } = await admin
+    .from('sponsor_leads')
+    .select('id')
+    .eq('sponsor_id', sponsor.id)
+    .eq('registration_id', (reg as any).id)
+    .maybeSingle()
 
-  if (error) return { error: error.message }
+  if (existing) {
+    if (note) {
+      await admin.from('sponsor_leads').update({ note, scanned_by_contact_name: contactName ?? null }).eq('id', existing.id)
+    }
+  } else {
+    const { error } = await admin.from('sponsor_leads').insert({
+      event_id: sponsor.event_id,
+      sponsor_id: sponsor.id,
+      registration_id: (reg as any).id,
+      attendee_name: (reg as any).attendee_name,
+      attendee_email: (reg as any).attendee_email,
+      note: note ?? null,
+      scanned_by_contact_name: contactName ?? null,
+    })
+    if (error) return { error: error.message }
+  }
+
   return {
     ok: true,
     attendee_name: (reg as any).attendee_name,

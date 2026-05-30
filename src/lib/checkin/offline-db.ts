@@ -63,9 +63,12 @@ export async function syncPending(eventId: string): Promise<{ processed: number;
 
   if (!res.ok) return { processed: 0, failed: pending.length }
 
-  const result = await res.json() as { processed: number; total: number; errors: string[] }
-  const ids = pending.map(p => p.id!)
-  await db.pending.where('id').anyOf(ids).modify({ synced: true })
+  const result = await res.json() as { processed: number; total: number; errors: string[]; failedQrCodes?: string[] }
+  const failedSet = new Set((result.failedQrCodes ?? []).map(q => q.toLowerCase()))
+  const successfulIds = pending.filter(p => !failedSet.has(p.qrCode.toLowerCase())).map(p => p.id!)
+  if (successfulIds.length > 0) {
+    await db.pending.where('id').anyOf(successfulIds).modify({ synced: true })
+  }
 
   return { processed: result.processed, failed: result.errors.length }
 }

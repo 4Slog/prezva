@@ -279,6 +279,7 @@ export async function processOfflineQueue(raw: unknown) {
 
   let processed = 0
   const errors: string[] = []
+  const failedQrCodes: string[] = []
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i]
@@ -286,10 +287,11 @@ export async function processOfflineQueue(raw: unknown) {
       processed++
     } else if (!result.success) {
       errors.push(entries[i].qr_code + ': ' + result.error)
+      failedQrCodes.push(entries[i].qr_code)
     }
   }
 
-  return { processed, total: entries.length, errors }
+  return { processed, total: entries.length, errors, failedQrCodes }
 }
 
 export async function checkInToSession(
