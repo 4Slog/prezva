@@ -127,6 +127,38 @@ export function ContextSwitcher({ currentContext, contexts }: ContextSwitcherPro
               </div>
             </>
           )}
+          <div style={{ borderTop: '1px solid var(--pz-border)', padding: '6px 0' }}>
+            <Link
+              role="menuitem"
+              href="/orgs/new"
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                textDecoration: 'none',
+                color: 'var(--pz-muted)',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 16,
+                  height: 16,
+                  fontSize: 16,
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >
+                +
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>New organization</span>
+            </Link>
+          </div>
         </div>
       )}
     </div>
