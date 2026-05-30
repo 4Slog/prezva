@@ -28,7 +28,7 @@ export const sendConfirmationEmail = schemaTask({
       dateStyle: 'full', timeStyle: 'short',
     })
     const agendaLink = payload.agendaUrl ?? `${BASE_URL}/e/${payload.eventSlug}/agenda`
-    const icsUrl     = `${BASE_URL}/e/${payload.eventSlug}/calendar.ics`
+    const icsUrl     = `${BASE_URL}/api/events/${payload.eventSlug}/calendar.ics`
     const eventUrl   = `${BASE_URL}/e/${payload.eventSlug}`
     const regIdB64   = Buffer.from(payload.registrationId).toString('base64url')
     const unsubUrl   = `${BASE_URL}/api/unsubscribe?token=${regIdB64}&type=reminders`
