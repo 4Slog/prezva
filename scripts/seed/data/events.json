@@ -1,0 +1,1364 @@
+{
+  "_comment": "7-event golden dataset. UUIDs are fixed — never regenerate. Org IDs from orgs.json.",
+  "_uuid_scheme": "entity-prefix (01=event,02=track,03=room,04=ticket,05=speaker,06=session,07=formfield) + seq-hex + event-index",
+  "events": [
+    {
+      "_ref": "E1",
+      "id": "01000001-0001-4001-8001-000000000000",
+      "org_id": "11111111-1111-4111-8111-111111111101",
+      "title": "Birmingham Small Business Week 2026",
+      "slug": "bsbw-2026",
+      "status": "ended",
+      "event_type": "in_person",
+      "timezone": "America/Chicago",
+      "is_discoverable": true,
+      "start_at": "2026-03-10T09:00:00-06:00",
+      "end_at": "2026-03-12T18:00:00-06:00",
+      "description": "Birmingham's premier small business and entrepreneurship conference. Three days of sessions covering business growth, technology adoption, and community investment — featuring local founders, corporate sponsors, and civic leaders.",
+      "venue_name": "Birmingham Jefferson Convention Complex",
+      "venue_city": "Birmingham",
+      "venue_state": "AL",
+      "capacity": 550,
+      "certificate_enabled": false,
+      "tracks": [
+        { "id": "02000001-0001-4001-8001-000000000000", "name": "Business Growth",          "color": "#F97316", "sort_order": 0 },
+        { "id": "02000002-0001-4001-8001-000000000000", "name": "Technology & Innovation",  "color": "#3B82F6", "sort_order": 1 },
+        { "id": "02000003-0001-4001-8001-000000000000", "name": "Community Impact",         "color": "#22C55E", "sort_order": 2 }
+      ],
+      "rooms": [
+        { "id": "03000001-0001-4001-8001-000000000000", "name": "Main Ballroom",     "capacity": 550, "sort_order": 0 },
+        { "id": "03000002-0001-4001-8001-000000000000", "name": "Innovation Hall",   "capacity": 200, "sort_order": 1 },
+        { "id": "03000003-0001-4001-8001-000000000000", "name": "Workshop Suite A",  "capacity": 80,  "sort_order": 2 }
+      ],
+      "ticket_types": [
+        {
+          "id": "04000001-0001-4001-8001-000000000000",
+          "name": "General Admission",
+          "type": "paid",
+          "price_cents": 8500,
+          "delivery_method": "in_person",
+          "is_active": false,
+          "sort_order": 0
+        },
+        {
+          "id": "04000002-0001-4001-8001-000000000000",
+          "name": "VIP All-Access",
+          "type": "paid",
+          "price_cents": 17500,
+          "delivery_method": "in_person",
+          "is_active": false,
+          "sort_order": 1
+        }
+      ],
+      "speakers": [
+        {
+          "id": "05000001-0001-4001-8001-000000000000",
+          "name": "Jordan Mercer",
+          "bio": "Serial entrepreneur and founder of BizForward, a small business accelerator serving under-resourced communities across the Southeast. Advocate for equitable access to capital and mentorship.",
+          "job_title": "Founder & CEO",
+          "company": "BizForward",
+          "photo_url": "https://i.pravatar.cc/400?u=jordan-mercer",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 0
+        },
+        {
+          "id": "05000002-0001-4001-8001-000000000000",
+          "name": "Dr. Alicia Tate",
+          "bio": "Director of the MBA Entrepreneurship Program at UAB and researcher specializing in minority-owned business development and CDFI lending.",
+          "job_title": "MBA Program Director",
+          "company": "University of Alabama at Birmingham",
+          "photo_url": "https://i.pravatar.cc/400?u=alicia-tate",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 1
+        },
+        {
+          "id": "05000003-0001-4001-8001-000000000000",
+          "name": "Marcus Webb",
+          "bio": "Digital marketing strategist who has helped 200+ small businesses build online presence. Founder of Main Street Digital, a Birmingham-based agency.",
+          "job_title": "Founder",
+          "company": "Main Street Digital",
+          "photo_url": "https://i.pravatar.cc/400?u=marcus-webb",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 2
+        },
+        {
+          "id": "05000004-0001-4001-8001-000000000000",
+          "name": "Simone Hayes",
+          "bio": "Three-time founder and e-commerce consultant. Built and exited two online retail businesses serving the Southern US market. Now advises brick-and-mortar retailers on digital transformation.",
+          "job_title": "E-commerce Consultant",
+          "company": "Hayes Digital Ventures",
+          "photo_url": "https://i.pravatar.cc/400?u=simone-hayes",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 3
+        },
+        {
+          "id": "05000005-0001-4001-8001-000000000000",
+          "name": "Rev. Thomas Bridges",
+          "bio": "Community development director at New Covenant CDC, connecting faith communities with economic development resources across Jefferson County.",
+          "job_title": "Community Development Director",
+          "company": "New Covenant CDC",
+          "photo_url": "https://i.pravatar.cc/400?u=thomas-bridges",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 4
+        },
+        {
+          "id": "05000006-0001-4001-8001-000000000000",
+          "name": "Priya Patel",
+          "bio": "Fintech entrepreneur and founder of Lendwise, a platform connecting small business owners with alternative financing. Forbes 30 Under 30 honoree.",
+          "job_title": "Founder & CEO",
+          "company": "Lendwise",
+          "photo_url": "https://i.pravatar.cc/400?u=priya-patel-bsbw",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 5
+        },
+        {
+          "id": "05000007-0001-4001-8001-000000000000",
+          "name": "Kevin Rodriguez",
+          "bio": "Digital marketing consultant specializing in AI-assisted campaigns for Main Street businesses. Former Google SMB advisor.",
+          "job_title": "Digital Marketing Consultant",
+          "company": "Rodriguez & Partners",
+          "photo_url": "https://i.pravatar.cc/400?u=kevin-rodriguez-bsbw",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 6
+        },
+        {
+          "id": "05000008-0001-4001-8001-000000000000",
+          "name": "Naomi Washington",
+          "bio": "Grant writer and nonprofit capacity builder who has secured over $12M in federal, state, and foundation grants for small businesses and community organizations.",
+          "job_title": "Principal Consultant",
+          "company": "Washington Grant Strategies",
+          "photo_url": "https://i.pravatar.cc/400?u=naomi-washington",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-15T00:00:00Z",
+          "sort_order": 7
+        }
+      ],
+      "sessions": [
+        {
+          "id": "06000001-0001-4001-8001-000000000000",
+          "title": "Opening Keynote: Building Wealth in the New Economy",
+          "description": "A call to action for Birmingham's small business community — examining generational wealth-building, access to capital, and the economic opportunity ahead.",
+          "session_type": "keynote",
+          "track_id": "02000001-0001-4001-8001-000000000000",
+          "room_id": "03000001-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-10T09:00:00-06:00",
+          "ends_at": "2026-03-10T10:00:00-06:00",
+          "speaker_ids": ["05000001-0001-4001-8001-000000000000", "05000002-0001-4001-8001-000000000000"],
+          "sort_order": 0
+        },
+        {
+          "id": "06000002-0001-4001-8001-000000000000",
+          "title": "Building Bankable Credit for Small Business",
+          "description": "Practical steps for establishing and rebuilding business credit, separating personal and business finances, and approaching lenders with confidence.",
+          "session_type": "talk",
+          "track_id": "02000001-0001-4001-8001-000000000000",
+          "room_id": "03000001-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-10T10:30:00-06:00",
+          "ends_at": "2026-03-10T11:30:00-06:00",
+          "speaker_ids": ["05000003-0001-4001-8001-000000000000"],
+          "sort_order": 1
+        },
+        {
+          "id": "06000003-0001-4001-8001-000000000000",
+          "title": "Digital Marketing Masterclass for Main Street",
+          "description": "Hands-on workshop: build a 90-day digital presence plan using social media, email, and low-cost ad tools tailored for local businesses.",
+          "session_type": "workshop",
+          "track_id": "02000002-0001-4001-8001-000000000000",
+          "room_id": "03000002-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-10T10:30:00-06:00",
+          "ends_at": "2026-03-10T12:00:00-06:00",
+          "speaker_ids": ["05000004-0001-4001-8001-000000000000"],
+          "video_url": "https://prezva.app/recordings/bsbw-2026/digital-marketing-masterclass",
+          "sort_order": 2
+        },
+        {
+          "id": "06000004-0001-4001-8001-000000000000",
+          "title": "Community Capital: Raising Local Investment",
+          "description": "Panelists discuss community investment structures, equity crowdfunding, and how faith communities and CDFIs are bridging the financing gap for Birmingham entrepreneurs.",
+          "session_type": "panel",
+          "track_id": "02000003-0001-4001-8001-000000000000",
+          "room_id": "03000003-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-10T13:00:00-06:00",
+          "ends_at": "2026-03-10T14:00:00-06:00",
+          "speaker_ids": ["05000005-0001-4001-8001-000000000000", "05000006-0001-4001-8001-000000000000"],
+          "sort_order": 3
+        },
+        {
+          "id": "06000005-0001-4001-8001-000000000000",
+          "title": "AI Tools for the Small Business Owner",
+          "description": "Practical demonstrations of AI-assisted tools for scheduling, customer service, social media, and competitive research — no technical background needed.",
+          "session_type": "talk",
+          "track_id": "02000002-0001-4001-8001-000000000000",
+          "room_id": "03000002-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-11T09:00:00-06:00",
+          "ends_at": "2026-03-11T10:00:00-06:00",
+          "speaker_ids": ["05000007-0001-4001-8001-000000000000"],
+          "video_url": "https://prezva.app/recordings/bsbw-2026/ai-tools-for-small-business",
+          "sort_order": 4
+        },
+        {
+          "id": "06000006-0001-4001-8001-000000000000",
+          "title": "Minority-Owned Business Certification Workshop",
+          "description": "Step-by-step guide to applying for MBE, WBE, DBE, and SBA certifications — including documentation requirements, timelines, and how to leverage certifications for contracts.",
+          "session_type": "workshop",
+          "track_id": "02000001-0001-4001-8001-000000000000",
+          "room_id": "03000003-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-11T09:00:00-06:00",
+          "ends_at": "2026-03-11T11:00:00-06:00",
+          "speaker_ids": ["05000008-0001-4001-8001-000000000000"],
+          "sort_order": 5
+        },
+        {
+          "id": "06000007-0001-4001-8001-000000000000",
+          "title": "Networking Lunch",
+          "description": "Open networking lunch for all attendees, exhibitors, and sponsors.",
+          "session_type": "networking",
+          "track_id": null,
+          "room_id": "03000001-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-11T12:00:00-06:00",
+          "ends_at": "2026-03-11T13:00:00-06:00",
+          "speaker_ids": [],
+          "sort_order": 6
+        },
+        {
+          "id": "06000008-0001-4001-8001-000000000000",
+          "title": "The Future of Downtown Commerce",
+          "description": "Panelists examine how mixed-use development, transit investment, and anchor institutions are reshaping economic opportunity in Birmingham's neighborhoods.",
+          "session_type": "panel",
+          "track_id": "02000003-0001-4001-8001-000000000000",
+          "room_id": "03000001-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-11T13:00:00-06:00",
+          "ends_at": "2026-03-11T14:30:00-06:00",
+          "speaker_ids": ["05000001-0001-4001-8001-000000000000", "05000005-0001-4001-8001-000000000000"],
+          "sort_order": 7
+        },
+        {
+          "id": "06000009-0001-4001-8001-000000000000",
+          "title": "E-Commerce Strategies for Local Retailers",
+          "description": "From Shopify setup to marketplace listings to local delivery fulfillment — a practical roadmap for brick-and-mortar businesses entering online retail.",
+          "session_type": "talk",
+          "track_id": "02000002-0001-4001-8001-000000000000",
+          "room_id": "03000002-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-12T09:30:00-06:00",
+          "ends_at": "2026-03-12T10:30:00-06:00",
+          "speaker_ids": ["05000002-0001-4001-8001-000000000000", "05000004-0001-4001-8001-000000000000"],
+          "sort_order": 8
+        },
+        {
+          "id": "0600000a-0001-4001-8001-000000000000",
+          "title": "Grant Writing for Small Businesses",
+          "description": "Workshop covering federal and state grant programs available to small businesses, how to write winning applications, and common disqualifying mistakes to avoid.",
+          "session_type": "workshop",
+          "track_id": "02000001-0001-4001-8001-000000000000",
+          "room_id": "03000003-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-12T10:00:00-06:00",
+          "ends_at": "2026-03-12T12:00:00-06:00",
+          "speaker_ids": ["05000003-0001-4001-8001-000000000000"],
+          "video_url": "https://prezva.app/recordings/bsbw-2026/grant-writing-workshop",
+          "sort_order": 9
+        },
+        {
+          "id": "0600000b-0001-4001-8001-000000000000",
+          "title": "Building Supplier Diversity Programs That Work",
+          "description": "Corporate procurement leaders and small business advocates discuss what supplier diversity programs actually deliver — and how certified businesses can break in.",
+          "session_type": "talk",
+          "track_id": "02000003-0001-4001-8001-000000000000",
+          "room_id": "03000001-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-12T13:00:00-06:00",
+          "ends_at": "2026-03-12T14:00:00-06:00",
+          "speaker_ids": ["05000006-0001-4001-8001-000000000000", "05000007-0001-4001-8001-000000000000"],
+          "sort_order": 10
+        },
+        {
+          "id": "0600000c-0001-4001-8001-000000000000",
+          "title": "Closing Keynote & Small Business Awards",
+          "description": "Closing celebration recognizing outstanding Birmingham small businesses, community champions, and rising entrepreneurs, followed by networking reception.",
+          "session_type": "keynote",
+          "track_id": "02000001-0001-4001-8001-000000000000",
+          "room_id": "03000001-0001-4001-8001-000000000000",
+          "starts_at": "2026-03-12T16:00:00-06:00",
+          "ends_at": "2026-03-12T18:00:00-06:00",
+          "speaker_ids": ["05000001-0001-4001-8001-000000000000", "05000008-0001-4001-8001-000000000000"],
+          "sort_order": 11
+        }
+      ],
+      "form_fields": [
+        {
+          "id": "07000001-0001-4001-8001-000000000000",
+          "field_key": "dietary_restrictions",
+          "label": "Dietary Restrictions",
+          "field_type": "select",
+          "is_required": false,
+          "sort_order": 0,
+          "options": ["No restrictions","Vegetarian","Vegan","Gluten-Free","Kosher","Halal"]
+        },
+        {
+          "id": "07000002-0001-4001-8001-000000000000",
+          "field_key": "tshirt_size",
+          "label": "T-Shirt Size",
+          "field_type": "select",
+          "is_required": false,
+          "sort_order": 1,
+          "options": ["XS","S","M","L","XL","XXL"]
+        },
+        {
+          "id": "07000003-0001-4001-8001-000000000000",
+          "field_key": "company_name",
+          "label": "Company / Organization",
+          "field_type": "text",
+          "is_required": false,
+          "sort_order": 2,
+          "options": null
+        }
+      ]
+    },
+
+    {
+      "_ref": "E2",
+      "id": "01000002-0002-4001-8001-000000000000",
+      "org_id": "22222222-2222-4222-8222-222222222201",
+      "title": "SAUP Annual CE Conference 2026",
+      "slug": "saup-ce-conference-2026",
+      "status": "live",
+      "event_type": "hybrid",
+      "timezone": "America/Chicago",
+      "is_discoverable": true,
+      "start_at": "2026-05-29T09:00:00-05:00",
+      "end_at": "2026-06-01T17:00:00-05:00",
+      "description": "The Southeast Association of Urban Planners' annual continuing education conference. Four days of AICP-certified sessions spanning policy, practice, and design — delivered in person and via live stream.",
+      "venue_name": "Birmingham Metro Arts Center",
+      "venue_city": "Birmingham",
+      "venue_state": "AL",
+      "virtual_url": "https://prezva.app/stream/saup-2026",
+      "capacity": 320,
+      "certificate_enabled": true,
+      "certificate_min_session_attendance_pct": 75,
+      "tracks": [
+        { "id": "02000004-0002-4001-8001-000000000000", "name": "Policy & Governance",  "color": "#7C3AED", "sort_order": 0 },
+        { "id": "02000005-0002-4001-8001-000000000000", "name": "Practice & Design",    "color": "#0EA5E9", "sort_order": 1 }
+      ],
+      "rooms": [
+        { "id": "03000004-0002-4001-8001-000000000000", "name": "Grand Auditorium", "capacity": 320, "sort_order": 0 },
+        { "id": "03000005-0002-4001-8001-000000000000", "name": "Workshop Room 1",  "capacity": 80,  "sort_order": 1 }
+      ],
+      "ticket_types": [
+        {
+          "id": "04000003-0002-4001-8001-000000000000",
+          "name": "AICP Member",
+          "type": "paid",
+          "price_cents": 22500,
+          "delivery_method": "both",
+          "is_active": true,
+          "sort_order": 0
+        },
+        {
+          "id": "04000004-0002-4001-8001-000000000000",
+          "name": "Non-Member",
+          "type": "paid",
+          "price_cents": 37500,
+          "delivery_method": "both",
+          "is_active": true,
+          "sort_order": 1
+        }
+      ],
+      "speakers": [
+        {
+          "id": "05000009-0002-4001-8001-000000000000",
+          "name": "Dr. Raymond Foster, AICP",
+          "bio": "Professor of urban planning at Georgia Tech with a focus on climate resilience policy in the Southeast. Author of two books on urban heat and infrastructure adaptation.",
+          "job_title": "Professor of Urban Planning",
+          "company": "Georgia Institute of Technology",
+          "photo_url": "https://i.pravatar.cc/400?u=raymond-foster",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-04-01T00:00:00Z",
+          "sort_order": 0
+        },
+        {
+          "id": "0500000a-0002-4001-8001-000000000000",
+          "name": "Keiko Yamamoto",
+          "bio": "Sustainable design consultant specializing in transit-oriented development and mixed-income housing. Past projects include multiple HUD Choice Neighborhoods grantees.",
+          "job_title": "Principal",
+          "company": "Yamamoto Urban Studio",
+          "photo_url": "https://i.pravatar.cc/400?u=keiko-yamamoto",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-04-01T00:00:00Z",
+          "sort_order": 1
+        },
+        {
+          "id": "0500000b-0002-4001-8001-000000000000",
+          "name": "Dr. Antoine Beaumont",
+          "bio": "Housing policy researcher and former HUD senior advisor. Expert in affordable housing finance, inclusionary zoning, and community land trusts.",
+          "job_title": "Senior Policy Fellow",
+          "company": "National Housing Institute",
+          "photo_url": "https://i.pravatar.cc/400?u=antoine-beaumont",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-04-01T00:00:00Z",
+          "sort_order": 2
+        },
+        {
+          "id": "0500000c-0002-4001-8001-000000000000",
+          "name": "Christina Blackwell, AICP",
+          "bio": "City planner with 15 years experience in form-based code development. Led the Birmingham Complete Neighborhoods code overhaul in 2023.",
+          "job_title": "Principal Planner",
+          "company": "City of Birmingham",
+          "photo_url": "https://i.pravatar.cc/400?u=christina-blackwell",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-04-01T00:00:00Z",
+          "sort_order": 3
+        },
+        {
+          "id": "0500000d-0002-4001-8001-000000000000",
+          "name": "Marcus Thompson",
+          "bio": "Transportation planner and Complete Streets advocate. Has managed street redesigns in four major Southern cities, reducing pedestrian fatalities by 40%.",
+          "job_title": "Director of Transportation Planning",
+          "company": "Southeast Planning Group",
+          "photo_url": "https://i.pravatar.cc/400?u=marcus-thompson-saup",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-04-01T00:00:00Z",
+          "sort_order": 4
+        },
+        {
+          "id": "0500000e-0002-4001-8001-000000000000",
+          "name": "Dr. Priscilla Osei",
+          "bio": "Regional planning director for the Atlanta Regional Commission. Leads coordination of multi-jurisdictional plans for the 11-county ARC region.",
+          "job_title": "Regional Planning Director",
+          "company": "Atlanta Regional Commission",
+          "photo_url": "https://i.pravatar.cc/400?u=priscilla-osei",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-04-01T00:00:00Z",
+          "sort_order": 5
+        }
+      ],
+      "sessions": [
+        {
+          "id": "0600000d-0002-4001-8001-000000000000",
+          "title": "Urban Climate Resilience Policy",
+          "description": "Examining FEMA, HUD, and state-level policy frameworks for climate adaptation — and how local planners can align comprehensive plans with resilience mandates. 1.0 AICP CM credit.",
+          "session_type": "talk",
+          "track_id": "02000004-0002-4001-8001-000000000000",
+          "room_id": "03000004-0002-4001-8001-000000000000",
+          "starts_at": "2026-05-29T09:00:00-05:00",
+          "ends_at": "2026-05-29T10:00:00-05:00",
+          "speaker_ids": ["05000009-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 0
+        },
+        {
+          "id": "0600000e-0002-4001-8001-000000000000",
+          "title": "Equitable Transit-Oriented Development Workshop",
+          "description": "Hands-on workshop: anti-displacement strategies, community benefit agreements, and affordable housing preservation in the context of TOD. 1.0 AICP CM credit.",
+          "session_type": "workshop",
+          "track_id": "02000005-0002-4001-8001-000000000000",
+          "room_id": "03000005-0002-4001-8001-000000000000",
+          "starts_at": "2026-05-29T10:30:00-05:00",
+          "ends_at": "2026-05-29T11:30:00-05:00",
+          "speaker_ids": ["0500000a-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 1
+        },
+        {
+          "id": "0600000f-0002-4001-8001-000000000000",
+          "title": "Affordable Housing Finance Policy",
+          "description": "Panel examining LIHTC, HOME, and local trust fund programs — what's working, what's under threat, and how planners can advocate for stronger pipelines. 1.0 AICP CM credit.",
+          "session_type": "panel",
+          "track_id": "02000004-0002-4001-8001-000000000000",
+          "room_id": "03000004-0002-4001-8001-000000000000",
+          "starts_at": "2026-05-30T09:00:00-05:00",
+          "ends_at": "2026-05-30T10:00:00-05:00",
+          "speaker_ids": ["0500000b-0002-4001-8001-000000000000", "0500000c-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 2
+        },
+        {
+          "id": "06000010-0002-4001-8001-000000000000",
+          "title": "Form-Based Codes in Practice",
+          "description": "Case study walkthrough of Birmingham's recent form-based code adoption: stakeholder process, calibration, and implementation lessons for other municipalities. 1.0 AICP CM credit.",
+          "session_type": "talk",
+          "track_id": "02000005-0002-4001-8001-000000000000",
+          "room_id": "03000005-0002-4001-8001-000000000000",
+          "starts_at": "2026-05-30T10:30:00-05:00",
+          "ends_at": "2026-05-30T11:30:00-05:00",
+          "speaker_ids": ["0500000c-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 3
+        },
+        {
+          "id": "06000011-0002-4001-8001-000000000000",
+          "title": "Complete Streets Implementation",
+          "description": "From policy adoption to on-the-ground construction: a panel discussion on navigating political, engineering, and community challenges in Complete Streets projects. 1.0 AICP CM credit.",
+          "session_type": "panel",
+          "track_id": "02000004-0002-4001-8001-000000000000",
+          "room_id": "03000004-0002-4001-8001-000000000000",
+          "starts_at": "2026-05-31T09:00:00-05:00",
+          "ends_at": "2026-05-31T10:00:00-05:00",
+          "speaker_ids": ["0500000d-0002-4001-8001-000000000000", "05000009-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 4
+        },
+        {
+          "id": "06000012-0002-4001-8001-000000000000",
+          "title": "Urban Parks and Green Infrastructure Workshop",
+          "description": "Workshop: applying green infrastructure standards, park equity analysis, and CDBG funding to improve urban parks in underserved neighborhoods. 1.0 AICP CM credit.",
+          "session_type": "workshop",
+          "track_id": "02000005-0002-4001-8001-000000000000",
+          "room_id": "03000005-0002-4001-8001-000000000000",
+          "starts_at": "2026-05-31T10:30:00-05:00",
+          "ends_at": "2026-05-31T11:30:00-05:00",
+          "speaker_ids": ["0500000a-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 5
+        },
+        {
+          "id": "06000013-0002-4001-8001-000000000000",
+          "title": "Regional Planning Coordination",
+          "description": "How multi-jurisdictional regional agencies coordinate comprehensive plans, housing targets, and infrastructure investment across county lines. 1.0 AICP CM credit.",
+          "session_type": "talk",
+          "track_id": "02000004-0002-4001-8001-000000000000",
+          "room_id": "03000004-0002-4001-8001-000000000000",
+          "starts_at": "2026-06-01T09:00:00-05:00",
+          "ends_at": "2026-06-01T10:00:00-05:00",
+          "speaker_ids": ["0500000e-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 6
+        },
+        {
+          "id": "06000014-0002-4001-8001-000000000000",
+          "title": "Mixed-Use Development Design Workshop",
+          "description": "Studio-style workshop using real Birmingham sites to apply mixed-use design principles, zoning variance processes, and urban design review criteria. 1.0 AICP CM credit.",
+          "session_type": "workshop",
+          "track_id": "02000005-0002-4001-8001-000000000000",
+          "room_id": "03000005-0002-4001-8001-000000000000",
+          "starts_at": "2026-06-01T10:30:00-05:00",
+          "ends_at": "2026-06-01T11:30:00-05:00",
+          "speaker_ids": ["0500000b-0002-4001-8001-000000000000", "0500000d-0002-4001-8001-000000000000"],
+          "ce_credit_hours": 1.0,
+          "sort_order": 7
+        }
+      ],
+      "form_fields": [
+        {
+          "id": "07000004-0002-4001-8001-000000000000",
+          "field_key": "ce_eligibility",
+          "label": "I confirm I am eligible for AICP CE credit",
+          "field_type": "checkbox",
+          "is_required": true,
+          "sort_order": 0,
+          "options": null
+        },
+        {
+          "id": "07000005-0002-4001-8001-000000000000",
+          "field_key": "member_id",
+          "label": "AICP Member ID (if applicable)",
+          "field_type": "text",
+          "is_required": false,
+          "sort_order": 1,
+          "options": null
+        }
+      ]
+    },
+
+    {
+      "_ref": "E3",
+      "id": "01000003-0003-4001-8001-000000000000",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "title": "Augusta Metro Chamber Spring Mixer 2026",
+      "slug": "augusta-chamber-mixer-2026",
+      "status": "published",
+      "event_type": "in_person",
+      "timezone": "America/New_York",
+      "is_discoverable": true,
+      "start_at": "2026-07-15T18:00:00-04:00",
+      "end_at": "2026-07-15T21:00:00-04:00",
+      "description": "The Augusta Metro Chamber's summer networking mixer — an evening of connection, conversation, and community for Augusta's business and civic leaders.",
+      "venue_name": "Augusta Marriott at the Convention Center",
+      "venue_city": "Augusta",
+      "venue_state": "GA",
+      "capacity": 150,
+      "certificate_enabled": false,
+      "tracks": [
+        { "id": "02000006-0003-4001-8001-000000000000", "name": "Business & Networking", "color": "#EC4899", "sort_order": 0 }
+      ],
+      "rooms": [
+        { "id": "03000006-0003-4001-8001-000000000000", "name": "Marriott Grand Ballroom", "capacity": 150, "sort_order": 0 }
+      ],
+      "ticket_types": [
+        {
+          "id": "04000005-0003-4001-8001-000000000000",
+          "name": "Admission",
+          "type": "free",
+          "price_cents": 0,
+          "delivery_method": "in_person",
+          "is_active": true,
+          "sort_order": 0
+        }
+      ],
+      "speakers": [
+        {
+          "id": "0500000f-0003-4001-8001-000000000000",
+          "name": "Mayor William Garrett",
+          "bio": "Mayor of Augusta, Georgia. Focused on economic development, workforce training, and attracting technology investment to the Augusta region.",
+          "job_title": "Mayor",
+          "company": "City of Augusta",
+          "photo_url": "https://i.pravatar.cc/400?u=william-garrett",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-06-01T00:00:00Z",
+          "sort_order": 0
+        },
+        {
+          "id": "05000010-0003-4001-8001-000000000000",
+          "name": "Jennifer Walters",
+          "bio": "Director of Economic Development for Augusta. Leads business attraction, retention, and workforce development initiatives for the region.",
+          "job_title": "Director of Economic Development",
+          "company": "Augusta Economic Development Authority",
+          "photo_url": "https://i.pravatar.cc/400?u=jennifer-walters",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-06-01T00:00:00Z",
+          "sort_order": 1
+        },
+        {
+          "id": "05000011-0003-4001-8001-000000000000",
+          "name": "Robert Kim",
+          "bio": "Chair of the Augusta Metro Chamber Board of Directors and owner of three Augusta-area businesses. Champion of Buy Local Augusta initiatives.",
+          "job_title": "Board Chair",
+          "company": "Augusta Metro Chamber",
+          "photo_url": "https://i.pravatar.cc/400?u=robert-kim-augusta",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-06-01T00:00:00Z",
+          "sort_order": 2
+        }
+      ],
+      "sessions": [
+        {
+          "id": "06000015-0003-4001-8001-000000000000",
+          "title": "Welcome Reception & Open Networking",
+          "description": "Cocktail-style open networking with heavy hors d'oeuvres. Mix with business leaders, elected officials, and Chamber members from across the Augusta region.",
+          "session_type": "networking",
+          "track_id": "02000006-0003-4001-8001-000000000000",
+          "room_id": "03000006-0003-4001-8001-000000000000",
+          "starts_at": "2026-07-15T18:00:00-04:00",
+          "ends_at": "2026-07-15T19:00:00-04:00",
+          "speaker_ids": [],
+          "sort_order": 0
+        },
+        {
+          "id": "06000016-0003-4001-8001-000000000000",
+          "title": "Augusta's Economic Momentum: What's Next",
+          "description": "Chamber leadership and city officials discuss Augusta's 2026 economic development pipeline, key business wins, and priorities for the region's future.",
+          "session_type": "talk",
+          "track_id": "02000006-0003-4001-8001-000000000000",
+          "room_id": "03000006-0003-4001-8001-000000000000",
+          "starts_at": "2026-07-15T19:00:00-04:00",
+          "ends_at": "2026-07-15T20:00:00-04:00",
+          "speaker_ids": ["0500000f-0003-4001-8001-000000000000", "05000010-0003-4001-8001-000000000000", "05000011-0003-4001-8001-000000000000"],
+          "sort_order": 1
+        }
+      ],
+      "form_fields": []
+    },
+
+    {
+      "_ref": "E4",
+      "id": "01000004-0004-4001-8001-000000000000",
+      "org_id": "44444444-4444-4444-8444-444444444401",
+      "title": "OpenSource ATL May Meetup 2026",
+      "slug": "oss-atl-may-meetup-2026",
+      "status": "archived",
+      "event_type": "in_person",
+      "timezone": "America/New_York",
+      "is_discoverable": false,
+      "start_at": "2026-02-20T18:30:00-05:00",
+      "end_at": "2026-02-20T21:00:00-05:00",
+      "description": "Monthly Atlanta open source and developer community meetup. Two technical talks and open hacking time. Casual, free, all skill levels welcome.",
+      "venue_name": "Tech Square Research Building",
+      "venue_city": "Atlanta",
+      "venue_state": "GA",
+      "capacity": 50,
+      "certificate_enabled": false,
+      "tracks": [],
+      "rooms": [
+        { "id": "03000007-0004-4001-8001-000000000000", "name": "Conference Room A", "capacity": 50, "sort_order": 0 }
+      ],
+      "ticket_types": [
+        {
+          "id": "04000006-0004-4001-8001-000000000000",
+          "name": "Community Pass",
+          "type": "free",
+          "price_cents": 0,
+          "delivery_method": "in_person",
+          "is_active": false,
+          "sort_order": 0
+        }
+      ],
+      "speakers": [
+        {
+          "id": "05000012-0004-4001-8001-000000000000",
+          "name": "Dmitri Volkov",
+          "bio": "Senior software engineer at GitHub and active open source contributor with 150+ merged PRs across CNCF projects. Specializes in distributed systems tooling.",
+          "job_title": "Senior Software Engineer",
+          "company": "GitHub",
+          "photo_url": "https://i.pravatar.cc/400?u=dmitri-volkov",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-10T00:00:00Z",
+          "sort_order": 0
+        },
+        {
+          "_note": "No-photo speaker — exercises the photo-vs-no-photo badge split case",
+          "id": "05000013-0004-4001-8001-000000000000",
+          "name": "Taylor Kim",
+          "bio": "Developer advocate and open source educator. Runs the 'Contribute First' workshop series helping developers make their first open source PR.",
+          "job_title": "Developer Advocate",
+          "company": "Contribute First",
+          "photo_url": null,
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-01-10T00:00:00Z",
+          "sort_order": 1
+        }
+      ],
+      "sessions": [
+        {
+          "id": "06000017-0004-4001-8001-000000000000",
+          "title": "Open Source Licensing Demystified",
+          "description": "A plain-English breakdown of MIT, Apache 2.0, GPL, and AGPL — when to use each, how they interact, and what enterprise contributors need to know.",
+          "session_type": "talk",
+          "track_id": null,
+          "room_id": "03000007-0004-4001-8001-000000000000",
+          "starts_at": "2026-02-20T18:30:00-05:00",
+          "ends_at": "2026-02-20T19:15:00-05:00",
+          "speaker_ids": ["05000012-0004-4001-8001-000000000000"],
+          "sort_order": 0
+        },
+        {
+          "id": "06000018-0004-4001-8001-000000000000",
+          "title": "How to Land Your First Contribution to a Major OSS Project",
+          "description": "Practical walk-through: finding good first issues, setting up local environments, writing good commit messages, and navigating the PR review process.",
+          "session_type": "talk",
+          "track_id": null,
+          "room_id": "03000007-0004-4001-8001-000000000000",
+          "starts_at": "2026-02-20T19:15:00-05:00",
+          "ends_at": "2026-02-20T20:00:00-05:00",
+          "speaker_ids": ["05000013-0004-4001-8001-000000000000"],
+          "sort_order": 1
+        },
+        {
+          "id": "06000019-0004-4001-8001-000000000000",
+          "title": "Community Hackathon & Open Networking",
+          "description": "Bring a project, find collaborators, or just hang out. Open hacking with pizza and drinks.",
+          "session_type": "networking",
+          "track_id": null,
+          "room_id": "03000007-0004-4001-8001-000000000000",
+          "starts_at": "2026-02-20T20:00:00-05:00",
+          "ends_at": "2026-02-20T21:00:00-05:00",
+          "speaker_ids": [],
+          "sort_order": 2
+        }
+      ],
+      "form_fields": []
+    },
+
+    {
+      "_ref": "E5",
+      "id": "01000005-0005-4001-8001-000000000000",
+      "org_id": "44444444-4444-4444-8444-444444444401",
+      "title": "OpenSource ATL Virtual Summit 2026",
+      "slug": "oss-atl-virtual-summit-2026",
+      "status": "published",
+      "event_type": "virtual",
+      "timezone": "America/New_York",
+      "is_discoverable": true,
+      "start_at": "2026-08-20T10:00:00-04:00",
+      "end_at": "2026-08-22T17:00:00-04:00",
+      "description": "OpenSource ATL's flagship annual virtual summit — three days of keynotes, deep-dive workshops, and panels covering infrastructure, tooling, community, and the future of open source. Free for all, globally accessible.",
+      "virtual_url": "https://prezva.app/stream/oss-summit-2026",
+      "capacity": 2500,
+      "certificate_enabled": false,
+      "tracks": [
+        { "id": "02000007-0005-4001-8001-000000000000", "name": "Infrastructure & DevOps", "color": "#F59E0B", "sort_order": 0 },
+        { "id": "02000008-0005-4001-8001-000000000000", "name": "Open Source Projects",    "color": "#10B981", "sort_order": 1 },
+        { "id": "02000009-0005-4001-8001-000000000000", "name": "Developer Tools",         "color": "#6366F1", "sort_order": 2 },
+        { "id": "0200000a-0005-4001-8001-000000000000", "name": "Community & Inclusion",   "color": "#EC4899", "sort_order": 3 }
+      ],
+      "rooms": [],
+      "ticket_types": [
+        {
+          "id": "04000007-0005-4001-8001-000000000000",
+          "name": "Virtual Pass",
+          "type": "free",
+          "price_cents": 0,
+          "delivery_method": "virtual",
+          "is_active": true,
+          "sort_order": 0
+        },
+        {
+          "id": "04000008-0005-4001-8001-000000000000",
+          "name": "Summit General",
+          "type": "paid",
+          "price_cents": 7500,
+          "delivery_method": "virtual",
+          "is_active": true,
+          "sort_order": 1
+        },
+        {
+          "id": "04000009-0005-4001-8001-000000000000",
+          "name": "Workshop Add-on",
+          "type": "paid",
+          "price_cents": 12500,
+          "delivery_method": "virtual",
+          "is_active": true,
+          "sort_order": 2
+        }
+      ],
+      "speakers": [
+        {
+          "id": "05000014-0005-4001-8001-000000000000",
+          "name": "Sunita Raghavan",
+          "bio": "Engineering Director at the Linux Foundation overseeing CNCF graduation programs. Former principal architect at Red Hat. Frequent OSS keynote speaker.",
+          "job_title": "Engineering Director",
+          "company": "Linux Foundation",
+          "photo_url": "https://i.pravatar.cc/400?u=sunita-raghavan",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 0
+        },
+        {
+          "id": "05000015-0005-4001-8001-000000000000",
+          "name": "Lars Eriksson",
+          "bio": "Rust programming language core contributor and author of two O'Reilly books on systems programming. 20-year career in infrastructure and compiler design.",
+          "job_title": "Principal Engineer",
+          "company": "Oxide Computer",
+          "photo_url": "https://i.pravatar.cc/400?u=lars-eriksson",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 1
+        },
+        {
+          "id": "05000016-0005-4001-8001-000000000000",
+          "name": "Aaliyah Thompson",
+          "bio": "NumFOCUS Program Director focused on diversity and inclusion in the scientific Python ecosystem. Creator of the OSS Onramp Fellowship program.",
+          "job_title": "Program Director",
+          "company": "NumFOCUS",
+          "photo_url": "https://i.pravatar.cc/400?u=aaliyah-thompson",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 2
+        },
+        {
+          "id": "05000017-0005-4001-8001-000000000000",
+          "name": "Daniel Park",
+          "bio": "CPython core developer and PyCon US program committee chair. Contributes primarily to CPython's async infrastructure and packaging toolchain.",
+          "job_title": "Staff Software Engineer",
+          "company": "Fastly",
+          "photo_url": "https://i.pravatar.cc/400?u=daniel-park-oss",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 3
+        },
+        {
+          "id": "05000018-0005-4001-8001-000000000000",
+          "name": "Sam Okonkwo",
+          "bio": "Platform Engineering Lead at a major SaaS company. Architect of internal developer platforms serving 2,000+ engineers. Active contributor to Backstage and Crossplane.",
+          "job_title": "Platform Engineering Lead",
+          "company": "Acme Corp",
+          "photo_url": "https://i.pravatar.cc/400?u=sam-okonkwo",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 4
+        },
+        {
+          "id": "05000019-0005-4001-8001-000000000000",
+          "name": "Grace Chen",
+          "bio": "OSS funding strategist and former GitHub director. Advises foundations and corporations on open source investment, SBOM compliance, and sustainable maintenance models.",
+          "job_title": "Independent Advisor",
+          "company": "Chen OSS Strategies",
+          "photo_url": "https://i.pravatar.cc/400?u=grace-chen-oss",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 5
+        },
+        {
+          "id": "0500001a-0005-4001-8001-000000000000",
+          "name": "Felipe Navarro",
+          "bio": "CNCF Ambassador and Kubernetes contributor. DevRel engineer helping LATAM developers break into cloud-native open source.",
+          "job_title": "Developer Relations Engineer",
+          "company": "SUSE",
+          "photo_url": "https://i.pravatar.cc/400?u=felipe-navarro",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 6
+        },
+        {
+          "id": "0500001b-0005-4001-8001-000000000000",
+          "name": "Morgan Williams",
+          "bio": "Security researcher and co-founder of OSS-Sec Advisory, focused on supply chain attacks, SBOM tooling, and responsible disclosure in open source ecosystems.",
+          "job_title": "Co-founder",
+          "company": "OSS-Sec Advisory",
+          "photo_url": "https://i.pravatar.cc/400?u=morgan-williams-oss",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 7
+        },
+        {
+          "id": "0500001c-0005-4001-8001-000000000000",
+          "name": "Takeshi Yamada",
+          "bio": "Linux kernel maintainer of the SCSI subsystem and long-time contributor to the kernel's block layer. Works at Fujitsu's OSS Technology Center.",
+          "job_title": "Principal Engineer",
+          "company": "Fujitsu OSS Technology Center",
+          "photo_url": "https://i.pravatar.cc/400?u=takeshi-yamada",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 8
+        },
+        {
+          "id": "0500001d-0005-4001-8001-000000000000",
+          "name": "Isabelle Tremblay",
+          "bio": "Director of Developer Experience at Vercel and creator of the DX Maturity Framework. Speaks on documentation, onboarding, and SDK design.",
+          "job_title": "Director of Developer Experience",
+          "company": "Vercel",
+          "photo_url": "https://i.pravatar.cc/400?u=isabelle-tremblay",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 9
+        },
+        {
+          "id": "0500001e-0005-4001-8001-000000000000",
+          "name": "Raj Patel",
+          "bio": "Zero-trust security architect who has open-sourced several policy engines and auth libraries. Co-author of the NIST Zero Trust roadmap for OSS organizations.",
+          "job_title": "Principal Security Architect",
+          "company": "HashiCorp",
+          "photo_url": "https://i.pravatar.cc/400?u=raj-patel-security",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 10
+        },
+        {
+          "id": "0500001f-0005-4001-8001-000000000000",
+          "name": "Vera Kozlov",
+          "bio": "Distributed systems engineer and contributor to etcd, Vitess, and TiKV. Runs the Distributed Systems Reading Group Atlanta.",
+          "job_title": "Staff Engineer",
+          "company": "PlanetScale",
+          "photo_url": "https://i.pravatar.cc/400?u=vera-kozlov",
+          "status": "confirmed",
+          "event_role": "speaker",
+          "confirmed_at": "2026-07-01T00:00:00Z",
+          "sort_order": 11
+        }
+      ],
+      "sessions": [
+        {
+          "id": "0600001a-0005-4001-8001-000000000000",
+          "title": "Opening Keynote: The Next Wave of Open Source",
+          "description": "How AI-assisted development, SBOM mandates, and enterprise adoption are reshaping what open source means in 2026 — and what opportunities that creates for contributors and maintainers.",
+          "session_type": "keynote",
+          "track_id": null,
+          "room_id": null,
+          "starts_at": "2026-08-20T10:00:00-04:00",
+          "ends_at": "2026-08-20T11:00:00-04:00",
+          "speaker_ids": ["05000014-0005-4001-8001-000000000000"],
+          "sort_order": 0
+        },
+        {
+          "id": "0600001b-0005-4001-8001-000000000000",
+          "title": "Rust for Systems Developers in 2026",
+          "description": "What's new in Rust's async ecosystem, the road to Rust in the Linux kernel, and practical patterns for adopting Rust in systems programming projects.",
+          "session_type": "talk",
+          "track_id": "02000007-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-20T11:30:00-04:00",
+          "ends_at": "2026-08-20T12:30:00-04:00",
+          "speaker_ids": ["05000015-0005-4001-8001-000000000000"],
+          "sort_order": 1
+        },
+        {
+          "id": "0600001c-0005-4001-8001-000000000000",
+          "title": "Building Maintainable Open Source Communities",
+          "description": "What makes OSS communities last 10+ years? Governance models, contributor ladders, burnout prevention, and the metrics that actually matter.",
+          "session_type": "talk",
+          "track_id": "0200000a-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-20T13:30:00-04:00",
+          "ends_at": "2026-08-20T14:30:00-04:00",
+          "speaker_ids": ["05000016-0005-4001-8001-000000000000", "05000017-0005-4001-8001-000000000000"],
+          "sort_order": 2
+        },
+        {
+          "id": "0600001d-0005-4001-8001-000000000000",
+          "title": "Container Orchestration Beyond Kubernetes: Nomad Workshop",
+          "description": "Hands-on workshop: deploying workloads with Nomad, comparing Nomad and Kubernetes operator models, and integrating with Vault and Consul.",
+          "session_type": "workshop",
+          "track_id": "02000007-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-20T14:30:00-04:00",
+          "ends_at": "2026-08-20T16:00:00-04:00",
+          "speaker_ids": ["05000018-0005-4001-8001-000000000000"],
+          "sort_order": 3
+        },
+        {
+          "id": "0600001e-0005-4001-8001-000000000000",
+          "title": "Funding Open Source: Models That Actually Work",
+          "description": "Panel examining sponsorship tiers, foundation fiscal sponsorship, commercial open core, and the reality of GitHub Sponsors — with honest numbers from real maintainers.",
+          "session_type": "panel",
+          "track_id": "0200000a-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-20T16:30:00-04:00",
+          "ends_at": "2026-08-20T17:30:00-04:00",
+          "speaker_ids": ["05000019-0005-4001-8001-000000000000", "0500001a-0005-4001-8001-000000000000", "0500001b-0005-4001-8001-000000000000"],
+          "sort_order": 4
+        },
+        {
+          "id": "0600001f-0005-4001-8001-000000000000",
+          "title": "Deep Dive: Linux Kernel Contributions",
+          "description": "How to contribute to the Linux kernel: subsystem selection, working with mailing lists, coding style, and the patch review process from a maintainer's perspective.",
+          "session_type": "talk",
+          "track_id": "02000008-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-21T10:00:00-04:00",
+          "ends_at": "2026-08-21T11:00:00-04:00",
+          "speaker_ids": ["0500001c-0005-4001-8001-000000000000"],
+          "sort_order": 5
+        },
+        {
+          "id": "06000020-0005-4001-8001-000000000000",
+          "title": "Developer Experience in the Age of AI",
+          "description": "How AI coding assistants are changing what good DX means — from documentation to error messages to onboarding. Designing for human+AI developer workflows.",
+          "session_type": "talk",
+          "track_id": "02000009-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-21T11:00:00-04:00",
+          "ends_at": "2026-08-21T12:00:00-04:00",
+          "speaker_ids": ["0500001d-0005-4001-8001-000000000000"],
+          "sort_order": 6
+        },
+        {
+          "id": "06000021-0005-4001-8001-000000000000",
+          "title": "Zero-Trust Security for OSS Infrastructure",
+          "description": "Applying zero-trust principles to open source project infrastructure: CI/CD hardening, secrets management, dependency pinning, and SLSA compliance.",
+          "session_type": "talk",
+          "track_id": "02000007-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-21T13:00:00-04:00",
+          "ends_at": "2026-08-21T14:00:00-04:00",
+          "speaker_ids": ["0500001e-0005-4001-8001-000000000000"],
+          "sort_order": 7
+        },
+        {
+          "id": "06000022-0005-4001-8001-000000000000",
+          "title": "WebAssembly Workshop: Beyond the Browser",
+          "description": "Hands-on workshop: running Wasm workloads server-side with Wasmtime, WASI, and component model. Build and deploy a real Wasm-based service.",
+          "session_type": "workshop",
+          "track_id": "02000009-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-21T14:00:00-04:00",
+          "ends_at": "2026-08-21T15:30:00-04:00",
+          "speaker_ids": ["05000014-0005-4001-8001-000000000000", "05000015-0005-4001-8001-000000000000"],
+          "sort_order": 8
+        },
+        {
+          "id": "06000023-0005-4001-8001-000000000000",
+          "title": "Observability and OSS: OpenTelemetry in Production",
+          "description": "Distributed tracing, metrics, and logging with OpenTelemetry. Real-world patterns from teams running OTel at scale in Kubernetes environments.",
+          "session_type": "talk",
+          "track_id": "02000007-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-21T15:30:00-04:00",
+          "ends_at": "2026-08-21T16:30:00-04:00",
+          "speaker_ids": ["0500001f-0005-4001-8001-000000000000"],
+          "sort_order": 9
+        },
+        {
+          "id": "06000024-0005-4001-8001-000000000000",
+          "title": "Emerging Leaders in Open Source",
+          "description": "Panel: first-generation open source contributors from underrepresented communities share their paths, the barriers they encountered, and what made the difference.",
+          "session_type": "panel",
+          "track_id": "0200000a-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-22T10:00:00-04:00",
+          "ends_at": "2026-08-22T11:00:00-04:00",
+          "speaker_ids": ["05000016-0005-4001-8001-000000000000", "05000017-0005-4001-8001-000000000000", "0500001a-0005-4001-8001-000000000000"],
+          "sort_order": 10
+        },
+        {
+          "id": "06000025-0005-4001-8001-000000000000",
+          "title": "Platform Engineering Workshop: Build Your Internal Developer Platform",
+          "description": "Hands-on: stand up a Backstage-based IDP with a software catalog, scaffolder templates, and a Tech Radar. Participants leave with a working local deployment.",
+          "session_type": "workshop",
+          "track_id": "02000007-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-22T11:00:00-04:00",
+          "ends_at": "2026-08-22T12:30:00-04:00",
+          "speaker_ids": ["05000018-0005-4001-8001-000000000000", "0500001e-0005-4001-8001-000000000000"],
+          "sort_order": 11
+        },
+        {
+          "id": "06000026-0005-4001-8001-000000000000",
+          "title": "Building Developer Tools That Last Workshop",
+          "description": "Workshop: designing CLI ergonomics, SDK versioning, changelog automation, and feedback loops that turn users into contributors.",
+          "session_type": "workshop",
+          "track_id": "02000009-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-22T13:00:00-04:00",
+          "ends_at": "2026-08-22T14:30:00-04:00",
+          "speaker_ids": ["0500001d-0005-4001-8001-000000000000", "0500001f-0005-4001-8001-000000000000"],
+          "sort_order": 12
+        },
+        {
+          "id": "06000027-0005-4001-8001-000000000000",
+          "title": "FOSS Licensing for Enterprises",
+          "description": "How large organizations navigate GPL copyleft, AGPL network provisions, and SSPL restrictions when building on open source foundations.",
+          "session_type": "talk",
+          "track_id": "02000008-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-22T14:30:00-04:00",
+          "ends_at": "2026-08-22T15:30:00-04:00",
+          "speaker_ids": ["0500001c-0005-4001-8001-000000000000"],
+          "sort_order": 13
+        },
+        {
+          "id": "06000028-0005-4001-8001-000000000000",
+          "title": "The Business of Open Source: Revenue Models and Sustainability",
+          "description": "Hard-won lessons on open core, managed services, enterprise support tiers, and consulting models — from founders who have done each.",
+          "session_type": "talk",
+          "track_id": "0200000a-0005-4001-8001-000000000000",
+          "room_id": null,
+          "starts_at": "2026-08-22T15:30:00-04:00",
+          "ends_at": "2026-08-22T16:30:00-04:00",
+          "speaker_ids": ["05000019-0005-4001-8001-000000000000", "0500001b-0005-4001-8001-000000000000"],
+          "sort_order": 14
+        }
+      ],
+      "form_fields": [
+        {
+          "id": "07000006-0005-4001-8001-000000000000",
+          "field_key": "experience_level",
+          "label": "Experience Level",
+          "field_type": "select",
+          "is_required": false,
+          "sort_order": 0,
+          "options": ["Beginner","Intermediate","Advanced","Staff+"]
+        },
+        {
+          "id": "07000007-0005-4001-8001-000000000000",
+          "field_key": "company_name",
+          "label": "Company / Organization",
+          "field_type": "text",
+          "is_required": false,
+          "sort_order": 1,
+          "options": null
+        }
+      ]
+    },
+
+    {
+      "_ref": "E6",
+      "id": "01000006-0006-4001-8001-000000000000",
+      "org_id": "22222222-2222-4222-8222-222222222201",
+      "title": "SAUP Winter Planning Workshop 2026",
+      "slug": "saup-winter-workshop-2026",
+      "status": "draft",
+      "event_type": "in_person",
+      "timezone": "America/Chicago",
+      "is_discoverable": false,
+      "start_at": "2026-12-10T09:00:00-06:00",
+      "end_at": "2026-12-10T17:00:00-06:00",
+      "description": "A full-day professional development workshop for SAUP members focused on emerging planning practice topics. Draft — program and registration TBD.",
+      "venue_name": "Birmingham City Hall",
+      "venue_city": "Birmingham",
+      "venue_state": "AL",
+      "capacity": 60,
+      "certificate_enabled": false,
+      "tracks": [
+        { "id": "0200000b-0006-4001-8001-000000000000", "name": "Planning Practice", "color": "#8B5CF6", "sort_order": 0 }
+      ],
+      "rooms": [
+        { "id": "03000008-0006-4001-8001-000000000000", "name": "Council Chambers", "capacity": 60, "sort_order": 0 }
+      ],
+      "ticket_types": [
+        {
+          "id": "0400000a-0006-4001-8001-000000000000",
+          "name": "Member Rate",
+          "type": "paid",
+          "price_cents": 15000,
+          "delivery_method": "in_person",
+          "is_active": true,
+          "sort_order": 0
+        }
+      ],
+      "speakers": [
+        {
+          "id": "05000020-0006-4001-8001-000000000000",
+          "name": "Dr. Patricia Okonkwo",
+          "bio": "Executive Director of the Southeast Association of Urban Planners. Research focus on equitable development in Southern US cities.",
+          "job_title": "Executive Director",
+          "company": "Southeast Association of Urban Planners",
+          "photo_url": "https://i.pravatar.cc/400?u=patricia-okonkwo",
+          "status": "invited",
+          "event_role": "speaker",
+          "confirmed_at": null,
+          "sort_order": 0
+        },
+        {
+          "id": "05000021-0006-4001-8001-000000000000",
+          "name": "James Chen, AICP",
+          "bio": "Visiting professor and former director of the APA Georgia chapter. Specializes in form-based codes and smart growth in the South.",
+          "job_title": "Visiting Professor",
+          "company": "Auburn University",
+          "photo_url": "https://i.pravatar.cc/400?u=james-chen-aicp",
+          "status": "invited",
+          "event_role": "speaker",
+          "confirmed_at": null,
+          "sort_order": 1
+        },
+        {
+          "id": "05000022-0006-4001-8001-000000000000",
+          "name": "Dr. Maya Rodriguez",
+          "bio": "Housing policy researcher at the Urban Land Institute. Expert in affordable housing policy, community land trusts, and anti-displacement strategies.",
+          "job_title": "Senior Research Fellow",
+          "company": "Urban Land Institute",
+          "photo_url": "https://i.pravatar.cc/400?u=maya-rodriguez-uli",
+          "status": "invited",
+          "event_role": "speaker",
+          "confirmed_at": null,
+          "sort_order": 2
+        },
+        {
+          "id": "05000023-0006-4001-8001-000000000000",
+          "name": "Kevin Barber, AICP",
+          "bio": "Urban redevelopment consultant with 20 years of experience on brownfield remediation, TIF financing, and public-private development partnerships.",
+          "job_title": "Principal",
+          "company": "Barber Urban Partners",
+          "photo_url": "https://i.pravatar.cc/400?u=kevin-barber-aicp",
+          "status": "invited",
+          "event_role": "speaker",
+          "confirmed_at": null,
+          "sort_order": 3
+        }
+      ],
+      "sessions": [
+        {
+          "id": "06000029-0006-4001-8001-000000000000",
+          "title": "Introduction to Form-Based Zoning Codes",
+          "description": "Overview of form-based code principles, national examples, and application in Southern US municipalities.",
+          "session_type": "talk",
+          "track_id": "0200000b-0006-4001-8001-000000000000",
+          "room_id": "03000008-0006-4001-8001-000000000000",
+          "starts_at": "2026-12-10T09:00:00-06:00",
+          "ends_at": "2026-12-10T10:00:00-06:00",
+          "speaker_ids": ["05000020-0006-4001-8001-000000000000"],
+          "is_published": false,
+          "sort_order": 0
+        },
+        {
+          "id": "0600002a-0006-4001-8001-000000000000",
+          "title": "Urban Redevelopment Finance Strategies",
+          "description": "TIF districts, opportunity zones, brownfield grants, and public-private partnership structures for urban redevelopment projects.",
+          "session_type": "talk",
+          "track_id": "0200000b-0006-4001-8001-000000000000",
+          "room_id": "03000008-0006-4001-8001-000000000000",
+          "starts_at": "2026-12-10T10:30:00-06:00",
+          "ends_at": "2026-12-10T11:30:00-06:00",
+          "speaker_ids": ["05000023-0006-4001-8001-000000000000"],
+          "is_published": false,
+          "sort_order": 1
+        },
+        {
+          "id": "0600002b-0006-4001-8001-000000000000",
+          "title": "Inclusionary Housing Policy Analysis",
+          "description": "Comparative analysis of inclusionary zoning ordinances — set-aside requirements, in-lieu fees, and community land trust integration.",
+          "session_type": "talk",
+          "track_id": "0200000b-0006-4001-8001-000000000000",
+          "room_id": "03000008-0006-4001-8001-000000000000",
+          "starts_at": "2026-12-10T13:00:00-06:00",
+          "ends_at": "2026-12-10T14:00:00-06:00",
+          "speaker_ids": ["05000022-0006-4001-8001-000000000000"],
+          "is_published": false,
+          "sort_order": 2
+        },
+        {
+          "id": "0600002c-0006-4001-8001-000000000000",
+          "title": "Smart City Infrastructure Planning",
+          "description": "Fiber broadband, smart streetlights, traffic management systems, and data governance in small-to-mid-size Southern US cities.",
+          "session_type": "talk",
+          "track_id": "0200000b-0006-4001-8001-000000000000",
+          "room_id": "03000008-0006-4001-8001-000000000000",
+          "starts_at": "2026-12-10T14:30:00-06:00",
+          "ends_at": "2026-12-10T15:30:00-06:00",
+          "speaker_ids": ["05000021-0006-4001-8001-000000000000"],
+          "is_published": false,
+          "sort_order": 3
+        }
+      ],
+      "form_fields": []
+    },
+
+    {
+      "_ref": "E7",
+      "id": "01000007-0007-4001-8001-000000000000",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "title": "Augusta Metro Annual Business Gala 2026",
+      "slug": "augusta-chamber-gala-2026",
+      "status": "cancelled",
+      "event_type": "in_person",
+      "timezone": "America/New_York",
+      "is_discoverable": false,
+      "start_at": "2026-06-20T18:00:00-04:00",
+      "end_at": "2026-06-20T22:00:00-04:00",
+      "description": "Annual business recognition gala for Augusta Metro Chamber members. Event cancelled — refunds processed.",
+      "venue_name": "Augusta Marriott at the Convention Center",
+      "venue_city": "Augusta",
+      "venue_state": "GA",
+      "capacity": 300,
+      "certificate_enabled": false,
+      "tracks": [],
+      "rooms": [],
+      "ticket_types": [
+        {
+          "id": "0400000b-0007-4001-8001-000000000000",
+          "name": "Gala Admission",
+          "type": "paid",
+          "price_cents": 20000,
+          "delivery_method": "in_person",
+          "is_active": false,
+          "sort_order": 0
+        }
+      ],
+      "speakers": [],
+      "sessions": [],
+      "form_fields": []
+    }
+  ]
+}

@@ -23,7 +23,10 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createSeedClient } from './lib/client'
 import { log, printSummaryTable, type StageSummary } from './lib/logger'
-import { assertPersonaInvariants, assertPreRunPreserved, assertOrgInvariants } from './lib/invariants'
+import {
+  assertPersonaInvariants, assertPreRunPreserved,
+  assertOrgInvariants, assertEventInvariants, assertEventConfigInvariants,
+} from './lib/invariants'
 
 // ─── CLI parsing ──────────────────────────────────────────────────────────────
 
@@ -47,8 +50,10 @@ const confirmWipe = !!flags['confirm-wipe']
 const STAGES = [
   { name: 'wipe',     file: './stages/00-wipe' },
   { name: 'personas', file: './stages/01-personas' },
-  { name: 'orgs',     file: './stages/02-orgs' },
-  // Future stages: events, event-config, sessions, registrations, engagement, images
+  { name: 'orgs',          file: './stages/02-orgs' },
+  { name: 'events',        file: './stages/03-events' },
+  { name: 'event-config',  file: './stages/04-event-config' },
+  // Future stages: sessions, registrations, engagement, images
 ] as const
 
 type StageName = typeof STAGES[number]['name']
@@ -105,6 +110,10 @@ async function main(): Promise<void> {
     heroes: Array<{ id?: string; email: string; full_name: string; job_title?: string; company?: string }>
     syntheticFixtureCount: number
   } = JSON.parse(readFileSync(personasPath, 'utf8'))
+
+  const eventsPath = join(__dirname, 'data', 'events.json')
+  const eventsData: import('./lib/event-types').EventsFileData =
+    JSON.parse(readFileSync(eventsPath, 'utf8'))
 
   const orgsPath = join(__dirname, 'data', 'orgs.json')
   const orgsData: {
@@ -175,6 +184,24 @@ async function main(): Promise<void> {
 
         if (!dryRun) {
           await assertOrgInvariants(supabase, orgsData.orgs.length)
+        }
+
+      } else if (stageName === 'events') {
+        const { runEvents } = await import(stageEntry.file)
+        const result = await runEvents(supabase, eventsData, { dryRun })
+        summaries.push(result)
+
+        if (!dryRun) {
+          await assertEventInvariants(supabase, eventsData.events.length)
+        }
+
+      } else if (stageName === 'event-config') {
+        const { runEventConfig } = await import(stageEntry.file)
+        const result = await runEventConfig(supabase, eventsData, { dryRun })
+        summaries.push(result)
+
+        if (!dryRun) {
+          await assertEventConfigInvariants(supabase)
         }
       }
 
