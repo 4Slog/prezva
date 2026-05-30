@@ -45,3 +45,8 @@ docs/production-secrets.md
 pnpm-lock.yaml
 pnpm-workspace.yaml
 .sweep/
+
+# Temp/workflow files (untracked 2026-05-30)
+supabase/.temp/
+CLAUDE_WORKFLOW.md
+scripts/testing/
