@@ -104,7 +104,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions, t
                             border: '1px solid var(--pz-border)' }}>
                 <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: '0 0 2px', textTransform: 'uppercase' }}>Up next</p>
                 <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>
-                  {nextItem.title} — {new Date(nextItem.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  {nextItem.title} — {new Date(nextItem.time_at).toLocaleTimeString('en-US', { timeZone: event.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })}
                 </p>
               </div>
             )}
@@ -122,7 +122,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions, t
                 }}>
                   <div style={{ width: 60, flexShrink: 0, textAlign: 'center' }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', margin: 0 }}>
-                      {new Date(item.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      {new Date(item.time_at).toLocaleTimeString('en-US', { timeZone: event.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })}
                     </p>
                     <p style={{ fontSize: 10, color: 'var(--pz-muted)', margin: 0 }}>{item.duration_minutes}m</p>
                   </div>
@@ -175,7 +175,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions, t
                 <div key={session.id} style={{ marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-muted)',
                                textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                    {session.title} — {new Date(session.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    {session.title} — {new Date(session.starts_at).toLocaleTimeString('en-US', { timeZone: event.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })}
                   </h3>
                   {speakers.map((sp: any) => (
                     <div key={sp.id} style={{ display: 'flex', gap: 12, padding: '1rem',

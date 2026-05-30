@@ -325,7 +325,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>
                       <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, textTransform:'uppercase', background:color+'22', color }}>{s.session_type}</span>
                       <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>
-                        {new Date(s.starts_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} - {new Date(s.ends_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+                        {new Date(s.starts_at).toLocaleTimeString('en-US',{timeZone:timezone,hour:'numeric',minute:'2-digit'})} - {new Date(s.ends_at).toLocaleTimeString('en-US',{timeZone:timezone,hour:'numeric',minute:'2-digit'})}
                       </span>
                       {s.rooms?.name && <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>· {s.rooms.name}</span>}
                     </div>

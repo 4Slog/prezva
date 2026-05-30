@@ -37,7 +37,7 @@ export default async function SpeakerDetailPage({ params }: { params: Promise<{ 
                 <div key={s.id} style={{ border:'1px solid var(--color-border)', borderRadius:10, padding:'1rem 1.25rem', background:'var(--color-surface)' }}>
                   <p style={{ fontWeight:600 }}>{s.title}</p>
                   <p style={{ fontSize:13, color:'var(--color-text-muted)', marginTop:4 }}>
-                    {new Date(s.starts_at).toLocaleString('en-US',{ month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}
+                    {new Date(s.starts_at).toLocaleString('en-US',{ timeZone: (event as any).timezone ?? 'UTC', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}
                   </p>
                 </div>
               ))}

@@ -12,7 +12,7 @@ export const rosCueNotificationTask = schedules.task({
 
     const { data: items } = await admin
       .from('run_of_show_items')
-      .select('id, title, time_at, responsible_email, responsible_person, event_id, events(title, organizations(name))')
+      .select('id, title, time_at, responsible_email, responsible_person, event_id, events(title, timezone, organizations(name))')
       .eq('status', 'upcoming')
       .eq('cue_notification_sent', false)
       .gte('time_at', tenMinFromNow)
@@ -27,6 +27,7 @@ export const rosCueNotificationTask = schedules.task({
         continue
       }
       const orgName = item.events?.organizations?.name ?? 'Event organizer'
+      const tz = item.events?.timezone ?? 'UTC'
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -38,7 +39,7 @@ export const rosCueNotificationTask = schedules.task({
           to: item.responsible_email,
           subject: `⏰ Your cue in 10 minutes: ${item.title}`,
           html: `<p>Hi ${item.responsible_person ?? 'there'},</p>
-                 <p>Your cue <strong>${item.title}</strong> starts in approximately 10 minutes at ${new Date(item.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.</p>
+                 <p>Your cue <strong>${item.title}</strong> starts in approximately 10 minutes at ${new Date(item.time_at).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' })}.</p>
                  <p>— ${orgName}</p>`,
         }),
       }).catch(() => {})

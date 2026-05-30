@@ -13,8 +13,8 @@ function isCertConfigured() {
   )
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+function formatDate(iso: string, tz?: string) {
+  return new Date(iso).toLocaleDateString('en-US', { timeZone: tz ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 export async function generateAppleWalletPass(registrationId: string): Promise<{ buffer: Buffer; error?: never } | { error: string; buffer?: never }> {
@@ -25,7 +25,7 @@ export async function generateAppleWalletPass(registrationId: string): Promise<{
   const supabase = await createClient()
   const { data: reg } = await supabase
     .from('registrations')
-    .select('*, events(title, start_at, end_at, venue_name, venue_city, venue_state)')
+    .select('*, events(title, start_at, end_at, timezone, venue_name, venue_city, venue_state)')
     .eq('id', registrationId)
     .single()
 
@@ -55,7 +55,7 @@ export async function generateAppleWalletPass(registrationId: string): Promise<{
         { key: 'event', label: 'EVENT', value: event.title },
       ],
       secondaryFields: [
-        { key: 'date', label: 'DATE', value: formatDate(event.start_at) },
+        { key: 'date', label: 'DATE', value: formatDate(event.start_at, event.timezone) },
         { key: 'attendee', label: 'ATTENDEE', value: (reg as any).attendee_name },
       ],
       auxiliaryFields: venue ? [

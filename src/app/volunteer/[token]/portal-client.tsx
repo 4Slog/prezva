@@ -83,9 +83,9 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
   const [sendingAlert, setSendingAlert] = useState(false)
 
   const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })
+    new Date(d).toLocaleDateString('en-US', { timeZone: event.timezone, weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })
   const fmtTime = (d: string) =>
-    new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    new Date(d).toLocaleTimeString('en-US', { timeZone: event.timezone, hour: 'numeric', minute: '2-digit' })
 
   async function clockIn() {
     setLoading(true)
@@ -200,7 +200,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
               <div key={s.id} style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '0.875rem 1rem', marginBottom: 8 }}>
                 <p style={{ fontWeight: 600, fontSize: 14, color: '#F0F4F8', margin: '0 0 4px' }}>{s.title}</p>
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-                  {new Date(s.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  {new Date(s.starts_at).toLocaleTimeString('en-US', { timeZone: event.timezone, hour: 'numeric', minute: '2-digit' })}
                   {Array.isArray(s.rooms) ? (s.rooms[0]?.name ? ` · ${s.rooms[0].name}` : '') : (s.rooms?.name ? ` · ${(s.rooms as { name: string }).name}` : '')}
                 </p>
               </div>

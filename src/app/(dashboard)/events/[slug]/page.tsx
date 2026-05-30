@@ -86,7 +86,7 @@ export default async function EventDetailPage({ params }: Props) {
 
     return (
       <StaffDashboard
-        event={{ slug: event.slug, title: event.title }}
+        event={{ slug: event.slug, title: event.title, timezone: (event as any).timezone }}
         checkedInCount={counts.checkedIn}
         registrationCount={counts.total}
         todaysSessions={(todaysSessionsRes.data ?? []) as any}

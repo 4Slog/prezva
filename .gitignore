@@ -44,3 +44,4 @@ next-env.d.ts
 docs/production-secrets.md
 pnpm-lock.yaml
 pnpm-workspace.yaml
+.sweep/

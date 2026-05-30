@@ -83,7 +83,7 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
                 <div key={s.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-surface)', borderLeft: '4px solid var(--pz-teal)' }}>
                   <p style={{ fontWeight: 600, color: 'var(--pz-text)' }}>{s.title}</p>
                   <p style={{ fontSize: 13, color: 'var(--pz-text-muted)', marginTop: 4 }}>
-                    {new Date(s.starts_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    {new Date(s.starts_at).toLocaleString('en-US', { timeZone: (event as any).timezone ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                 </div>
               ))}

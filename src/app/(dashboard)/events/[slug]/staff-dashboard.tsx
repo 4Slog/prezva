@@ -17,7 +17,7 @@ export function StaffDashboard({
   currentCue,
   nextCue,
 }: {
-  event: { slug: string; title: string }
+  event: { slug: string; title: string; timezone?: string }
   checkedInCount: number
   registrationCount: number
   todaysSessions: { id: string; title: string; starts_at: string; rooms: { name: string } | null }[] | null
@@ -87,7 +87,7 @@ export function StaffDashboard({
                 </p>
               )}
               <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>
-                Started at {new Date(currentCue.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · {currentCue.duration_minutes}m
+                Started at {new Date(currentCue.time_at).toLocaleTimeString('en-US', { timeZone: event.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })} · {currentCue.duration_minutes}m
               </p>
             </div>
           ) : (
@@ -101,7 +101,7 @@ export function StaffDashboard({
                 {nextCue.title}
               </p>
               <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>
-                {new Date(nextCue.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · {nextCue.duration_minutes}m
+                {new Date(nextCue.time_at).toLocaleTimeString('en-US', { timeZone: event.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })} · {nextCue.duration_minutes}m
               </p>
             </div>
           )}
@@ -120,7 +120,7 @@ export function StaffDashboard({
                                       border: '1px solid var(--pz-border)' }}>
               <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 2px' }}>{s.title}</p>
               <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>
-                {new Date(s.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {new Date(s.starts_at).toLocaleTimeString('en-US', { timeZone: event.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })}
                 {s.rooms?.name ? ` · ${s.rooms.name}` : ''}
               </p>
             </div>

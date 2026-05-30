@@ -7,7 +7,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
   const { data: event } = await admin
     .from('events')
-    .select('id, title, org_id, registration_count, checked_in_count, end_at, organizations(name)')
+    .select('id, title, org_id, registration_count, checked_in_count, end_at, timezone, organizations(name)')
     .eq('lobby_token', token)
     .single()
 
@@ -57,6 +57,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   return NextResponse.json({
     eventTitle: (event as any).title,
     orgName: ((event as any).organizations as any)?.name,
+    timezone: (event as any).timezone ?? 'UTC',
     registrationCount: (event as any).registration_count ?? 0,
     checkedInCount: (event as any).checked_in_count ?? 0,
     upcomingSessions: sessionsRes.data ?? [],

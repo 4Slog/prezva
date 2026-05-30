@@ -78,7 +78,7 @@ export default function LobbyDisplay({ params }: { params: Promise<{ token: stri
                                       borderLeft: '4px solid #2DD4BF' }}>
               <p style={{ fontWeight: 700, fontSize: 18, margin: '0 0 4px' }}>{s.title}</p>
               <p style={{ fontSize: 14, color: '#94A3B8', margin: 0 }}>
-                {new Date(s.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {new Date(s.starts_at).toLocaleTimeString('en-US', { timeZone: data.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })}
                 {(s.rooms as any)?.name ? ` · ${(s.rooms as any).name}` : ''}
               </p>
             </div>

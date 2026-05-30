@@ -188,7 +188,7 @@ export async function exportVolunteerHours(eventId: string) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('org_id, title')
+    .select('org_id, title, timezone')
     .eq('id', eventId)
     .single()
 
@@ -216,10 +216,10 @@ export async function exportVolunteerHours(eventId: string) {
       v.phone ?? '',
       v.role ?? '',
       v.status ?? '',
-      v.shift_start ? new Date(v.shift_start).toLocaleString() : '',
-      v.shift_end ? new Date(v.shift_end).toLocaleString() : '',
-      v.clocked_in_at ? new Date(v.clocked_in_at).toLocaleString() : '',
-      v.clocked_out_at ? new Date(v.clocked_out_at).toLocaleString() : '',
+      v.shift_start ? new Date(v.shift_start).toLocaleString('en-US', { timeZone: (event as any).timezone ?? 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '',
+      v.shift_end ? new Date(v.shift_end).toLocaleString('en-US', { timeZone: (event as any).timezone ?? 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '',
+      v.clocked_in_at ? new Date(v.clocked_in_at).toLocaleString('en-US', { timeZone: (event as any).timezone ?? 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '',
+      v.clocked_out_at ? new Date(v.clocked_out_at).toLocaleString('en-US', { timeZone: (event as any).timezone ?? 'UTC', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '',
       hoursWorked,
       v.notes ?? '',
     ].map(cell => `"${String(cell).replace(/"/g, '""')}"`)

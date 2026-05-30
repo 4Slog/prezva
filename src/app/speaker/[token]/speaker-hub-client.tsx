@@ -188,7 +188,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
                 </div>
                 {sd.session?.starts_at && (
                   <p className="text-xs mb-4" style={{ color: 'var(--pz-muted)' }}>
-                    {new Date(sd.session.starts_at).toLocaleString()}
+                    {new Date(sd.session.starts_at).toLocaleString('en-US', { timeZone: event.timezone ?? 'UTC', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                 )}
 

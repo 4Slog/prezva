@@ -51,7 +51,7 @@ export default async function PressPortalPage({ params }: Props) {
           <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1rem 1.25rem', border: '1px solid var(--pz-border)' }}>
             {event?.description && <p style={{ fontSize: 14, color: 'var(--pz-text)', margin: '0 0 8px', lineHeight: 1.6 }}>{event.description}</p>}
             <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: 0 }}>
-              {event?.start_at && new Date(event.start_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {event?.start_at && new Date(event.start_at).toLocaleDateString('en-US', { timeZone: event?.timezone ?? 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               {event?.venue_name && ` · ${event.venue_name}`}
               {event?.venue_city && `, ${event.venue_city}`}
             </p>
@@ -91,7 +91,7 @@ export default async function PressPortalPage({ params }: Props) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                     <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: 0 }}>{s.title}</p>
                     <span style={{ fontSize: 11, color: 'var(--pz-muted)', flexShrink: 0 }}>
-                      {s.starts_at && new Date(s.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      {s.starts_at && new Date(s.starts_at).toLocaleTimeString('en-US', { timeZone: event?.timezone ?? 'UTC', hour: 'numeric', minute: '2-digit' })}
                       {s.rooms?.name && ` · ${s.rooms.name}`}
                     </span>
                   </div>

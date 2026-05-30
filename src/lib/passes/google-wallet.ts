@@ -11,8 +11,8 @@ function isConfigured() {
   )
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+function formatDate(iso: string, tz?: string) {
+  return new Date(iso).toLocaleDateString('en-US', { timeZone: tz ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 function signJwt(payload: Record<string, unknown>, serviceAccountEmail: string, privateKey: string): string {
@@ -34,7 +34,7 @@ export async function generateGoogleWalletUrl(registrationId: string): Promise<{
   const supabase = await createClient()
   const { data: reg } = await supabase
     .from('registrations')
-    .select('*, events(title, start_at, venue_name, venue_city, venue_state, organizations(name))')
+    .select('*, events(title, start_at, timezone, venue_name, venue_city, venue_state, organizations(name))')
     .eq('id', registrationId)
     .single()
 
@@ -58,7 +58,7 @@ export async function generateGoogleWalletUrl(registrationId: string): Promise<{
     header: { defaultValue: { language: 'en-US', value: event.title } },
     textModulesData: [
       { id: 'attendee', header: 'ATTENDEE', body: (reg as any).attendee_name },
-      { id: 'date', header: 'DATE', body: formatDate(event.start_at) },
+      { id: 'date', header: 'DATE', body: formatDate(event.start_at, event.timezone) },
       ...(venue ? [{ id: 'venue', header: 'VENUE', body: venue }] : []),
     ],
     barcode: {
