@@ -1,0 +1,22 @@
+{
+  "_comment": "Human-editable persona definitions. No secrets or passwords here.",
+  "heroes": [
+    {
+      "id": "43280c9b-60a7-4884-94b0-1c80e5af1a9d",
+      "email": "sowu.paul@gmail.com",
+      "full_name": "Paul Sowu",
+      "job_title": "Founder",
+      "company": "4S Logistics LLC",
+      "_note": "Preserved hero — auth.users row is KEPT across wipes, profile is upserted by stage 1."
+    },
+    {
+      "email": "paul@prezva.app",
+      "full_name": "Paul Sowu (Prezva)",
+      "job_title": "Platform Operator",
+      "company": "Prezva",
+      "_note": "Invited passwordless via generateLink(type='invite'). Receives link at sowu.paul@gmail.com."
+    }
+  ],
+  "syntheticFixtureCount": 12,
+  "_syntheticNote": "Synthetic fixture users get emails sowu.paul+fixture001@gmail.com … +fixtureN. They have auth accounts for community/leaderboard testing but never log in interactively. Passwords are random per-run and never stored."
+}
