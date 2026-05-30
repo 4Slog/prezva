@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
+import { isSuperAdmin } from '@/lib/admin/gate'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -18,6 +19,7 @@ export default async function DashboardLayout({
     getUnreadCount(),
     getUserContexts(user.id),
   ])
+  const superAdmin = isSuperAdmin(user.id)
 
   const defaultOrgSlug =
     (orgs[0] as { organizations?: { slug?: string } } | undefined)?.organizations?.slug ?? null
@@ -40,7 +42,7 @@ export default async function DashboardLayout({
           className="flex h-14 flex-shrink-0 items-center justify-between px-6"
           style={{ borderBottom: '1px solid var(--pz-border)' }}
         >
-          <ContextSwitcher currentContext={currentContext} contexts={contexts} />
+          <ContextSwitcher currentContext={currentContext} contexts={contexts} isSuperAdmin={superAdmin} />
           <div className="flex items-center gap-3">
             <NotificationBell initialUnreadCount={unreadCount} />
             <UserMenu email={user.email ?? ''} name={(user.user_metadata as { full_name?: string } | null)?.full_name ?? null} />

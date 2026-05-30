@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { requireUser } from '@/lib/auth/get-user'
 import { getUserContexts } from '@/lib/auth/get-contexts'
+import { isSuperAdmin } from '@/lib/admin/gate'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { ContextSwitcher } from '@/components/ContextSwitcher'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import Link from 'next/link'
 export default async function MeLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
   const contexts = await getUserContexts(user.id)
+  const superAdmin = isSuperAdmin(user.id)
 
   const navLinks = [
     { href: '/me', label: 'Home' },
@@ -31,7 +33,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
 
           {/* Context switcher */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start', paddingLeft: 12 }}>
-            <ContextSwitcher currentContext="personal" contexts={contexts} />
+            <ContextSwitcher currentContext="personal" contexts={contexts} isSuperAdmin={superAdmin} />
           </div>
 
           {/* Nav — desktop only */}

@@ -7,9 +7,10 @@ import type { SwitcherContextItem } from '@/lib/auth/get-contexts'
 interface ContextSwitcherProps {
   currentContext: string // 'personal' or org slug
   contexts: SwitcherContextItem[]
+  isSuperAdmin?: boolean
 }
 
-export function ContextSwitcher({ currentContext, contexts }: ContextSwitcherProps) {
+export function ContextSwitcher({ currentContext, contexts, isSuperAdmin = false }: ContextSwitcherProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -126,6 +127,39 @@ export function ContextSwitcher({ currentContext, contexts }: ContextSwitcherPro
                 <ContextRow item={personal} active={personal.id === active.id} onSelect={() => setOpen(false)} />
               </div>
             </>
+          )}
+          {isSuperAdmin && (
+            <div style={{ borderTop: '1px solid var(--pz-border)', padding: '6px 0' }}>
+              <Link
+                role="menuitem"
+                href="/admin"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 14px',
+                  textDecoration: 'none',
+                  color: 'var(--pz-text)',
+                }}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#F59E0B',
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 600 }}>Admin</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--pz-muted)' }}>Platform operator</span>
+                </span>
+              </Link>
+            </div>
           )}
           <div style={{ borderTop: '1px solid var(--pz-border)', padding: '6px 0' }}>
             <Link

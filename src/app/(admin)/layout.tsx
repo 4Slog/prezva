@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { requireAdmin } from '@/lib/admin/gate'
+import { requireAdmin, requireAdminStepUp } from '@/lib/admin/gate'
 import { UserMenu } from '@/components/auth/UserMenu'
 
 const NAV = [
@@ -15,6 +15,8 @@ const NAV = [
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Hard gate: must be a platform admin (ADMIN_EMAILS allowlist). Redirects otherwise.
   await requireAdmin()
+  // Step-up gate: re-confirmed identity required for this session window.
+  await requireAdminStepUp()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

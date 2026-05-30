@@ -2,15 +2,11 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { createClient } from '@/lib/supabase/server'
+import { isSuperAdmin } from '@/lib/admin/gate'
 
 async function requireSuperAdmin() {
-  const supabase = await createClient()
   const user = await requireUser()
-  const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean)
-  if (!SUPER_ADMIN_IDS.includes(user.id)) {
-    throw new Error('Not authorized')
-  }
+  if (!isSuperAdmin(user.id)) throw new Error('Not authorized')
   return user
 }
 
