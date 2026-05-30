@@ -23,7 +23,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createSeedClient } from './lib/client'
 import { log, printSummaryTable, type StageSummary } from './lib/logger'
-import { assertPersonaInvariants, assertPreRunPreserved } from './lib/invariants'
+import { assertPersonaInvariants, assertPreRunPreserved, assertOrgInvariants } from './lib/invariants'
 
 // ─── CLI parsing ──────────────────────────────────────────────────────────────
 
@@ -47,7 +47,8 @@ const confirmWipe = !!flags['confirm-wipe']
 const STAGES = [
   { name: 'wipe',     file: './stages/00-wipe' },
   { name: 'personas', file: './stages/01-personas' },
-  // Future stages: orgs, events, event-config, sessions, registrations, engagement, images
+  { name: 'orgs',     file: './stages/02-orgs' },
+  // Future stages: events, event-config, sessions, registrations, engagement, images
 ] as const
 
 type StageName = typeof STAGES[number]['name']
@@ -98,12 +99,37 @@ async function main(): Promise<void> {
   const supabase = createSeedClient()
   const summaries: StageSummary[] = []
 
-  // Load personas data once (needed for invariant expected counts)
+  // Load data files once — only what each stage needs
   const personasPath = join(__dirname, 'data', 'personas.json')
   const personasData: {
     heroes: Array<{ id?: string; email: string; full_name: string; job_title?: string; company?: string }>
     syntheticFixtureCount: number
   } = JSON.parse(readFileSync(personasPath, 'utf8'))
+
+  const orgsPath = join(__dirname, 'data', 'orgs.json')
+  const orgsData: {
+    orgs: Array<{
+      id: string
+      name: string
+      slug: string
+      timezone: string
+      description?: string
+      website?: string
+      email?: string
+      city?: string
+      state?: string
+      country?: string
+      members: Array<{
+        id?: string
+        email: string
+        full_name: string
+        job_title?: string
+        company?: string
+        mode: 'preserved' | 'invite' | 'fixture'
+        role: 'owner' | 'admin' | 'staff'
+      }>
+    }>
+  } = JSON.parse(readFileSync(orgsPath, 'utf8'))
 
   for (const stageName of stageNames) {
     // Safety check: wipe guard before even loading the stage module
@@ -140,6 +166,15 @@ async function main(): Promise<void> {
         if (!dryRun) {
           const expected = expectedProfileCount(personasData)
           await assertPersonaInvariants(supabase, expected, PRESERVED_UID)
+        }
+
+      } else if (stageName === 'orgs') {
+        const { runOrgs } = await import(stageEntry.file)
+        const result = await runOrgs(supabase, orgsData, { dryRun })
+        summaries.push(result)
+
+        if (!dryRun) {
+          await assertOrgInvariants(supabase, orgsData.orgs.length)
         }
       }
 

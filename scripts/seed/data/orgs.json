@@ -1,0 +1,136 @@
+{
+  "_comment": "Four Prezva organizations. UUIDs are fixed — never regenerate. Rosters by email+role. No secrets.",
+  "orgs": [
+    {
+      "id": "11111111-1111-4111-8111-111111111101",
+      "name": "Meridian Event Collective",
+      "slug": "meridian",
+      "timezone": "America/New_York",
+      "description": "Events consultancy specializing in in-person and hybrid events, sponsor activations, and experiential programming for small-business and nonprofit communities. Flagship event: Birmingham Small Business Week.",
+      "website": "https://www.meridianeventcollective.com",
+      "email": "hello@meridianeventcollective.com",
+      "city": "Birmingham",
+      "state": "AL",
+      "country": "US",
+      "_note": "sowu.paul is the owner — he drives the flagship organizer UX on this org.",
+      "members": [
+        {
+          "id": "43280c9b-60a7-4884-94b0-1c80e5af1a9d",
+          "email": "sowu.paul@gmail.com",
+          "full_name": "Paul Sowu",
+          "job_title": "Founder",
+          "company": "4S Logistics LLC",
+          "mode": "preserved",
+          "role": "owner"
+        },
+        {
+          "email": "sowu.paul+meridian.admin@gmail.com",
+          "full_name": "Marcus Williams",
+          "job_title": "Events Director",
+          "company": "Meridian Event Collective",
+          "mode": "fixture",
+          "role": "admin"
+        }
+      ]
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222201",
+      "name": "Southeast Association of Urban Planners",
+      "slug": "saup",
+      "timezone": "America/New_York",
+      "description": "Professional association advancing urban planning practice across the Southeast. Hosts annual CE-credit conferences, issues continuing education certificates, and connects planners across Alabama, Georgia, Tennessee, and Florida.",
+      "website": "https://www.saup-southeast.org",
+      "email": "info@saup-southeast.org",
+      "city": "Atlanta",
+      "state": "GA",
+      "country": "US",
+      "members": [
+        {
+          "email": "sowu.paul+saup.director@gmail.com",
+          "full_name": "Dr. Patricia Okonkwo",
+          "job_title": "Executive Director",
+          "company": "Southeast Association of Urban Planners",
+          "mode": "fixture",
+          "role": "owner"
+        },
+        {
+          "email": "sowu.paul+saup.admin@gmail.com",
+          "full_name": "James Thornton",
+          "job_title": "Programs Manager",
+          "company": "Southeast Association of Urban Planners",
+          "mode": "fixture",
+          "role": "admin"
+        },
+        {
+          "id": "43280c9b-60a7-4884-94b0-1c80e5af1a9d",
+          "email": "sowu.paul@gmail.com",
+          "full_name": "Paul Sowu",
+          "mode": "preserved",
+          "role": "staff",
+          "_note": "Platform operator is also SAUP staff — exercises cross-org identity (spec §3)."
+        }
+      ]
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333301",
+      "name": "Augusta Metro Chamber of Commerce",
+      "slug": "augusta-metro-chamber",
+      "timezone": "America/New_York",
+      "description": "Premier business advocacy organization serving the Augusta metropolitan area. Produces monthly networking mixers, ribbon cuttings, and community events connecting local businesses, civic leaders, and regional professionals.",
+      "website": "https://www.augustametrochamber.org",
+      "email": "events@augustametrochamber.org",
+      "city": "Augusta",
+      "state": "GA",
+      "country": "US",
+      "members": [
+        {
+          "email": "sowu.paul+chamber.president@gmail.com",
+          "full_name": "Linda Hargrove",
+          "job_title": "President & CEO",
+          "company": "Augusta Metro Chamber of Commerce",
+          "mode": "fixture",
+          "role": "owner"
+        },
+        {
+          "email": "sowu.paul+chamber.events@gmail.com",
+          "full_name": "DeShawn Carter",
+          "job_title": "Events Coordinator",
+          "company": "Augusta Metro Chamber of Commerce",
+          "mode": "fixture",
+          "role": "admin"
+        }
+      ]
+    },
+    {
+      "id": "44444444-4444-4444-8444-444444444401",
+      "name": "OpenSource ATL",
+      "slug": "opensource-atl",
+      "timezone": "America/New_York",
+      "description": "Atlanta's open source and developer community. Produces free and donation-supported monthly virtual meetups, hands-on workshops, and an annual all-virtual summit serving thousands of developers, contributors, and tech learners across the region.",
+      "website": "https://www.opensourceatl.dev",
+      "email": "hello@opensourceatl.dev",
+      "city": "Atlanta",
+      "state": "GA",
+      "country": "US",
+      "members": [
+        {
+          "email": "sowu.paul+oss.director@gmail.com",
+          "full_name": "Keisha Nmachi",
+          "job_title": "Community Director",
+          "company": "OpenSource ATL",
+          "mode": "fixture",
+          "role": "owner"
+        },
+        {
+          "email": "sowu.paul+saup.admin@gmail.com",
+          "full_name": "James Thornton",
+          "job_title": "Programs Manager",
+          "company": "Southeast Association of Urban Planners",
+          "mode": "fixture",
+          "role": "staff",
+          "_note": "Cross-org: also admin at SAUP. Exercises unified identity + cross-tenant isolation (spec §3 / B6-002)."
+        }
+      ]
+    }
+  ]
+}
