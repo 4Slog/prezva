@@ -21,7 +21,8 @@ export async function getEventCounts(eventId: string): Promise<EventCounts> {
     admin
       .from('check_ins')
       .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId),
+      .eq('event_id', eventId)
+      .is('session_id', null),
   ])
 
   const regs = regsRes.data ?? []
