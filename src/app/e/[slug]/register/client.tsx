@@ -413,7 +413,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   className="mt-0.5 flex-shrink-0 accent-[#00BFA6]"
                 />
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--pz-text-muted)' }}>
-                  Text me event updates. I agree to receive recurring automated SMS messages from Prezva about this event (session reminders, schedule changes, and check-in confirmations) at the number above. Consent is not a condition of registration. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. See our{' '}
+                  Text me event updates. I agree to receive recurring automated SMS messages from Prezva about this event (session reminders, schedule changes, and check-in confirmations) at the number above. Consent is not a condition of registration. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. We will not share your mobile information with third parties for promotional or marketing purposes. See our{' '}
                   <a href="/privacy" className="underline" style={{ color: 'var(--pz-teal)' }}>Privacy Policy</a>{' '}and{' '}
                   <a href="/terms" className="underline" style={{ color: 'var(--pz-teal)' }}>Terms</a>.
                 </span>
