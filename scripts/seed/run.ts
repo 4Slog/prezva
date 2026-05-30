@@ -26,7 +26,9 @@ import { log, printSummaryTable, type StageSummary } from './lib/logger'
 import {
   assertPersonaInvariants, assertPreRunPreserved,
   assertOrgInvariants, assertEventInvariants, assertEventConfigInvariants,
+  assertRegistrationInvariants,
 } from './lib/invariants'
+import type { RegistrationsFileData } from './stages/05-registrations'
 
 // ─── CLI parsing ──────────────────────────────────────────────────────────────
 
@@ -53,7 +55,8 @@ const STAGES = [
   { name: 'orgs',          file: './stages/02-orgs' },
   { name: 'events',        file: './stages/03-events' },
   { name: 'event-config',  file: './stages/04-event-config' },
-  // Future stages: sessions, registrations, engagement, images
+  { name: 'registrations', file: './stages/05-registrations' },
+  // Future stages: sessions, engagement, images
 ] as const
 
 type StageName = typeof STAGES[number]['name']
@@ -114,6 +117,9 @@ async function main(): Promise<void> {
   const eventsPath = join(__dirname, 'data', 'events.json')
   const eventsData: import('./lib/event-types').EventsFileData =
     JSON.parse(readFileSync(eventsPath, 'utf8'))
+
+  const regsPath = join(__dirname, 'data', 'registrations.json')
+  const regsData: RegistrationsFileData = JSON.parse(readFileSync(regsPath, 'utf8'))
 
   const orgsPath = join(__dirname, 'data', 'orgs.json')
   const orgsData: {
@@ -202,6 +208,16 @@ async function main(): Promise<void> {
 
         if (!dryRun) {
           await assertEventConfigInvariants(supabase)
+        }
+
+      } else if (stageName === 'registrations') {
+        const { runRegistrations } = await import(stageEntry.file)
+        const result = await runRegistrations(supabase, regsData, eventsData, { dryRun })
+        summaries.push(result)
+
+        if (!dryRun) {
+          const eventSlugToId = new Map(eventsData.events.map(e => [e.slug, e.id]))
+          await assertRegistrationInvariants(supabase, regsData, eventSlugToId)
         }
       }
 

@@ -1,0 +1,109 @@
+{
+  "_comment": "Registration parameters — Stage 05. UUIDs for discount_codes are fixed. Counts/rates are targets; stage generates rows programmatically using a deterministic seeded LCG RNG (seed = djb2Hash(event_slug)).",
+  "discount_codes": [
+    {
+      "id": "0d000001-0001-4001-8001-000000000000",
+      "event_slug": "bsbw-2026",
+      "code": "EARLYBIRD15",
+      "discount_type": "percent",
+      "discount_value": 15,
+      "max_uses": 100,
+      "uses_count": 45,
+      "valid_until": "2026-01-31T23:59:59Z",
+      "is_active": true
+    },
+    {
+      "id": "0d000002-0002-4001-8001-000000000000",
+      "event_slug": "oss-atl-virtual-summit-2026",
+      "code": "VIRTUAL50",
+      "discount_type": "fixed",
+      "discount_value": 5000,
+      "max_uses": 200,
+      "uses_count": 80,
+      "is_active": true
+    }
+  ],
+  "events": [
+    {
+      "slug": "bsbw-2026",
+      "confirmed": 480,
+      "cancelled": 20,
+      "refunded": 10,
+      "waitlisted": 5,
+      "delivery_method": "in_person",
+      "ticket_split": { "General Admission": 0.85, "VIP All-Access": 0.15 },
+      "hero_emails": ["sowu.paul@gmail.com", "paul@prezva.app"],
+      "fixture_indices": [0, 1, 2, 3, 4],
+      "sms_opt_in_rate": 0.15,
+      "discounted_ticket": "General Admission",
+      "discounted_count": 45,
+      "discount_code_id": "0d000001-0001-4001-8001-000000000000",
+      "field_responses": {
+        "dietary_restrictions_rate": 0.60,
+        "tshirt_size_rate": 0.60,
+        "company_name_rate": 0.60
+      }
+    },
+    {
+      "slug": "saup-ce-conference-2026",
+      "confirmed": 250,
+      "pending": 10,
+      "waitlisted": 5,
+      "delivery_split": { "in_person": 0.70, "virtual": 0.30 },
+      "ticket_split": { "AICP Member": 0.60, "Non-Member": 0.40 },
+      "hero_emails": ["sowu.paul@gmail.com"],
+      "fixture_indices": [2, 3, 6, 7],
+      "sms_opt_in_rate": 0.12,
+      "ce_field_responses": true,
+      "member_id_rate": 0.30
+    },
+    {
+      "slug": "augusta-chamber-mixer-2026",
+      "confirmed": 72,
+      "pending": 5,
+      "delivery_method": "in_person",
+      "ticket_split": { "Admission": 1.0 },
+      "hero_emails": [],
+      "fixture_indices": [4, 5],
+      "sms_opt_in_rate": 0.10
+    },
+    {
+      "slug": "oss-atl-may-meetup-2026",
+      "confirmed": 42,
+      "cancelled": 3,
+      "delivery_method": "in_person",
+      "ticket_split": { "Community Pass": 1.0 },
+      "hero_emails": ["paul@prezva.app"],
+      "fixture_indices": [8, 9],
+      "sms_opt_in_rate": 0.08
+    },
+    {
+      "slug": "oss-atl-virtual-summit-2026",
+      "confirmed": 280,
+      "pending": 20,
+      "delivery_method": "virtual",
+      "ticket_split": { "Virtual Pass": 0.50, "Summit General": 0.40, "Workshop Add-on": 0.10 },
+      "hero_emails": ["sowu.paul@gmail.com"],
+      "fixture_indices": [0, 2, 6, 10, 11],
+      "sms_opt_in_rate": 0.20,
+      "discounted_ticket": "Summit General",
+      "discounted_count": 80,
+      "discount_code_id": "0d000002-0002-4001-8001-000000000000",
+      "discount_amount_cents": 5000,
+      "field_responses": {
+        "experience_level_rate": 0.50,
+        "company_name_rate": 0.40
+      }
+    },
+    {
+      "slug": "augusta-chamber-gala-2026",
+      "confirmed": 2,
+      "pending": 8,
+      "delivery_method": "in_person",
+      "ticket_split": { "Gala Admission": 1.0 },
+      "hero_emails": [],
+      "fixture_indices": [],
+      "sms_opt_in_rate": 0.0
+    }
+  ]
+}

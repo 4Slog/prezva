@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { log } from './logger'
+import type { RegistrationsFileData } from '../stages/05-registrations'
 
 export class InvariantError extends Error {
   constructor(message: string) {
@@ -237,6 +238,104 @@ export async function assertEventConfigInvariants(supabase: SupabaseClient): Pro
     throw new InvariantError(`${errs.length} event-config invariant(s) failed — see above`)
   }
   log.ok('All event-config invariants pass')
+}
+
+/** Asserts post-run registration invariants (only meaningful after --execute). */
+export async function assertRegistrationInvariants(
+  supabase: SupabaseClient,
+  regData: RegistrationsFileData,
+  eventMap: Map<string, string>,  // slug → event_id
+): Promise<void> {
+  const errs: string[] = []
+
+  for (const er of regData.events) {
+    const eventId = eventMap.get(er.slug)
+    if (!eventId) { errs.push(`assertRegistrationInvariants: unknown slug "${er.slug}"`); continue }
+
+    const expected = er.confirmed ?? 0
+
+    // 1. Total confirmed per event ± 2 (heroes/fixture overlap is allowed)
+    const { count: confirmedCount, error: cErr } = await supabase
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .eq('status', 'confirmed')
+    if (cErr) {
+      errs.push(`confirmed count for "${er.slug}": ${cErr.message}`)
+    } else if (Math.abs((confirmedCount ?? 0) - expected) > 2) {
+      errs.push(`"${er.slug}": confirmed count expected ~${expected}, got ${confirmedCount}`)
+    }
+
+    // 2. No registration references a ticket_type from a different event
+    const { data: wrongTickets, error: wtErr } = await supabase
+      .from('registrations')
+      .select('id, ticket_type_id, ticket_types!inner(event_id)')
+      .eq('event_id', eventId)
+      .neq('ticket_types.event_id', eventId)
+    if (wtErr) {
+      errs.push(`ticket cross-event check for "${er.slug}": ${wtErr.message}`)
+    } else if ((wrongTickets ?? []).length > 0) {
+      errs.push(`"${er.slug}": ${wrongTickets!.length} reg(s) reference ticket_types from a different event`)
+    }
+
+    // 3. All non-null user_id values resolve to existing profiles
+    const { data: regsWithUser, error: uErr } = await supabase
+      .from('registrations')
+      .select('id, user_id')
+      .eq('event_id', eventId)
+      .not('user_id', 'is', null)
+    if (uErr) {
+      errs.push(`user_id check for "${er.slug}": ${uErr.message}`)
+    } else {
+      for (const reg of regsWithUser ?? []) {
+        const { data: prof } = await supabase
+          .from('profiles').select('id').eq('id', reg.user_id).maybeSingle()
+        if (!prof) errs.push(`"${er.slug}" reg ${reg.id}: user_id ${reg.user_id} has no profile`)
+      }
+    }
+
+    // 4. SAUP: all confirmed registrations must have a ce_eligibility field response
+    if (er.ce_field_responses) {
+      const { data: confirmedRegs, error: crErr } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('status', 'confirmed')
+      if (crErr) {
+        errs.push(`SAUP confirmed regs query for "${er.slug}": ${crErr.message}`)
+      } else {
+        const { data: ceField } = await supabase
+          .from('form_fields')
+          .select('id')
+          .eq('event_id', eventId)
+          .eq('field_key', 'ce_eligibility')
+          .maybeSingle()
+        if (!ceField) {
+          errs.push(`"${er.slug}": ce_eligibility form_field not found`)
+        } else {
+          const { count: ceCount, error: ceErr } = await supabase
+            .from('registration_field_responses')
+            .select('*', { count: 'exact', head: true })
+            .eq('field_id', ceField.id)
+            .in('registration_id', (confirmedRegs ?? []).map((r: { id: string }) => r.id))
+          if (ceErr) {
+            errs.push(`ce_eligibility response count for "${er.slug}": ${ceErr.message}`)
+          } else if ((ceCount ?? 0) !== (confirmedRegs ?? []).length) {
+            errs.push(
+              `"${er.slug}": expected ${(confirmedRegs ?? []).length} ce_eligibility responses, ` +
+              `got ${ceCount}`
+            )
+          }
+        }
+      }
+    }
+  }
+
+  if (errs.length > 0) {
+    for (const e of errs) log.error(`INVARIANT FAIL: ${e}`)
+    throw new InvariantError(`${errs.length} registration invariant(s) failed — see above`)
+  }
+  log.ok('All registration invariants pass')
 }
 
 /** Lightweight pre-run check: only verifies sowu.paul's auth row exists. Safe in dry-run. */
