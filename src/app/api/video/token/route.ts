@@ -8,16 +8,16 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
-  const { roomName, sessionId } = body ?? {}
-  if (!roomName || !sessionId) {
-    return NextResponse.json({ error: 'roomName and sessionId are required' }, { status: 400 })
+  const { sessionId } = body ?? {}
+  if (!sessionId) {
+    return NextResponse.json({ error: 'sessionId is required' }, { status: 400 })
   }
 
   const supabase = await createClient()
 
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, event_id, events!inner(id, status, org_id)')
+    .select('id, event_id, livekit_room_name, events!inner(id, status, org_id)')
     .eq('id', sessionId)
     .single()
 
@@ -27,6 +27,12 @@ export async function POST(req: NextRequest) {
   if (!event || event.status !== 'published') {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   }
+
+  if (!session.livekit_room_name) {
+    return NextResponse.json({ error: 'Session has no live room configured' }, { status: 404 })
+  }
+
+  const roomName = session.livekit_room_name
 
   const { data: registration } = await supabase
     .from('registrations')

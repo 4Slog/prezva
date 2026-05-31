@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyWebhookSignature } from '@/lib/video/mux'
-import { createSystemAnnouncement } from '@/lib/announcements/actions'
+import { createSystemAnnouncement } from '@/lib/announcements/system'
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
