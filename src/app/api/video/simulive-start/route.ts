@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!member) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  const ALLOWED_ROLES = ['owner', 'admin', 'organizer']
+  if (!member || !ALLOWED_ROLES.includes((member as any).role)) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  }
 
   const startedAt = new Date().toISOString()
 

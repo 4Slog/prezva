@@ -83,6 +83,23 @@ export default async function LiveSessionPage({ params }: Props) {
 
   const isLive = !!session.mux_stream_id
 
+  // Server-side gate: only expose mux_asset_playback_id when the requester is entitled.
+  // Simulive: scheduled time has arrived. Rewatch: allow_rewatch is on and recording exists.
+  // Without this gate the playback ID would be in the HTML for any logged-in registrant,
+  // letting them bypass the rewatch toggle by calling stream.mux.com directly.
+  const rawAssetPlaybackId = (session as any).mux_asset_playback_id as string | null ?? null
+  const allowRewatch = (session as any).allow_rewatch as boolean ?? false
+  const simuliveScheduledAt = (session as any).simulive_scheduled_at as string | null ?? null
+  const simuliveStartedAt = (session as any).simulive_started_at as string | null ?? null
+
+  const simuliveActive =
+    !!simuliveScheduledAt &&
+    !!rawAssetPlaybackId &&
+    new Date() >= new Date(simuliveScheduledAt)
+
+  const entitledToAsset = simuliveActive || (allowRewatch && !!rawAssetPlaybackId)
+  const gatedAssetPlaybackId = entitledToAsset ? rawAssetPlaybackId : null
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* Header */}
@@ -130,10 +147,10 @@ export default async function LiveSessionPage({ params }: Props) {
             ends_at: session.ends_at,
             slides_url: (session as any).slides_url ?? null,
             recording_url: (session as any).recording_url ?? null,
-            mux_asset_playback_id: (session as any).mux_asset_playback_id ?? null,
-            allow_rewatch: (session as any).allow_rewatch ?? false,
-            simulive_scheduled_at: (session as any).simulive_scheduled_at ?? null,
-            simulive_started_at: (session as any).simulive_started_at ?? null,
+            mux_asset_playback_id: gatedAssetPlaybackId,
+            allow_rewatch: allowRewatch,
+            simulive_scheduled_at: simuliveScheduledAt,
+            simulive_started_at: simuliveStartedAt,
           }}
           event={{ id: event.id, title: event.title, slug: event.slug }}
           registrationId={registration.id}
