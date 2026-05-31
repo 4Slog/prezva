@@ -34,6 +34,9 @@ export default function LiveChat({ eventId, sessionId, userId, displayName }: Pr
 
   useEffect(() => {
     const sb = createClient()
+    sb.getChannels()
+      .filter(ch => ch.topic === `realtime:session_discussion:${sessionId}`)
+      .forEach(ch => sb.removeChannel(ch))
     const channel = sb
       .channel(`session_discussion:${sessionId}`)
       .on(
