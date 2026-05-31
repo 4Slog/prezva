@@ -318,8 +318,8 @@ export async function runEngagement(
         apMap.set(reg.user_id, (apMap.get(reg.user_id) ?? 0) + userPts)
       }
 
-      // Insert leaderboard_points (upsert on conflict DO NOTHING — partial unique index)
-      lbActual = await batchUpsert(supabase, 'leaderboard_points', lbRows, 'event_id,user_id,action')
+      // Insert leaderboard_points (plain insert: partial unique index cannot bind ON CONFLICT; rows are unique per (event,user,action) and table is wiped first)
+      lbActual = await batchInsert(supabase, 'leaderboard_points', lbRows)
 
       // Upsert attendee_points aggregate
       const apRows = [...apMap.entries()].map(([userId, pts]) => ({
