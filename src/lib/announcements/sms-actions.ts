@@ -1,4 +1,5 @@
 'use server'
+import Telnyx from 'telnyx'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
@@ -17,12 +18,12 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
 
   await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin'])
 
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken  = process.env.TWILIO_AUTH_TOKEN
-  const fromNumber = process.env.TWILIO_FROM_NUMBER
+  const apiKey = process.env.TELNYX_API_KEY
+  const fromNumber = process.env.TELNYX_PHONE_NUMBER
 
-  if (!accountSid || !authToken || !fromNumber) {
-    return { error: 'SMS is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER to your environment variables.' }
+  if (!apiKey || !fromNumber) {
+    console.warn('[sms] Telnyx not configured. Add TELNYX_API_KEY and TELNYX_PHONE_NUMBER to environment variables.')
+    return { error: 'SMS is not configured. Add TELNYX_API_KEY and TELNYX_PHONE_NUMBER to your environment variables.' }
   }
 
   const admin = createAdminClient()
@@ -32,6 +33,7 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
     .select('id, attendee_name, attendee_phone')
     .eq('event_id', eventId)
     .in('status', ['confirmed'])
+    .eq('sms_opt_in', true)
     .not('attendee_phone', 'is', null)
     .limit(500)
 
@@ -39,32 +41,18 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
     .map(r => r.attendee_phone?.trim())
     .filter(Boolean)
 
-  if (!phones.length) return { error: 'No attendees with phone numbers found.' }
+  if (!phones.length) return { error: 'No attendees with phone numbers and SMS opt-in found.' }
 
-  const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+  const telnyx = new Telnyx({ apiKey })
   let sent = 0
   let failed = 0
   const truncatedMsg = message.length > 160 ? message.slice(0, 157) + '...' : message
 
   for (const phone of phones) {
     try {
-      const res = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            From: fromNumber,
-            To: phone,
-            Body: truncatedMsg,
-          }).toString(),
-        }
-      )
-      if (res.ok) sent++
-      else failed++
+      // SMS sending live once Telnyx campaign CRX9TO7 clears carrier review
+      await telnyx.messages.send({ from: fromNumber, to: phone, text: truncatedMsg })
+      sent++
     } catch {
       failed++
     }
@@ -81,6 +69,7 @@ export async function getSMSEligibleCount(eventId: string): Promise<number> {
     .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId)
     .in('status', ['confirmed'])
+    .eq('sms_opt_in', true)
     .not('attendee_phone', 'is', null)
   return count ?? 0
 }

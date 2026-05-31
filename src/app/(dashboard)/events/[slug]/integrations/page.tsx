@@ -130,6 +130,68 @@ export default async function EventIntegrationsPage({ params }: Props) {
         </div>
       ))}
 
+      {/* SMS Notifications */}
+      <div style={{ marginBottom: 32 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+          SMS Notifications
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 12 }}>
+          Send attendees SMS notifications for announcements, reminders, and event updates.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Tier 1 — Prezva SMS */}
+          <div style={{ ...cardStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22 }}>📱</span>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>
+                    Prezva SMS <span style={{ fontSize: 11, color: 'var(--pz-muted)', fontWeight: 400 }}>(Recommended)</span>
+                  </p>
+                  <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700, background: '#1E3A5F', color: '#94A3B8', borderRadius: 4, padding: '1px 6px' }}>
+                    Powered by Telnyx
+                  </span>
+                </div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, background: '#F59E0B22', color: '#F59E0B', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
+                Pending carrier approval
+              </span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>
+              Use Prezva&apos;s built-in SMS number (+1-770-520-7799) to send notifications. No setup required. Includes 10DLC compliance.
+            </p>
+            <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--pz-muted)', lineHeight: 1.7 }}>
+              <li>Automatic 10DLC compliance</li>
+              <li>Shared Prezva sender number</li>
+              <li>Included in your plan</li>
+            </ul>
+            <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', fontStyle: 'italic' }}>
+              SMS delivery begins once carrier campaign CRX9TO7 is approved (typically 2–4 weeks)
+            </p>
+          </div>
+          {/* Tier 2 — Own number (coming soon) */}
+          <div style={{ ...cardStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 10, opacity: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22 }}>🔢</span>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>Your own number</p>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, background: '#1E3A5F', color: '#64748B', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
+                Coming soon
+              </span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>
+              Connect your own Telnyx or Twilio number to send SMS from your organization&apos;s dedicated number.
+            </p>
+            <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--pz-muted)', lineHeight: 1.7 }}>
+              <li>Custom sender number</li>
+              <li>Higher throughput</li>
+              <li>Brand recognition</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div style={{ marginTop: 8, padding: '1.25rem 1.5rem', background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12 }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 14 }}>Event Actions</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
