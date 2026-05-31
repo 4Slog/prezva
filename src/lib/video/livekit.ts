@@ -37,3 +37,12 @@ export async function deleteRoom(roomName: string) {
   const svc = getRoomService()
   await svc.deleteRoom(roomName)
 }
+
+export async function muteParticipantTrack(
+  roomName: string,
+  participantIdentity: string,
+  trackSid: string,
+) {
+  const svc = getRoomService()
+  await svc.mutePublishedTrack(roomName, participantIdentity, trackSid, true)
+}

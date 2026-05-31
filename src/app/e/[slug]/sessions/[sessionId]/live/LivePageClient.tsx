@@ -94,7 +94,7 @@ export default function LivePageClient({ session, event, registrationId, userId,
           </div>
         )}
         <MobileTabs activeTab={activeTab} onSelect={setActiveTab} />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'hidden', paddingBottom: '3.5rem' }}>
           <TabContent activeTab={activeTab} session={session} event={event} registrationId={registrationId} userId={userId} displayName={displayName} isOrganizer={isOrganizer} />
         </div>
       </div>
@@ -191,7 +191,8 @@ export default function LivePageClient({ session, event, registrationId, userId,
       <style>{`
         @media (max-width: 768px) {
           .live-desktop-layout { display: none !important; }
-          .live-mobile-layout { display: flex !important; flex-direction: column; min-height: 100vh; }
+          .live-mobile-layout { display: flex !important; flex-direction: column; min-height: 100dvh; }
+          .live-tab-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; }
         }
       `}</style>
     </>
@@ -263,7 +264,7 @@ function TabContent({ activeTab, session, event, registrationId, userId, display
 
 function MobileTabs({ activeTab, onSelect }: { activeTab: Tab; onSelect: (t: Tab) => void }) {
   return (
-    <div style={{ display: 'flex', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+    <div className="live-tab-bar" style={{ display: 'flex', borderTop: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
       {TABS.map(tab => (
         <button key={tab} onClick={() => onSelect(tab)} style={{
           flex: 1, padding: '10px 0', fontSize: 13, fontWeight: activeTab === tab ? 700 : 400,

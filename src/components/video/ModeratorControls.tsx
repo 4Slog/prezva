@@ -1,18 +1,21 @@
 'use client'
 
-import { useState } from 'react'
 import { useMaybeRoomContext, useParticipants } from '@livekit/components-react'
+import { Track } from 'livekit-client'
 import { MicOff, Star, UserMinus } from 'lucide-react'
+import { useState } from 'react'
 
 interface Props {
   sessionId: string
+  spotlightedIdentity?: string | null
+  onSpotlight?: (id: string | null) => void
 }
 
-export default function ModeratorControls({ sessionId: _sessionId }: Props) {
+export default function ModeratorControls({ sessionId: _sessionId, spotlightedIdentity, onSpotlight }: Props) {
   const room = useMaybeRoomContext()
   const participants = useParticipants()
-  const [spotlighted, setSpotlighted] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [muting, setMuting] = useState<string | null>(null)
 
   if (!room) return null
 
@@ -21,16 +24,33 @@ export default function ModeratorControls({ sessionId: _sessionId }: Props) {
   )
   if (remoteParticipants.length === 0) return null
 
-  function handleMute(identity: string) {
+  async function handleMute(identity: string) {
     if (!room) return
     if (identity === room.localParticipant.identity) {
-      room.localParticipant.setMicrophoneEnabled(false)
+      await room.localParticipant.setMicrophoneEnabled(false)
+      return
     }
-    // Remote mute requires LiveKit Admin API — deferred to Batch 6
+    const remote = room.remoteParticipants.get(identity)
+    if (!remote) return
+    const micPub = Array.from(remote.trackPublications.values()).find(
+      pub => pub.source === Track.Source.Microphone,
+    )
+    if (!micPub?.trackSid) return
+    setMuting(identity)
+    try {
+      await fetch('/api/video/room/mute-participant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomName: room.name, participantIdentity: identity, trackSid: micPub.trackSid }),
+      })
+    } finally {
+      setMuting(null)
+    }
   }
 
   function handleSpotlight(identity: string) {
-    setSpotlighted(prev => (prev === identity ? null : identity))
+    const next = spotlightedIdentity === identity ? null : identity
+    onSpotlight?.(next)
   }
 
   async function handleRemove(identity: string) {
@@ -61,46 +81,50 @@ export default function ModeratorControls({ sessionId: _sessionId }: Props) {
         Participants ({remoteParticipants.length})
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {remoteParticipants.map(p => (
-          <div key={p.identity} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              fontSize: 13, flex: 1,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              color: spotlighted === p.identity ? 'var(--color-teal)' : 'var(--color-text)',
-            }}>
-              {p.name ?? p.identity}
-            </span>
-            <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-              <button
-                onClick={() => handleMute(p.identity)}
-                title="Mute participant"
-                style={btnStyle}
-              >
-                <MicOff size={11} />
-              </button>
-              <button
-                onClick={() => handleSpotlight(p.identity)}
-                title="Spotlight participant"
-                style={{
-                  ...btnStyle,
-                  background: spotlighted === p.identity ? 'var(--color-teal)' : undefined,
-                  color: spotlighted === p.identity ? '#fff' : undefined,
-                  borderColor: spotlighted === p.identity ? 'var(--color-teal)' : undefined,
-                }}
-              >
-                <Star size={11} />
-              </button>
-              <button
-                onClick={() => handleRemove(p.identity)}
-                disabled={removing === p.identity}
-                title="Remove participant"
-                style={{ ...btnStyle, borderColor: '#ef4444', color: '#ef4444' }}
-              >
-                <UserMinus size={11} />
-              </button>
+        {remoteParticipants.map(p => {
+          const isSpotlighted = spotlightedIdentity === p.identity
+          return (
+            <div key={p.identity} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontSize: 13, flex: 1,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                color: isSpotlighted ? 'var(--color-teal)' : 'var(--color-text)',
+              }}>
+                {p.name ?? p.identity}
+              </span>
+              <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                <button
+                  onClick={() => handleMute(p.identity)}
+                  disabled={muting === p.identity}
+                  title="Mute participant"
+                  style={{ ...btnStyle, opacity: muting === p.identity ? 0.5 : 1 }}
+                >
+                  <MicOff size={11} />
+                </button>
+                <button
+                  onClick={() => handleSpotlight(p.identity)}
+                  title={isSpotlighted ? 'Remove spotlight' : 'Spotlight participant'}
+                  style={{
+                    ...btnStyle,
+                    background: isSpotlighted ? 'var(--color-teal)' : undefined,
+                    color: isSpotlighted ? '#fff' : undefined,
+                    borderColor: isSpotlighted ? 'var(--color-teal)' : undefined,
+                  }}
+                >
+                  <Star size={11} />
+                </button>
+                <button
+                  onClick={() => handleRemove(p.identity)}
+                  disabled={removing === p.identity}
+                  title="Remove participant"
+                  style={{ ...btnStyle, borderColor: '#ef4444', color: '#ef4444', opacity: removing === p.identity ? 0.5 : 1 }}
+                >
+                  <UserMinus size={11} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

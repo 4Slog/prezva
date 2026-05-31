@@ -14,7 +14,8 @@ import ModeratorControls from './ModeratorControls'
 
 interface Props {
   roomName: string
-  sessionId: string
+  sessionId?: string
+  directToken?: string
   participantName: string
   isOrganizer: boolean
   onParticipantCountChange?: (count: number) => void
@@ -23,14 +24,21 @@ interface Props {
 export default function LiveRoom({
   roomName: _roomName,
   sessionId,
+  directToken,
   participantName: _participantName,
   isOrganizer,
   onParticipantCountChange,
 }: Props) {
-  const [token, setToken] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(directToken ?? null)
   const [tokenError, setTokenError] = useState<string | null>(null)
+  const [spotlightedIdentity, setSpotlightedIdentity] = useState<string | null>(null)
 
   useEffect(() => {
+    if (directToken) {
+      setToken(directToken)
+      return
+    }
+    if (!sessionId) return
     fetch('/api/video/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,7 +53,7 @@ export default function LiveRoom({
         }
       })
       .catch(() => setTokenError('Failed to connect to video room'))
-  }, [sessionId])
+  }, [sessionId, directToken])
 
   if (tokenError) {
     return (
@@ -73,15 +81,25 @@ export default function LiveRoom({
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
       token={token}
       connect={true}
-      style={{ width: '100%', borderRadius: 8, overflow: 'hidden', background: '#0a0a0a' }}
+      style={{ width: '100%', height: '100%', borderRadius: 8, overflow: 'hidden', background: '#0a0a0a' }}
     >
       {isOrganizer ? (
         <>
-          <VideoConference style={{ minHeight: 480 }} />
-          <ModeratorControls sessionId={sessionId} />
+          <VideoConference style={{ minHeight: 480, height: '100%' }} />
+          {/* ModeratorControls only for session rooms (not 1-on-1 /meet pages) */}
+          {sessionId && (
+            <ModeratorControls
+              sessionId={sessionId}
+              spotlightedIdentity={spotlightedIdentity}
+              onSpotlight={setSpotlightedIdentity}
+            />
+          )}
         </>
       ) : (
-        <AudienceLayout onParticipantCountChange={onParticipantCountChange} />
+        <AudienceLayout
+          onParticipantCountChange={onParticipantCountChange}
+          spotlightedIdentity={spotlightedIdentity}
+        />
       )}
     </LiveKitRoom>
   )
@@ -89,6 +107,8 @@ export default function LiveRoom({
 
 const placeholderStyle: React.CSSProperties = {
   width: '100%',
+  height: '100%',
+  minHeight: '56.25%', // 16:9 fallback
   aspectRatio: '16/9',
   background: '#0a0a0a',
   borderRadius: 8,
@@ -99,8 +119,10 @@ const placeholderStyle: React.CSSProperties = {
 
 function AudienceLayout({
   onParticipantCountChange,
+  spotlightedIdentity,
 }: {
   onParticipantCountChange?: (count: number) => void
+  spotlightedIdentity: string | null
 }) {
   const room = useRoomContext()
   const participants = useParticipants()
@@ -129,8 +151,11 @@ function AudienceLayout({
     )
   }
 
+  // Spotlight > active speaker > first track
   const dominant =
-    tracks.find(t => t.participant.identity === activeSpeakerId) ?? tracks[0]
+    (spotlightedIdentity && tracks.find(t => t.participant.identity === spotlightedIdentity)) ||
+    tracks.find(t => t.participant.identity === activeSpeakerId) ||
+    tracks[0]
   const strip = tracks.filter(t => t !== dominant)
 
   return (

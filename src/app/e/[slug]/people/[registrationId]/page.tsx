@@ -120,6 +120,7 @@ export default async function AttendeePage({ params }: Props) {
           {user && !isOwnProfile && (
             <ProfileActions
               eventId={(event as any).id}
+              eventSlug={slug}
               targetUserId={p.user_id}
               targetName={r.attendee_name}
               registrationId={registrationId}

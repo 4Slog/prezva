@@ -85,7 +85,7 @@ export default async function LiveSessionPage({ params }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div style={{ background: 'var(--color-navy)', color: '#fff', padding: '1rem 1.5rem' }}>
+      <div className="live-page-header" style={{ background: 'var(--color-navy)', color: '#fff', padding: '1rem 1.5rem' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <Link href={`/e/${slug}`} style={{ color: 'var(--color-teal)', fontSize: 12, textDecoration: 'none' }}>
             ← {event.title}
@@ -99,13 +99,20 @@ export default async function LiveSessionPage({ params }: Props) {
             )}
           </div>
           {eligibility && (
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+            <p className="live-page-attendance" style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
               {eligibility.sessionsAttended}/{eligibility.sessionsTotal} sessions attended
               {(session.ce_credit_hours ?? 0) > 0 && ` · ${session.ce_credit_hours} CE credit${(session.ce_credit_hours ?? 0) !== 1 ? 's' : ''} available`}
             </p>
           )}
         </div>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .live-page-header { padding: 0.5rem 1rem !important; }
+          .live-page-header h1 { font-size: 1rem !important; }
+          .live-page-attendance { display: none; }
+        }
+      `}</style>
 
       {/* Main content */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '1.5rem 1.5rem' }}>

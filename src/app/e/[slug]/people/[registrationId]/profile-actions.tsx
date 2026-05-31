@@ -1,27 +1,35 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Video } from 'lucide-react'
 import { followAttendee, unfollowAttendee, sendMeetingRequest } from '@/lib/networking/sprint8-actions'
+import { createOneOnOneRoom } from '@/lib/video/actions'
 
 export function ProfileActions({
   eventId,
+  eventSlug,
   targetUserId,
   targetName,
   registrationId,
   isFollowing: initialFollowing,
 }: {
   eventId: string
+  eventSlug: string
   targetUserId: string | null
   targetName: string
   registrationId: string
   isFollowing: boolean
 }) {
+  const router = useRouter()
   const [following, setFollowing] = useState(initialFollowing)
   const [showMeeting, setShowMeeting] = useState(false)
   const [meetingMsg, setMeetingMsg] = useState('')
   const [proposedTime, setProposedTime] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [videoLoading, setVideoLoading] = useState(false)
+  const [videoError, setVideoError] = useState<string | null>(null)
 
   async function handleFollow() {
     if (!targetUserId) return
@@ -45,6 +53,18 @@ export function ProfileActions({
     setSent(true)
     setShowMeeting(false)
     setTimeout(() => setSent(false), 3000)
+  }
+
+  async function handleVideoChat() {
+    setVideoError(null)
+    setVideoLoading(true)
+    const result = await createOneOnOneRoom(registrationId, eventSlug)
+    setVideoLoading(false)
+    if ('error' in result) {
+      setVideoError(result.error)
+      return
+    }
+    router.push(result.meetUrl)
   }
 
   const inputStyle = { background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)' }
@@ -73,7 +93,22 @@ export function ProfileActions({
             Request meeting
           </button>
         )}
+        {targetUserId && (
+          <button
+            onClick={handleVideoChat}
+            disabled={videoLoading}
+            className="rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
+            style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)' }}
+          >
+            <Video size={14} />
+            {videoLoading ? 'Connecting…' : 'Video chat'}
+          </button>
+        )}
       </div>
+
+      {videoError && (
+        <p className="text-sm" style={{ color: '#ef4444' }}>{videoError}</p>
+      )}
 
       {sent && (
         <p className="text-sm" style={{ color: 'var(--pz-success)' }}>Meeting request sent to {targetName}!</p>
