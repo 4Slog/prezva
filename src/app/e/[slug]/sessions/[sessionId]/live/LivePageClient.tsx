@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import LivePlayer from '@/components/video/LivePlayer'
+import LiveRoom from '@/components/video/LiveRoom'
 import CEProgressBar from '@/components/video/CEProgressBar'
 import LiveChat from '@/components/video/LiveChat'
 import { ExternalLink } from 'lucide-react'
@@ -20,6 +21,7 @@ interface Props {
     ce_credit_hours: number | null
     mux_playback_id: string | null
     mux_stream_id: string | null
+    livekit_room_name: string | null
     starts_at: string | null
     ends_at: string | null
     slides_url: string | null
@@ -39,9 +41,11 @@ interface Props {
 export default function LivePageClient({ session, event, registrationId, userId, displayName, isOrganizer }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('Chat')
   const [watchedSeconds, setWatchedSeconds] = useState(0)
+  const [viewerCount, setViewerCount] = useState(0)
 
   const isLive = !!session.mux_stream_id
   const hasVideo = !!session.mux_playback_id
+  const hasLiveRoom = !!session.livekit_room_name
   const ceCredits = session.ce_credit_hours ?? 0
 
   const sessionDurationSeconds = (() => {
@@ -61,18 +65,29 @@ export default function LivePageClient({ session, event, registrationId, userId,
     <>
       {/* Mobile layout */}
       <div className="live-mobile-layout" style={{ display: 'none' }}>
-        {hasVideo && (
+        {hasLiveRoom ? (
+          <div style={{ width: '100%' }}>
+            <LiveRoom
+              roomName={session.livekit_room_name!}
+              sessionId={session.id}
+              participantName={displayName}
+              isOrganizer={!!isOrganizer}
+              onParticipantCountChange={setViewerCount}
+            />
+          </div>
+        ) : hasVideo ? (
           <div style={{ width: '100%', aspectRatio: '16/9' }}>
             <LivePlayer
               playbackId={session.mux_playback_id!}
               sessionTitle={session.title}
               isLive={isLive}
+              viewerCount={viewerCount}
               registrationId={registrationId}
               sessionId={session.id}
               onProgress={handleProgress}
             />
           </div>
-        )}
+        ) : null}
         {ceCredits > 0 && (
           <div style={{ padding: '0 16px' }}>
             <CEProgressBarDisplay watchedSeconds={watchedSeconds} sessionDurationSeconds={sessionDurationSeconds} ceCredits={ceCredits} watchPct={watchPct} />
@@ -88,11 +103,20 @@ export default function LivePageClient({ session, event, registrationId, userId,
       <div className="live-desktop-layout" style={{ display: 'grid', gridTemplateColumns: '65fr 35fr', gap: 24, alignItems: 'start' }}>
         {/* Left column */}
         <div>
-          {hasVideo ? (
+          {hasLiveRoom ? (
+            <LiveRoom
+              roomName={session.livekit_room_name!}
+              sessionId={session.id}
+              participantName={displayName}
+              isOrganizer={!!isOrganizer}
+              onParticipantCountChange={setViewerCount}
+            />
+          ) : hasVideo ? (
             <LivePlayer
               playbackId={session.mux_playback_id!}
               sessionTitle={session.title}
               isLive={isLive}
+              viewerCount={viewerCount}
               registrationId={registrationId}
               sessionId={session.id}
               onProgress={handleProgress}

@@ -117,6 +117,7 @@ export default async function LiveSessionPage({ params }: Props) {
             ce_credit_hours: session.ce_credit_hours,
             mux_playback_id: session.mux_playback_id,
             mux_stream_id: session.mux_stream_id,
+            livekit_room_name: session.livekit_room_name ?? null,
             starts_at: session.starts_at,
             ends_at: session.ends_at,
             slides_url: (session as any).slides_url ?? null,
