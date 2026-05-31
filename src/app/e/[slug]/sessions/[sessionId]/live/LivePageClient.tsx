@@ -6,6 +6,7 @@ import LivePlayer from '@/components/video/LivePlayer'
 import CEProgressBar from '@/components/video/CEProgressBar'
 import LiveChat from '@/components/video/LiveChat'
 import { ExternalLink } from 'lucide-react'
+import OrganizerDashboard from '@/components/video/OrganizerDashboard'
 
 const TABS = ['Chat', 'Q&A', 'Polls'] as const
 type Tab = typeof TABS[number]
@@ -31,9 +32,10 @@ interface Props {
   registrationId: string
   userId: string
   displayName: string
+  isOrganizer?: boolean
 }
 
-export default function LivePageClient({ session, event, registrationId, userId, displayName }: Props) {
+export default function LivePageClient({ session, event, registrationId, userId, displayName, isOrganizer }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('Chat')
   const [watchedSeconds, setWatchedSeconds] = useState(0)
 
@@ -147,6 +149,19 @@ export default function LivePageClient({ session, event, registrationId, userId,
           </div>
         </div>
       </div>
+
+      {isOrganizer && (
+        <div style={{ marginTop: 32, borderTop: '1px solid var(--color-border)', paddingTop: 24 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 16 }}>
+            Organizer controls
+          </p>
+          <OrganizerDashboard
+            sessionId={session.id}
+            eventId={event.id}
+            isLive={isLive}
+          />
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 768px) {

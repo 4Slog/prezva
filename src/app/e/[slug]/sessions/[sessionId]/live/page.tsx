@@ -30,7 +30,7 @@ export default async function LiveSessionPage({ params }: Props) {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, timezone, certificate_min_session_attendance_pct')
+    .select('id, title, slug, timezone, certificate_min_session_attendance_pct, org_id')
     .eq('id', session.event_id)
     .maybeSingle()
 
@@ -59,6 +59,14 @@ export default async function LiveSessionPage({ params }: Props) {
   }
 
   const eligibility = await checkEligibility(registration.id)
+
+  const { data: orgMember } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', (event as any).org_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const isOrganizer = !!orgMember
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -118,6 +126,7 @@ export default async function LiveSessionPage({ params }: Props) {
           registrationId={registration.id}
           userId={user.id}
           displayName={displayName}
+          isOrganizer={isOrganizer}
         />
       </div>
     </div>
