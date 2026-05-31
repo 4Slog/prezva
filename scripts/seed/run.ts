@@ -60,6 +60,7 @@ const STAGES = [
   { name: 'registrations', file: './stages/05-registrations' },
   { name: 'engagement',    file: './stages/06-engagement' },
   { name: 'images',        file: './stages/07-images' },
+  { name: 'video-comms',  file: './stages/08-video-comms' },
 ] as const
 
 type StageName = typeof STAGES[number]['name']
@@ -245,6 +246,11 @@ async function main(): Promise<void> {
         if (!dryRun) {
           await assertImagesInvariants(supabase, eventsData, imagesOrgsData)
         }
+
+      } else if (stageName === 'video-comms') {
+        const { seedVideoComms } = await import(stageEntry.file)
+        const result = await seedVideoComms(supabase, dryRun)
+        summaries.push(result)
       }
 
     } catch (err) {
