@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { updateRosItemStatus } from '@/lib/events/run-of-show-actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface Props {
   event: any
@@ -12,10 +13,49 @@ interface Props {
 
 type Tab = 'runofshow' | 'speakers' | 'qa'
 
-export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions, token: _token }: Props) {
+export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: initQA, token: _token }: Props) {
   const [tab, setTab] = useState<Tab>('runofshow')
   const [rosItems, setRosItems] = useState(initRos)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
+  const [qaQuestions, setQaQuestions] = useState(initQA)
+
+  const sessionIds = sessions.map((s: any) => s.id)
+
+  useEffect(() => {
+    if (sessionIds.length === 0) return
+    const sb = createClient()
+
+    sessionIds.forEach(sid => {
+      sb.getChannels()
+        .filter(ch => ch.topic === `realtime:mc_qa:${sid}`)
+        .forEach(ch => sb.removeChannel(ch))
+    })
+
+    const channels = sessionIds.map(sid =>
+      sb
+        .channel(`mc_qa:${sid}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'session_questions', filter: `session_id=eq.${sid}` },
+          payload => {
+            setQaQuestions(prev => [payload.new as any, ...prev])
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'session_questions', filter: `session_id=eq.${sid}` },
+          payload => {
+            setQaQuestions(prev =>
+              prev.map((q: any) => q.id === (payload.new as any).id ? payload.new : q),
+            )
+          },
+        )
+        .subscribe(),
+    )
+
+    return () => { channels.forEach(ch => sb.removeChannel(ch)) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleStatus(itemId: string, status: 'upcoming' | 'in_progress' | 'done' | 'skipped') {
     await updateRosItemStatus(itemId, status)

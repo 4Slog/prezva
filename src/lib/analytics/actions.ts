@@ -92,14 +92,17 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
   }[] = []
 
   if (sessionIds.length > 0) {
-    const [feedbackRes, sessionCheckInsRes] = await Promise.all([
+    const [feedbackRes, sessionCheckInsRes, sessionAttendanceRes] = await Promise.all([
       supabase.from('session_feedback')
         .select('session_id, rating')
         .in('session_id', sessionIds),
       supabase.from('check_ins')
-        .select('session_id, id')
+        .select('session_id, registration_id')
         .in('session_id', sessionIds)
         .not('session_id', 'is', null),
+      supabase.from('session_attendance')
+        .select('session_id, registration_id')
+        .in('session_id', sessionIds),
     ])
 
     sessionPopularity = ((sessionData ?? []) as any[]).map(s => {
@@ -108,7 +111,16 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
       const avgRating = ratings.length > 0
         ? Math.round((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length) * 10) / 10
         : 0
-      const attendeeCount = ((sessionCheckInsRes.data ?? []) as any[]).filter(c => c.session_id === s.id).length
+      // Union check_ins and session_attendance by registration_id for deduplication
+      const regIds = new Set<string>([
+        ...((sessionCheckInsRes.data ?? []) as any[])
+          .filter(c => c.session_id === s.id && c.registration_id)
+          .map((c: any) => c.registration_id as string),
+        ...((sessionAttendanceRes.data ?? []) as any[])
+          .filter(c => c.session_id === s.id && c.registration_id)
+          .map((c: any) => c.registration_id as string),
+      ])
+      const attendeeCount = regIds.size
 
       return {
         session_id: s.id,

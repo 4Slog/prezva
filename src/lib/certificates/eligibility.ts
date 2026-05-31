@@ -30,19 +30,19 @@ export async function checkEligibility(registrationId: string): Promise<Eligibil
 
   // B6-005 Phase 1: fetch sessions directly (not head-only) so we can map CE credit hours
   // without relying on FK join syntax that may not be declared for session_attendance.
-  const [{ data: allSessions }, { data: checkins }, { data: selfAttended }] = await Promise.all([
+  const [{ data: allSessions }, { data: checkins }, { data: selfAttendedRaw }] = await Promise.all([
     admin.from('sessions')
-      .select('id, ce_credit_hours')
+      .select('id, ce_credit_hours, starts_at, ends_at')
       .eq('event_id', reg.event_id)
       .eq('is_published', true),
     admin.from('check_ins')
       .select('session_id')
       .eq('registration_id', registrationId)
       .not('session_id', 'is', null),
-    // Phase 1: in-person self-check-ins via session_attendance
-    // Phase 2 (video build): add .gte('watch_duration_pct', threshold) for virtual attendance
+    // Phase 2 (video build): watch_duration_seconds null = in-person (always counts);
+    // non-null = virtual, must be >= 80% of session duration.
     admin.from('session_attendance')
-      .select('session_id')
+      .select('session_id, watch_duration_seconds')
       .eq('registration_id', registrationId),
   ])
 
@@ -50,6 +50,24 @@ export async function checkEligibility(registrationId: string): Promise<Eligibil
   const creditMap = new Map<string, number>(
     (allSessions ?? []).map((s: any) => [s.id, s.ce_credit_hours ?? 0])
   )
+
+  // Build session duration map from starts_at / ends_at
+  const sessionDurationMap = new Map<string, number>(
+    (allSessions ?? []).map((s: any) => {
+      if (!s.starts_at || !s.ends_at) return [s.id, 0]
+      return [s.id, Math.max(0, (new Date(s.ends_at).getTime() - new Date(s.starts_at).getTime()) / 1000)]
+    })
+  )
+
+  // Phase 2 filter: null watch_duration → in-person check-in, always counts.
+  // Non-null → virtual; require watch_duration / session_duration >= 0.80.
+  // Fail open when session duration is 0 or unknown (divide-by-zero guard).
+  const selfAttended = (selfAttendedRaw ?? []).filter((row: any) => {
+    if (row.watch_duration_seconds === null || row.watch_duration_seconds === undefined) return true
+    const dur = sessionDurationMap.get(row.session_id) ?? 0
+    if (dur === 0) return true
+    return row.watch_duration_seconds / dur >= 0.80
+  })
 
   // Union both paths — Set deduplicates (staff scan + self-mark on same session counts once)
   const attendedIds = new Set<string>([

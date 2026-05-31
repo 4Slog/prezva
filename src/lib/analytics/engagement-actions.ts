@@ -16,6 +16,7 @@ export interface AttendeeEngagement {
   icebreaker_responses: number
   community_posts: number
   feedback_given: number
+  sessions_attended: number
   score: number
 }
 
@@ -30,7 +31,7 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
 
   const admin = createAdminClient()
 
-  const [regsRes, checkInsRes, pointsRes, triviaRes, iceRes, postsRes, feedbackRes] = await Promise.all([
+  const [regsRes, checkInsRes, pointsRes, triviaRes, iceRes, postsRes, feedbackRes, sessionAttendanceRes] = await Promise.all([
     admin.from('registrations')
       .select('id, user_id, attendee_name, attendee_email')
       .eq('event_id', eventId)
@@ -54,10 +55,20 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
     admin.from('session_feedback')
       .select('user_id, id')
       .eq('event_id', eventId),
+    admin.from('session_attendance')
+      .select('registration_id, session_id')
+      .eq('event_id', eventId),
   ])
 
   const regs = (regsRes.data ?? []) as any[]
   const checkedInRegIds = new Set((checkInsRes.data ?? []).map((c: any) => c.registration_id))
+
+  const sessionAttendanceByReg: Record<string, number> = {}
+  for (const row of (sessionAttendanceRes.data ?? []) as any[]) {
+    if (row.registration_id) {
+      sessionAttendanceByReg[row.registration_id] = (sessionAttendanceByReg[row.registration_id] ?? 0) + 1
+    }
+  }
 
   const pointsByUser: Record<string, number> = {}
   for (const p of (pointsRes.data ?? []) as any[]) {
@@ -93,6 +104,7 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
     const iceCount = iceByUser[uid] ?? 0
     const postCount = postsByUser[uid] ?? 0
     const feedbackCount = feedbackByUser[uid] ?? 0
+    const sessionsAttended = sessionAttendanceByReg[reg.id] ?? 0
 
     const checkInScore = checkedIn ? 20 : 0
     const triviaScore = Math.min(15, triviaCount * 3)
@@ -114,6 +126,7 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
       icebreaker_responses: iceCount,
       community_posts: postCount,
       feedback_given: feedbackCount,
+      sessions_attended: sessionsAttended,
       score,
     }
   })

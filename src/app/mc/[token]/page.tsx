@@ -34,11 +34,10 @@ export default async function MCHubPage({ params }: Props) {
   let qaQuestions: any[] = []
   if (sessionIds.length > 0) {
     const { data: qa } = await admin
-      .from('trivia_questions')
-      .select('id, body, question_text, session_id, is_pinned, is_hidden, organizer_answer, created_at')
+      .from('session_questions')
+      .select('id, body, session_id, is_pinned, is_hidden, organizer_answer, created_at, upvote_count, answered_at')
       .in('session_id', sessionIds)
       .eq('is_poll', false)
-      .eq('is_active', true)
       .eq('is_hidden', false)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })

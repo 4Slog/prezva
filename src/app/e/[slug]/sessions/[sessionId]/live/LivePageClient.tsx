@@ -7,6 +7,7 @@ import CEProgressBar from '@/components/video/CEProgressBar'
 import LiveChat from '@/components/video/LiveChat'
 import { ExternalLink } from 'lucide-react'
 import OrganizerDashboard from '@/components/video/OrganizerDashboard'
+import QuestionQueue from '@/components/video/QuestionQueue'
 
 const TABS = ['Chat', 'Q&A', 'Polls'] as const
 type Tab = typeof TABS[number]
@@ -79,7 +80,7 @@ export default function LivePageClient({ session, event, registrationId, userId,
         )}
         <MobileTabs activeTab={activeTab} onSelect={setActiveTab} />
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <TabContent activeTab={activeTab} session={session} event={event} registrationId={registrationId} userId={userId} displayName={displayName} />
+          <TabContent activeTab={activeTab} session={session} event={event} registrationId={registrationId} userId={userId} displayName={displayName} isOrganizer={isOrganizer} />
         </div>
       </div>
 
@@ -145,7 +146,7 @@ export default function LivePageClient({ session, event, registrationId, userId,
             ))}
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
-            <TabContent activeTab={activeTab} session={session} event={event} registrationId={registrationId} userId={userId} displayName={displayName} />
+            <TabContent activeTab={activeTab} session={session} event={event} registrationId={registrationId} userId={userId} displayName={displayName} isOrganizer={isOrganizer} />
           </div>
         </div>
       </div>
@@ -200,13 +201,14 @@ function CEProgressBarDisplay({ watchedSeconds, sessionDurationSeconds, ceCredit
   )
 }
 
-function TabContent({ activeTab, session, event, registrationId, userId, displayName }: {
+function TabContent({ activeTab, session, event, registrationId, userId, displayName, isOrganizer }: {
   activeTab: Tab
   session: Props['session']
   event: Props['event']
   registrationId: string
   userId: string
   displayName: string
+  isOrganizer?: boolean
 }) {
   if (activeTab === 'Chat') {
     return (
@@ -215,6 +217,16 @@ function TabContent({ activeTab, session, event, registrationId, userId, display
         sessionId={session.id}
         userId={userId}
         displayName={displayName}
+      />
+    )
+  }
+  if (activeTab === 'Q&A') {
+    return (
+      <QuestionQueue
+        sessionId={session.id}
+        eventId={event.id}
+        isOrganizer={!!isOrganizer}
+        userId={userId}
       />
     )
   }
