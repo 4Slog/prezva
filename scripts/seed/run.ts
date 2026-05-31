@@ -26,9 +26,11 @@ import { log, printSummaryTable, type StageSummary } from './lib/logger'
 import {
   assertPersonaInvariants, assertPreRunPreserved,
   assertOrgInvariants, assertEventInvariants, assertEventConfigInvariants,
-  assertRegistrationInvariants,
+  assertRegistrationInvariants, assertEngagementInvariants, assertImagesInvariants,
 } from './lib/invariants'
 import type { RegistrationsFileData } from './stages/05-registrations'
+import type { EngagementFileData } from './stages/06-engagement'
+import type { ImagesOrgData } from './stages/07-images'
 
 // ─── CLI parsing ──────────────────────────────────────────────────────────────
 
@@ -56,7 +58,8 @@ const STAGES = [
   { name: 'events',        file: './stages/03-events' },
   { name: 'event-config',  file: './stages/04-event-config' },
   { name: 'registrations', file: './stages/05-registrations' },
-  // Future stages: sessions, engagement, images
+  { name: 'engagement',    file: './stages/06-engagement' },
+  { name: 'images',        file: './stages/07-images' },
 ] as const
 
 type StageName = typeof STAGES[number]['name']
@@ -120,6 +123,9 @@ async function main(): Promise<void> {
 
   const regsPath = join(__dirname, 'data', 'registrations.json')
   const regsData: RegistrationsFileData = JSON.parse(readFileSync(regsPath, 'utf8'))
+
+  const engPath = join(__dirname, 'data', 'engagement.json')
+  const engData: EngagementFileData = JSON.parse(readFileSync(engPath, 'utf8'))
 
   const orgsPath = join(__dirname, 'data', 'orgs.json')
   const orgsData: {
@@ -218,6 +224,26 @@ async function main(): Promise<void> {
         if (!dryRun) {
           const eventSlugToId = new Map(eventsData.events.map(e => [e.slug, e.id]))
           await assertRegistrationInvariants(supabase, regsData, eventSlugToId)
+        }
+
+      } else if (stageName === 'engagement') {
+        const { runEngagement } = await import(stageEntry.file)
+        const result = await runEngagement(supabase, engData, eventsData, { dryRun })
+        summaries.push(result)
+
+        if (!dryRun) {
+          const eventSlugToId = new Map(eventsData.events.map(e => [e.slug, e.id]))
+          await assertEngagementInvariants(supabase, engData, eventsData, eventSlugToId)
+        }
+
+      } else if (stageName === 'images') {
+        const { runImages } = await import(stageEntry.file)
+        const imagesOrgsData: ImagesOrgData = { orgs: orgsData.orgs.map(o => ({ id: o.id, name: o.name })) }
+        const result = await runImages(supabase, eventsData, imagesOrgsData, { dryRun })
+        summaries.push(result)
+
+        if (!dryRun) {
+          await assertImagesInvariants(supabase, eventsData, imagesOrgsData)
         }
       }
 

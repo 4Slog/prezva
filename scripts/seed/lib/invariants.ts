@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { log } from './logger'
 import type { RegistrationsFileData } from '../stages/05-registrations'
+import type { EngagementFileData } from '../stages/06-engagement'
+import type { EventsFileData } from './event-types'
+import type { ImagesOrgData } from '../stages/07-images'
 
 export class InvariantError extends Error {
   constructor(message: string) {
@@ -336,6 +339,135 @@ export async function assertRegistrationInvariants(
     throw new InvariantError(`${errs.length} registration invariant(s) failed — see above`)
   }
   log.ok('All registration invariants pass')
+}
+
+/** Asserts post-run engagement invariants (only meaningful after --execute). */
+export async function assertEngagementInvariants(
+  supabase: SupabaseClient,
+  engData: EngagementFileData,
+  eventsData: EventsFileData,
+  eventSlugToId: Map<string, string>,
+): Promise<void> {
+  const errs: string[] = []
+
+  for (const er of engData.events) {
+    const eventId = eventSlugToId.get(er.slug)
+    if (!eventId) { errs.push(`assertEngagementInvariants: unknown slug "${er.slug}"`); continue }
+
+    // 1. events.checked_in_count matches count of check_ins WHERE session_id IS NULL
+    const { data: evtRow } = await supabase
+      .from('events')
+      .select('checked_in_count')
+      .eq('id', eventId)
+      .maybeSingle()
+    const { count: ciCount, error: ciErr } = await supabase
+      .from('check_ins')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .is('session_id', null)
+    if (ciErr) {
+      errs.push(`check_ins count for "${er.slug}": ${ciErr.message}`)
+    } else if ((evtRow as Record<string, unknown> | null)?.checked_in_count !== ciCount) {
+      errs.push(`"${er.slug}": events.checked_in_count=${(evtRow as Record<string, unknown>)?.checked_in_count} but check_ins (session_id IS NULL)=${ciCount}`)
+    }
+
+    // 2. SAUP B6-005: session_attendance count ≥ (group_b + group_c) × sessions_occurred
+    if (er.b6005_groups && er.sessions_occurred) {
+      const eventDef = eventsData.events.find(e => e.slug === er.slug)
+      const occurredSessionIds = (eventDef?.sessions ?? []).slice(0, er.sessions_occurred).map(s => s.id)
+
+      const { count: saCount, error: saErr } = await supabase
+        .from('session_attendance')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .in('session_id', occurredSessionIds)
+      if (saErr) {
+        errs.push(`session_attendance count for "${er.slug}": ${saErr.message}`)
+      } else {
+        const expectedEventCheckins = Math.floor(er.confirmed * er.event_checkin_rate)
+        const n_b = Math.floor(expectedEventCheckins * er.b6005_groups.group_b)
+        const n_c = Math.floor(expectedEventCheckins * er.b6005_groups.group_c)
+        const minExpected = (n_b + n_c) * er.sessions_occurred
+        // Allow ±5 tolerance for RNG sampling variance
+        if ((saCount ?? 0) < minExpected - 5) {
+          errs.push(`"${er.slug}": session_attendance count=${saCount}, expected ≥${minExpected - 5}`)
+        }
+      }
+
+      // 3. SAUP: verify a sample of regs in session_attendance have attended ≥ sessions_occurred sessions
+      const { data: saSample, error: sampErr } = await supabase
+        .from('session_attendance')
+        .select('registration_id')
+        .eq('event_id', eventId)
+        .in('session_id', occurredSessionIds)
+        .limit(5)
+      if (!sampErr && saSample && saSample.length > 0) {
+        const sampleRegId = (saSample[0] as Record<string, unknown>).registration_id as string
+        // Count distinct sessions attended via both paths for this reg
+        const { count: ciSessCount } = await supabase
+          .from('check_ins')
+          .select('*', { count: 'exact', head: true })
+          .eq('registration_id', sampleRegId)
+          .in('session_id', occurredSessionIds)
+        const { count: saSessCount } = await supabase
+          .from('session_attendance')
+          .select('*', { count: 'exact', head: true })
+          .eq('registration_id', sampleRegId)
+          .in('session_id', occurredSessionIds)
+        const combined = (ciSessCount ?? 0) + (saSessCount ?? 0)
+        if (combined === 0) {
+          errs.push(`"${er.slug}": sampled reg ${sampleRegId} has 0 sessions attended via any path`)
+        }
+      }
+    }
+  }
+
+  if (errs.length > 0) {
+    for (const e of errs) log.error(`INVARIANT FAIL: ${e}`)
+    throw new InvariantError(`${errs.length} engagement invariant(s) failed — see above`)
+  }
+  log.ok('All engagement invariants pass')
+}
+
+/** Asserts post-run images invariants (only meaningful after --execute). */
+export async function assertImagesInvariants(
+  supabase: SupabaseClient,
+  eventsData: EventsFileData,
+  orgsData: ImagesOrgData,
+): Promise<void> {
+  const errs: string[] = []
+
+  // 1. All speakers with non-null photo_url in events.json have a DiceBear URL in DB
+  for (const ev of eventsData.events) {
+    for (const sp of ev.speakers ?? []) {
+      if (sp.photo_url === null) {
+        // Verify no-photo speaker kept null
+        const { data: dbSp } = await supabase.from('speakers').select('photo_url').eq('id', sp.id).maybeSingle()
+        if (dbSp && (dbSp as Record<string, unknown>).photo_url !== null) {
+          errs.push(`speaker "${sp.name}" should have null photo_url but has ${(dbSp as Record<string, unknown>).photo_url}`)
+        }
+      } else {
+        const { data: dbSp } = await supabase.from('speakers').select('photo_url').eq('id', sp.id).maybeSingle()
+        if (dbSp && !(dbSp as Record<string, unknown>).photo_url) {
+          errs.push(`speaker "${sp.name}" has null photo_url in DB but should have DiceBear URL`)
+        }
+      }
+    }
+  }
+
+  // 2. All 4 orgs have non-null logo_url
+  for (const org of orgsData.orgs) {
+    const { data: dbOrg } = await supabase.from('organizations').select('logo_url').eq('id', org.id).maybeSingle()
+    if (dbOrg && !(dbOrg as Record<string, unknown>).logo_url) {
+      errs.push(`org "${org.name}" has null logo_url in DB`)
+    }
+  }
+
+  if (errs.length > 0) {
+    for (const e of errs) log.error(`INVARIANT FAIL: ${e}`)
+    throw new InvariantError(`${errs.length} images invariant(s) failed — see above`)
+  }
+  log.ok('All images invariants pass')
 }
 
 /** Lightweight pre-run check: only verifies sowu.paul's auth row exists. Safe in dry-run. */

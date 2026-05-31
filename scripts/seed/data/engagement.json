@@ -1,0 +1,48 @@
+{
+  "_comment": "Engagement parameters — Stage 06. Seeded RNG: djb2Hash(event_slug + ':eng'). confirmed and logged_in_count are used for dry-run estimates; execute mode queries the DB.",
+  "events": [
+    {
+      "slug": "bsbw-2026",
+      "confirmed": 480,
+      "logged_in_count": 7,
+      "event_checkin_rate": 0.93,
+      "session_checkin_rates": {
+        "keynote": 0.92,
+        "panel": 0.65,
+        "talk": 0.65,
+        "workshop": 0.45
+      },
+      "default_session_rate": 0.65,
+      "leaderboard_enabled": true,
+      "checkin_points": 100,
+      "session_attend_points": 50
+    },
+    {
+      "slug": "saup-ce-conference-2026",
+      "confirmed": 250,
+      "logged_in_count": 5,
+      "event_checkin_rate": 0.72,
+      "sessions_occurred": 4,
+      "b6005_groups": {
+        "group_a": 0.44,
+        "group_b": 0.44,
+        "group_c": 0.12
+      },
+      "leaderboard_enabled": true,
+      "checkin_points": 100,
+      "session_attend_points": 50
+    },
+    {
+      "slug": "oss-atl-may-meetup-2026",
+      "confirmed": 42,
+      "logged_in_count": 3,
+      "event_checkin_rate": 0.93,
+      "session_checkin_rates": {
+        "talk": 0.85,
+        "networking": 0.70
+      },
+      "default_session_rate": 0.70,
+      "leaderboard_enabled": false
+    }
+  ]
+}
