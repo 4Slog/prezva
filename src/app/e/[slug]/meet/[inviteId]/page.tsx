@@ -1,42 +1,18 @@
 import { notFound, redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
+import { generateToken, createRoom } from '@/lib/video/livekit'
 import Link from 'next/link'
 import LiveRoom from '@/components/video/LiveRoom'
 
 type Props = {
-  params: Promise<{ slug: string; roomToken: string }>
-}
-
-function decodeJwt(token: string): { sub?: string; video?: { room?: string } } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const payload = Buffer.from(parts[1], 'base64url').toString('utf8')
-    return JSON.parse(payload)
-  } catch {
-    return null
-  }
+  params: Promise<{ slug: string; inviteId: string }>
 }
 
 export default async function MeetPage({ params }: Props) {
-  const { slug, roomToken } = await params
+  const { slug, inviteId } = await params
 
   const user = await requireUser()
-
-  const claims = decodeJwt(roomToken)
-  if (!claims) return notFound()
-
-  const roomName = claims.video?.room
-  const participantIdentity = claims.sub
-
-  if (!roomName || !participantIdentity) return notFound()
-
-  // Prevent token sharing — this token was issued for this user only
-  if (participantIdentity !== user.id) {
-    redirect(`/e/${slug}/people`)
-  }
-
   const supabase = await createClient()
 
   const { data: event } = await supabase
@@ -46,14 +22,37 @@ export default async function MeetPage({ params }: Props) {
     .maybeSingle()
   if (!event) return notFound()
 
-  const { data: registration } = await supabase
+  const ev = event as { id: string; title: string }
+
+  // Current user must have a confirmed registration for this event
+  const { data: myReg } = await supabase
     .from('registrations')
     .select('id')
-    .eq('event_id', (event as { id: string; title: string }).id)
+    .eq('event_id', ev.id)
     .eq('user_id', user.id)
     .eq('status', 'confirmed')
     .maybeSingle()
-  if (!registration) redirect(`/e/${slug}`)
+  if (!myReg) redirect(`/e/${slug}`)
+
+  // inviteId is the other party's registrationId — verify they are also a confirmed registrant
+  const { data: otherReg } = await supabase
+    .from('registrations')
+    .select('id')
+    .eq('id', inviteId)
+    .eq('event_id', ev.id)
+    .eq('status', 'confirmed')
+    .maybeSingle()
+  if (!otherReg) return notFound()
+
+  const myRegId = (myReg as { id: string }).id
+
+  // Deterministic room name — same pair always gets the same room
+  const roomName = `1on1-${[myRegId, inviteId].sort().join('-')}`
+
+  // Ensure room exists (idempotent — safe to call on an existing room)
+  await createRoom(roomName).catch(err =>
+    console.error('[video] createRoom on meet page:', err),
+  )
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -66,7 +65,8 @@ export default async function MeetPage({ params }: Props) {
     user.email ||
     user.id
 
-  const ev = event as { id: string; title: string }
+  // Mint a fresh token server-side — passed to LiveRoom via RSC props, never in a URL or log
+  const token = await generateToken(roomName, user.id, displayName as string, true)
 
   return (
     <div style={{
@@ -111,11 +111,11 @@ export default async function MeetPage({ params }: Props) {
         </Link>
       </div>
 
-      {/* Video — fills remaining viewport */}
+      {/* Video fills remaining viewport */}
       <div style={{ flex: 1, minHeight: 0 }}>
         <LiveRoom
           roomName={roomName}
-          directToken={roomToken}
+          directToken={token}
           participantName={displayName as string}
           isOrganizer={true}
         />

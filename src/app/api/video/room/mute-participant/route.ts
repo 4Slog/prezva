@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     .select('id')
     .eq('org_id', (event as { org_id: string }).org_id)
     .eq('user_id', user.id)
+    .in('role', ['owner', 'admin', 'staff'])
     .maybeSingle()
 
   if (!membership) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

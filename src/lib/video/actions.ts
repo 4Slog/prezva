@@ -4,7 +4,7 @@ import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { createLiveStream, deleteLiveStream } from '@/lib/video/mux'
-import { createRoom, generateToken } from '@/lib/video/livekit'
+import { createRoom } from '@/lib/video/livekit'
 import { createNotification } from '@/lib/notifications/notification-actions'
 
 export async function enableSessionLivestream(sessionId: string, eventSlug: string) {
@@ -90,7 +90,7 @@ export async function disableSessionLivestream(sessionId: string, eventSlug: str
 export async function createOneOnOneRoom(
   targetRegistrationId: string,
   eventSlug: string,
-): Promise<{ error: string } | { roomToken: string; roomName: string; meetUrl: string }> {
+): Promise<{ error: string } | { meetUrl: string }> {
   const user = await getUser()
   if (!user) return { error: 'Not authenticated' }
 
@@ -121,9 +121,13 @@ export async function createOneOnOneRoom(
     .maybeSingle()
   if (!targetReg) return { error: 'Target attendee is not a confirmed registrant' }
 
-  // Deterministic room name — same two people always get the same room regardless of who initiates
-  const roomName = `1on1-${[(myReg as { id: string }).id, (targetReg as { id: string; user_id: string | null }).id].sort().join('-')}`
+  const myRegId = (myReg as { id: string }).id
+  const targetRegData = targetReg as { id: string; user_id: string | null }
 
+  // Deterministic room name — same two people always get the same room regardless of who initiates
+  const roomName = `1on1-${[myRegId, targetRegData.id].sort().join('-')}`
+
+  // Pre-create room so it's ready when both parties arrive (idempotent)
   try {
     await createRoom(roomName)
   } catch (err) {
@@ -131,47 +135,32 @@ export async function createOneOnOneRoom(
     return { error: 'Failed to create video room' }
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, full_name')
-    .eq('id', user.id)
-    .maybeSingle()
-  const displayName =
-    (profile as { display_name?: string; full_name?: string } | null)?.display_name ||
-    (profile as { display_name?: string; full_name?: string } | null)?.full_name ||
-    user.email ||
-    user.id
-
-  // Both parties are publishers in a 1-on-1
-  const roomToken = await generateToken(roomName, user.id, displayName as string, true)
-
   // TODO: add livekit_rooms table for room persistence + audit log
 
-  const meetUrl = `/e/${eventSlug}/meet/${roomToken}`
+  // URL uses registration IDs (opaque UUIDs), not bearer tokens — tokens are minted fresh on page load
+  // Initiator navigates to /meet/${targetRegistrationId}; target navigates to /meet/${myRegId}
+  const meetUrl = `/e/${eventSlug}/meet/${targetRegistrationId}`
 
-  const targetUserId = (targetReg as { id: string; user_id: string | null }).user_id
-  if (targetUserId) {
+  if (targetRegData.user_id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+    const displayName =
+      (profile as { display_name?: string; full_name?: string } | null)?.display_name ||
+      (profile as { display_name?: string; full_name?: string } | null)?.full_name ||
+      user.email ||
+      user.id
+
     try {
-      // Generate a separate token for the target user so the notification URL is valid for them
-      const { data: targetProfile } = await supabase
-        .from('profiles')
-        .select('display_name, full_name')
-        .eq('id', targetUserId)
-        .maybeSingle()
-      const targetDisplayName =
-        (targetProfile as { display_name?: string; full_name?: string } | null)?.display_name ||
-        (targetProfile as { display_name?: string; full_name?: string } | null)?.full_name ||
-        targetUserId
-      const targetToken = await generateToken(roomName, targetUserId, targetDisplayName, true)
-      const targetMeetUrl = `/e/${eventSlug}/meet/${targetToken}`
-
       // TODO: wire web push when vapid keys confirmed
       await createNotification(
-        targetUserId,
+        targetRegData.user_id,
         'video_chat_request',
         'Video chat request',
         `${displayName} wants to video chat with you`,
-        targetMeetUrl,
+        `/e/${eventSlug}/meet/${myRegId}`, // target's URL uses initiator's regId
       )
     } catch (err) {
       console.error('[video] Failed to send video chat notification:', err)
@@ -179,5 +168,5 @@ export async function createOneOnOneRoom(
     }
   }
 
-  return { roomToken, roomName, meetUrl }
+  return { meetUrl }
 }
