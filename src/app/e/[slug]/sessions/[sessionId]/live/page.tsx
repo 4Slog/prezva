@@ -21,7 +21,8 @@ export default async function LiveSessionPage({ params }: Props) {
     .select(`
       id, title, description, starts_at, ends_at, ce_credit_hours,
       mux_playback_id, mux_stream_id, livekit_room_name,
-      slides_url, recording_url, is_published, event_id
+      slides_url, recording_url, is_published, event_id,
+      mux_asset_playback_id, allow_rewatch, simulive_scheduled_at, simulive_started_at
     `)
     .eq('id', sessionId)
     .maybeSingle()
@@ -129,6 +130,10 @@ export default async function LiveSessionPage({ params }: Props) {
             ends_at: session.ends_at,
             slides_url: (session as any).slides_url ?? null,
             recording_url: (session as any).recording_url ?? null,
+            mux_asset_playback_id: (session as any).mux_asset_playback_id ?? null,
+            allow_rewatch: (session as any).allow_rewatch ?? false,
+            simulive_scheduled_at: (session as any).simulive_scheduled_at ?? null,
+            simulive_started_at: (session as any).simulive_started_at ?? null,
           }}
           event={{ id: event.id, title: event.title, slug: event.slug }}
           registrationId={registration.id}

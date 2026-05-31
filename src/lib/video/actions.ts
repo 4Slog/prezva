@@ -3,7 +3,15 @@
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
-import { createLiveStream, deleteLiveStream } from '@/lib/video/mux'
+import {
+  createLiveStream,
+  deleteLiveStream,
+  createDirectUpload,
+  getAssetFromUpload,
+  getStaticRenditionUrl,
+  requestStaticRendition,
+  createAssetFromUrl,
+} from '@/lib/video/mux'
 import { createRoom } from '@/lib/video/livekit'
 import { createNotification } from '@/lib/notifications/notification-actions'
 
@@ -169,4 +177,150 @@ export async function createOneOnOneRoom(
   }
 
   return { meetUrl }
+}
+
+// ── Recording & upload actions ────────────────────────────────────────────────
+
+async function getVerifiedSession(sessionId: string, eventSlug: string) {
+  let access: Awaited<ReturnType<typeof requireEventOrgAccess>>
+  try {
+    access = await requireEventOrgAccess(eventSlug)
+  } catch {
+    return { error: 'Not authorized' as const }
+  }
+  const supabase = await createClient()
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('id, mux_asset_id, mux_stream_id, recording_enabled')
+    .eq('id', sessionId)
+    .eq('event_id', access.event.id)
+    .maybeSingle()
+  if (!session) return { error: 'Session not found' as const }
+  return { session, supabase, access }
+}
+
+export async function enableRecording(sessionId: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+  const { error } = await supabase
+    .from('sessions')
+    .update({ recording_enabled: true } as any)
+    .eq('id', sessionId)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function disableRecording(sessionId: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+  const { error } = await supabase
+    .from('sessions')
+    .update({ recording_enabled: false } as any)
+    .eq('id', sessionId)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function enableRewatch(sessionId: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+  const { error } = await supabase
+    .from('sessions')
+    .update({ allow_rewatch: true } as any)
+    .eq('id', sessionId)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function disableRewatch(sessionId: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+  const { error } = await supabase
+    .from('sessions')
+    .update({ allow_rewatch: false } as any)
+    .eq('id', sessionId)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function getDownloadUrl(sessionId: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const assetId = (result.session as any).mux_asset_id as string | null
+  if (!assetId) return { error: 'No recording available' }
+  try {
+    const url = await getStaticRenditionUrl(assetId)
+    if (!url) return { processing: true }
+    return { url }
+  } catch {
+    return { error: 'Failed to fetch download URL' }
+  }
+}
+
+export async function requestUploadUrl() {
+  const user = await getUser()
+  if (!user) return { error: 'Not authenticated' }
+  try {
+    const { uploadId, uploadUrl } = await createDirectUpload()
+    return { uploadId, uploadUrl }
+  } catch {
+    return { error: 'Failed to create upload URL' }
+  }
+}
+
+export async function finalizeVideoUpload(sessionId: string, uploadId: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+
+  for (let i = 0; i < 10; i++) {
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    try {
+      const asset = await getAssetFromUpload(uploadId)
+      if (asset) {
+        await supabase
+          .from('sessions')
+          .update({ mux_asset_id: asset.assetId, mux_asset_playback_id: asset.playbackId } as any)
+          .eq('id', sessionId)
+        try { await requestStaticRendition(asset.assetId) } catch { /* non-fatal */ }
+        return { success: true, playbackId: asset.playbackId }
+      }
+    } catch { /* retry */ }
+  }
+  return { error: 'Video processing timed out. It may still be processing — refresh in a few minutes.' }
+}
+
+export async function importVideoFromUrl(sessionId: string, url: string, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+  try {
+    const asset = await createAssetFromUrl(url)
+    await supabase
+      .from('sessions')
+      .update({ mux_asset_id: asset.assetId, mux_asset_playback_id: asset.playbackId || null } as any)
+      .eq('id', sessionId)
+    if (asset.assetId) {
+      try { await requestStaticRendition(asset.assetId) } catch { /* non-fatal */ }
+    }
+    return { success: true, playbackId: asset.playbackId }
+  } catch {
+    return { error: 'Failed to import video from URL' }
+  }
+}
+
+export async function updateSimuliveSchedule(sessionId: string, scheduledAt: string | null, eventSlug: string) {
+  const result = await getVerifiedSession(sessionId, eventSlug)
+  if ('error' in result) return result
+  const { supabase } = result
+  const { error } = await supabase
+    .from('sessions')
+    .update({ simulive_scheduled_at: scheduledAt } as any)
+    .eq('id', sessionId)
+  if (error) return { error: error.message }
+  return { success: true }
 }

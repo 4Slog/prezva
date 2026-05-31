@@ -4,6 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import LivePlayer from '@/components/video/LivePlayer'
 import LiveRoom from '@/components/video/LiveRoom'
+import SimulivePlayer from '@/components/video/SimulivePlayer'
 import CEProgressBar from '@/components/video/CEProgressBar'
 import LiveChat from '@/components/video/LiveChat'
 import { ExternalLink } from 'lucide-react'
@@ -26,6 +27,10 @@ interface Props {
     ends_at: string | null
     slides_url: string | null
     recording_url: string | null
+    mux_asset_playback_id: string | null
+    allow_rewatch: boolean
+    simulive_scheduled_at: string | null
+    simulive_started_at: string | null
   }
   event: {
     id: string
@@ -47,6 +52,19 @@ export default function LivePageClient({ session, event, registrationId, userId,
   const hasVideo = !!session.mux_playback_id
   const hasLiveRoom = !!session.livekit_room_name
   const ceCredits = session.ce_credit_hours ?? 0
+
+  // Simulive: scheduled time has passed and video is available
+  const simuliveActive =
+    !!session.simulive_scheduled_at &&
+    !!session.mux_asset_playback_id &&
+    Date.now() >= new Date(session.simulive_scheduled_at).getTime()
+
+  // Rewatch: stream has ended (mux_stream_id set but !isLive) and allow_rewatch is on
+  const canRewatch =
+    session.allow_rewatch &&
+    !!session.mux_asset_playback_id &&
+    !!session.mux_stream_id &&
+    !isLive
 
   const sessionDurationSeconds = (() => {
     if (session.starts_at && session.ends_at) {
@@ -75,13 +93,35 @@ export default function LivePageClient({ session, event, registrationId, userId,
               onParticipantCountChange={setViewerCount}
             />
           </div>
-        ) : hasVideo ? (
+        ) : hasVideo && isLive ? (
           <div style={{ width: '100%', aspectRatio: '16/9' }}>
             <LivePlayer
               playbackId={session.mux_playback_id!}
               sessionTitle={session.title}
-              isLive={isLive}
+              isLive={true}
               viewerCount={viewerCount}
+              registrationId={registrationId}
+              sessionId={session.id}
+              onProgress={handleProgress}
+            />
+          </div>
+        ) : simuliveActive ? (
+          <div style={{ width: '100%' }}>
+            <SimulivePlayer
+              playbackId={session.mux_asset_playback_id!}
+              scheduledAt={session.simulive_scheduled_at!}
+              sessionId={session.id}
+              registrationId={registrationId}
+              simuliveStartedAt={session.simulive_started_at}
+              onProgress={handleProgress}
+            />
+          </div>
+        ) : canRewatch ? (
+          <div style={{ width: '100%', aspectRatio: '16/9' }}>
+            <LivePlayer
+              playbackId={session.mux_asset_playback_id!}
+              sessionTitle={session.title}
+              isLive={false}
               registrationId={registrationId}
               sessionId={session.id}
               onProgress={handleProgress}
@@ -111,12 +151,30 @@ export default function LivePageClient({ session, event, registrationId, userId,
               isOrganizer={!!isOrganizer}
               onParticipantCountChange={setViewerCount}
             />
-          ) : hasVideo ? (
+          ) : hasVideo && isLive ? (
             <LivePlayer
               playbackId={session.mux_playback_id!}
               sessionTitle={session.title}
-              isLive={isLive}
+              isLive={true}
               viewerCount={viewerCount}
+              registrationId={registrationId}
+              sessionId={session.id}
+              onProgress={handleProgress}
+            />
+          ) : simuliveActive ? (
+            <SimulivePlayer
+              playbackId={session.mux_asset_playback_id!}
+              scheduledAt={session.simulive_scheduled_at!}
+              sessionId={session.id}
+              registrationId={registrationId}
+              simuliveStartedAt={session.simulive_started_at}
+              onProgress={handleProgress}
+            />
+          ) : canRewatch ? (
+            <LivePlayer
+              playbackId={session.mux_asset_playback_id!}
+              sessionTitle={session.title}
+              isLive={false}
               registrationId={registrationId}
               sessionId={session.id}
               onProgress={handleProgress}

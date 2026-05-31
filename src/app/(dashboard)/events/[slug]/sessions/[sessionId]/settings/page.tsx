@@ -3,6 +3,7 @@ import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import LivestreamSection from './LivestreamSection'
+import RecordingSection from './RecordingSection'
 
 type Props = { params: Promise<{ slug: string; sessionId: string }> }
 
@@ -19,7 +20,7 @@ export default async function SessionSettingsPage({ params }: Props) {
   const supabase = await createClient()
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, title, mux_stream_id, mux_playback_id')
+    .select('id, title, mux_stream_id, mux_playback_id, recording_enabled, allow_rewatch, mux_asset_id, mux_asset_playback_id, simulive_scheduled_at')
     .eq('id', sessionId)
     .eq('event_id', access!.event.id)
     .maybeSingle()
@@ -45,6 +46,16 @@ export default async function SessionSettingsPage({ params }: Props) {
         eventSlug={slug}
         initialMuxStreamId={(session as any).mux_stream_id ?? null}
         initialMuxPlaybackId={(session as any).mux_playback_id ?? null}
+      />
+      <RecordingSection
+        sessionId={session.id}
+        eventSlug={slug}
+        initialRecordingEnabled={(session as any).recording_enabled ?? false}
+        initialAllowRewatch={(session as any).allow_rewatch ?? false}
+        initialMuxAssetId={(session as any).mux_asset_id ?? null}
+        initialMuxAssetPlaybackId={(session as any).mux_asset_playback_id ?? null}
+        initialSimuliveScheduledAt={(session as any).simulive_scheduled_at ?? null}
+        hasMuxStream={!!((session as any).mux_stream_id)}
       />
     </div>
   )

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { verifyWebhookSignature } from '@/lib/video/mux'
+import { verifyWebhookSignature, deleteAsset, requestStaticRendition } from '@/lib/video/mux'
 import { createSystemAnnouncement } from '@/lib/announcements/system'
 
 export async function POST(req: NextRequest) {
@@ -57,34 +57,51 @@ export async function POST(req: NextRequest) {
       const assetData = event.data as Record<string, unknown>
       const sessionId = assetData.passthrough as string | undefined
 
-      if (sessionId) {
-        const { data: session } = await admin
-          .from('sessions')
-          .select('id, event_id')
-          .eq('id', sessionId)
-          .single()
+      if (!sessionId) break
 
-        if (session) {
-          const durationSeconds = typeof assetData.duration === 'number'
-            ? Math.round(assetData.duration)
-            : null
+      const { data: session } = await admin
+        .from('sessions')
+        .select('id, recording_enabled, event_id')
+        .eq('id', sessionId)
+        .single()
 
-          // TODO: viewer-to-registration matching will be implemented in the LivePlayer
-          // component (the player will pass registration_id as metadata when starting
-          // playback). For now registration_id is null and the row is a no-op placeholder.
-          await admin
-            .from('session_attendance')
-            .upsert(
-              {
-                session_id: session.id,
-                event_id: session.event_id,
-                registration_id: null,
-                watch_duration_seconds: durationSeconds,
-                source: 'virtual',
-              },
-              { onConflict: 'session_id,registration_id', ignoreDuplicates: false },
-            )
-        }
+      if (!session) break
+
+      if (!(session as any).recording_enabled) {
+        console.log('[mux webhook] recording_enabled=false, deleting asset', assetData.id)
+        try { await deleteAsset(assetData.id as string) } catch { /* asset may not exist */ }
+        break
+      }
+
+      // recording_enabled = true — save asset IDs and kick off MP4 rendition
+      const playbackIds = assetData.playback_ids as Array<{ id: string }> | undefined
+      const playbackId = playbackIds?.[0]?.id ?? null
+
+      await admin
+        .from('sessions')
+        .update({
+          mux_asset_id: assetData.id as string,
+          mux_asset_playback_id: playbackId,
+        } as any)
+        .eq('id', sessionId)
+
+      if (assetData.id) {
+        try { await requestStaticRendition(assetData.id as string) } catch { /* non-fatal */ }
+      }
+
+      console.log('[mux webhook] recording saved, static rendition requested', sessionId)
+      break
+    }
+
+    case 'video.asset.static_renditions.ready': {
+      const assetId = event.data.id as string
+      const { data: session } = await admin
+        .from('sessions')
+        .select('id')
+        .eq('mux_asset_id', assetId)
+        .maybeSingle()
+      if (session) {
+        console.log('[mux webhook] static rendition ready for session', session.id)
       }
       break
     }
