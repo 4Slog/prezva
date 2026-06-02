@@ -16,7 +16,7 @@ export default async function MyWalletPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: registrations } = await supabase
+  const { data: registrations, error: regError } = await supabase
     .from('registrations')
     .select('id, status, qr_code, created_at, ticket_types(name, price_cents), events(id, title, slug, start_at, end_at, timezone, venue_name, is_virtual, status)')
     .eq('user_id', user.id)
@@ -44,6 +44,7 @@ export default async function MyWalletPage() {
 
       <div style={{ background: '#ff000022', border: '1px solid red', borderRadius: 8, padding: '0.75rem', marginBottom: 20, fontSize: 12, color: 'var(--pz-text)', fontFamily: 'monospace' }}>
         DEBUG: total={(registrations ?? []).length} active={active.length} past={past.length} user={user.id.slice(0,8)}
+        <br/>error: {regError ? JSON.stringify({ msg: regError.message, code: regError.code, details: regError.details, hint: regError.hint }) : 'none'}
         <br/>raw: {JSON.stringify((registrations ?? []).map((r:any) => ({ ev: r.events?.title ?? 'NULL_EVENT', st: r.events?.start_at ?? 'NULL', s: r.status })))}
       </div>
 
