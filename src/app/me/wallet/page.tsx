@@ -3,6 +3,12 @@ import { getMyRegistrations } from '@/lib/attendees/profile-actions'
 import { getMyIssuedCertificates } from '@/lib/certificates/actions'
 import Link from 'next/link'
 
+const GOOGLE_WALLET_ENABLED = !!(
+  process.env.GOOGLE_WALLET_ISSUER_ID &&
+  process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL &&
+  process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY
+)
+
 export default async function MyWalletPage() {
   await requireUser()
   const [registrations, certs] = await Promise.all([
@@ -25,15 +31,6 @@ export default async function MyWalletPage() {
         Your tickets, badges, and event passes.
       </p>
 
-      {/* Apple / Google Wallet note */}
-      <div style={{ background: 'var(--pz-surface-2, var(--pz-surface))', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', marginBottom: 28, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        <span style={{ fontSize: 20 }}>ℹ</span>
-        <p style={{ fontSize: 13, color: 'var(--pz-muted)', lineHeight: 1.5 }}>
-          Apple Wallet and Google Wallet passes will be available once enrollment is complete.
-          In the meantime, your QR code ticket is on each event&apos;s confirmation page.
-        </p>
-      </div>
-
       <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>
         Active tickets {active.length > 0 ? `(${active.length})` : ''}
       </h2>
@@ -45,7 +42,7 @@ export default async function MyWalletPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
           {active.map((reg: any) => (
-            <TicketCard key={reg.id} reg={reg} />
+            <TicketCard key={reg.id} reg={reg} googleWalletEnabled={GOOGLE_WALLET_ENABLED} />
           ))}
         </div>
       )}
@@ -55,13 +52,12 @@ export default async function MyWalletPage() {
           <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>Past tickets</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {past.map((reg: any) => (
-              <TicketCard key={reg.id} reg={reg} past />
+              <TicketCard key={reg.id} reg={reg} past googleWalletEnabled={false} />
             ))}
           </div>
         </>
       )}
 
-      {/* Certificates */}
       {certs.length > 0 && (
         <>
           <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12, marginTop: 28 }}>Certificates</h2>
@@ -111,7 +107,7 @@ export default async function MyWalletPage() {
   )
 }
 
-function TicketCard({ reg, past }: { reg: any; past?: boolean }) {
+function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boolean; googleWalletEnabled: boolean }) {
   const ev = reg.events
   return (
     <div style={{ background: 'var(--pz-surface)', border: `1px solid ${past ? 'var(--pz-border)' : 'var(--pz-teal)'}`, borderRadius: 10, padding: '1.25rem', opacity: past ? 0.7 : 1 }}>
@@ -129,20 +125,43 @@ function TicketCard({ reg, past }: { reg: any; past?: boolean }) {
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 10 }}>
+
+      {/* Action buttons row */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link
           href={`/e/${ev?.slug}/confirmation`}
-          style={{ flex: 1, padding: '8px', textAlign: 'center', background: past ? 'var(--pz-bg)' : 'var(--pz-teal)', color: past ? 'var(--pz-muted)' : '#0D1B2A', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--pz-border)' }}
+          style={{ flex: 1, minWidth: 120, padding: '8px', textAlign: 'center', background: past ? 'var(--pz-bg)' : 'var(--pz-teal)', color: past ? 'var(--pz-muted)' : '#0D1B2A', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--pz-border)' }}
         >
-          View ticket & QR
+          View ticket &amp; QR
         </Link>
+
+        {!past && googleWalletEnabled && (
+          <Link
+            href={`/api/passes/google/${reg.id}`}
+            target="_blank"
+            style={{ padding: '8px 14px', background: '#1a73e8', color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <GoogleWalletIcon />
+            Add to Google Wallet
+          </Link>
+        )}
+
         <Link
           href={`/api/registrations/${reg.id}/calendar.ics`}
-          style={{ padding: '8px 16px', background: 'var(--pz-bg)', color: 'var(--pz-muted)', borderRadius: 6, fontSize: 13, fontWeight: 500, textDecoration: 'none', border: '1px solid var(--pz-border)', whiteSpace: 'nowrap' }}
+          style={{ padding: '8px 14px', background: 'var(--pz-bg)', color: 'var(--pz-muted)', borderRadius: 6, fontSize: 13, fontWeight: 500, textDecoration: 'none', border: '1px solid var(--pz-border)', whiteSpace: 'nowrap' }}
         >
           Add to calendar
         </Link>
       </div>
     </div>
+  )
+}
+
+function GoogleWalletIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="white" fillOpacity="0.2"/>
+      <path d="M17 9H7c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1zm-7 4H8v-2h2v2zm3 0h-2v-2h2v2zm3 0h-2v-2h2v2z" fill="white"/>
+    </svg>
   )
 }
