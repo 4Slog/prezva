@@ -23,6 +23,8 @@ export default async function MyWalletPage() {
     .neq('status', 'cancelled')
     .order('created_at', { ascending: false })
 
+  console.log('[wallet] user:', user.id, 'registrations:', registrations?.length ?? 0, JSON.stringify(registrations?.map((r:any) => ({ id: r.id, event: r.events?.title, status: r.status }))))
+
   const certs = await getMyIssuedCertificates()
 
   const now = new Date()
