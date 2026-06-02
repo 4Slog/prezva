@@ -42,6 +42,11 @@ export default async function MyWalletPage() {
         Your tickets, badges, and event passes.
       </p>
 
+      <div style={{ background: '#ff000022', border: '1px solid red', borderRadius: 8, padding: '0.75rem', marginBottom: 20, fontSize: 12, color: 'var(--pz-text)', fontFamily: 'monospace' }}>
+        DEBUG: total={(registrations ?? []).length} active={active.length} past={past.length} user={user.id.slice(0,8)}
+        <br/>raw: {JSON.stringify((registrations ?? []).map((r:any) => ({ ev: r.events?.title ?? 'NULL_EVENT', st: r.events?.start_at ?? 'NULL', s: r.status })))}
+      </div>
+
       <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>
         Active tickets {active.length > 0 ? `(${active.length})` : ''}
       </h2>
