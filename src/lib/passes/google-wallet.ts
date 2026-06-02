@@ -1,7 +1,7 @@
 'use server'
 
 import { createSign } from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 function isConfigured() {
   return !!(
@@ -31,7 +31,7 @@ export async function generateGoogleWalletUrl(registrationId: string): Promise<{
     return { error: 'Google Wallet not configured' }
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data: reg } = await supabase
     .from('registrations')
     .select('*, events(title, start_at, timezone, venue_name, venue_city, venue_state, organizations(name))')
