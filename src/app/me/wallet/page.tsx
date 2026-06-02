@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic'
 
-import { requireUser } from '@/lib/auth/get-user'
-import { getMyRegistrations } from '@/lib/attendees/profile-actions'
+import { createClient } from '@/lib/supabase/server'
 import { getMyIssuedCertificates } from '@/lib/certificates/actions'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
 const GOOGLE_WALLET_ENABLED = !!(
@@ -12,17 +12,24 @@ const GOOGLE_WALLET_ENABLED = !!(
 )
 
 export default async function MyWalletPage() {
-  await requireUser()
-  const [registrations, certs] = await Promise.all([
-    getMyRegistrations(),
-    getMyIssuedCertificates(),
-  ])
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: registrations } = await supabase
+    .from('registrations')
+    .select('id, status, qr_code, created_at, ticket_types(name, price_cents), events(id, title, slug, start_at, end_at, timezone, venue_name, is_virtual, status)')
+    .eq('user_id', user.id)
+    .neq('status', 'cancelled')
+    .order('created_at', { ascending: false })
+
+  const certs = await getMyIssuedCertificates()
 
   const now = new Date()
-  const active = registrations.filter(
+  const active = (registrations ?? []).filter(
     (r: any) => r.events?.start_at && new Date(r.events.start_at) >= now && r.status !== 'cancelled'
   )
-  const past = registrations.filter(
+  const past = (registrations ?? []).filter(
     (r: any) => r.events?.start_at && new Date(r.events.start_at) < now && r.status !== 'cancelled'
   )
 
