@@ -49,7 +49,7 @@ export async function getMyRegistrations() {
 
   const { data } = await supabase
     .from('registrations')
-    .select('id, status, qr_code, created_at, ticket_types(name, price_cents), events(id, title, slug, start_at, end_at, timezone, venue_name, is_virtual, status)')
+    .select('id, status, qr_code, created_at, ticket_types(name, price_cents), events(id, title, slug, start_at, end_at, timezone, venue_name, virtual_url, status)')
     .eq('user_id', user.id)
     .neq('status', 'cancelled')
     .order('created_at', { ascending: false })

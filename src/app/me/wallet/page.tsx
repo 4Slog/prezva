@@ -16,14 +16,12 @@ export default async function MyWalletPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: registrations, error: regError } = await supabase
+  const { data: registrations } = await supabase
     .from('registrations')
-    .select('id, status, qr_code, created_at, ticket_types(name, price_cents), events(id, title, slug, start_at, end_at, timezone, venue_name, is_virtual, status)')
+    .select('id, status, qr_code, created_at, ticket_types(name, price_cents), events(id, title, slug, start_at, end_at, timezone, venue_name, virtual_url, status)')
     .eq('user_id', user.id)
     .neq('status', 'cancelled')
     .order('created_at', { ascending: false })
-
-  console.log('[wallet] user:', user.id, 'registrations:', registrations?.length ?? 0, JSON.stringify(registrations?.map((r:any) => ({ id: r.id, event: r.events?.title, status: r.status }))))
 
   const certs = await getMyIssuedCertificates()
 
@@ -41,12 +39,6 @@ export default async function MyWalletPage() {
       <p style={{ fontSize: 14, color: 'var(--pz-muted)', marginBottom: 28 }}>
         Your tickets, badges, and event passes.
       </p>
-
-      <div style={{ background: '#ff000022', border: '1px solid red', borderRadius: 8, padding: '0.75rem', marginBottom: 20, fontSize: 12, color: 'var(--pz-text)', fontFamily: 'monospace' }}>
-        DEBUG: total={(registrations ?? []).length} active={active.length} past={past.length} user={user.id.slice(0,8)}
-        <br/>error: {regError ? JSON.stringify({ msg: regError.message, code: regError.code, details: regError.details, hint: regError.hint }) : 'none'}
-        <br/>raw: {JSON.stringify((registrations ?? []).map((r:any) => ({ ev: r.events?.title ?? 'NULL_EVENT', st: r.events?.start_at ?? 'NULL', s: r.status })))}
-      </div>
 
       <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>
         Active tickets {active.length > 0 ? `(${active.length})` : ''}
