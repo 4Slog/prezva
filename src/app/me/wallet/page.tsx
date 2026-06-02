@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { requireUser } from '@/lib/auth/get-user'
 import { getMyRegistrations } from '@/lib/attendees/profile-actions'
 import { getMyIssuedCertificates } from '@/lib/certificates/actions'
