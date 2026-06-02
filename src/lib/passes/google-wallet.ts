@@ -15,6 +15,27 @@ function formatDate(iso: string, tz?: string) {
   return new Date(iso).toLocaleDateString('en-US', { timeZone: tz ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
+const PREZVA_LOGO_URL = 'https://prezva.app/icons/icon-512.png'
+
+// Google Wallet logos must be a raster image (PNG/JPEG) served over HTTPS.
+// SVGs (e.g. DiceBear placeholder avatars) and non-HTTPS URLs are rejected by
+// Google and render as a blank circle, so we only use an org logo when it is a
+// real raster image; otherwise we fall back to the Prezva mark.
+function resolveLogoUrl(orgLogoUrl?: string | null): string {
+  if (!orgLogoUrl) return PREZVA_LOGO_URL
+  try {
+    const u = new URL(orgLogoUrl)
+    if (u.protocol !== 'https:') return PREZVA_LOGO_URL
+    const path = u.pathname.toLowerCase()
+    const isRaster = path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.webp')
+    // DiceBear and similar SVG-avatar services are not valid Wallet logos
+    if (!isRaster) return PREZVA_LOGO_URL
+    return orgLogoUrl
+  } catch {
+    return PREZVA_LOGO_URL
+  }
+}
+
 function signJwt(payload: Record<string, unknown>, serviceAccountEmail: string, privateKey: string): string {
   const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
@@ -34,7 +55,7 @@ export async function generateGoogleWalletUrl(registrationId: string): Promise<{
   const supabase = createServiceClient()
   const { data: reg } = await supabase
     .from('registrations')
-    .select('*, events(title, start_at, timezone, venue_name, venue_city, venue_state, organizations(name))')
+    .select('*, events(title, start_at, timezone, venue_name, venue_city, venue_state, virtual_url, organizations(name, logo_url))')
     .eq('id', registrationId)
     .single()
 
@@ -46,7 +67,11 @@ export async function generateGoogleWalletUrl(registrationId: string): Promise<{
   const rawKey = process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY!
   const privateKey = rawKey.replace(/\\n/g, '\n')
 
-  const venue = [event.venue_name, event.venue_city, event.venue_state].filter(Boolean).join(', ')
+  const venuePhysical = [event.venue_name, event.venue_city, event.venue_state].filter(Boolean).join(', ')
+  const isVirtual = !venuePhysical && !!event.virtual_url
+  const location = venuePhysical || (isVirtual ? 'Virtual Event' : '')
+  const orgName = event.organizations?.name as string | undefined
+  const logoUrl = resolveLogoUrl(event.organizations?.logo_url)
   const classId = `${issuerId}.prezva-event-pass`
   const objectId = `${issuerId}.reg-${registrationId.replace(/-/g, '')}`
 
@@ -54,12 +79,17 @@ export async function generateGoogleWalletUrl(registrationId: string): Promise<{
     id: objectId,
     classId,
     state: 'ACTIVE',
+    logo: {
+      sourceUri: { uri: logoUrl },
+      contentDescription: { defaultValue: { language: 'en-US', value: orgName ?? 'Prezva' } },
+    },
     cardTitle: { defaultValue: { language: 'en-US', value: 'Event Pass' } },
     header: { defaultValue: { language: 'en-US', value: event.title } },
+    ...(orgName ? { subheader: { defaultValue: { language: 'en-US', value: orgName } } } : {}),
     textModulesData: [
       { id: 'attendee', header: 'ATTENDEE', body: (reg as any).attendee_name },
       { id: 'date', header: 'DATE', body: formatDate(event.start_at, event.timezone) },
-      ...(venue ? [{ id: 'venue', header: 'VENUE', body: venue }] : []),
+      ...(location ? [{ id: 'venue', header: 'LOCATION', body: location }] : []),
     ],
     barcode: {
       type: 'QR_CODE',
