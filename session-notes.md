@@ -1,8 +1,23 @@
 # Prezva Session Notes
 
-## Last updated: 2026-05-24
+## Last updated: 2026-06-03
 
-## Status: Phase 0 audit in progress | branch: bundle14d | pushed to origin
+## Status: Production-readiness audit PLANNED (held off — code changes incoming) | branch: main
+
+### This Session (aitest_2) — Audit planning, held off
+- **What happened:** Loaded the production-readiness audit plan (`~/.claude/plans/i-have-prezva-at-polished-locket.md`) — a 10-batch, report-only QA campaign producing `QA_10USER_REPORT.md` before the first ~10 real users (Civitas pilot). Verified ground-truth facts via an Explore agent. Did NOT start the audit and did NOT write a plan-mode plan file — Paul said serious code changes are about to happen, so we held off.
+- **Verified deltas vs the brief:** migrations = 92 not 93 (highest `0091_sms_consent.sql`); src TODOs = 4 not 6 (all video/web-push wiring); B6-002 lives only in seed spec/data, not as a code TODO; admin routes thin (`impersonate/*` + `verify/*` only); README still default Next.js template; stack = Next 16.2.6 / React 19.2.4 / Vitest / Stripe 22 / supabase-js 2.105.
+- **Then:** designed a second linked workstream — **seed data** for the audit to click through. Plan at `~/.claude/plans/fancy-toasting-nygaard.md`: expand the Whova "Birmingham Economic Mobility Summit" into a rich 7-event family under a fictional org **"Institute for Economic Opportunity (IEO)"**, loaded into the existing 9-stage seed harness (`scripts/seed/`).
+  - **Decisions locked:** light reskin (IEO org, invented speakers/sponsors); full family + status coverage (in-person flagship + hybrid + virtual + draft + unlisted + cancelled + recurring); skip exhibitors (no table — gap logged to `prezva_deferred_backlog.md`); add a new `09-networking` stage seeding 1:1 `meeting_requests`.
+  - **Schema limits:** no event-level brand_color/welcome_message/hashtag/abbreviation columns; no exhibitors table; 1:1s use `meeting_requests`, not agenda sessions.
+  - **Work:** extend `EventDef` (`scripts/seed/lib/event-types.ts`) + `stages/03-events.ts` (visibility/tags/category/cover_image_url/recurrence); author events into `data/events.json` (1 event/subagent per 32K rule); add IEO to `orgs.json`; extend `registrations.json`+`engagement.json`; new `stages/09-networking.ts` registered in `run.ts`. Additive run only (NO wipe): `pnpm seed --only=orgs,events,event-config,registrations,engagement,networking` dry-run → `--execute`.
+- **Next Action:** On go — build the seed data (workstream 2) first, then run the audit (workstream 1) against it. Audit scope still to decide (P0 batches 1-3 vs full 10; local :3100 vs prezva.app).
+- **Open Blockers:** none — intentional pause (ExitPlanMode for the seed plan presented, not yet approved).
+- **Validation Status:** unchanged from last build (318/318 vitest at last run; no code touched this session).
+
+---
+
+## Previous Status: Phase 0 audit in progress | branch: bundle14d | pushed to origin
 
 ### Phase 0 Audit — Task Status
 - Task 1 (Branch Status): DONE — bundle14d fully on main, no merge needed

@@ -9,12 +9,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     >
       <header className="flex items-center justify-between px-6 py-4">
         <Link href="/">
-          <Image src="/logo.svg" alt="Prezva" width={148} height={28} />
+          <Image src="/logo-dark.svg" alt="Prezva" width={148} height={28} />
         </Link>
         <Link
           href="/"
           className="text-sm transition-colors"
-          style={{ color: 'var(--pz-text-muted)' }}
+          style={{ color: 'var(--pz-muted)' }}
         >
           ← Back to home
         </Link>

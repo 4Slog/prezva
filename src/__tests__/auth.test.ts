@@ -46,7 +46,7 @@ describe('Auth module — file structure', () => {
   })
 
   it('update-password page exists', () => {
-    expect(existsSync(join(SRC, 'app/auth/update-password/page.tsx'))).toBe(true)
+    expect(existsSync(join(SRC, 'app/(auth)/auth/update-password/page.tsx'))).toBe(true)
   })
 
   it('dashboard page exists', () => {
