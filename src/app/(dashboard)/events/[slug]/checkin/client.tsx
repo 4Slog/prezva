@@ -277,7 +277,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 9999,
-            background: '#0D1B2A', color: '#F0F4F8',
+            background: 'var(--pz-chrome)', color: 'var(--pz-chrome-text)',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '2rem',
             overflowY: 'auto',
@@ -286,7 +286,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>{eventName}</h1>
-            <p style={{ fontSize: '1.25rem', color: '#94A3B8' }}>
+            <p style={{ fontSize: '1.25rem', color: 'var(--pz-chrome-muted)' }}>
               <KioskClock /> &nbsp;·&nbsp; {stats.total_checked_in}/{stats.total_registered} checked in
             </p>
           </div>
@@ -327,7 +327,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
 
           {/* Exit hint */}
           <div style={{ position: 'absolute', bottom: '1rem', right: '1.5rem', textAlign: 'right' }}>
-            <p style={{ fontSize: '0.7rem', color: '#475569' }}>
+            <p style={{ fontSize: '0.7rem', color: 'var(--pz-chrome-muted)' }}>
               {escCount > 0
                 ? `Esc ×${escCount}/3 to exit kiosk`
                 : 'Press Esc × 3 to exit kiosk mode'}

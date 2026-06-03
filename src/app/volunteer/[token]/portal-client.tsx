@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { PortalShell } from '@/components/portal/PortalShell'
 import { respondToVolunteerShift, sendVolunteerAlert } from '@/lib/volunteers/actions'
 import type { AssignedSession } from './page'
 
@@ -160,22 +161,13 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
   const shiftResponse = volunteer.shift_response ?? 'pending'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0D1B2A', color: '#F0F4F8', fontFamily: 'sans-serif' }}>
-      {isLinkedUser && (
-        <div style={{ background: 'rgba(0,191,166,0.08)', borderBottom: '1px solid #00BFA6', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ fontSize: 13, color: '#00BFA6', margin: 0 }}>
-            🙋 You&apos;re viewing this as a volunteer
-          </p>
-          <a href="/dashboard" style={{ fontSize: 12, color: '#00BFA6', textDecoration: 'underline' }}>
-            Back to organizer dashboard →
-          </a>
-        </div>
-      )}
-      <header style={{ background: '#112240', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 800, fontSize: 18, color: '#00BFA6', letterSpacing: -0.5 }}>P Prezva</span>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Volunteer Portal</span>
-      </header>
-
+    <PortalShell
+      eventName={event.title}
+      portalLabel="Volunteer Portal"
+      entityName={volunteer.name}
+      entityDetail={ROLE_LABELS[volunteer.role] ?? volunteer.role}
+      exitHref={isLinkedUser ? '/dashboard' : undefined}
+    >
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.5rem' }}>
         {/* Greeting */}
         <div style={{ marginBottom: 24 }}>
@@ -404,6 +396,6 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
           Powered by Prezva · This link is unique to you
         </p>
       </div>
-    </div>
+    </PortalShell>
   )
 }

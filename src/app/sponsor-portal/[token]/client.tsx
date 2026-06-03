@@ -1,4 +1,5 @@
 'use client'
+import { PortalShell } from '@/components/portal/PortalShell'
 import { useState, useTransition, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Download, Users, Package, BarChart3, QrCode, FileText, Info } from 'lucide-react'
@@ -163,37 +164,14 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--pz-bg, #0D1B2A)', fontFamily: 'sans-serif', color: 'var(--pz-text, #F0F4F8)' }}>
-      {isLinkedUser && (
-        <div style={{ background: 'rgba(0,191,166,0.08)', borderBottom: '1px solid #00BFA6', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ fontSize: 13, color: '#00BFA6', margin: 0 }}>
-            🏢 You&apos;re viewing this as a sponsor
-          </p>
-          <a href="/dashboard" style={{ fontSize: 12, color: '#00BFA6', textDecoration: 'underline' }}>
-            Back to organizer dashboard →
-          </a>
-        </div>
-      )}
-      {/* Header */}
-      <div style={{ background: '#0D1B2A', color: '#fff', padding: '1.5rem 2rem' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {sponsor.logo_url && <img src={sponsor.logo_url} alt={sponsor.name} style={{ height: 48, width: 'auto', objectFit: 'contain', borderRadius: 6, background: '#fff', padding: 4 }} />}
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700 }}>{sponsor.name}</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: tierColor, letterSpacing: 1 }}>{sponsor.tier} Sponsor</span>
-                <span style={{ fontSize: 12, color: '#94A3B8' }}>· {event.title}</span>
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: 12, color: '#94A3B8' }}>
-            <div>{fmtDate(event.starts_at)}</div>
-            <div>{leads.length} leads captured</div>
-          </div>
-        </div>
-      </div>
-
+    <PortalShell
+      eventName={event.title}
+      portalLabel="Sponsor Portal"
+      entityName={sponsor.name}
+      entityDetail={`${sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Sponsor`}
+      entityLogoUrl={sponsor.logo_url ?? undefined}
+      exitHref={isLinkedUser ? '/dashboard' : undefined}
+    >
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--pz-surface, #112240)', borderRadius: 10, padding: 4, width: 'fit-content', border: '1px solid var(--pz-border, #1E3A5F)', flexWrap: 'wrap' }}>
@@ -470,6 +448,6 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
           </div>
         )}
       </div>
-    </div>
+    </PortalShell>
   )
 }

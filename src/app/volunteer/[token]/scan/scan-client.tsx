@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { PortalShell } from '@/components/portal/PortalShell'
 
-interface Props { token: string; volunteerName: string }
+interface Props { token: string; volunteerName: string; eventName: string }
 
 interface ScanResult {
   ok: boolean
@@ -12,7 +13,7 @@ interface ScanResult {
   error?: string
 }
 
-export function VolunteerScanClient({ token, volunteerName }: Props) {
+export function VolunteerScanClient({ token, volunteerName, eventName }: Props) {
   const [result, setResult] = useState<ScanResult | null>(null)
   const [manualCode, setManualCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -51,12 +52,11 @@ export function VolunteerScanClient({ token, volunteerName }: Props) {
     '#00BFA6'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0D1B2A', color: '#F0F4F8', fontFamily: 'sans-serif' }}>
-      <header style={{ background: '#112240', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 800, fontSize: 18, color: '#00BFA6' }}>P Prezva</span>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Check-In Scanner</span>
-      </header>
-
+    <PortalShell
+      eventName={eventName}
+      portalLabel="Volunteer · Check-In Scanner"
+      entityName={volunteerName}
+    >
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '2rem 1.5rem' }}>
         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 24 }}>
           Hi, {volunteerName.split(' ')[0]}. Scan or type a QR code to check in an attendee.
@@ -116,6 +116,6 @@ export function VolunteerScanClient({ token, volunteerName }: Props) {
           Powered by Prezva · Volunteer portal
         </p>
       </div>
-    </div>
+    </PortalShell>
   )
 }
