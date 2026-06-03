@@ -21,6 +21,20 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@next/next/no-img-element": "off",
+      // Warn on raw hex colors so styling stays on design tokens.
+      // Set to warn (not error) until Phase 4 hex codemod clears pre-existing violations.
+      // globals.css is exempt (not a ts/tsx file).
+      "no-restricted-syntax": [
+        "warn",
+        {
+          "selector": "Literal[value=/\\[#[0-9a-fA-F]{3,8}\\]/]",
+          "message": "Tailwind arbitrary hex color — use a var(--pz-*) design token instead."
+        },
+        {
+          "selector": "Property > Literal[value=/^#[0-9a-fA-F]{3,8}$/]",
+          "message": "Raw hex color in style prop — use a var(--pz-*) design token instead."
+        }
+      ],
     },
   },
   {

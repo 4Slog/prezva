@@ -11,7 +11,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--pz-teal)]'
 
 const variants: Record<Variant, string> = {
-  primary:     'bg-[var(--pz-teal)] text-[var(--pz-bg)] hover:bg-[var(--pz-teal-light)]',
+  primary:     'bg-[var(--pz-teal)] text-[var(--pz-on-accent)] hover:bg-[var(--pz-teal-light)]',
   secondary:   'bg-[var(--pz-surface-2)] text-[var(--pz-text)] border border-[var(--pz-border)] hover:bg-[var(--pz-border)]',
   destructive: 'bg-[var(--pz-red)] text-white hover:opacity-90',
   ghost:       'text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:bg-[var(--pz-surface-2)]',

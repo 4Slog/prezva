@@ -70,7 +70,7 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
       <button
         onClick={handleOpen}
         aria-label="Notifications"
-        style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', borderRadius: 8, color: 'var(--pz-muted)' }}
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', borderRadius: 8, color: 'var(--pz-chrome-muted)' }}
       >
         <span style={{ fontSize: 18 }}>🔔</span>
         {unread > 0 && (

@@ -2,56 +2,68 @@
 
 /* ── Prezva Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  /* Surfaces */
-  --pz-bg:          #0D1B2A;   /* page background  */
-  --pz-surface:     #112240;   /* card / panel     */
-  --pz-surface-2:   #1A2F4A;   /* elevated surface */
-  --pz-border:      #1E3A5F;   /* subtle border    */
+  /* ── Canvas / content (light) ─────────────────────────────────────────── */
+  --pz-bg:          #EDF1F6;
+  --pz-surface:     #FFFFFF;
+  --pz-surface-2:   #F4F7FB;
+  --pz-border:      #E3E9F0;
+  --pz-text:        #0D1B2A;
+  --pz-muted:       #475A70;
+  --pz-label:       #6B7C92;
 
-  /* Accent */
-  --pz-teal:        #2DD4BF;   /* primary action   */
-  --pz-teal-light:  #00E5CC;   /* hover / glow     */
-  --pz-teal-dim:    #007A6B;   /* muted teal       */
+  /* ── Chrome (dark navy frame — sidebar / topbar only) ─────────────────── */
+  --pz-chrome:          #0D1B2A;
+  --pz-chrome-2:        #0A1521;
+  --pz-chrome-elevated: #112240;
+  --pz-chrome-text:     #E6EDF5;
+  --pz-chrome-muted:    #8DA2BC;
+  --pz-chrome-line:     rgba(255,255,255,0.08);
+  --pz-chrome-active:   rgba(45,212,191,0.14);
 
-  /* Text */
-  --pz-text:        #F0F4F8;   /* primary text     */
-  --pz-muted:       #94A3B8;   /* secondary text   */
-  --pz-label:       #64748B;   /* labels / captions*/
+  /* ── Accent ────────────────────────────────────────────────────────────── */
+  --pz-teal:        #2DD4BF;   /* fills / chrome only */
+  --pz-teal-ink:    #0F766E;   /* teal text / links on light canvas */
+  --pz-on-accent:   #0D1B2A;   /* text on teal backgrounds (buttons) */
+  --pz-teal-light:  #00E5CC;   /* hover / glow — kept for compat */
+  --pz-teal-dim:    #007A6B;   /* muted teal — kept for compat */
 
-  /* Semantic */
-  --pz-success:     #22C55E;   /* online / good    */
-  --pz-warning:     #F59E0B;   /* caution / pending*/
-  --pz-error:       #EF4444;   /* error / offline  */
-  --pz-live:        #F43F5E;   /* LIVE badge       */
-  --pz-red:         #EF4444;   /* destructive      */
-  --pz-amber:       #F59E0B;   /* warning action   */
-  --pz-success-bg:  rgba(34, 197, 94, 0.12);
-  --pz-success-fg:  #22C55E;
+  /* ── Semantic — text-safe values (use *-fill for dots / bg fills) ──────── */
+  --pz-success:     #047857;
+  --pz-success-fill:#22C55E;
+  --pz-success-bg:  #E7F6EF;
+  --pz-success-fg:  #047857;   /* alias; prefer --pz-success */
+  --pz-warning:     #B45309;
+  --pz-warning-fill:#F59E0B;
+  --pz-error:       #DC2626;
+  --pz-error-bg:    #FCEBEB;
+  --pz-live:        #E11D48;
+  --pz-red:         #DC2626;   /* alias */
+  --pz-amber:       #F59E0B;   /* alias */
 
-  /* Shadows */
-  --pz-shadow:      0 4px 24px rgba(0, 0, 0, 0.4);
-  --pz-shadow-teal: 0 0 16px rgba(45, 212, 191, 0.25);
+  /* ── Shadows (light) ───────────────────────────────────────────────────── */
+  --pz-shadow:      0 1px 3px rgba(13,27,42,0.08), 0 8px 24px rgba(13,27,42,0.06);
+  --pz-shadow-teal: 0 0 0 3px rgba(45,212,191,0.25);
 
-  /* Mapped to shadcn CSS vars */
-  --background:         13 27% 11%;   /* #0D1B2A */
-  --foreground:         210 40% 95%;  /* #F0F4F8 */
-  --card:               220 58% 16%;  /* #112240 */
-  --card-foreground:    210 40% 95%;
-  --popover:            220 58% 16%;
-  --popover-foreground: 210 40% 95%;
-  --primary:            172 66% 50%;  /* #2DD4BF */
-  --primary-foreground: 0 0% 100%;
-  --secondary:          220 44% 20%;  /* #1A2F4A */
-  --secondary-foreground: 210 40% 95%;
-  --muted:              215 25% 27%;
-  --muted-foreground:   215 20% 65%;  /* #94A3B8 */
-  --accent:             174 100% 45%; /* #00E5CC */
-  --accent-foreground:  0 0% 100%;
-  --destructive:        0 84% 60%;    /* #EF4444 */
+  /* ── shadcn HSL vars (light) ───────────────────────────────────────────── */
+  --background:         210 33% 95%;   /* #EDF1F6 */
+  --foreground:         213 53% 11%;   /* #0D1B2A */
+  --card:               0 0% 100%;
+  --card-foreground:    213 53% 11%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 213 53% 11%;
+  --primary:            172 66% 50%;   /* #2DD4BF */
+  --primary-foreground: 213 53% 11%;   /* dark ink — white fails contrast on teal */
+  --secondary:          213 30% 96%;
+  --secondary-foreground: 213 53% 11%;
+  --muted:              213 25% 92%;
+  --muted-foreground:   212 23% 36%;
+  --accent:             174 100% 45%;  /* #00E5CC */
+  --accent-foreground:  213 53% 11%;
+  --destructive:        0 72% 51%;     /* #DC2626 */
   --destructive-foreground: 0 0% 100%;
-  --border:             213 52% 24%;  /* #1E3A5F */
-  --input:              213 52% 24%;
-  --ring:               174 100% 37%; /* teal ring */
+  --border:             213 28% 92%;   /* #E3E9F0 */
+  --input:              213 28% 92%;
+  --ring:               172 66% 50%;   /* teal ring */
   --radius:             0.5rem;
 }
 
@@ -110,28 +122,28 @@ body {
   box-shadow: var(--pz-shadow-teal);
 }
 
-/* Sidebar nav active state */
+/* Sidebar nav active state — chrome tokens (dark navy rail) */
 .pz-nav-active {
-  background: rgba(0, 191, 166, 0.15);
+  background: var(--pz-chrome-active);
   color: var(--pz-teal);
   border-left: 3px solid var(--pz-teal);
 }
 
 .pz-nav-item {
-  color: var(--pz-muted);
+  color: var(--pz-chrome-muted);
   border-left: 3px solid transparent;
   transition: all 0.15s ease;
 }
 
 .pz-nav-item:hover {
-  color: var(--pz-text);
+  color: var(--pz-chrome-text);
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Sync status dot */
-.pz-dot-online  { background: var(--pz-success); box-shadow: 0 0 8px var(--pz-success); }
-.pz-dot-warning { background: var(--pz-warning); box-shadow: 0 0 8px var(--pz-warning); }
-.pz-dot-offline { background: var(--pz-error);   box-shadow: 0 0 8px var(--pz-error);   }
+/* Sync status dot — use fill tokens so dots stay bright on any background */
+.pz-dot-online  { background: var(--pz-success-fill); box-shadow: 0 0 8px var(--pz-success-fill); }
+.pz-dot-warning { background: var(--pz-warning-fill); box-shadow: 0 0 8px var(--pz-warning-fill); }
+.pz-dot-offline { background: var(--pz-error);        box-shadow: 0 0 8px var(--pz-error);        }
 
 /* LIVE badge */
 .pz-live-badge {

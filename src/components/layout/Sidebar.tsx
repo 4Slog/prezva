@@ -68,8 +68,8 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
     textDecoration: 'none',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
-    background: active ? 'rgba(45,212,191,0.15)' : 'transparent',
-    color: active ? 'var(--pz-teal)' : 'var(--pz-text)',
+    background: active ? 'var(--pz-chrome-active)' : 'transparent',
+    color: active ? 'var(--pz-teal)' : 'var(--pz-chrome-text)',
     marginBottom: 2,
   })
 
@@ -82,8 +82,8 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--pz-surface)',
-        borderRight: '1px solid var(--pz-border)',
+        background: 'var(--pz-chrome-elevated)',
+        borderRight: '1px solid var(--pz-chrome-line)',
         overflow: 'hidden',
       }}
     >
@@ -117,7 +117,7 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
         <div style={{
           padding: collapsed ? '8px 0 4px' : '8px 10px 4px',
           fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '0.08em', color: '#475569',
+          letterSpacing: '0.08em', color: 'var(--pz-chrome-muted)',
           textAlign: collapsed ? 'center' : 'left',
         }}>
           {collapsed ? '·' : 'Organization'}
@@ -175,7 +175,7 @@ export function Sidebar({ orgs, defaultOrgSlug }: SidebarProps) {
             cursor: 'pointer',
             background: 'transparent',
             border: 'none',
-            color: 'var(--pz-muted)',
+            color: 'var(--pz-chrome-muted)',
             fontSize: 13,
             whiteSpace: 'nowrap',
           }}

@@ -40,7 +40,7 @@ export default async function DashboardLayout({
         {/* Top bar */}
         <header
           className="flex h-14 flex-shrink-0 items-center justify-between px-6"
-          style={{ borderBottom: '1px solid var(--pz-border)' }}
+          style={{ background: 'var(--pz-chrome-elevated)', borderBottom: '1px solid var(--pz-chrome-line)' }}
         >
           <ContextSwitcher currentContext={currentContext} contexts={contexts} isSuperAdmin={superAdmin} />
           <div className="flex items-center gap-3">

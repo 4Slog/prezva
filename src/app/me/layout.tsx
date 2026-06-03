@@ -24,7 +24,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <header style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', position: 'sticky', top: 0, zIndex: 20 }}>
+      <header style={{ background: 'var(--pz-chrome-elevated)', borderBottom: '1px solid var(--pz-chrome-line)', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           {/* Logo */}
           <Link href="/me" style={{ textDecoration: 'none', flexShrink: 0 }}>
@@ -42,7 +42,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
               <Link
                 key={n.href}
                 href={n.href}
-                style={{ color: 'var(--pz-muted)', fontSize: 13, fontWeight: 500, padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}
+                style={{ color: 'var(--pz-chrome-muted)', fontSize: 13, fontWeight: 500, padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}
               >
                 {n.label}
               </Link>
