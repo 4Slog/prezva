@@ -9,6 +9,7 @@ export interface SideNavItem {
   label: string
   href: string
   icon?: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+  exact?: boolean
 }
 
 export interface SideNavGroup {
@@ -36,7 +37,9 @@ interface PinnedLinkProps {
 }
 
 function PinnedLink({ item, collapsed, pathname }: PinnedLinkProps) {
-  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+  const isActive = item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(item.href + '/')
   const ItemIcon = item.icon
   return (
     <Link

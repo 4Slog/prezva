@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   Building2,
   Calendar,
@@ -17,13 +18,25 @@ import {
 } from 'lucide-react'
 import { SideNav } from '@/components/ui/SideNav'
 import type { SideNavGroup, SideNavItem } from '@/components/ui/SideNav'
+import { buildEventNav } from '@/lib/events/event-nav'
 
 interface OrgShellProps {
   defaultOrgSlug: string | null
 }
 
+/** Returns the event slug when the current path is an event page, null otherwise. */
+function parseEventSlug(pathname: string): string | null {
+  const m = pathname.match(/^\/events\/([^/]+)(?:\/|$)/)
+  if (!m) return null
+  const slug = m[1]
+  if (!slug || slug === 'new') return null
+  return slug
+}
+
 export function OrgShell({ defaultOrgSlug }: OrgShellProps) {
-  const slug = defaultOrgSlug ?? ''
+  const orgSlug = defaultOrgSlug ?? ''
+  const pathname = usePathname()
+  const eventSlug = parseEventSlug(pathname)
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -36,30 +49,36 @@ export function OrgShell({ defaultOrgSlug }: OrgShellProps) {
     localStorage.setItem('sidebar-collapsed', String(next))
   }
 
-  const pinnedTop: SideNavItem[] = [
+  // ── Org nav (default) ────────────────────────────────────────────────────
+  const orgPinnedTop: SideNavItem[] = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Events',    href: '/events',    icon: Calendar },
   ]
 
-  const groups: SideNavGroup[] = [
+  const orgGroups: SideNavGroup[] = [
     {
       id: 'org',
       label: 'Organization',
       icon: Building2,
       items: [
-        { label: 'My Org',          href: `/orgs/${slug}`,              icon: Building2 },
-        { label: 'Settings',        href: `/orgs/${slug}/settings`,     icon: Settings },
-        { label: 'Templates',       href: `/orgs/${slug}/templates`,    icon: LayoutTemplate },
-        { label: 'Integrations',    href: `/orgs/${slug}/integrations`, icon: Plug },
-        { label: 'Audit Log',       href: `/orgs/${slug}/audit-log`,    icon: ScrollText },
-        { label: 'Speaker Library', href: `/orgs/${slug}/speakers`,     icon: Mic },
+        { label: 'My Org',          href: `/orgs/${orgSlug}`,              icon: Building2 },
+        { label: 'Settings',        href: `/orgs/${orgSlug}/settings`,     icon: Settings },
+        { label: 'Templates',       href: `/orgs/${orgSlug}/templates`,    icon: LayoutTemplate },
+        { label: 'Integrations',    href: `/orgs/${orgSlug}/integrations`, icon: Plug },
+        { label: 'Audit Log',       href: `/orgs/${orgSlug}/audit-log`,    icon: ScrollText },
+        { label: 'Speaker Library', href: `/orgs/${orgSlug}/speakers`,     icon: Mic },
       ],
     },
   ]
 
-  const pinnedBottom: SideNavItem[] = [
+  const orgPinnedBottom: SideNavItem[] = [
     { label: 'Help', href: '/help', icon: HelpCircle },
   ]
+
+  // ── Route-aware nav selection ────────────────────────────────────────────
+  const { pinnedTop, groups, pinnedBottom } = eventSlug
+    ? buildEventNav(eventSlug)
+    : { pinnedTop: orgPinnedTop, groups: orgGroups, pinnedBottom: orgPinnedBottom }
 
   const sidebarWidth = collapsed ? 56 : 224
 
@@ -87,6 +106,13 @@ export function OrgShell({ defaultOrgSlug }: OrgShellProps) {
           )}
         </Link>
       </div>
+
+      {/* Static 'EVENT' eyebrow when in event mode */}
+      {eventSlug && !collapsed && (
+        <div style={{ padding: '0 16px 4px', fontSize: 10, fontWeight: 700, color: 'var(--pz-chrome-muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+          Event
+        </div>
+      )}
 
       {/* Nav — fills remaining height */}
       <div style={{ flex: 1, overflow: 'hidden' }}>

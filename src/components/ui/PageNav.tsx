@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ChevronRight, Home } from 'lucide-react'
 
 interface Trail {
@@ -11,6 +12,8 @@ interface Trail {
 interface PageNavProps {
   home: string
   trail: Trail[]
+  /** When set, PageNav reads the current pathname and appends the sub-segment after basePath as a dynamic section crumb. */
+  basePath?: string
 }
 
 function resolveParent(trail: Trail[], home: string): string {
@@ -20,9 +23,21 @@ function resolveParent(trail: Trail[], home: string): string {
   return home
 }
 
-export function PageNav({ home, trail }: PageNavProps) {
+function toSectionLabel(segment: string): string {
+  return segment.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+export function PageNav({ home, trail, basePath }: PageNavProps) {
+  const pathname = usePathname()
   const showBack = trail.length > 0
   const parentHref = resolveParent(trail, home)
+
+  // Derive the current section label from the pathname when basePath is set.
+  let sectionLabel: string | null = null
+  if (basePath && pathname !== basePath && pathname.startsWith(basePath + '/')) {
+    const segment = pathname.slice(basePath.length + 1).split('/')[0]
+    if (segment) sectionLabel = toSectionLabel(segment)
+  }
 
   return (
     <nav aria-label="Page navigation" className="flex flex-wrap items-center gap-2 mb-4 text-sm">
@@ -51,14 +66,16 @@ export function PageNav({ home, trail }: PageNavProps) {
       </Link>
 
       {trail.map((crumb, i) => {
-        const isLast = i === trail.length - 1
+        const isStaticLast = i === trail.length - 1
+        // When a dynamic section will follow, the last static crumb is a link, not the current page.
+        const isCurrentPage = isStaticLast && !sectionLabel
         return (
           <span key={i} className="flex items-center gap-2">
             <ChevronRight size={12} aria-hidden style={{ color: 'var(--pz-label)' }} />
-            {isLast || !crumb.href ? (
+            {isCurrentPage || !crumb.href ? (
               <span
-                aria-current={isLast ? 'page' : undefined}
-                style={{ color: isLast ? 'var(--pz-text)' : 'var(--pz-muted)', fontWeight: isLast ? 500 : 400 }}
+                aria-current={isCurrentPage ? 'page' : undefined}
+                style={{ color: isCurrentPage ? 'var(--pz-text)' : 'var(--pz-muted)', fontWeight: isCurrentPage ? 500 : 400 }}
               >
                 {crumb.label}
               </span>
@@ -74,6 +91,15 @@ export function PageNav({ home, trail }: PageNavProps) {
           </span>
         )
       })}
+
+      {sectionLabel && (
+        <span className="flex items-center gap-2">
+          <ChevronRight size={12} aria-hidden style={{ color: 'var(--pz-label)' }} />
+          <span aria-current="page" style={{ color: 'var(--pz-text)', fontWeight: 500 }}>
+            {sectionLabel}
+          </span>
+        </span>
+      )}
     </nav>
   )
 }
