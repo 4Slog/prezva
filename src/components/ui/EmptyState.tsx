@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Button } from './Button'
 
 interface EmptyStateAction {
   label: string
@@ -9,13 +10,16 @@ interface EmptyStateAction {
 }
 
 interface EmptyStateProps {
-  icon?: string
+  icon?: string | React.ReactNode
   title: string
   description?: string
+  body?: string
   action?: EmptyStateAction
 }
 
-export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, body, action }: EmptyStateProps) {
+  const text = description ?? body
+
   return (
     <div
       style={{
@@ -31,50 +35,26 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
       }}
     >
       {icon && (
-        <div style={{ fontSize: 36, marginBottom: 16, opacity: 0.5 }}>{icon}</div>
+        <div style={{ fontSize: 36, marginBottom: 16, opacity: 0.6, color: 'var(--pz-muted)' }}>
+          {icon}
+        </div>
       )}
-      <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--pz-text)', marginBottom: description ? 8 : 0 }}>
+      <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--pz-text)', marginBottom: text ? 8 : 0 }}>
         {title}
       </p>
-      {description && (
+      {text && (
         <p style={{ fontSize: 14, color: 'var(--pz-muted)', maxWidth: 400, lineHeight: 1.5 }}>
-          {description}
+          {text}
         </p>
       )}
       {action && (
         <div style={{ marginTop: 20 }}>
           {action.href ? (
-            <Link
-              href={action.href}
-              style={{
-                display: 'inline-block',
-                background: 'var(--pz-teal)',
-                color: '#0D1B2A',
-                fontWeight: 600,
-                fontSize: 14,
-                padding: '8px 20px',
-                borderRadius: 8,
-                textDecoration: 'none',
-              }}
-            >
-              {action.label}
+            <Link href={action.href}>
+              <Button>{action.label}</Button>
             </Link>
           ) : (
-            <button
-              onClick={action.onClick}
-              style={{
-                background: 'var(--pz-teal)',
-                color: '#0D1B2A',
-                fontWeight: 600,
-                fontSize: 14,
-                padding: '8px 20px',
-                borderRadius: 8,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {action.label}
-            </button>
+            <Button onClick={action.onClick}>{action.label}</Button>
           )}
         </div>
       )}
