@@ -11,20 +11,21 @@ export const BRAND = {
   supportEmail: 'support@prezva.app',
   helloEmail: 'hello@prezva.app',
 
+  // Light canvas (redesign 2026-06). Dark "chrome" values (sidebars / kiosk) live in globals.css --pz-chrome-*.
   colors: {
-    bg:         '#0D1B2A',
-    surface:    '#112240',
-    surface2:   '#1A2F4A',
-    border:     '#1E3A5F',
+    bg:         '#EDF1F6',
+    surface:    '#FFFFFF',
+    surface2:   '#F4F7FB',
+    border:     '#E3E9F0',
     teal:       '#2DD4BF',
     tealLight:  '#00E5CC',
     tealDim:    '#007A6B',
-    text:       '#F0F4F8',
-    muted:      '#94A3B8',
-    success:    '#22C55E',
-    warning:    '#F59E0B',
-    error:      '#EF4444',
-    live:       '#F43F5E',
+    text:       '#0D1B2A',
+    muted:      '#475A70',
+    success:    '#047857',
+    warning:    '#B45309',
+    error:      '#DC2626',
+    live:       '#E11D48',
   },
 
   typography: {

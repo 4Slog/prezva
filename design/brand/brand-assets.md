@@ -39,3 +39,7 @@ Source: `/home/paul/Prezva/design/brand/arc-check-v1/`
 
 **Why:** Finalized brand; replaced all Next.js placeholder "P" divs before production launch.
 **How to apply:** Use `/logo-mark.svg` for icon-only contexts (48×40 or 32×27), `/logo.svg` for full lockup (148×28 standard).
+
+## Redesign update (2026-06)
+- Added `public/logo-dark.svg` — wordmark fill `#0D1B2A` (teal arc unchanged) for the LIGHT canvas. Used in `(auth)/layout.tsx` and `verify/[verificationId]/page.tsx`. The original `public/logo.svg` (wordmark `#F8FAFC`) stays for dark/chrome contexts (sidebar). Per the arc-check-v1 Production Spec: wordmark is `#F8FAFC` on dark · `#0D1B2A` on white.
+- Visual system moved to a canvas (light) + chrome (dark) token split — see `design/brand/design-tokens.md`. `src/lib/brand.ts` BRAND.colors updated to the light canvas values (teal stays `#2DD4BF`).
