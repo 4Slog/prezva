@@ -21,13 +21,36 @@ export interface SideNavGroup {
 interface SideNavProps {
   groups: SideNavGroup[]
   collapsed?: boolean
+  pinnedTop?: SideNavItem[]
+  pinnedBottom?: SideNavItem[]
 }
 
 function findActiveGroup(groups: SideNavGroup[], pathname: string): string | null {
   return groups.find(g => g.items.some(item => pathname.startsWith(item.href)))?.id ?? null
 }
 
-export function SideNav({ groups, collapsed = false }: SideNavProps) {
+interface PinnedLinkProps {
+  item: SideNavItem
+  collapsed: boolean
+  pathname: string
+}
+
+function PinnedLink({ item, collapsed, pathname }: PinnedLinkProps) {
+  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+  const ItemIcon = item.icon
+  return (
+    <Link
+      href={item.href}
+      title={collapsed ? item.label : undefined}
+      className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isActive ? 'pz-nav-active' : 'pz-nav-item'}`}
+    >
+      {ItemIcon && <ItemIcon size={18} style={{ flexShrink: 0 }} />}
+      {!collapsed && item.label}
+    </Link>
+  )
+}
+
+export function SideNav({ groups, collapsed = false, pinnedTop, pinnedBottom }: SideNavProps) {
   const pathname = usePathname()
   const activeGroupId = findActiveGroup(groups, pathname)
   // When on a route inside a group, that group is always open (no setState needed).
@@ -51,6 +74,15 @@ export function SideNav({ groups, collapsed = false }: SideNavProps) {
         flexShrink: 0,
       }}
     >
+      {pinnedTop && pinnedTop.length > 0 && (
+        <>
+          {pinnedTop.map(item => (
+            <PinnedLink key={item.href} item={item} collapsed={collapsed} pathname={pathname} />
+          ))}
+          <div aria-hidden style={{ margin: '4px 8px', height: 1, background: 'var(--pz-chrome-line)' }} />
+        </>
+      )}
+
       {groups.map(group => {
         const GroupIcon = group.icon
         const isOpen = !collapsed && openGroupId === group.id
@@ -103,6 +135,15 @@ export function SideNav({ groups, collapsed = false }: SideNavProps) {
           </div>
         )
       })}
+
+      {pinnedBottom && pinnedBottom.length > 0 && (
+        <div className="mt-auto">
+          <div aria-hidden style={{ margin: '4px 8px', height: 1, background: 'var(--pz-chrome-line)' }} />
+          {pinnedBottom.map(item => (
+            <PinnedLink key={item.href} item={item} collapsed={collapsed} pathname={pathname} />
+          ))}
+        </div>
+      )}
     </nav>
   )
 }

@@ -2,7 +2,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
 import { isSuperAdmin } from '@/lib/admin/gate'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { OrgShell } from '@/components/layout/OrgShell'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { NotificationBell } from '@/components/layout/NotificationBell'
 import { ContextSwitcher } from '@/components/ContextSwitcher'
@@ -30,10 +30,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--pz-bg)' }}>
 
-      <Sidebar
-        orgs={orgs as unknown as Parameters<typeof Sidebar>[0]['orgs']}
-        defaultOrgSlug={defaultOrgSlug}
-      />
+      <OrgShell defaultOrgSlug={defaultOrgSlug} />
 
       {/* ── Main content ────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">

@@ -4,6 +4,7 @@ import './globals.css'
 import { BRAND } from '@/lib/brand'
 import { OfflineIndicator } from '@/components/pwa/OfflineIndicator'
 import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt'
+import { ToastProvider } from '@/components/ui/Toast'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -60,7 +61,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#0D1B2A] text-[#F0F4F8]">
         <OfflineIndicator />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <IOSInstallPrompt />
       </body>
     </html>

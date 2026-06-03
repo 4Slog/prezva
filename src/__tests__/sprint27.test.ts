@@ -45,9 +45,9 @@ describe('Sprint 27 — Hardening + Bug Fixes + Volunteer Module', () => {
     expect(src).toContain('collapsed')
   })
 
-  it('dashboard layout uses Sidebar component', () => {
+  it('dashboard layout uses OrgShell component', () => {
     const src = readFileSync(join(SRC, 'app/(dashboard)/layout.tsx'), 'utf-8')
-    expect(src).toContain('Sidebar')
+    expect(src).toContain('OrgShell')
     expect(src).toContain('defaultOrgSlug')
   })
 

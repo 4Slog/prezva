@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import {
   CalendarDays,
+  HelpCircle,
+  Home,
+  LayoutDashboard,
   Settings,
   Users,
   BarChart2,
@@ -20,7 +23,7 @@ import { Field } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PageNav } from '@/components/ui/PageNav'
 import { SideNav } from '@/components/ui/SideNav'
-import type { SideNavGroup } from '@/components/ui/SideNav'
+import type { SideNavGroup, SideNavItem } from '@/components/ui/SideNav'
 import { StatCard } from '@/components/ui/StatCard'
 import { StatusBadge, StatusBadgeCluster } from '@/components/ui/StatusBadge'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
@@ -233,7 +236,7 @@ function KitDemo() {
       </Section>
 
       {/* ── SideNav ────────────────────────────────────────────────────────── */}
-      <Section title="SideNav — expanded / collapsed rail">
+      <Section title="SideNav — accordion groups only">
         <div className="flex gap-4">
           <div className="rounded-xl overflow-hidden" style={{ height: 320, border: '1px solid var(--pz-border)' }}>
             <SideNav groups={NAV_GROUPS} collapsed={navCollapsed} />
@@ -244,6 +247,34 @@ function KitDemo() {
             </Button>
           </div>
         </div>
+      </Section>
+
+      <Section title="SideNav — with pinnedTop + pinnedBottom">
+        {(() => {
+          const pinned_top: SideNavItem[] = [
+            { label: 'Dashboard', href: '/dev/kit', icon: LayoutDashboard },
+            { label: 'Home',      href: '/',        icon: Home },
+          ]
+          const pinned_bottom: SideNavItem[] = [
+            { label: 'Help', href: '/help', icon: HelpCircle },
+          ]
+          return (
+            <div className="flex gap-4">
+              <div className="rounded-xl overflow-hidden" style={{ height: 320, border: '1px solid var(--pz-border)' }}>
+                <SideNav
+                  pinnedTop={pinned_top}
+                  groups={NAV_GROUPS.slice(0, 2)}
+                  pinnedBottom={pinned_bottom}
+                  collapsed={navCollapsed}
+                />
+              </div>
+              <p className="text-xs self-center" style={{ color: 'var(--pz-muted)', maxWidth: 180 }}>
+                pinnedTop items are always visible above the accordion — no collapse needed.
+                pinnedBottom sits below via mt-auto.
+              </p>
+            </div>
+          )
+        })()}
       </Section>
 
       {/* ── ConfirmDialog ──────────────────────────────────────────────────── */}
