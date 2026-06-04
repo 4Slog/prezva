@@ -35,8 +35,8 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
 
   if (done) {
     return (
-      <div className="rounded-xl border border-[#2DD4BF]/30 bg-[var(--pz-surface)] p-8 text-center">
-        <p className="text-xl font-bold text-[#2DD4BF]">Thank you!</p>
+      <div className="rounded-xl border border-[var(--pz-teal)]/30 bg-[var(--pz-surface)] p-8 text-center">
+        <p className="text-xl font-bold text-[var(--pz-teal-ink)]">Thank you!</p>
         <p className="text-sm text-[var(--pz-muted)] mt-2">Your response has been recorded.</p>
       </div>
     )
@@ -48,7 +48,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
         <div key={q.id} className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-5 space-y-3">
           <label className="text-sm font-medium text-[var(--pz-text)]">
             {q.question_text}
-            {q.is_required && <span className="text-[#FF6B6B] ml-1">*</span>}
+            {q.is_required && <span className="text-[var(--pz-error)] ml-1">*</span>}
           </label>
 
           {q.question_type === 'text' && (
@@ -57,7 +57,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
               onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
               required={q.is_required}
               rows={3}
-              className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[#2DD4BF] resize-none"
+              className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)] resize-none"
             />
           )}
 
@@ -68,7 +68,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
                   key={n}
                   type="button"
                   onClick={() => setAnswers(prev => ({ ...prev, [q.id]: String(n) }))}
-                  className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === String(n) ? 'bg-[#2DD4BF] text-[var(--pz-on-accent)]' : 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)] hover:bg-[#2A4F7A]'}`}
+                  className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === String(n) ? 'bg-[var(--pz-teal)] text-[var(--pz-on-accent)]' : 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)] hover:bg-[var(--pz-border)]'}`}
                 >
                   {n}
                 </button>
@@ -83,7 +83,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
                   key={opt}
                   type="button"
                   onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === opt ? 'bg-[#2DD4BF] text-[var(--pz-on-accent)]' : 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)] hover:bg-[#2A4F7A]'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === opt ? 'bg-[var(--pz-teal)] text-[var(--pz-on-accent)]' : 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)] hover:bg-[var(--pz-border)]'}`}
                 >
                   {opt}
                 </button>
@@ -100,7 +100,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
                 checked={answers[q.id] === opt}
                 onChange={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
                 required={q.is_required}
-                className="accent-[#2DD4BF]"
+                className="accent-[var(--pz-teal)]"
               />
               <span className="text-sm text-[var(--pz-text)]">{opt}</span>
             </label>
@@ -113,7 +113,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg px-4 py-3 bg-[#2DD4BF] text-[#0D1B2A] text-sm font-semibold hover:bg-[#00D4B8] transition-colors disabled:opacity-50"
+        className="w-full rounded-lg px-4 py-3 bg-[var(--pz-teal)] text-[var(--pz-on-accent)] text-sm font-semibold hover:bg-[#00D4B8] transition-colors disabled:opacity-50"
       >
         {submitting ? 'Submitting…' : 'Submit Response'}
       </button>

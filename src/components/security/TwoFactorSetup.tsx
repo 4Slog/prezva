@@ -12,7 +12,7 @@ interface TwoFactorSetupProps {
 }
 
 const btnBase = 'rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50'
-const btnPrimary = `${btnBase} bg-[#2DD4BF] text-[var(--pz-on-accent)] hover:bg-[#00D4B8]`
+const btnPrimary = `${btnBase} bg-[var(--pz-teal)] text-[var(--pz-on-accent)] hover:bg-[#00D4B8]`
 const btnGhost = `${btnBase} text-[var(--pz-muted)] hover:text-[var(--pz-text)]`
 const btnDestructive = `${btnBase} bg-red-900/40 text-red-400 hover:bg-red-900/60`
 
@@ -70,7 +70,7 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
     return (
       <div className="rounded-lg border border-[var(--pz-border)] p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#2DD4BF]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--pz-teal)]" />
           <p className="text-sm font-semibold text-[var(--pz-text)]">Two-factor authentication is enabled</p>
         </div>
         <p className="text-xs text-[var(--pz-muted)]">Your account is protected with an authenticator app.</p>
@@ -84,9 +84,9 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
 
   if (step === 'done') {
     return (
-      <div className="rounded-lg border border-[#2DD4BF]/30 p-6">
-        <p className="text-sm font-semibold text-[#2DD4BF]">2FA enabled successfully!</p>
-        <p className="text-xs text-[#94A3B8] mt-1">Your account is now protected with your authenticator app.</p>
+      <div className="rounded-lg border border-[var(--pz-teal)]/30 p-6">
+        <p className="text-sm font-semibold text-[var(--pz-teal-ink)]">2FA enabled successfully!</p>
+        <p className="text-xs text-[var(--pz-muted)] mt-1">Your account is now protected with your authenticator app.</p>
       </div>
     )
   }
@@ -96,7 +96,7 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
       <div className="rounded-lg border border-[var(--pz-border)] p-6 space-y-5">
         <p className="text-sm font-semibold text-[var(--pz-text)]">Scan this QR code with your authenticator app</p>
         <img src={qrCode} alt="2FA QR code" className="w-40 h-40 rounded-lg bg-white p-2" />
-        <p className="text-xs text-[var(--pz-muted)]">Can&apos;t scan? Enter this secret manually: <code className="text-[#2DD4BF]">{secret}</code></p>
+        <p className="text-xs text-[var(--pz-muted)]">Can&apos;t scan? Enter this secret manually: <code className="text-[var(--pz-teal-ink)]">{secret}</code></p>
         <div className="space-y-2">
           <p className="text-xs text-[var(--pz-muted)]">Enter the 6-digit code from your authenticator app</p>
           <input
@@ -104,7 +104,7 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
             onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="000000"
             maxLength={6}
-            className="w-32 text-center tracking-widest font-mono bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[#2DD4BF]"
+            className="w-32 text-center tracking-widest font-mono bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}

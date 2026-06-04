@@ -14,7 +14,7 @@ interface DiscountCode {
   is_active: boolean
 }
 
-const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
+const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
 const labelCls = 'mb-1 block text-xs font-medium text-[var(--pz-muted)]'
 
 export function DiscountCodeManager({ eventId, initial }: { eventId: string; initial: DiscountCode[] }) {

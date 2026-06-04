@@ -144,7 +144,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
       }}>
         {state === 'denied' && (
           <div style={{
-            background: '#EF444415', border: '1px solid var(--pz-error)',
+            background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)',
             borderRadius: 8, padding: '0.75rem', marginBottom: '1rem'
           }}>
             <p style={{ fontSize: 13, color: 'var(--pz-error)', margin: 0 }}>

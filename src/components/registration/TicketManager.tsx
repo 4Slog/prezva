@@ -47,7 +47,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
   const [pending, setPending]   = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
+  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
   const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
@@ -233,7 +233,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)] hover:border-[#2DD4BF]/40 hover:text-[var(--pz-muted)] transition-colors w-full"
+          className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)] hover:border-[var(--pz-teal)]/40 hover:text-[var(--pz-muted)] transition-colors w-full"
         >
           <span className="text-lg">+</span>
           Add ticket type

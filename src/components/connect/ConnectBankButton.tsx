@@ -160,7 +160,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
                     <button
                       onClick={handleCompleteInStripe}
                       disabled={linkPending}
-                      className="mt-2 text-xs font-medium text-[#2DD4BF] hover:text-[#00DDB8] transition-colors disabled:opacity-50"
+                      className="mt-2 text-xs font-medium text-[var(--pz-teal-ink)] hover:text-[#00DDB8] transition-colors disabled:opacity-50"
                     >
                       {linkPending ? 'Redirecting…' : 'Complete in Stripe →'}
                     </button>
@@ -181,7 +181,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
             <button
               onClick={handleDashboard}
               disabled={pending}
-              className="rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs font-medium text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[#2DD4BF]/40 transition-colors disabled:opacity-50"
+              className="rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs font-medium text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)]/40 transition-colors disabled:opacity-50"
             >
               {pending ? '…' : 'Stripe dashboard ↗'}
             </button>

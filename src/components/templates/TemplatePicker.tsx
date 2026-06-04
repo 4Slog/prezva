@@ -107,7 +107,7 @@ export function TemplatePicker({ surface, orgId: _orgId, orgTemplates = [], onPi
               {shownCards.map((card) => (
                 <div
                   key={card.id}
-                  style={{ background: 'var(--pz-surface-2, #1a2a3a)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 6 }}
+                  style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 6 }}
                 >
                   <p style={{ color: 'var(--pz-text)', fontSize: 14, fontWeight: 600, margin: 0 }}>{card.name}</p>
                   {card.description && (
