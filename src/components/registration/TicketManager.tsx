@@ -47,8 +47,8 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
   const [pending, setPending]   = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
+  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -84,13 +84,13 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
             <div key={t.id} className="pz-card p-4 flex items-center justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-[#F0F4F8]">{t.name}</p>
-                  <span className="text-xs rounded-full px-2 py-0.5 bg-[#1E3A5F] text-[#94A3B8] capitalize">
+                  <p className="font-medium text-[var(--pz-text)]">{t.name}</p>
+                  <span className="text-xs rounded-full px-2 py-0.5 bg-[var(--pz-surface-2)] text-[var(--pz-muted)] capitalize">
                     {t.type}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-[#64748B]">
-                  <span className="text-[#2DD4BF] font-semibold">{fmtPrice(t.price_cents, t.currency)}</span>
+                <div className="flex items-center gap-3 mt-1 text-xs text-[var(--pz-muted)]">
+                  <span className="text-[var(--pz-teal-ink)] font-semibold">{fmtPrice(t.price_cents, t.currency)}</span>
                   {t.quantity !== null && (
                     <span>{t.quantity_sold} / {t.quantity} sold</span>
                   )}
@@ -117,7 +117,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       {/* Add ticket form */}
       {showForm ? (
         <form onSubmit={handleCreate} className="pz-card p-5 flex flex-col gap-4">
-          <h3 className="text-sm font-semibold text-[#F0F4F8]">New ticket type</h3>
+          <h3 className="text-sm font-semibold text-[var(--pz-text)]">New ticket type</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className={labelCls}>Name *</label>
@@ -167,7 +167,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                 onChange={e => setMembershipRequired(e.target.checked)}
                 className="rounded"
               />
-              <label htmlFor="membership_required" className="text-sm text-[#94A3B8] cursor-pointer">
+              <label htmlFor="membership_required" className="text-sm text-[var(--pz-muted)] cursor-pointer">
                 Membership required (verify via connected association integration)
               </label>
             </div>
@@ -179,22 +179,22 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                 value="true"
                 className="rounded"
               />
-              <label htmlFor="waitlist_enabled" className="text-sm text-[#94A3B8] cursor-pointer">
+              <label htmlFor="waitlist_enabled" className="text-sm text-[var(--pz-muted)] cursor-pointer">
                 Enable waitlist (when ticket sells out, allow attendees to join waitlist)
               </label>
             </div>
             <div className="col-span-2">
               <label className={labelCls}>Attendance type</label>
               <div className="flex gap-4 mt-1">
-                <label className="flex items-center gap-1.5 text-sm text-[#94A3B8] cursor-pointer">
+                <label className="flex items-center gap-1.5 text-sm text-[var(--pz-muted)] cursor-pointer">
                   <input type="radio" name="delivery_method" value="in_person" checked={deliveryMethod === 'in_person'} onChange={e => setDeliveryMethod(e.target.value)} />
                   📍 In-person
                 </label>
-                <label className="flex items-center gap-1.5 text-sm text-[#94A3B8] cursor-pointer">
+                <label className="flex items-center gap-1.5 text-sm text-[var(--pz-muted)] cursor-pointer">
                   <input type="radio" name="delivery_method" value="virtual" checked={deliveryMethod === 'virtual'} onChange={e => setDeliveryMethod(e.target.value)} />
                   💻 Virtual
                 </label>
-                <label className="flex items-center gap-1.5 text-sm text-[#94A3B8] cursor-pointer">
+                <label className="flex items-center gap-1.5 text-sm text-[var(--pz-muted)] cursor-pointer">
                   <input type="radio" name="delivery_method" value="both" checked={deliveryMethod === 'both'} onChange={e => setDeliveryMethod(e.target.value)} />
                   Both (attendee chooses)
                 </label>
@@ -217,14 +217,14 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               type="submit"
               disabled={pending}
               className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {pending ? 'Adding…' : 'Add ticket'}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm text-[#94A3B8]"
+              className="rounded-lg border border-[var(--pz-border)] px-4 py-2 text-sm text-[var(--pz-muted)]"
             >
               Cancel
             </button>
@@ -233,7 +233,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-[#1E3A5F] px-4 py-3 text-sm text-[#64748B] hover:border-[#2DD4BF]/40 hover:text-[#94A3B8] transition-colors w-full"
+          className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)] hover:border-[#2DD4BF]/40 hover:text-[var(--pz-muted)] transition-colors w-full"
         >
           <span className="text-lg">+</span>
           Add ticket type
@@ -241,7 +241,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       )}
 
       {tickets.length === 0 && !showForm && (
-        <p className="mt-4 text-sm text-[#64748B]">
+        <p className="mt-4 text-sm text-[var(--pz-muted)]">
           No ticket types yet. Add one to open registration.
         </p>
       )}

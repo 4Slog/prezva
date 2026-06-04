@@ -35,9 +35,9 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
 
   if (done) {
     return (
-      <div className="rounded-xl border border-[#2DD4BF]/30 bg-[#112240] p-8 text-center">
+      <div className="rounded-xl border border-[#2DD4BF]/30 bg-[var(--pz-surface)] p-8 text-center">
         <p className="text-xl font-bold text-[#2DD4BF]">Thank you!</p>
-        <p className="text-sm text-[#94A3B8] mt-2">Your response has been recorded.</p>
+        <p className="text-sm text-[var(--pz-muted)] mt-2">Your response has been recorded.</p>
       </div>
     )
   }
@@ -45,8 +45,8 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {questions.map(q => (
-        <div key={q.id} className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-5 space-y-3">
-          <label className="text-sm font-medium text-[#F0F4F8]">
+        <div key={q.id} className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-5 space-y-3">
+          <label className="text-sm font-medium text-[var(--pz-text)]">
             {q.question_text}
             {q.is_required && <span className="text-[#FF6B6B] ml-1">*</span>}
           </label>
@@ -57,7 +57,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
               onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
               required={q.is_required}
               rows={3}
-              className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#2DD4BF] resize-none"
+              className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[#2DD4BF] resize-none"
             />
           )}
 
@@ -68,7 +68,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
                   key={n}
                   type="button"
                   onClick={() => setAnswers(prev => ({ ...prev, [q.id]: String(n) }))}
-                  className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === String(n) ? 'bg-[#2DD4BF] text-[#0D1B2A]' : 'bg-[#1E3A5F] text-[#94A3B8] hover:bg-[#2A4F7A]'}`}
+                  className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === String(n) ? 'bg-[#2DD4BF] text-[var(--pz-on-accent)]' : 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)] hover:bg-[#2A4F7A]'}`}
                 >
                   {n}
                 </button>
@@ -83,7 +83,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
                   key={opt}
                   type="button"
                   onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === opt ? 'bg-[#2DD4BF] text-[#0D1B2A]' : 'bg-[#1E3A5F] text-[#94A3B8] hover:bg-[#2A4F7A]'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${answers[q.id] === opt ? 'bg-[#2DD4BF] text-[var(--pz-on-accent)]' : 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)] hover:bg-[#2A4F7A]'}`}
                 >
                   {opt}
                 </button>
@@ -102,7 +102,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
                 required={q.is_required}
                 className="accent-[#2DD4BF]"
               />
-              <span className="text-sm text-[#F0F4F8]">{opt}</span>
+              <span className="text-sm text-[var(--pz-text)]">{opt}</span>
             </label>
           ))}
         </div>

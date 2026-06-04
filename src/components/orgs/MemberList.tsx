@@ -96,7 +96,7 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
         )}
       </div>
 
-      {error && <p className="px-5 py-2 text-sm" style={{ color: '#FCA5A5', background: '#3B0000' }}>{error}</p>}
+      {error && <p className="px-5 py-2 text-sm" style={{ color: 'var(--pz-error)', background: 'var(--pz-error-bg)' }}>{error}</p>}
 
       {totalCount === 0 ? (
         <div className="px-5 py-6 text-sm text-center" style={{ color: 'var(--pz-muted)', background: 'var(--pz-surface)' }}>
@@ -165,7 +165,7 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
                     style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--pz-warning-fill)' }}>Pending</span>
                   {canManage && invite.token && (
                     <button onClick={() => handleResend(invite.id)} disabled={resending === invite.id || resent === invite.id}
-                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: '#2DD4BF' }}>
+                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: 'var(--pz-teal-ink)' }}>
                       {resending === invite.id ? 'Sending…' : resent === invite.id ? 'Sent!' : 'Resend'}
                     </button>
                   )}

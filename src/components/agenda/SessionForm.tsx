@@ -97,8 +97,8 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-sm text-[var(--text-primary)]'
-  const labelCls = 'block text-xs font-medium text-[var(--text-muted)] mb-1'
+  const inputCls = 'w-full px-3 py-2 border border-[var(--pz-border)] rounded-lg bg-[var(--pz-bg)] text-sm text-[var(--pz-text)]'
+  const labelCls = 'block text-xs font-medium text-[var(--pz-muted)] mb-1'
 
   const selectedSpeakers = speakers.filter(s => s.id in speakerRoles)
 
@@ -204,8 +204,8 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
                 className={
                   'px-3 py-1 rounded-full text-xs font-medium border transition-colors ' +
                   (s.id in speakerRoles
-                    ? 'bg-[var(--brand-teal)] text-white border-[var(--brand-teal)]'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border)]')
+                    ? 'bg-[var(--pz-teal)] text-white border-[var(--pz-teal)]'
+                    : 'bg-[var(--pz-bg)] text-[var(--pz-muted)] border-[var(--pz-border)]')
                 }
               >
                 {s.name}
@@ -216,11 +216,11 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
             <div className="space-y-2">
               {selectedSpeakers.map(s => (
                 <div key={s.id} className="flex items-center gap-3">
-                  <span className="text-xs text-[var(--text-primary)] min-w-[120px]">{s.name}</span>
+                  <span className="text-xs text-[var(--pz-text)] min-w-[120px]">{s.name}</span>
                   <select
                     value={speakerRoles[s.id]}
                     onChange={e => setSpeakerRoles(prev => ({ ...prev, [s.id]: e.target.value }))}
-                    className="px-2 py-1 border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-xs text-[var(--text-primary)]"
+                    className="px-2 py-1 border border-[var(--pz-border)] rounded-lg bg-[var(--pz-bg)] text-xs text-[var(--pz-text)]"
                   >
                     {SPEAKER_ROLES.map(r => (
                       <option key={r.value} value={r.value}>{r.label}</option>
@@ -236,13 +236,13 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-2 pt-2">
-        <button onClick={onCancel} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+        <button onClick={onCancel} className="px-4 py-2 text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)]">
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-[var(--pz-teal)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
         >
           {saving ? 'Saving…' : session ? 'Update' : 'Create'}
         </button>

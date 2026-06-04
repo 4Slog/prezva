@@ -46,11 +46,11 @@ export function OfflineIndicator() {
   if (!offline || !isAuthRoute || dismissed) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-[var(--pz-warning-fill)] text-[#0D1B2A] text-center py-2 text-sm font-semibold flex items-center justify-center gap-4">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-[var(--pz-warning-fill)] text-[var(--pz-on-accent)] text-center py-2 text-sm font-semibold flex items-center justify-center gap-4">
       <span>You are offline — check-in still works, other features may be limited</span>
       <button
         onClick={() => setDismissed(true)}
-        className="text-[#0D1B2A] opacity-70 hover:opacity-100 font-bold text-base leading-none"
+        className="text-[var(--pz-on-accent)] opacity-70 hover:opacity-100 font-bold text-base leading-none"
         aria-label="Dismiss"
       >
         ×

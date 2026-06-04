@@ -21,29 +21,29 @@ export function CheckInDashboard({ stats, onRefresh, volunteerStatus }: CheckInD
     <div className="space-y-6">
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-[var(--brand-teal)]">{total_checked_in}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Checked In</p>
+        <div className="bg-[var(--pz-surface)] border border-[var(--pz-border)] rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-[var(--pz-teal)]">{total_checked_in}</p>
+          <p className="text-xs text-[var(--pz-muted)] mt-1">Checked In</p>
         </div>
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-[var(--text-primary)]">{total_registered}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Registered</p>
+        <div className="bg-[var(--pz-surface)] border border-[var(--pz-border)] rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-[var(--pz-text)]">{total_registered}</p>
+          <p className="text-xs text-[var(--pz-muted)] mt-1">Registered</p>
         </div>
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-[var(--text-primary)]">{percent}%</p>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Attendance</p>
+        <div className="bg-[var(--pz-surface)] border border-[var(--pz-border)] rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-[var(--pz-text)]">{percent}%</p>
+          <p className="text-xs text-[var(--pz-muted)] mt-1">Attendance</p>
         </div>
       </div>
 
       {/* Progress bar */}
       <div className="space-y-1">
-        <div className="flex justify-between text-xs text-[var(--text-muted)]">
+        <div className="flex justify-between text-xs text-[var(--pz-muted)]">
           <span>Check-in progress</span>
           <span>{total_checked_in}/{total_registered}</span>
         </div>
-        <div className="h-2 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+        <div className="h-2 bg-[var(--pz-bg)] rounded-full overflow-hidden">
           <div
-            className="h-full bg-[var(--brand-teal)] transition-all duration-500 rounded-full"
+            className="h-full bg-[var(--pz-teal)] transition-all duration-500 rounded-full"
             style={{ width: percent + '%' }}
           />
         </div>
@@ -52,16 +52,16 @@ export function CheckInDashboard({ stats, onRefresh, volunteerStatus }: CheckInD
       {/* Volunteer status */}
       {volunteerStatus && volunteerStatus.total > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Volunteer Status</h3>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3">
-            <p className="text-sm text-[var(--text-muted)]">
-              <span className="font-semibold text-[var(--brand-teal)]">{volunteerStatus.checked_in}</span>
+          <h3 className="text-sm font-semibold text-[var(--pz-text)]">Volunteer Status</h3>
+          <div className="rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] p-3">
+            <p className="text-sm text-[var(--pz-muted)]">
+              <span className="font-semibold text-[var(--pz-teal)]">{volunteerStatus.checked_in}</span>
               {' '}of{' '}
-              <span className="font-semibold text-[var(--text-primary)]">{volunteerStatus.total}</span>
+              <span className="font-semibold text-[var(--pz-text)]">{volunteerStatus.total}</span>
               {' '}volunteers clocked in
             </p>
             {volunteerStatus.clocked_in_names.length > 0 && (
-              <p className="text-xs text-[var(--text-muted)] mt-1">
+              <p className="text-xs text-[var(--pz-muted)] mt-1">
                 {volunteerStatus.clocked_in_names.join(', ')}
               </p>
             )}
@@ -77,29 +77,29 @@ export function CheckInDashboard({ stats, onRefresh, volunteerStatus }: CheckInD
       {/* Recent activity */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Recent Check-Ins</h3>
+          <h3 className="text-sm font-semibold text-[var(--pz-text)]">Recent Check-Ins</h3>
           <button
             onClick={onRefresh}
-            className="text-xs text-[var(--brand-teal)] hover:opacity-80"
+            className="text-xs text-[var(--pz-teal)] hover:opacity-80"
           >
             Refresh
           </button>
         </div>
         {recent.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)] py-4 text-center">No check-ins yet</p>
+          <p className="text-sm text-[var(--pz-muted)] py-4 text-center">No check-ins yet</p>
         ) : (
-          <div className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] overflow-hidden">
+          <div className="divide-y divide-[var(--pz-border)] rounded-lg border border-[var(--pz-border)] overflow-hidden">
             {recent.map(c => (
-              <div key={c.id} className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-card)]">
+              <div key={c.id} className="flex items-center justify-between px-4 py-2.5 bg-[var(--pz-surface)]">
                 <div>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">{c.attendee_name}</p>
-                  <p className="text-xs text-[var(--text-muted)]">{c.ticket_name}</p>
+                  <p className="text-sm font-medium text-[var(--pz-text)]">{c.attendee_name}</p>
+                  <p className="text-xs text-[var(--pz-muted)]">{c.ticket_name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-[var(--text-muted)]">
+                  <p className="text-xs text-[var(--pz-muted)]">
                     {new Date(c.checked_in_at).toLocaleTimeString()}
                   </p>
-                  <p className="text-xs text-[var(--text-muted)] capitalize">
+                  <p className="text-xs text-[var(--pz-muted)] capitalize">
                     {c.method.replace('_', ' ')}
                   </p>
                 </div>

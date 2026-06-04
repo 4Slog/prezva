@@ -29,7 +29,7 @@ export function RoleSwitcherBanner({ roles }: Props) {
               padding: '0.5rem 0.875rem', borderRadius: 8, fontSize: 13,
               fontWeight: 600, textDecoration: 'none',
               background: role.type === 'attendee' ? 'var(--pz-teal)' : 'var(--pz-surface-2)',
-              color: role.type === 'attendee' ? '#0D1B2A' : 'var(--pz-text)',
+              color: role.type === 'attendee' ? 'var(--pz-on-accent)' : 'var(--pz-text)',
               border: role.type === 'attendee' ? 'none' : '1px solid var(--pz-border)',
             }}>
             {role.icon} {role.label}

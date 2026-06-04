@@ -25,7 +25,7 @@ export function VirtualJoinButton({ virtualUrl, registrationId }: Props) {
       disabled={joining}
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        color: 'var(--color-teal)',
+        color: 'var(--pz-teal-ink)',
         background: 'none', border: 'none', cursor: 'pointer',
         fontSize: 14, fontWeight: joined ? 600 : 400,
         textDecoration: 'none', padding: 0,

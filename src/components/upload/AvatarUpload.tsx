@@ -34,7 +34,7 @@ export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
       <div>
         <label
           className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           {uploading ? 'Uploading…' : 'Upload photo'}
           <input

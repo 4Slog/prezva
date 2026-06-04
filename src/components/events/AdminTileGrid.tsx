@@ -74,8 +74,8 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
                         fontWeight: 600,
                         padding: '2px 6px',
                         borderRadius: 4,
-                        background: badge.variant === 'error' ? '#ef444422' : badge.variant === 'warning' ? '#f59e0b22' : 'var(--pz-teal)22',
-                        color: badge.variant === 'error' ? 'var(--pz-error)' : badge.variant === 'warning' ? 'var(--pz-warning-fill)' : 'var(--pz-teal)',
+                        background: badge.variant === 'error' ? 'var(--pz-error-bg)' : badge.variant === 'warning' ? 'var(--pz-warning-bg)' : 'var(--pz-teal-bg)',
+                        color: badge.variant === 'error' ? 'var(--pz-error)' : badge.variant === 'warning' ? 'var(--pz-warning)' : 'var(--pz-teal-ink)',
                       }}>
                         {badge.label}
                       </span>

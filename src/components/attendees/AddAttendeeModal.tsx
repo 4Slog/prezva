@@ -167,7 +167,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
         )}
 
         {error && (
-          <p className="rounded-lg px-3 py-2 text-sm" style={{ background: '#3B0000', color: '#FCA5A5' }}>{error}</p>
+          <p className="rounded-lg px-3 py-2 text-sm" style={{ background: 'var(--pz-error-bg)', color: 'var(--pz-error)' }}>{error}</p>
         )}
 
         <div className="flex gap-3 justify-end pt-2">
@@ -178,7 +178,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
           </button>
           <button type="submit" disabled={loading}
             className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>
             {loading ? 'Adding…' : 'Add Attendee'}
           </button>
         </div>

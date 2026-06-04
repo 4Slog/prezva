@@ -47,7 +47,7 @@ export function StaffOnboardingModal({ userId, orgName }: { userId: string; orgN
         </div>
         <button onClick={dismiss}
           style={{ width: '100%', padding: '0.875rem', borderRadius: 10, border: 'none',
-                   background: 'var(--pz-teal)', color: '#0D1B2A', fontWeight: 700,
+                   background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', fontWeight: 700,
                    fontSize: 15, cursor: 'pointer' }}>
           Got it, let&apos;s go →
         </button>

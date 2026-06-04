@@ -131,10 +131,10 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
         <div className="flex items-start gap-3">
           <span className={`mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full ${cfg.dot}`} />
           <div>
-            <p className="font-semibold text-[#F0F4F8] text-sm">Stripe Payments</p>
+            <p className="font-semibold text-[var(--pz-text)] text-sm">Stripe Payments</p>
             <p className={`text-xs mt-0.5 ${cfg.text}`}>{cfg.detail}</p>
             {status.status === 'active' && (
-              <p className="text-xs text-[#64748B] mt-1">
+              <p className="text-xs text-[var(--pz-muted)] mt-1">
                 Attendee payments go directly to your Stripe account — Prezva never touches the money.
               </p>
             )}
@@ -145,15 +145,15 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
                 </p>
                 <button
                   onClick={() => setReqOpen((o) => !o)}
-                  className="mt-1 text-xs text-[#94A3B8] hover:text-[#F0F4F8] transition-colors"
+                  className="mt-1 text-xs text-[var(--pz-muted)] hover:text-[var(--pz-text)] transition-colors"
                 >
                   {reqOpen ? '▾' : '▸'} What&apos;s needed ({dedupedLabels.length})
                 </button>
                 {reqOpen && (
                   <div className="mt-2 space-y-1">
                     {dedupedLabels.map((label) => (
-                      <div key={label} className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
-                        <span className="h-1 w-1 rounded-full bg-[#64748B] flex-shrink-0" />
+                      <div key={label} className="flex items-center gap-1.5 text-xs text-[var(--pz-muted)]">
+                        <span className="h-1 w-1 rounded-full bg-[var(--pz-muted)] flex-shrink-0" />
                         {label}
                       </div>
                     ))}
@@ -181,7 +181,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
             <button
               onClick={handleDashboard}
               disabled={pending}
-              className="rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF]/40 transition-colors disabled:opacity-50"
+              className="rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs font-medium text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[#2DD4BF]/40 transition-colors disabled:opacity-50"
             >
               {pending ? '…' : 'Stripe dashboard ↗'}
             </button>
@@ -190,7 +190,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
               onClick={handleConnect}
               disabled={pending}
               className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 transition-opacity"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {pending ? 'Redirecting…' : cfg.label}
             </button>

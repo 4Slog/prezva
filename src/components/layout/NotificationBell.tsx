@@ -97,7 +97,7 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pz-muted)', fontSize: 13 }}>No notifications yet.</div>
             ) : (
               notifications.map(n => (
-                <div key={n.id} onClick={() => handleClick(n)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--pz-border)', cursor: n.url ? 'pointer' : 'default', background: n.is_read ? 'transparent' : 'rgba(0,191,166,0.05)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div key={n.id} onClick={() => handleClick(n)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--pz-border)', cursor: n.url ? 'pointer' : 'default', background: n.is_read ? 'transparent' : 'var(--pz-teal-bg)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{typeEmoji[n.type] ?? '🔔'}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: n.is_read ? 400 : 600, color: 'var(--pz-text)', marginBottom: 2 }}>{n.title}</p>

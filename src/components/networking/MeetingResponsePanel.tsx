@@ -76,7 +76,7 @@ export function MeetingResponsePanel({ requestId, requesterName, message, propos
             <button
               onClick={() => respond('counter')}
               disabled={busy || !counterTime}
-              style={{ flex: 1, background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: busy || !counterTime ? 0.6 : 1 }}
+              style={{ flex: 1, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: busy || !counterTime ? 0.6 : 1 }}
             >
               Send counter
             </button>
