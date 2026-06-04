@@ -58,7 +58,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     .slice(0, 5)
     .map(([uid]) => uid)
 
-  let nameMap: Record<string, string> = {}
+  const nameMap: Record<string, string> = {}
   if (topUserIds.length > 0) {
     const { data: regs } = await admin
       .from('registrations')

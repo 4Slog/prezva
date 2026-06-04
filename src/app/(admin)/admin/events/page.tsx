@@ -26,7 +26,7 @@ export default async function AdminEventsPage({ searchParams }: {
 
   const statusColors: Record<string, string> = {
     draft: 'bg-[#1E3A5F] text-[#94A3B8]',
-    published: 'bg-[#00BFA6]/10 text-[#00BFA6]',
+    published: 'bg-[#2DD4BF]/10 text-[#2DD4BF]',
     live: 'bg-green-900/40 text-green-400',
     ended: 'bg-[#1E3A5F] text-[#64748B]',
     archived: 'bg-[#1E3A5F] text-[#64748B]',
@@ -43,7 +43,7 @@ export default async function AdminEventsPage({ searchParams }: {
           <select
             name="status"
             defaultValue={status ?? ''}
-            className="bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+            className="bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#2DD4BF]"
           >
             <option value="">All statuses</option>
             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -52,7 +52,7 @@ export default async function AdminEventsPage({ searchParams }: {
             name="search"
             defaultValue={search}
             placeholder="Search by title…"
-            className="bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6] w-56"
+            className="bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#2DD4BF] w-56"
           />
           <button type="submit" className="px-3 py-2 rounded-lg bg-[#1E3A5F] text-sm text-[#F0F4F8] hover:bg-[#2A4F7A]">Filter</button>
         </form>
@@ -72,7 +72,7 @@ export default async function AdminEventsPage({ searchParams }: {
                 <td className="px-4 py-3 text-[#F0F4F8] font-medium max-w-xs truncate">{ev.title}</td>
                 <td className="px-4 py-3 text-[#64748B]">
                   {ev.organizations ? (
-                    <Link href={`/admin/orgs/${ev.org_id}`} className="hover:text-[#00BFA6]">
+                    <Link href={`/admin/orgs/${ev.org_id}`} className="hover:text-[#2DD4BF]">
                       {(ev.organizations as any).name}
                     </Link>
                   ) : '—'}
@@ -94,7 +94,7 @@ export default async function AdminEventsPage({ searchParams }: {
         <div className="flex gap-2 justify-center">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
             <Link key={p} href={`?page=${p}${search ? `&search=${search}` : ''}${status ? `&status=${status}` : ''}`}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm ${p === page ? 'bg-[#00BFA6] text-[#0D1B2A]' : 'bg-[#1E3A5F] text-[#94A3B8] hover:bg-[#2A4F7A]'}`}>
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm ${p === page ? 'bg-[#2DD4BF] text-[#0D1B2A]' : 'bg-[#1E3A5F] text-[#94A3B8] hover:bg-[#2A4F7A]'}`}>
               {p}
             </Link>
           ))}

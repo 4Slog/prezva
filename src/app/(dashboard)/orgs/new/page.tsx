@@ -71,7 +71,7 @@ export default function NewOrgPage() {
             onChange={handleNameChange}
             className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
             style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = '#00BFA6')}
+            onFocus={(e) => (e.currentTarget.style.borderColor = '#2DD4BF')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
           />
         </div>
@@ -82,7 +82,7 @@ export default function NewOrgPage() {
           </label>
           <div
             className="flex items-center rounded-md border"
-            style={{ borderColor: slugError ? '#ef4444' : 'var(--pz-border)' }}
+            style={{ borderColor: slugError ? 'var(--pz-error)' : 'var(--pz-border)' }}
           >
             <span
               className="select-none border-r px-3 py-2 text-sm"
@@ -121,7 +121,7 @@ export default function NewOrgPage() {
             defaultValue="America/Chicago"
             className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
             style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = '#00BFA6')}
+            onFocus={(e) => (e.currentTarget.style.borderColor = '#2DD4BF')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
           >
             <option value="America/New_York">Eastern (ET)</option>

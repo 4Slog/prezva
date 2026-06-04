@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react'
 
 export function SyncHealthPill() {
-  const [online, setOnline] = useState(true)
+  const [online, setOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [pending, setPending] = useState(0)
 
   useEffect(() => {
-    setOnline(navigator.onLine)
     const handleOnline = () => setOnline(true)
     const handleOffline = () => setOnline(false)
     window.addEventListener('online', handleOnline)
@@ -34,8 +33,8 @@ export function SyncHealthPill() {
     return () => { cancelled = true; clearInterval(id) }
   }, [])
 
-  const color = online ? 'var(--pz-teal)' : '#F59E0B'
-  const dotClass = online ? 'bg-[#00BFA6]' : 'bg-[#F59E0B]'
+  const color = online ? 'var(--pz-teal)' : 'var(--pz-warning-fill)'
+  const dotClass = online ? 'bg-[#2DD4BF]' : 'bg-[var(--pz-warning-fill)]'
   const label = online
     ? pending > 0 ? `Syncing (${pending} pending)` : 'Online'
     : pending > 0 ? `Offline (${pending} pending)` : 'Offline'

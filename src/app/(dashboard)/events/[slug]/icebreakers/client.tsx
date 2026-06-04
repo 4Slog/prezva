@@ -13,7 +13,7 @@ interface IcebreakerQuestion {
 }
 interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
 
-const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
+const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none'
 
 const getPromptText = (q: IcebreakerQuestion) => q.question || q.question_text || q.prompt || ''
 
@@ -67,7 +67,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
 
   return (
     <div>
-      {msg && <p style={{ color: msg.startsWith('Error') ? '#EF4444' : '#059669', fontSize: 13, marginBottom: '1rem' }}>{msg}</p>}
+      {msg && <p style={{ color: msg.startsWith('Error') ? 'var(--pz-error)' : 'var(--pz-success)', fontSize: 13, marginBottom: '1rem' }}>{msg}</p>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <button onClick={() => setShowPreview(true)} disabled={pending}
@@ -91,7 +91,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
             })} disabled={pending}
-            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? 'var(--pz-success)' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? 'var(--pz-success)' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
             {published ? '✓ Published' : 'Publish to attendees'}
           </button>
         </>)}
@@ -143,7 +143,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
                     {p.tags.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {p.tags.map(tag => (
-                          <span key={tag} style={{ fontSize: 10, fontWeight: 600, background: '#00BFA622', color: '#00BFA6', padding: '1px 5px', borderRadius: 4 }}>{tag}</span>
+                          <span key={tag} style={{ fontSize: 10, fontWeight: 600, background: '#00BFA622', color: '#2DD4BF', padding: '1px 5px', borderRadius: 4 }}>{tag}</span>
                         ))}
                       </div>
                     )}
@@ -153,7 +153,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
             </div>
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #1E3A5F', display: 'flex', gap: 8 }}>
               <button onClick={handleLoadStarter} disabled={pending}
-                style={{ flex: 1, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+                style={{ flex: 1, background: '#2DD4BF', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
                 {pending ? 'Loading…' : `Load prompts ${starterOffset + 1}–${Math.min(starterOffset + 10, 50)}`}
               </button>
               <button onClick={() => setShowPreview(false)}

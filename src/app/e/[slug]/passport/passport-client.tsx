@@ -39,8 +39,8 @@ export function PassportClient({ eventId, locations, initialVisitedIds }: Props)
   return (
     <div>
       {passportComplete && (
-        <div className="pz-card p-4 mb-4" style={{ background: '#05966922', border: '1px solid #059669' }}>
-          <p style={{ fontWeight: 700, color: '#059669', fontSize: 14 }}>
+        <div className="pz-card p-4 mb-4" style={{ background: '#05966922', border: '1px solid var(--pz-success)' }}>
+          <p style={{ fontWeight: 700, color: 'var(--pz-success)', fontSize: 14 }}>
             Passport complete! You visited all locations. +25 bonus points!
           </p>
         </div>
@@ -75,7 +75,7 @@ export function PassportClient({ eventId, locations, initialVisitedIds }: Props)
           </button>
         </div>
         {message && (
-          <p style={{ fontSize: 12, marginTop: 8, color: message.startsWith('Checked') ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+          <p style={{ fontSize: 12, marginTop: 8, color: message.startsWith('Checked') ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>
             {message}
           </p>
         )}

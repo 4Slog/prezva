@@ -36,7 +36,7 @@ export function StaffDashboard({
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: '1.5rem' }}>
         {[
           { label: 'Checked In', value: checkedInCount, color: 'var(--pz-teal)' },
-          { label: 'Remaining', value: remaining, color: '#F59E0B' },
+          { label: 'Remaining', value: remaining, color: 'var(--pz-warning-fill)' },
           { label: 'Total Regs', value: registrationCount, color: 'var(--pz-text)' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ background: 'var(--pz-surface)', borderRadius: 10,

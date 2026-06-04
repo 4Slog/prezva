@@ -13,7 +13,7 @@ interface Announcement {
   sent_at: string | null; recipient_count: number; segment: string | null
 }
 const CHANNEL_ICON = { email: Mail, push: Bell, both: BellRing }
-const CHANNEL_COLOR: Record<string, string> = { email: '#0891b2', push: '#7c3aed', both: '#059669' }
+const CHANNEL_COLOR: Record<string, string> = { email: '#0891b2', push: '#7c3aed', both: 'var(--pz-success)' }
 
 export default function AnnouncementsClient({ announcements: init, eventId, slug, orgId }: {
   announcements: Announcement[]; eventId: string; slug: string; orgId: string
@@ -128,7 +128,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
       {showForm && (
         <form onSubmit={handleSubmit} style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
           <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>New Announcement</h2>
-          {error && <p style={{ color: '#ef4444', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
+          {error && <p style={{ color: 'var(--pz-error)', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Subject</label>
@@ -180,7 +180,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                       {aiDrafting ? 'Generating…' : 'Generate'}
                     </button>
                   </div>
-                  {aiError && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{aiError}</p>}
+                  {aiError && <p style={{ fontSize: 12, color: 'var(--pz-error)', marginTop: 4 }}>{aiError}</p>}
                 </div>
               )}
               <textarea ref={bodyRef} name="body" required maxLength={2000} rows={4} defaultValue={bodyDefault} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
@@ -261,7 +261,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                        boxSizing: 'border-box' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: smsMessage.length > 140 ? '#F59E0B' : 'var(--color-text-muted)' }}>
+              <span style={{ fontSize: 11, color: smsMessage.length > 140 ? 'var(--pz-warning-fill)' : 'var(--color-text-muted)' }}>
                 {smsMessage.length}/160 characters
               </span>
               <button
@@ -276,7 +276,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
             </div>
             {smsResult && (
               <p style={{ fontSize: 12, marginTop: 8,
-                          color: smsResult.startsWith('Error') ? '#EF4444' : '#22C55E' }}>
+                          color: smsResult.startsWith('Error') ? 'var(--pz-error)' : 'var(--pz-success-fill)' }}>
                 {smsResult}
               </p>
             )}

@@ -14,7 +14,7 @@ interface DiscountCode {
   is_active: boolean
 }
 
-const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
 const labelCls = 'mb-1 block text-xs font-medium text-[#94A3B8]'
 
 export function DiscountCodeManager({ eventId, initial }: { eventId: string; initial: DiscountCode[] }) {
@@ -95,14 +95,14 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
             <tbody>
               {codes.map(c => (
                 <tr key={c.id} className="border-t border-[#1E3A5F]">
-                  <td className="px-3 py-2 font-mono font-bold text-[#00BFA6]">{c.code}</td>
+                  <td className="px-3 py-2 font-mono font-bold text-[#2DD4BF]">{c.code}</td>
                   <td className="px-3 py-2 text-[#F0F4F8]">{fmtDiscount(c)}</td>
                   <td className="px-3 py-2 text-[#94A3B8]">{c.uses_count}{c.max_uses ? `/${c.max_uses}` : ''}</td>
                   <td className="px-3 py-2 text-[#94A3B8]">{c.valid_until ? new Date(c.valid_until).toLocaleDateString() : '—'}</td>
                   <td className="px-3 py-2">
                     <button
                       onClick={() => handleToggle(c)}
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.is_active ? 'bg-[#00BFA6]/20 text-[#00BFA6]' : 'bg-[#1E3A5F] text-[#64748B]'}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.is_active ? 'bg-[#2DD4BF]/20 text-[#2DD4BF]' : 'bg-[#1E3A5F] text-[#64748B]'}`}
                     >
                       {c.is_active ? 'On' : 'Off'}
                     </button>

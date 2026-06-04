@@ -156,7 +156,7 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
       </div>
 
       {message && (
-        <p style={{ fontSize: 12, color: message.ok ? 'var(--pz-teal)' : '#EF4444' }}>{message.text}</p>
+        <p style={{ fontSize: 12, color: message.ok ? 'var(--pz-teal)' : 'var(--pz-error)' }}>{message.text}</p>
       )}
     </div>
   )

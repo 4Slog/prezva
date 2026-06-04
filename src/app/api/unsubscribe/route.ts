@@ -51,8 +51,8 @@ function htmlResponse(message: string) {
     `<!doctype html><html><head><meta charset="utf-8"><title>Unsubscribed</title>
     <style>body{font-family:sans-serif;background:#0D1B2A;color:#CBD5E1;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
     .card{background:#112240;border-radius:12px;padding:2rem 2.5rem;max-width:420px;text-align:center;}
-    h1{color:#00BFA6;font-size:1.25rem;}p{color:#94A3B8;font-size:14px;}
-    a{color:#00BFA6;}</style></head>
+    h1{color:#2DD4BF;font-size:1.25rem;}p{color:#94A3B8;font-size:14px;}
+    a{color:#2DD4BF;}</style></head>
     <body><div class="card">
     <h1>✓ Unsubscribed</h1>
     <p>${message}</p>

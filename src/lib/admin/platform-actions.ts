@@ -117,7 +117,7 @@ export async function sendPlatformAnnouncement(subject: string, message: string)
           subject,
           html: `
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:2rem">
-              <div style="background:#00BFA6;padding:1rem 1.5rem;border-radius:8px 8px 0 0">
+              <div style="background:#2DD4BF;padding:1rem 1.5rem;border-radius:8px 8px 0 0">
                 <h1 style="color:#0D1B2A;margin:0;font-size:1.25rem;font-weight:800">Prezva Platform Notice</h1>
               </div>
               <div style="background:#112240;padding:1.5rem;border-radius:0 0 8px 8px;border:1px solid #1E3A5F">
@@ -125,7 +125,7 @@ export async function sendPlatformAnnouncement(subject: string, message: string)
                 <hr style="border:none;border-top:1px solid #1E3A5F;margin:1.5rem 0" />
                 <p style="color:#64748B;font-size:0.75rem;margin:0">
                   To manage your notification preferences, visit
-                  <a href="https://prezva.app/settings" style="color:#00BFA6">prezva.app/settings</a>
+                  <a href="https://prezva.app/settings" style="color:#2DD4BF">prezva.app/settings</a>
                 </p>
               </div>
             </div>

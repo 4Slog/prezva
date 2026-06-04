@@ -111,7 +111,7 @@ export default async function LiveSessionPage({ params }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
             <h1 style={{ fontSize: '1.375rem', fontWeight: 800, margin: 0 }}>{session.title}</h1>
             {isLive && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#ef4444', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--pz-error)', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
                 <Radio size={11} /> LIVE
               </span>
             )}

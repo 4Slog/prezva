@@ -72,7 +72,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
             <Plus size={14} /> Add
           </button>
         </form>
-        {error && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 8 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--pz-error)', fontSize: 12, marginTop: 8 }}>{error}</p>}
       </div>
 
       {/* Locations list */}
@@ -91,7 +91,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
                     <span style={{ marginLeft: 12 }}>{loc.points} pt{loc.points !== 1 ? 's' : ''}</span>
                   </p>
                 </div>
-                <button onClick={() => handleDelete(loc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', padding: 4 }}>
+                <button onClick={() => handleDelete(loc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-error)', padding: 4 }}>
                   <Trash2 size={15} />
                 </button>
               </div>

@@ -71,8 +71,8 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
   const STATUS_COLOR: Record<string, string> = {
     upcoming: 'var(--pz-muted)',
     in_progress: 'var(--pz-teal)',
-    done: '#22C55E',
-    skipped: '#EF4444',
+    done: 'var(--pz-success-fill)',
+    skipped: 'var(--pz-error)',
   }
 
   const currentItem = rosItems.find(i => i.status === 'in_progress')
@@ -193,8 +193,8 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
                     {item.status === 'in_progress' && (
                       <button onClick={() => handleStatus(item.id, 'done')}
                         style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6,
-                                 border: '1px solid #22C55E', background: 'transparent',
-                                 color: '#22C55E', cursor: 'pointer' }}>
+                                 border: '1px solid var(--pz-success-fill)', background: 'transparent',
+                                 color: 'var(--pz-success-fill)', cursor: 'pointer' }}>
                         ✓ Done
                       </button>
                     )}

@@ -28,7 +28,7 @@ export default function LobbyDisplay({ params }: { params: Promise<{ token: stri
   if (data.error) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', background: '#0D1B2A' }}>
-      <p style={{ color: '#EF4444', fontSize: 18 }}>Invalid display token</p>
+      <p style={{ color: 'var(--pz-error)', fontSize: 18 }}>Invalid display token</p>
     </div>
   )
 
@@ -100,7 +100,7 @@ export default function LobbyDisplay({ params }: { params: Promise<{ token: stri
                                    marginBottom: '0.75rem', padding: '0.75rem',
                                    background: '#1E3A5F', borderRadius: 10 }}>
               <span style={{ fontSize: 24, fontWeight: 900,
-                             color: i === 0 ? '#F59E0B' : i === 1 ? '#94A3B8' : i === 2 ? '#CD7F32' : '#64748B',
+                             color: i === 0 ? 'var(--pz-warning-fill)' : i === 1 ? '#94A3B8' : i === 2 ? '#CD7F32' : '#64748B',
                              minWidth: 32 }}>
                 {i + 1}
               </span>

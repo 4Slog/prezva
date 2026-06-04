@@ -47,8 +47,8 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
 
   const statusColor: Record<string, string> = {
     confirmed: 'var(--pz-success)',
-    declined: 'var(--pz-error, #ef4444)',
-    invited: 'var(--pz-warning, #f59e0b)',
+    declined: 'var(--pz-error, var(--pz-error))',
+    invited: 'var(--pz-warning, var(--pz-warning-fill))',
   }
 
   async function saveForm() {
@@ -526,7 +526,7 @@ function HandoutUpload({ sessionId, speakerId, eventId, token }: { sessionId: st
         {uploading ? 'Uploading…' : '+ Upload handout'}
         <input type="file" className="sr-only" accept=".pdf,.ppt,.pptx,.key,.doc,.docx" onChange={handleFile} disabled={uploading} />
       </label>
-      {error && <p className="text-xs mt-0.5" style={{ color: 'var(--pz-error, #ef4444)' }}>{error}</p>}
+      {error && <p className="text-xs mt-0.5" style={{ color: 'var(--pz-error, var(--pz-error))' }}>{error}</p>}
     </div>
   )
 }

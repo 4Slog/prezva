@@ -57,8 +57,8 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ALERT_TYPES = [
-  { value: 'urgent', label: 'Urgent', color: '#EF4444' },
-  { value: 'issue',  label: 'Issue',  color: '#F59E0B' },
+  { value: 'urgent', label: 'Urgent', color: 'var(--pz-error)' },
+  { value: 'issue',  label: 'Issue',  color: 'var(--pz-warning-fill)' },
   { value: 'question', label: 'Question', color: '#3B82F6' },
   { value: 'info',   label: 'Info',   color: '#64748B' },
 ] as const
@@ -171,7 +171,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.5rem' }}>
         {/* Greeting */}
         <div style={{ marginBottom: 24 }}>
-          <p style={{ color: '#00BFA6', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>
+          <p style={{ color: '#2DD4BF', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>
             {ROLE_LABELS[volunteer.role] ?? volunteer.role}
           </p>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 4 }}>
@@ -185,7 +185,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         {/* Assigned sessions */}
         {assignedSessions.length > 0 ? (
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#00BFA6', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#2DD4BF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
               YOUR ASSIGNMENTS
             </h2>
             {assignedSessions.map(s => (
@@ -212,12 +212,12 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
             <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 12px', color: '#F0F4F8' }}>
               Can you make it?
             </p>
-            {responseMsg && <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{responseMsg}</p>}
+            {responseMsg && <p style={{ fontSize: 12, color: 'var(--pz-error)', marginBottom: 8 }}>{responseMsg}</p>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => handleResponse('confirmed')}
                 disabled={responding}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: 8, border: 'none', background: '#00BFA6', color: '#0D1B2A', fontWeight: 700, cursor: responding ? 'not-allowed' : 'pointer', opacity: responding ? 0.7 : 1 }}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: 8, border: 'none', background: '#2DD4BF', color: '#0D1B2A', fontWeight: 700, cursor: responding ? 'not-allowed' : 'pointer', opacity: responding ? 0.7 : 1 }}
               >
                 Yes, I&apos;ll be there
               </button>
@@ -251,12 +251,12 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         )}
         {shiftResponse === 'confirmed' && (
           <div style={{ background: 'rgba(0,191,166,0.1)', border: '1px solid rgba(0,191,166,0.3)', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 16 }}>
-            <p style={{ fontSize: 13, color: '#00BFA6', margin: 0, fontWeight: 600 }}>You confirmed your shift</p>
+            <p style={{ fontSize: 13, color: '#2DD4BF', margin: 0, fontWeight: 600 }}>You confirmed your shift</p>
           </div>
         )}
         {shiftResponse === 'declined' && (
           <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 16 }}>
-            <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>You declined this shift</p>
+            <p style={{ fontSize: 13, color: 'var(--pz-error)', margin: 0 }}>You declined this shift</p>
           </div>
         )}
 
@@ -269,7 +269,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
             </p>
           )}
           {volunteer.shift_start && (
-            <p style={{ fontSize: 14, color: '#00BFA6', marginTop: 8, fontWeight: 600 }}>
+            <p style={{ fontSize: 14, color: '#2DD4BF', marginTop: 8, fontWeight: 600 }}>
               Your shift: {fmtTime(volunteer.shift_start)}
               {volunteer.shift_end ? ' – ' + fmtTime(volunteer.shift_end) : ''}
             </p>
@@ -280,25 +280,25 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'rgba(255,255,255,0.8)' }}>Time Tracking</h2>
           {volunteer.clocked_in_at && (
-            <p style={{ fontSize: 13, color: '#00BFA6', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: '#2DD4BF', marginBottom: 12 }}>
               Clocked in at {fmtTime(volunteer.clocked_in_at)}
               {volunteer.clocked_out_at && ` → out at ${fmtTime(volunteer.clocked_out_at)}`}
               {totalHours && ` (${totalHours}h total)`}
             </p>
           )}
           {msg && (
-            <p style={{ fontSize: 13, color: msg.includes('success') || msg.includes('Thanks') ? '#00BFA6' : '#EF4444', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: msg.includes('success') || msg.includes('Thanks') ? '#2DD4BF' : 'var(--pz-error)', marginBottom: 12 }}>
               {msg}
             </p>
           )}
           <div style={{ display: 'flex', gap: 10 }}>
             {!volunteer.clocked_in_at && (
-              <button onClick={clockIn} disabled={loading} style={{ background: '#00BFA6', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+              <button onClick={clockIn} disabled={loading} style={{ background: '#2DD4BF', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
                 {loading ? 'Clocking in…' : 'Clock In'}
               </button>
             )}
             {volunteer.clocked_in_at && !volunteer.clocked_out_at && (
-              <button onClick={clockOut} disabled={loading} style={{ background: '#EF4444', color: '#fff', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+              <button onClick={clockOut} disabled={loading} style={{ background: 'var(--pz-error)', color: '#fff', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
                 {loading ? 'Clocking out…' : 'Clock Out'}
               </button>
             )}
@@ -310,7 +310,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
           <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.8)' }}>Check-In Scanner</h2>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Scan attendee QR codes to check them in.</p>
-            <a href={`/volunteer/${token}/scan`} style={{ display: 'inline-block', background: '#00BFA6', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+            <a href={`/volunteer/${token}/scan`} style={{ display: 'inline-block', background: '#2DD4BF', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
               Open QR Scanner
             </a>
           </div>
@@ -319,7 +319,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
           <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.8)' }}>Walk-In Registration</h2>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Register walk-in attendees at the front desk.</p>
-            <a href={`/e/${event.slug}/register`} style={{ display: 'inline-block', background: '#00BFA6', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+            <a href={`/e/${event.slug}/register`} style={{ display: 'inline-block', background: '#2DD4BF', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
               Open Registration Form
             </a>
           </div>
@@ -328,7 +328,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         {/* Attendee lookup */}
         {canLookup && (
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#00BFA6', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#2DD4BF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
               ATTENDEE LOOKUP
             </h2>
             <input
@@ -344,7 +344,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
                   <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#F0F4F8' }}>{r.name}</p>
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{r.ticket ? `${r.ticket} · ` : ''}{r.email}</p>
                 </div>
-                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 600, background: r.checked_in ? 'rgba(0,191,166,0.15)' : 'rgba(245,158,11,0.15)', color: r.checked_in ? '#00BFA6' : '#F59E0B', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 600, background: r.checked_in ? 'rgba(0,191,166,0.15)' : 'rgba(245,158,11,0.15)', color: r.checked_in ? '#2DD4BF' : 'var(--pz-warning-fill)', whiteSpace: 'nowrap', marginLeft: 8 }}>
                   {r.checked_in ? 'Checked in' : r.status}
                 </span>
               </div>
@@ -378,7 +378,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
                 style={{ width: '100%', padding: '0.5rem', borderRadius: 8, fontSize: 14, border: '1px solid rgba(255,255,255,0.15)', background: '#0D1B2A', color: '#F0F4F8', marginBottom: 10, boxSizing: 'border-box' }}
               />
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={handleSendAlert} disabled={!alertMsg.trim() || sendingAlert} style={{ flex: 1, padding: '0.625rem', borderRadius: 8, border: 'none', background: alertType === 'urgent' ? '#EF4444' : '#00BFA6', color: alertType === 'urgent' ? '#fff' : '#0D1B2A', fontWeight: 700, cursor: !alertMsg.trim() || sendingAlert ? 'not-allowed' : 'pointer', opacity: !alertMsg.trim() || sendingAlert ? 0.5 : 1 }}>
+                <button onClick={handleSendAlert} disabled={!alertMsg.trim() || sendingAlert} style={{ flex: 1, padding: '0.625rem', borderRadius: 8, border: 'none', background: alertType === 'urgent' ? 'var(--pz-error)' : '#2DD4BF', color: alertType === 'urgent' ? '#fff' : '#0D1B2A', fontWeight: 700, cursor: !alertMsg.trim() || sendingAlert ? 'not-allowed' : 'pointer', opacity: !alertMsg.trim() || sendingAlert ? 0.5 : 1 }}>
                   {sendingAlert ? 'Sending…' : 'Send alert'}
                 </button>
                 <button onClick={() => { setShowAlert(false); setAlertMsg('') }} style={{ padding: '0.625rem 1rem', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
@@ -388,7 +388,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
             </div>
           )}
           {alertSent && (
-            <p style={{ fontSize: 12, color: '#00BFA6', marginTop: 8, textAlign: 'center' }}>Alert sent to organizer</p>
+            <p style={{ fontSize: 12, color: '#2DD4BF', marginTop: 8, textAlign: 'center' }}>Alert sent to organizer</p>
           )}
         </div>
 

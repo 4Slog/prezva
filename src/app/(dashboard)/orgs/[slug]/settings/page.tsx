@@ -69,22 +69,22 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
         <h1 className="text-2xl font-bold text-[#F0F4F8]">{org.name}</h1>
         <p className="text-sm text-[#94A3B8]">Organization settings</p>
         <div className="flex gap-4 mt-3">
-          <span className="text-sm font-semibold text-[#F0F4F8] border-b-2 border-[#00BFA6] pb-1">Settings</span>
+          <span className="text-sm font-semibold text-[#F0F4F8] border-b-2 border-[#2DD4BF] pb-1">Settings</span>
           <a href={`/orgs/${org.slug}/billing`} className="text-sm text-[#64748B] hover:text-[#94A3B8] pb-1">Billing</a>
         </div>
       </div>
 
       {/* Connect status banner */}
       {connect === 'success' && (
-        <div className="mb-6 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/30 px-4 py-3">
-          <p className="text-sm font-medium text-[#22C55E]">
+        <div className="mb-6 rounded-lg bg-[var(--pz-success-fill)]/10 border border-[var(--pz-success-fill)]/30 px-4 py-3">
+          <p className="text-sm font-medium text-[var(--pz-success-fill)]">
             ✅ Bank account connected — ticket payments will go directly to your account.
           </p>
         </div>
       )}
       {connect === 'incomplete' && (
-        <div className="mb-6 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 px-4 py-3">
-          <p className="text-sm font-medium text-[#F59E0B]">
+        <div className="mb-6 rounded-lg bg-[var(--pz-warning-fill)]/10 border border-[var(--pz-warning-fill)]/30 px-4 py-3">
+          <p className="text-sm font-medium text-[var(--pz-warning-fill)]">
             ⚠️ Stripe setup incomplete — finish connecting your bank account to accept payments.
           </p>
         </div>
@@ -155,7 +155,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
                 {[owner, admin, staff].map((allowed, i) => (
                   <td key={i} style={{ textAlign: 'center', padding: '8px 12px' }}>
                     {allowed
-                      ? <span style={{ color: '#00BFA6', fontSize: 16 }}>✓</span>
+                      ? <span style={{ color: '#2DD4BF', fontSize: 16 }}>✓</span>
                       : <span style={{ color: '#1E3A5F', fontSize: 16 }}>—</span>
                     }
                   </td>
@@ -168,8 +168,8 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
 
       {/* Danger zone — owners only */}
       {isOwner && (
-        <section className="mb-8 rounded-xl p-6 mt-2" style={{ border: '2px solid #EF4444' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: '#EF4444', margin: '0 0 8px' }}>
+        <section className="mb-8 rounded-xl p-6 mt-2" style={{ border: '2px solid var(--pz-error)' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-error)', margin: '0 0 8px' }}>
             Danger Zone
           </h2>
           <p style={{ fontSize: 13, color: '#94A3B8', margin: '0 0 16px' }}>
@@ -186,8 +186,8 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
               </p>
             </div>
             <button style={{ padding: '0.5rem 1rem', borderRadius: 8, fontSize: 13,
-                             border: '1px solid #EF4444', background: 'transparent',
-                             color: '#EF4444', cursor: 'pointer', fontWeight: 600 }}>
+                             border: '1px solid var(--pz-error)', background: 'transparent',
+                             color: 'var(--pz-error)', cursor: 'pointer', fontWeight: 600 }}>
               Transfer
             </button>
           </div>

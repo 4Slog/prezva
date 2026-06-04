@@ -79,7 +79,7 @@ export function SpeakerFormBuilderClient({ eventId, initialSchema }: { eventId: 
               <button
                 onClick={() => removeField(idx)}
                 className="text-xs mt-5"
-                style={{ color: 'var(--pz-error, #ef4444)' }}
+                style={{ color: 'var(--pz-error, var(--pz-error))' }}
               >
                 Remove
               </button>

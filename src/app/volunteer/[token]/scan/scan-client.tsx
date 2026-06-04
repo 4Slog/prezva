@@ -47,9 +47,9 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
 
   const resultColor =
     !result ? undefined :
-    result.error ? '#EF4444' :
-    result.already_checked_in ? '#F59E0B' :
-    '#00BFA6'
+    result.error ? 'var(--pz-error)' :
+    result.already_checked_in ? 'var(--pz-warning-fill)' :
+    '#2DD4BF'
 
   return (
     <PortalShell
@@ -66,16 +66,16 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
         {result && (
           <div style={{ background: '#112240', border: `2px solid ${resultColor}`, borderRadius: 12, padding: '1.25rem', marginBottom: 20 }}>
             {result.error ? (
-              <p style={{ color: '#EF4444', fontWeight: 700 }}>{result.error}</p>
+              <p style={{ color: 'var(--pz-error)', fontWeight: 700 }}>{result.error}</p>
             ) : result.already_checked_in ? (
               <>
-                <p style={{ color: '#F59E0B', fontWeight: 700, marginBottom: 4 }}>Already checked in</p>
+                <p style={{ color: 'var(--pz-warning-fill)', fontWeight: 700, marginBottom: 4 }}>Already checked in</p>
                 <p style={{ fontSize: 18, fontWeight: 800 }}>{result.attendee_name}</p>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{result.ticket_type_name}</p>
               </>
             ) : (
               <>
-                <p style={{ color: '#00BFA6', fontWeight: 700, marginBottom: 4 }}>Checked in!</p>
+                <p style={{ color: '#2DD4BF', fontWeight: 700, marginBottom: 4 }}>Checked in!</p>
                 <p style={{ fontSize: 18, fontWeight: 800 }}>{result.attendee_name}</p>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{result.ticket_type_name}</p>
               </>
@@ -104,7 +104,7 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
             onClick={() => submitCode(manualCode)}
             disabled={loading || !manualCode.trim()}
             style={{
-              width: '100%', background: '#00BFA6', color: '#0D1B2A', padding: '12px', borderRadius: 8,
+              width: '100%', background: '#2DD4BF', color: '#0D1B2A', padding: '12px', borderRadius: 8,
               fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
           >

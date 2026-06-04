@@ -109,7 +109,7 @@ export function SpeakerLibraryClient({ speakers, events }: Props) {
                     </button>
                   </div>
                   {addResult[sp.id] && (
-                    <p style={{ fontSize: 11, marginTop: 3, color: addResult[sp.id] === 'Added to event!' ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+                    <p style={{ fontSize: 11, marginTop: 3, color: addResult[sp.id] === 'Added to event!' ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>
                       {addResult[sp.id]}
                     </p>
                   )}

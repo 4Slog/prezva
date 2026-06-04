@@ -67,7 +67,7 @@ export function DeadLettersClient({ items: initial, eventSlug }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: showResolved ? '#1e3a5f' : 'rgba(239,68,68,0.15)', color: showResolved ? '#64748b' : '#ef4444', padding: '2px 8px', borderRadius: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: showResolved ? '#1e3a5f' : 'rgba(239,68,68,0.15)', color: showResolved ? '#64748b' : 'var(--pz-error)', padding: '2px 8px', borderRadius: 4 }}>
                     {item.type}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
@@ -75,7 +75,7 @@ export function DeadLettersClient({ items: initial, eventSlug }: Props) {
                   </span>
                 </div>
                 {item.error_message && (
-                  <p style={{ fontSize: 12, color: '#ef4444', fontFamily: 'monospace', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 500 }}>
+                  <p style={{ fontSize: 12, color: 'var(--pz-error)', fontFamily: 'monospace', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 500 }}>
                     {item.error_message}
                   </p>
                 )}

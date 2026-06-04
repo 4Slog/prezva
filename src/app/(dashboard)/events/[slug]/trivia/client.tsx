@@ -7,8 +7,8 @@ import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
 interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
 interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
 
-const DIFF_COLOR: Record<string, string> = { easy: '#059669', medium: '#d97706', hard: '#ef4444' }
-const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none'
+const DIFF_COLOR: Record<string, string> = { easy: 'var(--pz-success)', medium: '#d97706', hard: 'var(--pz-error)' }
+const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none'
 
 const getQuestionText = (q: TriviaQuestion) => q.body || q.question_text || ''
 
@@ -27,7 +27,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
     const html = `<!DOCTYPE html><html><head><title>Trivia Questions</title>
     <style>body{font-family:sans-serif;padding:2rem;color:#111}h1{font-size:1.5rem;margin-bottom:1.5rem}
     .q{margin-bottom:1.5rem;page-break-inside:avoid}.q-text{font-weight:700;margin-bottom:0.5rem;font-size:15px}
-    .opt{padding:3px 0;font-size:14px}.correct{color:#059669;font-weight:600}
+    .opt{padding:3px 0;font-size:14px}.correct{color:var(--pz-success);font-weight:600}
     .meta{font-size:11px;color:#888;margin-top:4px}@media print{.no-print{display:none}}</style></head>
     <body><h1>Trivia Questions (${questions.length})</h1>
     ${questions.map((q, i) => `<div class="q">
@@ -85,7 +85,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
 
   return (
     <div>
-      {msg && <p style={{ color: msg.startsWith('Error') ? '#EF4444' : '#059669', fontSize: 13, marginBottom: '1rem' }}>{msg}</p>}
+      {msg && <p style={{ color: msg.startsWith('Error') ? 'var(--pz-error)' : 'var(--pz-success)', fontSize: 13, marginBottom: '1rem' }}>{msg}</p>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <button onClick={() => setShowPreview(true)} disabled={pending}
@@ -113,7 +113,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
             })} disabled={pending}
-            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? '#059669' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? '#059669' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? 'var(--pz-success)' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? 'var(--pz-success)' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
             {published ? '✓ Published' : 'Publish to attendees'}
           </button>
         </>)}
@@ -126,7 +126,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
           <input className={inputCls} placeholder="Question text" value={newQ} onChange={e => setNewQ(e.target.value)} />
           {newOpts.map((opt, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="radio" checked={newCorrect === i} onChange={() => setNewCorrect(i)} style={{ accentColor: '#00BFA6' }} />
+              <input type="radio" checked={newCorrect === i} onChange={() => setNewCorrect(i)} style={{ accentColor: '#2DD4BF' }} />
               <input className={inputCls} placeholder={`Option ${i + 1}${i === 0 ? ' (mark correct with radio)' : ''}`} value={opt} onChange={e => { const a = [...newOpts]; a[i] = e.target.value; setNewOpts(a) }} />
             </div>
           ))}
@@ -163,7 +163,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
                     {q.options.map((opt, oi) => (
                       <div key={oi} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: oi === q.correct_index ? '#00BFA6' : 'var(--pz-muted)', minWidth: 14 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: oi === q.correct_index ? '#2DD4BF' : 'var(--pz-muted)', minWidth: 14 }}>
                           {oi === q.correct_index ? '✓' : '○'}
                         </span>
                         <span style={{ fontSize: 13, color: oi === q.correct_index ? '#F0F4F8' : 'var(--pz-muted)' }}>{opt}</span>
@@ -207,7 +207,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
                     {q.options.map((opt, oi) => (
                       <div key={oi} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: oi === q.correct ? '#00BFA6' : '#475569', minWidth: 14 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: oi === q.correct ? '#2DD4BF' : '#475569', minWidth: 14 }}>
                           {oi === q.correct ? '✓' : '○'}
                         </span>
                         <span style={{ fontSize: 12, color: oi === q.correct ? '#F0F4F8' : '#94A3B8' }}>{opt}</span>
@@ -215,7 +215,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
                     ))}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, background: '#00BFA622', color: '#00BFA6', padding: '2px 6px', borderRadius: 4, textTransform: 'capitalize' }}>{q.category.replace('_', ' ')}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, background: '#00BFA622', color: '#2DD4BF', padding: '2px 6px', borderRadius: 4, textTransform: 'capitalize' }}>{q.category.replace('_', ' ')}</span>
                     <span style={{ fontSize: 10, fontWeight: 600, background: (DIFF_COLOR[q.difficulty] ?? '#6b7280') + '22', color: DIFF_COLOR[q.difficulty] ?? '#6b7280', padding: '2px 6px', borderRadius: 4 }}>{q.difficulty}</span>
                   </div>
                 </div>
@@ -223,7 +223,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
             </div>
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #1E3A5F', display: 'flex', gap: 8 }}>
               <button onClick={handleLoadStarter} disabled={pending}
-                style={{ flex: 1, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+                style={{ flex: 1, background: '#2DD4BF', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
                 {pending ? 'Loading…' : 'Load all 10 questions'}
               </button>
               <button onClick={() => setShowPreview(false)}

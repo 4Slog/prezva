@@ -100,7 +100,7 @@ export default async function MeetPage({ params }: Props) {
             flexShrink: 0,
             padding: '6px 14px',
             borderRadius: 6,
-            background: '#ef4444',
+            background: 'var(--pz-error)',
             color: '#fff',
             fontSize: 13,
             fontWeight: 600,

@@ -36,8 +36,8 @@ interface Props {
 const STATUS_COLOR: Record<string, string> = {
   upcoming: 'var(--pz-muted)',
   in_progress: 'var(--pz-teal)',
-  done: '#22C55E',
-  skipped: '#EF4444',
+  done: 'var(--pz-success-fill)',
+  skipped: 'var(--pz-error)',
 }
 
 const EMPTY_FORM = {
@@ -123,7 +123,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
       </div>
 
       {error && (
-        <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 12 }}>{error}</p>
+        <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{error}</p>
       )}
 
       {showForm && (
@@ -225,7 +225,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
         items.map(item => (
           <div key={item.id} style={{
             display: 'flex', gap: 12, padding: '0.875rem',
-            background: item.status === 'in_progress' ? 'var(--pz-teal, #00BFA6)1a' : 'var(--pz-surface)',
+            background: item.status === 'in_progress' ? 'var(--pz-teal, #2DD4BF)1a' : 'var(--pz-surface)',
             borderRadius: 10, marginBottom: 8,
             border: `1px solid ${item.status === 'in_progress' ? 'var(--pz-teal)' : 'var(--pz-border)'}`,
           }}>
@@ -265,14 +265,14 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                 <>
                   <button onClick={() => handleStatus(item.id, 'done')}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6,
-                             border: '1px solid #22C55E', background: 'transparent',
-                             color: '#22C55E', cursor: 'pointer' }}>
+                             border: '1px solid var(--pz-success-fill)', background: 'transparent',
+                             color: 'var(--pz-success-fill)', cursor: 'pointer' }}>
                     ✓ Done
                   </button>
                   <button onClick={() => handleStatus(item.id, 'skipped')}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6,
-                             border: '1px solid #EF4444', background: 'transparent',
-                             color: '#EF4444', cursor: 'pointer' }}>
+                             border: '1px solid var(--pz-error)', background: 'transparent',
+                             color: 'var(--pz-error)', cursor: 'pointer' }}>
                     ↷ Skip
                   </button>
                 </>

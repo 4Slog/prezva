@@ -83,7 +83,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
     setQuantities(prev => ({ ...prev, [ticketId]: val }))
   }
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
 
   async function applyDiscount() {
@@ -171,7 +171,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
               const disabled = soldOut || unpaidUnavailable
               const selected = selectedTicket?.id === t.id
               return (
-                <div key={t.id} className={`pz-card p-4 transition-all ${disabled ? 'opacity-50' : ''} ${selected ? 'border-[#00BFA6] pz-glow-teal' : ''}`}>
+                <div key={t.id} className={`pz-card p-4 transition-all ${disabled ? 'opacity-50' : ''} ${selected ? 'border-[#2DD4BF] pz-glow-teal' : ''}`}>
                   <button
                     type="button"
                     disabled={disabled}
@@ -182,13 +182,13 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                       <div>
                         <p className="font-medium text-[#F0F4F8]">{t.name}</p>
                         {t.description && <p className="text-xs text-[#94A3B8] mt-0.5">{t.description}</p>}
-                        {soldOut && <p className="text-xs text-[#EF4444] mt-1">Sold out</p>}
+                        {soldOut && <p className="text-xs text-[var(--pz-error)] mt-1">Sold out</p>}
                         {!soldOut && unpaidUnavailable && (
-                          <p className="text-xs text-[#F59E0B] mt-1">Payment not yet configured for this event</p>
+                          <p className="text-xs text-[var(--pz-warning-fill)] mt-1">Payment not yet configured for this event</p>
                         )}
                       </div>
                       <div className="text-right ml-4 flex-shrink-0">
-                        <p className="font-bold text-[#00BFA6]">{fmtPrice(t.price_cents, t.currency)}</p>
+                        <p className="font-bold text-[#2DD4BF]">{fmtPrice(t.price_cents, t.currency)}</p>
                         {t.quantity !== null && (
                           <p className="text-xs text-[#64748B]">
                             {t.quantity - t.quantity_sold} left
@@ -204,7 +204,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                         <button
                           type="button"
                           onClick={() => setQty(t.id, Math.max(1, getQty(t.id) - 1))}
-                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors flex items-center justify-center text-sm"
+                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors flex items-center justify-center text-sm"
                         >−</button>
                         <span className="w-8 text-center text-[#F0F4F8] font-medium">{getQty(t.id)}</span>
                         <button
@@ -213,7 +213,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                             const maxQty = Math.min(10, t.quantity !== null ? t.quantity - t.quantity_sold : 10)
                             setQty(t.id, Math.min(maxQty, getQty(t.id) + 1))
                           }}
-                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors flex items-center justify-center text-sm"
+                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors flex items-center justify-center text-sm"
                         >+</button>
                       </div>
                       {t.price_cents > 0 && getQty(t.id) > 1 && (
@@ -361,9 +361,9 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                     {checkingCode ? '…' : 'Apply'}
                   </button>
                 </div>
-                {discountError && <p className="mt-1 text-xs text-[#EF4444]">{discountError}</p>}
+                {discountError && <p className="mt-1 text-xs text-[var(--pz-error)]">{discountError}</p>}
                 {discount && (
-                  <p className="mt-1 text-xs text-[#22C55E]">
+                  <p className="mt-1 text-xs text-[var(--pz-success-fill)]">
                     ✓ Discount applied — saving {fmtPrice(discount.discountAmountCents, selectedTicket.currency)}
                   </p>
                 )}
@@ -378,14 +378,14 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                 <span>{fmtPrice(selectedTicket.price_cents * selectedQty, selectedTicket.currency)}</span>
               </div>
               {discount && (
-                <div className="flex justify-between text-sm text-[#22C55E] mb-1">
+                <div className="flex justify-between text-sm text-[var(--pz-success-fill)] mb-1">
                   <span>Discount ({discount.code}){selectedQty > 1 ? ` × ${selectedQty}` : ''}</span>
                   <span>−{fmtPrice(discount.discountAmountCents * selectedQty, selectedTicket.currency)}</span>
                 </div>
               )}
               <div className="border-t border-[#1E3A5F] mt-2 pt-2 flex justify-between font-semibold text-[#F0F4F8]">
                 <span>Total</span>
-                <span className="text-[#00BFA6]">{fmtPrice(finalPrice, selectedTicket.currency)}</span>
+                <span className="text-[#2DD4BF]">{fmtPrice(finalPrice, selectedTicket.currency)}</span>
               </div>
             </div>
 
@@ -410,9 +410,9 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   type="checkbox"
                   name="sms_opt_in"
                   defaultChecked={false}
-                  className="mt-0.5 flex-shrink-0 accent-[#00BFA6]"
+                  className="mt-0.5 flex-shrink-0 accent-[#2DD4BF]"
                 />
-                <span className="text-xs leading-relaxed" style={{ color: 'var(--pz-text-muted)' }}>
+                <span className="text-xs leading-relaxed" style={{ color: 'var(--pz-muted)' }}>
                   Text me event updates. I agree to receive recurring automated SMS messages from Prezva about this event (session reminders, schedule changes, and check-in confirmations) at the number above. Consent is not a condition of registration. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. We will not share your mobile information with third parties for promotional or marketing purposes. See our{' '}
                   <a href="/privacy" className="underline" style={{ color: 'var(--pz-teal)' }}>Privacy Policy</a>{' '}and{' '}
                   <a href="/terms" className="underline" style={{ color: 'var(--pz-teal)' }}>Terms</a>.
@@ -421,7 +421,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
             </div>
 
             {error && (
-              <p className="rounded-lg bg-[#EF4444]/10 px-4 py-3 text-sm text-[#EF4444]">{error}</p>
+              <p className="rounded-lg bg-[var(--pz-error)]/10 px-4 py-3 text-sm text-[var(--pz-error)]">{error}</p>
             )}
 
             <button

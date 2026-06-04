@@ -81,7 +81,7 @@ export default async function AdminRevenuePage() {
         {stats.map(s => (
           <div key={s.label} className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-5">
             <p className="text-xs text-[#64748B] mb-1">{s.label}</p>
-            <p className={`text-2xl font-bold ${'positive' in s ? (s.positive ? 'text-[#00BFA6]' : 'text-red-400') : 'text-[#F0F4F8]'}`}>{s.value}</p>
+            <p className={`text-2xl font-bold ${'positive' in s ? (s.positive ? 'text-[#2DD4BF]' : 'text-red-400') : 'text-[#F0F4F8]'}`}>{s.value}</p>
           </div>
         ))}
       </div>

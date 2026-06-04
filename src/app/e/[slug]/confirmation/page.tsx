@@ -158,8 +158,8 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                 </>
               )}
               {previousCount > 0 && (
-                <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'var(--pz-teal, #00BFA6)15', borderRadius: 10, border: '1px solid rgba(0,191,166,0.27)', textAlign: 'center' }}>
-                  <p style={{ fontSize: 14, color: 'var(--pz-teal, #00BFA6)', fontWeight: 600, margin: 0 }}>
+                <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'var(--pz-teal, #2DD4BF)15', borderRadius: 10, border: '1px solid rgba(0,191,166,0.27)', textAlign: 'center' }}>
+                  <p style={{ fontSize: 14, color: 'var(--pz-teal, #2DD4BF)', fontWeight: 600, margin: 0 }}>
                     Welcome back! 👋
                   </p>
                   <p style={{ fontSize: 13, color: 'var(--pz-muted, #94A3B8)', margin: '4px 0 0' }}>
@@ -227,7 +227,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     {showAppleWallet && (
                       <a
                         href={`/api/passes/apple/${reg.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors"
                       >
                         Add to Apple Wallet
                       </a>
@@ -235,7 +235,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     {showGoogleWallet && (
                       <a
                         href={`/api/passes/google/${reg.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors"
                       >
                         Add to Google Wallet
                       </a>

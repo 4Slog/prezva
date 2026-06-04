@@ -144,13 +144,13 @@ export default async function EventDetailPage({ params }: Props) {
           <Link
             href={`/e/${slug}`}
             target="_blank"
-            className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors"
+            className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF]/40 transition-colors"
           >
             Preview ↗
           </Link>
           <Link
             href={`/events/${slug}/settings`}
-            className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors"
+            className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF]/40 transition-colors"
           >
             Settings
           </Link>
@@ -162,8 +162,8 @@ export default async function EventDetailPage({ params }: Props) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
         {[
           { label: 'Confirmed',   value: counts.confirmed,  color: 'text-[#F0F4F8]' },
-          { label: 'Checked In',  value: counts.checkedIn,  color: 'text-[#00BFA6]' },
-          { label: 'Not Arrived', value: notArrived,        color: 'text-[#F59E0B]' },
+          { label: 'Checked In',  value: counts.checkedIn,  color: 'text-[#2DD4BF]' },
+          { label: 'Not Arrived', value: notArrived,        color: 'text-[var(--pz-warning-fill)]' },
           { label: 'Total Regs',  value: counts.total,      color: 'text-[#F0F4F8]' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">

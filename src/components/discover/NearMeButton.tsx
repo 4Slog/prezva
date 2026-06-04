@@ -49,7 +49,7 @@ export function NearMeButton() {
       >
         {loading ? 'Getting location...' : isActive ? 'Near me (50mi)' : 'Near me'}
       </button>
-      {error && <span style={{ fontSize: 12, color: '#EF4444' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, color: 'var(--pz-error)' }}>{error}</span>}
     </div>
   )
 }

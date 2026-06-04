@@ -35,7 +35,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
 
   const inputCls = 'w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
   const inputStyle = { background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)' }
-  const labelStyle = { color: 'var(--pz-text-muted)' }
+  const labelStyle = { color: 'var(--pz-muted)' }
 
   function handleTicketChange(ticketTypeId: string) {
     const ticket = tickets.find(t => t.id === ticketTypeId)
@@ -123,7 +123,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
         {/* Payment section — only show for paid tickets */}
         {isPaidTicket && (
           <div className="rounded-lg p-3 space-y-3" style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)' }}>
-            <p className="text-xs font-medium" style={{ color: 'var(--pz-text-muted)' }}>PAYMENT</p>
+            <p className="text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>PAYMENT</p>
             <div>
               <label className="block text-sm font-medium mb-1" style={labelStyle}>Payment method</label>
               <select
@@ -142,7 +142,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
                   Amount received (USD)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--pz-text-muted)' }}>$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--pz-muted)' }}>$</span>
                   <input
                     type="number"
                     min="0"
@@ -153,13 +153,13 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
                     style={{ ...inputStyle, paddingLeft: '1.75rem' }}
                   />
                 </div>
-                <p className="text-xs mt-1" style={{ color: 'var(--pz-text-muted)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--pz-muted)' }}>
                   Ticket price: ${((selectedTicket?.price_cents ?? 0) / 100).toFixed(2)}
                 </p>
               </div>
             )}
             {form.paymentMethod === 'comp' && (
-              <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>
+              <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                 Complimentary — attendee will be registered at no charge.
               </p>
             )}

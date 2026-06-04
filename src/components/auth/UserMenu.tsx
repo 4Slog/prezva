@@ -83,7 +83,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
             )}
             <div
               className="text-xs truncate"
-              style={{ color: "var(--pz-text-muted)" }}
+              style={{ color: "var(--pz-muted)" }}
               title={email}
             >
               {email}

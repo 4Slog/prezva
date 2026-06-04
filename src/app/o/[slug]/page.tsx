@@ -114,7 +114,7 @@ export default async function PublicOrgPage({ params }: Props) {
                         </span>
                         {e.status === 'live' && (
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px',
-                                         borderRadius: 20, background: '#EF444422', color: '#EF4444' }}>
+                                         borderRadius: 20, background: '#EF444422', color: 'var(--pz-error)' }}>
                             LIVE NOW
                           </span>
                         )}

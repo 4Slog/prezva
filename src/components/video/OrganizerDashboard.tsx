@@ -140,7 +140,7 @@ export default function OrganizerDashboard({ sessionId, isLive }: Props) {
                     flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px',
                     borderRadius: 5, border: '1px solid #1E3A5F',
                     background: pushingId === q.id ? '#1E3A5F' : 'transparent',
-                    color: pushingId === q.id ? '#00BFA6' : '#94A3B8',
+                    color: pushingId === q.id ? '#2DD4BF' : '#94A3B8',
                     cursor: pushingId === q.id ? 'default' : 'pointer',
                     whiteSpace: 'nowrap',
                   }}

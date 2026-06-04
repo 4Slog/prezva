@@ -62,7 +62,7 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-medium text-[#F0F4F8]">{row.displayName}</p>
             {row.hasVerifyMembership && row.isConnected && (
-              <span className="text-xs rounded-full px-2 py-0.5 bg-[#00BFA6]/20 text-[#00BFA6]">
+              <span className="text-xs rounded-full px-2 py-0.5 bg-[#2DD4BF]/20 text-[#2DD4BF]">
                 Membership verification active
               </span>
             )}
@@ -101,7 +101,7 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
             <form action={`/api/integrations/${row.provider}/disconnect`} method="POST">
               <input type="hidden" name="orgId" value={orgId} />
               <input type="hidden" name="returnTo" value={`/orgs/${orgSlug}/integrations`} />
-              <button type="submit" className="rounded-lg border border-[#EF4444]/30 px-3 py-1.5 text-xs text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
+              <button type="submit" className="rounded-lg border border-[var(--pz-error)]/30 px-3 py-1.5 text-xs text-[var(--pz-error)] hover:bg-[var(--pz-error)]/10 transition-colors">
                 Disconnect
               </button>
             </form>

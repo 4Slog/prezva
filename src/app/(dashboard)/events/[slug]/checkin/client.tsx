@@ -301,7 +301,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
                 ...(lastResult.success
                   ? lastResult.registration?.already_checked_in
                     ? { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#FCD34D' }
-                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: '#00BFA6' }
+                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: '#2DD4BF' }
                   : { background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#FCA5A5' }),
               }}
             >

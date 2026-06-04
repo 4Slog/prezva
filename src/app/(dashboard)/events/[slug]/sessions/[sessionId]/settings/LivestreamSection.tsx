@@ -97,7 +97,7 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
           />
           <div style={{
             width: 40, height: 22, borderRadius: 11,
-            background: isConfigured ? 'var(--pz-teal, #00BFA6)' : '#334155',
+            background: isConfigured ? 'var(--pz-teal, #2DD4BF)' : '#334155',
             transition: 'background 0.2s',
           }} />
           <div style={{
@@ -123,7 +123,7 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
       )}
 
       {error && (
-        <p style={{ fontSize: 13, color: '#ef4444', marginTop: 12 }}>{error}</p>
+        <p style={{ fontSize: 13, color: 'var(--pz-error)', marginTop: 12 }}>{error}</p>
       )}
 
       {isConfigured && !loading && (
@@ -145,7 +145,7 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
                   title="Copy RTMP URL"
                   style={{
                     padding: '6px 8px', borderRadius: 6, border: '1px solid #1E3A5F',
-                    background: '#112240', color: copiedUrl ? '#00BFA6' : '#94A3B8',
+                    background: '#112240', color: copiedUrl ? '#2DD4BF' : '#94A3B8',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0,
                   }}
                 >
@@ -185,7 +185,7 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
                       title="Copy stream key"
                       style={{
                         padding: '6px 8px', borderRadius: 6, border: '1px solid #1E3A5F',
-                        background: '#112240', color: copiedKey ? '#00BFA6' : '#94A3B8',
+                        background: '#112240', color: copiedKey ? '#2DD4BF' : '#94A3B8',
                         cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0,
                       }}
                     >

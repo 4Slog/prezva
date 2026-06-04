@@ -28,7 +28,7 @@ export function SaveAsTemplateButton({ eventId, defaultName }: Props) {
 
   if (saved) {
     return (
-      <span className="rounded-lg border px-4 py-2 text-sm font-medium" style={{ borderColor: 'rgba(0,191,166,0.4)', color: '#00BFA6' }}>
+      <span className="rounded-lg border px-4 py-2 text-sm font-medium" style={{ borderColor: 'rgba(0,191,166,0.4)', color: '#2DD4BF' }}>
         Saved as template!
       </span>
     )
@@ -40,7 +40,7 @@ export function SaveAsTemplateButton({ eventId, defaultName }: Props) {
         type="button"
         onClick={handleClick}
         disabled={saving}
-        className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors disabled:opacity-50"
+        className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF]/40 transition-colors disabled:opacity-50"
       >
         {saving ? 'Saving…' : 'Save as template'}
       </button>

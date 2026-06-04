@@ -97,7 +97,7 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
     onImported()
   }
 
-  const confidenceColor = (c: number) => c >= 1 ? '#00BFA6' : c >= 0.8 ? '#F59E0B' : '#94A3B8'
+  const confidenceColor = (c: number) => c >= 1 ? '#2DD4BF' : c >= 0.8 ? 'var(--pz-warning-fill)' : '#94A3B8'
   const confidenceLabel = (c: number) => c >= 1 ? 'Exact match' : c >= 0.8 ? 'Synonym match' : 'Partial match'
 
   return (
@@ -108,7 +108,7 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
           <button onClick={onClose} className="text-[#64748B] hover:text-[#94A3B8] text-lg">✕</button>
         </div>
 
-        {error && <p className="mb-3 text-sm text-[#EF4444] bg-[#EF4444]/10 rounded-lg px-3 py-2">{error}</p>}
+        {error && <p className="mb-3 text-sm text-[var(--pz-error)] bg-[var(--pz-error)]/10 rounded-lg px-3 py-2">{error}</p>}
 
         {step === 'upload' && (
           <div className="text-center py-8">
@@ -142,7 +142,7 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
                   <select
                     value={columnMap[h] ?? ''}
                     onChange={e => setColumnMap(prev => ({ ...prev, [h]: e.target.value }))}
-                    className="flex-1 rounded border border-[#1E3A5F] bg-[#0D1B2A] px-2 py-1 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none"
+                    className="flex-1 rounded border border-[#1E3A5F] bg-[#0D1B2A] px-2 py-1 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none"
                   >
                     <option value="">— skip —</option>
                     {SESSION_FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
@@ -189,7 +189,7 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
 
         {step === 'done' && (
           <div className="text-center py-6">
-            <p className="text-[#00BFA6] font-semibold mb-2">Import complete</p>
+            <p className="text-[#2DD4BF] font-semibold mb-2">Import complete</p>
             <p className="text-sm text-[#94A3B8]">{imported} session{imported !== 1 ? 's' : ''} added to the agenda.</p>
             <button onClick={onClose} className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
               Close
@@ -289,14 +289,14 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
                     <div key={p.id} className="rounded-lg border border-[var(--border)] p-3 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium text-[var(--text-primary)]">{p.question}</p>
-                        {p.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-[#00BFA6]/20 text-[#00BFA6] shrink-0">Active</span>}
+                        {p.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] shrink-0">Active</span>}
                         {p.closed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] shrink-0">Closed</span>}
                       </div>
                       {p.options.map((opt: string, i: number) => (
                         <div key={i} className="flex items-center gap-2 text-sm">
                           <div className="flex-1 h-5 rounded bg-[var(--bg-subtle)] overflow-hidden">
                             <div
-                              className="h-full bg-[#00BFA6]/40 transition-all"
+                              className="h-full bg-[#2DD4BF]/40 transition-all"
                               style={{ width: p.totalVotes > 0 ? `${(p.voteCounts[i] / p.totalVotes) * 100}%` : '0%' }}
                             />
                           </div>
@@ -307,7 +307,7 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
                       <p className="text-xs text-[var(--text-muted)]">{p.totalVotes} vote{p.totalVotes !== 1 ? 's' : ''}</p>
                       <div className="flex gap-2 flex-wrap">
                         {!p.is_active && !p.closed_at && (
-                          <button onClick={() => activatePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[#00BFA6] text-[#00BFA6] hover:bg-[#00BFA6]/10">Activate</button>
+                          <button onClick={() => activatePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[#2DD4BF] text-[#2DD4BF] hover:bg-[#2DD4BF]/10">Activate</button>
                         )}
                         {p.is_active && (
                           <button onClick={() => closePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Close</button>
@@ -447,7 +447,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
           <div className="flex gap-2">
             <button
               onClick={() => setShowImport(true)}
-              className="px-3 py-2 text-sm border border-[#1E3A5F] text-[#94A3B8] rounded-lg hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+              className="px-3 py-2 text-sm border border-[#1E3A5F] text-[#94A3B8] rounded-lg hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors"
             >
               Import CSV
             </button>

@@ -40,7 +40,7 @@ export default function CancelRegistrationButton({ registrationId, eventTitle, i
     <>
       <button
         onClick={() => setOpen(true)}
-        style={{ fontSize: 12, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+        style={{ fontSize: 12, color: 'var(--pz-error)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
       >
         Cancel registration
       </button>
@@ -53,11 +53,11 @@ export default function CancelRegistrationButton({ registrationId, eventTitle, i
               Cancel your registration for <strong style={{ color: '#F0F4F8' }}>{eventTitle}</strong>?
             </p>
             {isPaid && (
-              <p style={{ fontSize: 13, color: '#F59E0B', marginBottom: 20 }}>
+              <p style={{ fontSize: 13, color: 'var(--pz-warning-fill)', marginBottom: 20 }}>
                 For paid tickets, refunds are processed per the organizer&apos;s policy. You will receive a cancellation request confirmation.
               </p>
             )}
-            {error && <p style={{ fontSize: 13, color: '#EF4444', marginBottom: 12 }}>{error}</p>}
+            {error && <p style={{ fontSize: 13, color: 'var(--pz-error)', marginBottom: 12 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setOpen(false)}
@@ -69,7 +69,7 @@ export default function CancelRegistrationButton({ registrationId, eventTitle, i
               <button
                 onClick={handleConfirm}
                 disabled={loading}
-                style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+                style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--pz-error)', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
               >
                 {loading ? 'Cancelling…' : 'Yes, cancel'}
               </button>

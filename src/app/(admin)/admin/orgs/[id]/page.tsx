@@ -36,7 +36,7 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
           ) : org.suspended ? (
             <span className="px-3 py-1 rounded-full text-xs bg-yellow-900/40 text-yellow-400">Suspended</span>
           ) : (
-            <span className="px-3 py-1 rounded-full text-xs bg-[#00BFA6]/10 text-[#00BFA6]">Active</span>
+            <span className="px-3 py-1 rounded-full text-xs bg-[#2DD4BF]/10 text-[#2DD4BF]">Active</span>
           )}
           {!org.deleted_at && (
             <div className="flex gap-2">

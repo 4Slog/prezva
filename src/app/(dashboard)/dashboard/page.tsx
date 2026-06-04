@@ -116,11 +116,11 @@ export default async function DashboardPage({ searchParams }: Props) {
     <div>
       {impersonateOrg && (
         <div className="mb-6 rounded-lg px-4 py-3 flex items-center justify-between"
-          style={{ background: '#F59E0B22', border: '1px solid #F59E0B' }}>
-          <span className="text-sm font-medium" style={{ color: '#F59E0B' }}>
+          style={{ background: '#F59E0B22', border: '1px solid var(--pz-warning-fill)' }}>
+          <span className="text-sm font-medium" style={{ color: 'var(--pz-warning-fill)' }}>
             You are viewing as owner of {impersonateOrg.name} (Support mode)
           </span>
-          <Link href="/admin/impersonate/exit" className="text-sm underline" style={{ color: '#F59E0B' }}>
+          <Link href="/admin/impersonate/exit" className="text-sm underline" style={{ color: 'var(--pz-warning-fill)' }}>
             Exit impersonation
           </Link>
         </div>

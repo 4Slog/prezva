@@ -29,7 +29,7 @@ export function MeetingResponsePanel({ requestId, requesterName, message, propos
   if (status === 'accepted') {
     return (
       <div style={{ marginTop: 12, padding: '10px 14px', background: '#22c55e22', border: '1px solid #22c55e44', borderRadius: 8 }}>
-        <p style={{ color: '#22c55e', fontSize: 13, fontWeight: 500 }}>Accepted ✓</p>
+        <p style={{ color: 'var(--pz-success-fill)', fontSize: 13, fontWeight: 500 }}>Accepted ✓</p>
       </div>
     )
   }
@@ -93,7 +93,7 @@ export function MeetingResponsePanel({ requestId, requesterName, message, propos
           <button
             onClick={() => respond('accepted')}
             disabled={busy}
-            style={{ flex: 1, background: '#22c55e22', color: '#22c55e', border: '1px solid #22c55e44', borderRadius: 6, padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            style={{ flex: 1, background: '#22c55e22', color: 'var(--pz-success-fill)', border: '1px solid #22c55e44', borderRadius: 6, padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
             ✓ Accept
           </button>
@@ -107,7 +107,7 @@ export function MeetingResponsePanel({ requestId, requesterName, message, propos
           <button
             onClick={() => respond('declined')}
             disabled={busy}
-            style={{ flex: 1, background: '#ef444422', color: '#ef4444', border: '1px solid #ef444433', borderRadius: 6, padding: '8px 0', fontSize: 12, cursor: 'pointer' }}
+            style={{ flex: 1, background: '#ef444422', color: 'var(--pz-error)', border: '1px solid #ef444433', borderRadius: 6, padding: '8px 0', fontSize: 12, cursor: 'pointer' }}
           >
             ✗ Decline
           </button>

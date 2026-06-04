@@ -26,7 +26,7 @@ export default async function AdminVerifyPage() {
         }}
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#00BFA6' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#2DD4BF' }}>
             Prezva Admin
           </span>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: '#F0F4F8', margin: '0.5rem 0 0.25rem' }}>

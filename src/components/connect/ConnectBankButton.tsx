@@ -26,25 +26,25 @@ const STATUS_CONFIG = {
     label:  'Connect Stripe account',
     detail: 'Connect your Stripe account to enable paid ticket sales',
     dot:    'pz-dot-warning',
-    text:   'text-[#F59E0B]',
+    text:   'text-[var(--pz-warning-fill)]',
   },
   pending: {
     label:  'Finish setup',
     detail: 'Complete your Stripe onboarding to accept payments',
     dot:    'pz-dot-warning',
-    text:   'text-[#F59E0B]',
+    text:   'text-[var(--pz-warning-fill)]',
   },
   restricted: {
     label:  'Action required',
     detail: 'Your account has restrictions — review required',
     dot:    'pz-dot-offline',
-    text:   'text-[#EF4444]',
+    text:   'text-[var(--pz-error)]',
   },
   active: {
     label:  'Payouts active',
     detail: 'Ticket payments go directly to your Stripe account',
     dot:    'pz-dot-online',
-    text:   'text-[#22C55E]',
+    text:   'text-[var(--pz-success-fill)]',
   },
 }
 
@@ -140,7 +140,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
             )}
             {requirementsDue.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs text-[#F59E0B]">
+                <p className="text-xs text-[var(--pz-warning-fill)]">
                   {requirementsDue.length} requirement{requirementsDue.length > 1 ? 's' : ''} pending
                 </p>
                 <button
@@ -160,7 +160,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
                     <button
                       onClick={handleCompleteInStripe}
                       disabled={linkPending}
-                      className="mt-2 text-xs font-medium text-[#00BFA6] hover:text-[#00DDB8] transition-colors disabled:opacity-50"
+                      className="mt-2 text-xs font-medium text-[#2DD4BF] hover:text-[#00DDB8] transition-colors disabled:opacity-50"
                     >
                       {linkPending ? 'Redirecting…' : 'Complete in Stripe →'}
                     </button>
@@ -169,7 +169,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
               </div>
             )}
             {!!status.requirementsCount && requirementsDue.length === 0 && (
-              <p className="text-xs text-[#F59E0B] mt-1">
+              <p className="text-xs text-[var(--pz-warning-fill)] mt-1">
                 {status.requirementsCount} requirement{status.requirementsCount > 1 ? 's' : ''} pending
               </p>
             )}
@@ -181,7 +181,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
             <button
               onClick={handleDashboard}
               disabled={pending}
-              className="rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors disabled:opacity-50"
+              className="rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF]/40 transition-colors disabled:opacity-50"
             >
               {pending ? '…' : 'Stripe dashboard ↗'}
             </button>

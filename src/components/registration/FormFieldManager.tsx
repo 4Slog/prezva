@@ -26,7 +26,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
 
 const OPTION_TYPES = ['select', 'radio', 'checkbox']
 
-const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
 const labelCls = 'mb-1 block text-xs font-medium text-[#94A3B8]'
 
 interface Props {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { CheckCircle } from 'lucide-react'
 
 interface Props {
@@ -26,10 +26,9 @@ export default function CEProgressBar({ ceCredits, sessionDurationSeconds, onPro
     })
   }, [sessionDurationSeconds, onProgress])
 
-  // Expose addSeconds so the parent (live page) can wire LivePlayer.onProgress → here
-  // by passing the callback down. We attach it to the component ref via forwardRef pattern
-  // but since the parent controls wiring, we export the addSeconds as a named export too.
-  ;(CEProgressBar as any)._addSeconds = addSeconds
+  useEffect(() => {
+    (CEProgressBar as any)._addSeconds = addSeconds
+  }, [addSeconds])
 
   const threshold = sessionDurationSeconds * 0.8
   const barPct = threshold > 0 ? Math.min(100, (watchedSeconds / threshold) * 100) : 0

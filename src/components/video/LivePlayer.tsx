@@ -67,7 +67,7 @@ export default function LivePlayer({
           pointerEvents: 'none',
         }}>
           <span style={{
-            width: 8, height: 8, borderRadius: '50%', background: '#ef4444',
+            width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)',
             animation: 'livePulse 1.4s ease-in-out infinite',
           }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>LIVE</span>

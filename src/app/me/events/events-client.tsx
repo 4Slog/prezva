@@ -109,7 +109,7 @@ export default function MyEventsClient({ groups, active }: Props) {
                         {reg.ticket_types.name}
                       </span>
                     )}
-                    <span style={{ fontSize: 11, background: reg.status === 'confirmed' ? '#22c55e22' : 'var(--pz-border)', color: reg.status === 'confirmed' ? '#22c55e' : 'var(--pz-muted)', padding: '2px 8px', borderRadius: 4, fontWeight: 500, textTransform: 'capitalize' }}>
+                    <span style={{ fontSize: 11, background: reg.status === 'confirmed' ? '#22c55e22' : 'var(--pz-border)', color: reg.status === 'confirmed' ? 'var(--pz-success-fill)' : 'var(--pz-muted)', padding: '2px 8px', borderRadius: 4, fontWeight: 500, textTransform: 'capitalize' }}>
                       {reg.status}
                     </span>
                     {canTransfer && (
@@ -196,7 +196,7 @@ export default function MyEventsClient({ groups, active }: Props) {
                       style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
                     />
                   </div>
-                  {err && <p style={{ color: '#ef4444', fontSize: 12 }}>{err}</p>}
+                  {err && <p style={{ color: 'var(--pz-error)', fontSize: 12 }}>{err}</p>}
                   <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                     <button type="button" onClick={closeTransfer} style={{ flex: 1, background: 'transparent', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontSize: 13 }}>
                       Cancel

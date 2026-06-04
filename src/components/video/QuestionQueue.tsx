@@ -160,8 +160,8 @@ export default function QuestionQueue({ sessionId, eventId, isOrganizer, userId 
                       style={{
                         display: 'flex', alignItems: 'center', gap: 3,
                         fontSize: 11, padding: '2px 8px', borderRadius: 4,
-                        border: '1px solid #22C55E', background: 'transparent',
-                        color: '#22C55E', cursor: 'pointer',
+                        border: '1px solid var(--pz-success-fill)', background: 'transparent',
+                        color: 'var(--pz-success-fill)', cursor: 'pointer',
                       }}
                     >
                       <Check size={11} /> Mark answered
@@ -179,7 +179,7 @@ export default function QuestionQueue({ sessionId, eventId, isOrganizer, userId 
                 </>
               )}
               {q.answered_at && (
-                <span style={{ fontSize: 11, color: '#22C55E', fontWeight: 600 }}>✓ Answered</span>
+                <span style={{ fontSize: 11, color: 'var(--pz-success-fill)', fontWeight: 600 }}>✓ Answered</span>
               )}
             </div>
           </div>

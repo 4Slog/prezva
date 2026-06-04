@@ -150,7 +150,7 @@ export function ContextSwitcher({ currentContext, contexts, isSuperAdmin = false
                     width: 8,
                     height: 8,
                     borderRadius: '50%',
-                    background: '#F59E0B',
+                    background: 'var(--pz-warning-fill)',
                     flexShrink: 0,
                   }}
                 />

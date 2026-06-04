@@ -92,7 +92,7 @@ export function PreferencesClient({ initial }: { initial: (Prefs & { user_id?: s
         ))}
       </Section>
 
-      {error && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
       <button
         onClick={handleSave}

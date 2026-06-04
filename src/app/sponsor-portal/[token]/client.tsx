@@ -21,8 +21,8 @@ interface Props {
 
 const TIER_COLOR: Record<string, string> = { title: '#7c3aed', gold: '#D97706', silver: '#6B7280', bronze: '#92400E' }
 const QUALITY_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  hot:  { bg: '#ef444422', color: '#ef4444', label: 'Hot' },
-  warm: { bg: '#f59e0b22', color: '#f59e0b', label: 'Warm' },
+  hot:  { bg: '#ef444422', color: 'var(--pz-error)', label: 'Hot' },
+  warm: { bg: '#f59e0b22', color: 'var(--pz-warning-fill)', label: 'Warm' },
   cold: { bg: '#3b82f622', color: '#3b82f6', label: 'Cold' },
 }
 const QUALITY_CYCLE: Record<string, 'hot' | 'warm' | 'cold'> = { hot: 'warm', warm: 'cold', cold: 'hot' }
@@ -147,7 +147,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
 
   const tabStyle = (active: boolean) => ({
     padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-    background: active ? 'var(--color-teal, #00BFA6)' : 'transparent',
+    background: active ? 'var(--color-teal, #2DD4BF)' : 'transparent',
     color: active ? '#0D1B2A' : 'var(--pz-muted, #94A3B8)',
   })
 
@@ -188,7 +188,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
               <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)', marginBottom: 16 }}>Sponsor Information</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
                 {sponsor.website_url && (
-                  <div><p style={{ fontSize: 11, color: 'var(--pz-muted, #94A3B8)', marginBottom: 2 }}>Website</p><a href={sponsor.website_url} target="_blank" rel="noreferrer" style={{ color: '#00BFA6', fontSize: 14 }}>{sponsor.website_url}</a></div>
+                  <div><p style={{ fontSize: 11, color: 'var(--pz-muted, #94A3B8)', marginBottom: 2 }}>Website</p><a href={sponsor.website_url} target="_blank" rel="noreferrer" style={{ color: '#2DD4BF', fontSize: 14 }}>{sponsor.website_url}</a></div>
                 )}
                 {sponsor.contact_email && (
                   <div><p style={{ fontSize: 11, color: 'var(--pz-muted, #94A3B8)', marginBottom: 2 }}>Contact</p><p style={{ fontSize: 14 }}>{sponsor.contact_email}</p></div>
@@ -201,7 +201,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                 <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)', marginBottom: 16 }}>Materials</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {(sponsor.materials as any[]).map((m, i) => (
-                    <a key={i} href={m.url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#00BFA6', textDecoration: 'none' }}>
+                    <a key={i} href={m.url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#2DD4BF', textDecoration: 'none' }}>
                       <Download size={14} /> {m.name ?? m.url}
                     </a>
                   ))}
@@ -216,10 +216,10 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
             {/* Analytics summary */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
               {[
-                { label: 'Hot', count: hotCount, color: '#EF4444' },
-                { label: 'Warm', count: warmCount, color: '#F59E0B' },
+                { label: 'Hot', count: hotCount, color: 'var(--pz-error)' },
+                { label: 'Warm', count: warmCount, color: 'var(--pz-warning-fill)' },
                 { label: 'Cold', count: coldCount, color: '#3B82F6' },
-                { label: 'Total', count: leads.length, color: '#00BFA6' },
+                { label: 'Total', count: leads.length, color: '#2DD4BF' },
               ].map(({ label, count, color }) => (
                 <div key={label} style={{ flex: 1, textAlign: 'center', padding: '0.75rem 0.5rem',
                                            background: 'var(--pz-surface, #112240)', borderRadius: 10,
@@ -233,7 +233,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
             {/* Scanner */}
             <div style={{ background: 'var(--pz-surface, #112240)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <QrCode size={16} style={{ color: '#00BFA6' }} />
+                <QrCode size={16} style={{ color: '#2DD4BF' }} />
                 <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text, #F0F4F8)' }}>Scan Attendee Badge</h2>
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -248,7 +248,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                 <button
                   onClick={handleScan}
                   disabled={scanning || !scanCode.trim()}
-                  style={{ background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: scanning || !scanCode.trim() ? 0.5 : 1 }}
+                  style={{ background: '#2DD4BF', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: scanning || !scanCode.trim() ? 0.5 : 1 }}
                 >
                   {scanning ? 'Scanning…' : 'Capture'}
                 </button>
@@ -261,10 +261,10 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                 style={{ width: '100%', background: '#0D1B2A', border: '1px solid #1E3A5F', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#94A3B8', outline: 'none', boxSizing: 'border-box' }}
               />
               {scanResult && (
-                <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: scanResult.ok ? '#00BFA622' : '#ef444422', border: `1px solid ${scanResult.ok ? '#00BFA6' : '#ef4444'}` }}>
+                <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: scanResult.ok ? '#00BFA622' : '#ef444422', border: `1px solid ${scanResult.ok ? '#2DD4BF' : 'var(--pz-error)'}` }}>
                   {scanResult.ok
-                    ? <p style={{ fontSize: 13, color: '#00BFA6', fontWeight: 600 }}>Captured: {scanResult.attendee_name}</p>
-                    : <p style={{ fontSize: 13, color: '#ef4444' }}>{scanResult.error}</p>
+                    ? <p style={{ fontSize: 13, color: '#2DD4BF', fontWeight: 600 }}>Captured: {scanResult.attendee_name}</p>
+                    : <p style={{ fontSize: 13, color: 'var(--pz-error)' }}>{scanResult.error}</p>
                   }
                 </div>
               )}
@@ -281,7 +281,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                   <button
                     onClick={handleExport}
                     disabled={exporting}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#00BFA6', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exporting ? 0.6 : 1 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#2DD4BF', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: exporting ? 0.6 : 1 }}
                   >
                     <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
                   </button>
@@ -358,7 +358,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: 'var(--pz-surface, #112240)', borderRadius: 10,
                                            padding: '1rem', border: '1px solid var(--pz-border, #1E3A5F)' }}>
-                  <p style={{ fontSize: 24, fontWeight: 800, color: '#00BFA6', margin: '0 0 4px' }}>
+                  <p style={{ fontSize: 24, fontWeight: 800, color: '#2DD4BF', margin: '0 0 4px' }}>
                     {value}
                   </p>
                   <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>{label}</p>
@@ -390,8 +390,8 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
             <button
               onClick={() => handleExport()}
               style={{ marginTop: 4, width: '100%', padding: '0.75rem', borderRadius: 10,
-                       border: '1px solid #00BFA6', background: 'transparent',
-                       color: '#00BFA6', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                       border: '1px solid #2DD4BF', background: 'transparent',
+                       color: '#2DD4BF', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
               {exporting ? 'Exporting…' : 'Export leads as CSV'}
             </button>
             {exportNote && (
@@ -438,7 +438,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
                 onClick={handleSaveInfo}
                 disabled={infoSaving}
                 style={{ padding: '0.75rem', borderRadius: 8, border: 'none',
-                         background: '#00BFA6', color: '#0D1B2A', fontWeight: 700,
+                         background: '#2DD4BF', color: '#0D1B2A', fontWeight: 700,
                          fontSize: 14, cursor: infoSaving ? 'default' : 'pointer',
                          opacity: infoSaving ? 0.7 : 1, marginTop: 4 }}
               >

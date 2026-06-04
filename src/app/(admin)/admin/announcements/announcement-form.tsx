@@ -31,12 +31,12 @@ export function AnnouncementForm() {
   return (
     <div className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-6 space-y-4">
       {result && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#00BFA622', border: '1px solid #00BFA6' }}>
-          <span className="text-[#00BFA6] font-medium">Sent to {result.sent} org owner{result.sent !== 1 ? 's' : ''}</span>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#00BFA622', border: '1px solid #2DD4BF' }}>
+          <span className="text-[#2DD4BF] font-medium">Sent to {result.sent} org owner{result.sent !== 1 ? 's' : ''}</span>
         </div>
       )}
       {error && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#EF444422', border: '1px solid #EF4444' }}>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#EF444422', border: '1px solid var(--pz-error)' }}>
           <span className="text-red-400">{error}</span>
         </div>
       )}
@@ -46,7 +46,7 @@ export function AnnouncementForm() {
           value={subject}
           onChange={e => setSubject(e.target.value)}
           placeholder="Email subject..."
-          className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+          className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#2DD4BF]"
         />
       </div>
       <div>
@@ -56,14 +56,14 @@ export function AnnouncementForm() {
           onChange={e => setMessage(e.target.value)}
           placeholder="Your announcement..."
           rows={8}
-          className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6] resize-y"
+          className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#2DD4BF] resize-y"
         />
       </div>
       <button
         onClick={handleSend}
         disabled={sending || !subject.trim() || !message.trim()}
         className="px-5 py-2 rounded-lg text-sm font-bold text-[#0D1B2A] disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ background: '#00BFA6' }}
+        style={{ background: '#2DD4BF' }}
       >
         {sending ? 'Sending...' : 'Send to all org owners'}
       </button>

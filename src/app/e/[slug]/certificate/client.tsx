@@ -84,7 +84,7 @@ export function CertificateClient({ eventId }: { eventId: string }) {
   if (status === 'error') {
     return (
       <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '2rem', textAlign: 'center' }}>
-        <p style={{ fontSize: 14, color: '#ef4444' }}>Something went wrong. Please try again later.</p>
+        <p style={{ fontSize: 14, color: 'var(--pz-error)' }}>Something went wrong. Please try again later.</p>
       </div>
     )
   }

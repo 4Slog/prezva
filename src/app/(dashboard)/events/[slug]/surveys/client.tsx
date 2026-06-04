@@ -8,7 +8,7 @@ import type { SurveyTemplate } from '@/lib/templates/types'
 
 interface Survey { id: string; title: string; description: string | null; status: string; created_at: string }
 
-const STATUS_COLOR: Record<string, string> = { draft: '#6b7280', active: '#059669', closed: '#7c3aed' }
+const STATUS_COLOR: Record<string, string> = { draft: '#6b7280', active: 'var(--pz-success)', closed: '#7c3aed' }
 
 function extractGFormId(input: string): string {
   const match = input.match(/\/forms\/d\/([a-zA-Z0-9_-]+)/)
@@ -140,7 +140,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
           onClose={() => setShowPicker(false)}
         />
       )}
-      {importMsg && <p style={{ color: '#059669', fontSize: 14, marginBottom: '1rem' }}>{importMsg}</p>}
+      {importMsg && <p style={{ color: 'var(--pz-success)', fontSize: 14, marginBottom: '1rem' }}>{importMsg}</p>}
       {!showCreate && (
         <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
           <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
@@ -177,11 +177,11 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
         <form onSubmit={handleCreate} style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
           <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>New Survey</h2>
           {templateQuestions && templateQuestions.length > 0 && (
-            <p style={{ color: '#059669', fontSize: 13, marginBottom: '0.75rem' }}>
+            <p style={{ color: 'var(--pz-success)', fontSize: 13, marginBottom: '0.75rem' }}>
               Template loaded — {templateQuestions.length} question{templateQuestions.length !== 1 ? 's' : ''} will be added automatically.
             </p>
           )}
-          {error && <p style={{ color: '#ef4444', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
+          {error && <p style={{ color: 'var(--pz-error)', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
             <input name="title" required defaultValue={titleDefault} placeholder="Survey title..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
             <textarea name="description" rows={2} defaultValue={descDefault} placeholder="Optional description..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical' }} />
@@ -207,7 +207,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                     <span style={{ fontSize: 11, fontWeight: 600, background: color + '22', color, padding: '2px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{s.status}</span>
                   </div>
                   {s.description && <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>{s.description}</p>}
-                  {sendMsg[s.id] && <p style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>{sendMsg[s.id]}</p>}
+                  {sendMsg[s.id] && <p style={{ fontSize: 12, color: 'var(--pz-success)', marginTop: 4 }}>{sendMsg[s.id]}</p>}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <NextLink
@@ -216,7 +216,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                   >
                     <Pencil size={12} /> Edit Questions
                   </NextLink>
-                  {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#059669', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
+                  {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-success)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
                   {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
                   {isPublished && (
                     <button

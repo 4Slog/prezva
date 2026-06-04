@@ -32,7 +32,7 @@ export default async function AdminOrgsPage({ searchParams }: {
             name="search"
             defaultValue={search}
             placeholder="Search by name…"
-            className="bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6] w-56"
+            className="bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#2DD4BF] w-56"
           />
           <button type="submit" className="px-3 py-2 rounded-lg bg-[#1E3A5F] text-sm text-[#F0F4F8] hover:bg-[#2A4F7A]">Search</button>
         </form>
@@ -57,12 +57,12 @@ export default async function AdminOrgsPage({ searchParams }: {
                     ? <span className="px-2 py-0.5 rounded-full text-xs bg-red-900/40 text-red-400">Deleted</span>
                     : org.suspended
                     ? <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-900/40 text-yellow-400">Suspended</span>
-                    : <span className="px-2 py-0.5 rounded-full text-xs bg-[#00BFA6]/10 text-[#00BFA6]">Active</span>
+                    : <span className="px-2 py-0.5 rounded-full text-xs bg-[#2DD4BF]/10 text-[#2DD4BF]">Active</span>
                   }
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    <Link href={`/admin/orgs/${org.id}`} className="text-xs text-[#00BFA6] hover:underline">View</Link>
+                    <Link href={`/admin/orgs/${org.id}`} className="text-xs text-[#2DD4BF] hover:underline">View</Link>
                     <Link href={`/admin/impersonate/${org.slug}`} style={{ fontSize: 12, color: 'var(--pz-teal)' }} className="hover:underline">View as owner</Link>
                     {!org.suspended && !org.deleted_at && (
                       <form action={`/api/admin/orgs/${org.id}/suspend`} method="POST">
@@ -80,7 +80,7 @@ export default async function AdminOrgsPage({ searchParams }: {
         <div className="flex gap-2 justify-center">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
             <Link key={p} href={`?page=${p}${search ? `&search=${search}` : ''}`}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm ${p === page ? 'bg-[#00BFA6] text-[#0D1B2A]' : 'bg-[#1E3A5F] text-[#94A3B8] hover:bg-[#2A4F7A]'}`}>
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm ${p === page ? 'bg-[#2DD4BF] text-[#0D1B2A]' : 'bg-[#1E3A5F] text-[#94A3B8] hover:bg-[#2A4F7A]'}`}>
               {p}
             </Link>
           ))}

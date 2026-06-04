@@ -34,10 +34,7 @@ export default function LiveRoom({
   const [spotlightedIdentity, setSpotlightedIdentity] = useState<string | null>(null)
 
   useEffect(() => {
-    if (directToken) {
-      setToken(directToken)
-      return
-    }
+    if (directToken) return
     if (!sessionId) return
     fetch('/api/video/token', {
       method: 'POST',
@@ -58,7 +55,7 @@ export default function LiveRoom({
   if (tokenError) {
     return (
       <div style={placeholderStyle}>
-        <p style={{ color: '#ef4444', fontSize: 14 }}>{tokenError}</p>
+        <p style={{ color: 'var(--pz-error)', fontSize: 14 }}>{tokenError}</p>
       </div>
     )
   }

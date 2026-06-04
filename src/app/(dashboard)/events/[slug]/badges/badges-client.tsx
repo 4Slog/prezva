@@ -135,8 +135,8 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
 
   return (
     <div className="space-y-6">
-      {error && <p className="text-sm text-[#EF4444] bg-[#EF4444]/10 rounded-lg px-3 py-2">{error}</p>}
-      {success && <p className="text-sm text-[#00BFA6] bg-[#00BFA6]/10 rounded-lg px-3 py-2">{success}</p>}
+      {error && <p className="text-sm text-[var(--pz-error)] bg-[var(--pz-error)]/10 rounded-lg px-3 py-2">{error}</p>}
+      {success && <p className="text-sm text-[#2DD4BF] bg-[#2DD4BF]/10 rounded-lg px-3 py-2">{success}</p>}
 
       {/* Event templates */}
       <section>
@@ -149,7 +149,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
-                style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+                style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-muted)' }}
               >
                 Print all attendees
               </a>
@@ -200,7 +200,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-70"
-                      style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+                      style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-muted)' }}
                     >
                       Preview
                     </a>
@@ -217,7 +217,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     <button
                       onClick={() => handleSaveToOrg(t.id)}
                       disabled={saving === t.id}
-                      className="text-xs text-[#00BFA6] hover:underline disabled:opacity-50"
+                      className="text-xs text-[#2DD4BF] hover:underline disabled:opacity-50"
                     >
                       {saving === t.id ? 'Saving…' : 'Save to org library'}
                     </button>
@@ -227,7 +227,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                         <button
                           onClick={() => handleDelete(t.id)}
                           disabled={deleting === t.id}
-                          className="text-xs text-[#EF4444] hover:underline disabled:opacity-50"
+                          className="text-xs text-[var(--pz-error)] hover:underline disabled:opacity-50"
                         >
                           {deleting === t.id ? 'Deleting…' : 'Yes'}
                         </button>
@@ -241,7 +241,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     ) : (
                       <button
                         onClick={() => setConfirmDelete(t.id)}
-                        className="text-xs text-[#EF4444] hover:underline opacity-50 hover:opacity-100"
+                        className="text-xs text-[var(--pz-error)] hover:underline opacity-50 hover:opacity-100"
                       >
                         Delete
                       </button>
@@ -286,7 +286,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                         <button
                           onClick={() => handleDeleteOrg(t.id)}
                           disabled={deletingOrg === t.id}
-                          className="text-xs text-[#EF4444] hover:underline disabled:opacity-50"
+                          className="text-xs text-[var(--pz-error)] hover:underline disabled:opacity-50"
                         >
                           {deletingOrg === t.id ? 'Deleting…' : 'Yes'}
                         </button>
@@ -300,7 +300,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     ) : (
                       <button
                         onClick={() => setConfirmDeleteOrg(t.id)}
-                        className="text-xs text-[#EF4444] hover:underline opacity-50 hover:opacity-100"
+                        className="text-xs text-[var(--pz-error)] hover:underline opacity-50 hover:opacity-100"
                       >
                         Delete
                       </button>
@@ -324,7 +324,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
             <button
               onClick={addRule}
               className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
-              style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text-muted)' }}
+              style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-muted)' }}
             >
               + Add rule
             </button>
@@ -393,7 +393,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
 
                   <button
                     onClick={() => removeRule(i)}
-                    className="text-xs text-[#EF4444] hover:underline opacity-60 hover:opacity-100 ml-auto"
+                    className="text-xs text-[var(--pz-error)] hover:underline opacity-60 hover:opacity-100 ml-auto"
                   >
                     Remove
                   </button>

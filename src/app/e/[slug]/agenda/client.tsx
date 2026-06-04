@@ -108,7 +108,7 @@ function LivePollCard({ poll, userId, registrationId }: { poll: LivePoll; userId
 }
 const COLORS: Record<string,string> = {
   keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
-  panel:'#059669', break:'#6b7280', networking:'#db2777', other:'#64748b'
+  panel:'var(--pz-success)', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
 
 function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: string; eventId: string; userId: string }) {
@@ -375,7 +375,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                           href={s.virtual_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ fontSize:12, background:'#00BFA6', color:'#0D1B2A', padding:'6px 12px', borderRadius:6, fontWeight:700, textDecoration:'none' }}
+                          style={{ fontSize:12, background:'#2DD4BF', color:'#0D1B2A', padding:'6px 12px', borderRadius:6, fontWeight:700, textDecoration:'none' }}
                         >
                           Join session
                         </a>

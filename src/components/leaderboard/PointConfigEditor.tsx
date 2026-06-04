@@ -86,8 +86,8 @@ export function PointConfigEditor({ eventId, initialConfig }: PointConfigEditorP
         >
           {saving ? 'Saving…' : 'Save point values'}
         </button>
-        {saved && <span style={{ fontSize: 12, color: '#22C55E' }}>Saved</span>}
-        {error && <span style={{ fontSize: 12, color: '#EF4444' }}>{error}</span>}
+        {saved && <span style={{ fontSize: 12, color: 'var(--pz-success-fill)' }}>Saved</span>}
+        {error && <span style={{ fontSize: 12, color: 'var(--pz-error)' }}>{error}</span>}
       </div>
     </div>
   )

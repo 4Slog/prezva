@@ -36,14 +36,14 @@ export function VerifyForm({ email }: { email: string }) {
             color: '#F0F4F8',
             padding: '10px 12px',
             background: '#0D1B2A',
-            border: `1px solid ${state?.error ? '#EF4444' : '#1E3A5F'}`,
+            border: `1px solid ${state?.error ? 'var(--pz-error)' : '#1E3A5F'}`,
             borderRadius: 8,
             outline: 'none',
             boxSizing: 'border-box',
           }}
         />
         {state?.error && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#EF4444' }}>{state.error}</p>
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--pz-error)' }}>{state.error}</p>
         )}
       </div>
 
@@ -54,7 +54,7 @@ export function VerifyForm({ email }: { email: string }) {
           padding: '10px 0',
           borderRadius: 8,
           border: 'none',
-          background: pending ? '#0A4A3F' : '#00BFA6',
+          background: pending ? '#0A4A3F' : '#2DD4BF',
           color: '#0D1B2A',
           fontWeight: 700,
           fontSize: 14,

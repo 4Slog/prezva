@@ -100,7 +100,7 @@ export default async function CertificatesPage({ params }: Props) {
           style={{
             marginLeft: 'auto',
             background: (event as any).certificate_enabled ? '#00BFA620' : 'var(--pz-border)',
-            color: (event as any).certificate_enabled ? '#00BFA6' : 'var(--pz-muted)',
+            color: (event as any).certificate_enabled ? '#2DD4BF' : 'var(--pz-muted)',
             borderRadius: '20px',
             padding: '2px 10px',
             fontSize: '12px',
@@ -165,7 +165,7 @@ export default async function CertificatesPage({ params }: Props) {
                     <span
                       style={{
                         background: '#00BFA620',
-                        color: '#00BFA6',
+                        color: '#2DD4BF',
                         borderRadius: '20px',
                         padding: '1px 8px',
                         fontSize: '11px',

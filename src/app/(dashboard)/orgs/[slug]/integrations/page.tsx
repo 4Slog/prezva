@@ -9,10 +9,10 @@ import { IntegrationsClient } from './integrations-client'
 type Props = { params: Promise<{ slug: string }> }
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  connected: { label: 'Connected', bg: '#00BFA6', color: '#0D1B2A' },
+  connected: { label: 'Connected', bg: '#2DD4BF', color: '#0D1B2A' },
   available: { label: 'Not connected', bg: '#1E3A5F', color: '#94A3B8' },
-  awaiting_credentials: { label: 'Needs setup', bg: '#F59E0B', color: '#0D1B2A' },
-  error: { label: 'Error', bg: '#EF4444', color: '#fff' },
+  awaiting_credentials: { label: 'Needs setup', bg: 'var(--pz-warning-fill)', color: '#0D1B2A' },
+  error: { label: 'Error', bg: 'var(--pz-error)', color: '#fff' },
 }
 
 const SECTION_MAP: Record<string, string> = {

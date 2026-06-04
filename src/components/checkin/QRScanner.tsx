@@ -144,10 +144,10 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
       }}>
         {state === 'denied' && (
           <div style={{
-            background: '#EF444415', border: '1px solid #EF4444',
+            background: '#EF444415', border: '1px solid var(--pz-error)',
             borderRadius: 8, padding: '0.75rem', marginBottom: '1rem'
           }}>
-            <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-error)', margin: 0 }}>
               Camera access was denied. You can enter the attendee QR code manually below,
               or enable camera access in your browser settings and refresh.
             </p>

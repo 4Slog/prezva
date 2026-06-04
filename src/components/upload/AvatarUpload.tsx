@@ -28,7 +28,7 @@ export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
       >
         {avatarUrl
           ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--pz-text-muted)' }}>👤</div>
+          : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--pz-muted)' }}>👤</div>
         }
       </div>
       <div>
@@ -45,8 +45,8 @@ export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
             disabled={uploading}
           />
         </label>
-        <p className="text-xs mt-1" style={{ color: 'var(--pz-text-muted)' }}>JPEG, PNG or WebP, max 2MB</p>
-        {error && <p className="text-xs text-[#EF4444] mt-1">{error}</p>}
+        <p className="text-xs mt-1" style={{ color: 'var(--pz-muted)' }}>JPEG, PNG or WebP, max 2MB</p>
+        {error && <p className="text-xs text-[var(--pz-error)] mt-1">{error}</p>}
       </div>
       <input type="hidden" name="avatar_url" value={avatarUrl} />
     </div>

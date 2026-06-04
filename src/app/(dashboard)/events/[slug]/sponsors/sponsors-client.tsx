@@ -157,7 +157,7 @@ function SponsorForm({
       </div>
 
       {error && (
-        <p style={{ fontSize: 13, color: 'var(--pz-error, #ef4444)' }}>{error}</p>
+        <p style={{ fontSize: 13, color: 'var(--pz-error, var(--pz-error))' }}>{error}</p>
       )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -410,7 +410,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                               {inviteStatus[sp.id] === 'sending' ? 'Sending…' : inviteStatus[sp.id] === 'sent' ? '✓ Sent' : 'Send portal link'}
                             </button>
                             {inviteStatus[sp.id] && inviteStatus[sp.id] !== 'sending' && inviteStatus[sp.id] !== 'sent' && (
-                              <span style={{ fontSize: 11, color: '#ef4444' }}>{inviteStatus[sp.id]}</span>
+                              <span style={{ fontSize: 11, color: 'var(--pz-error)' }}>{inviteStatus[sp.id]}</span>
                             )}
                           </div>
                         ) : null}
@@ -429,7 +429,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                         <button
                           onClick={() => handleDelete(sp.id)}
                           disabled={deletingId === sp.id || pending}
-                          style={{ background: 'transparent', color: 'var(--pz-error, #ef4444)', border: '1px solid var(--pz-error, #ef4444)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', opacity: deletingId === sp.id ? 0.5 : 1 }}
+                          style={{ background: 'transparent', color: 'var(--pz-error, var(--pz-error))', border: '1px solid var(--pz-error, var(--pz-error))', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', opacity: deletingId === sp.id ? 0.5 : 1 }}
                         >
                           {deletingId === sp.id ? '…' : 'Delete'}
                         </button>

@@ -30,7 +30,7 @@ export default async function VolunteerSignupPage({ params }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: '#0D1B2A', color: '#fff' }}>
       <header style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '0.75rem 1.5rem' }}>
-        <a href={`/e/${slug}`} style={{ color: '#00BFA6', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+        <a href={`/e/${slug}`} style={{ color: '#2DD4BF', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
           ← Back to {event.title}
         </a>
       </header>

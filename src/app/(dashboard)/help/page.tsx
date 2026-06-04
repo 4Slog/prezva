@@ -77,7 +77,7 @@ export default function HelpPage() {
       </div>
       {SECTIONS.map((section) => (
         <div key={section.heading}>
-          <h2 className="text-xs font-semibold text-[#00BFA6] uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-[#2DD4BF] uppercase tracking-wider mb-3">
             {section.heading}
           </h2>
           <div className="space-y-2">

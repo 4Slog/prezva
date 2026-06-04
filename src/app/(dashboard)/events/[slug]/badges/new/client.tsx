@@ -76,7 +76,7 @@ export function BadgeNewClient({ eventId, eventTitle, orgId, eventSlug }: Props)
       <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--pz-text)' }}>New badge template</h1>
       <p className="text-sm mb-6" style={{ color: 'var(--pz-muted)' }}>{eventTitle}</p>
 
-      {error && <p style={{ color: '#EF4444', fontSize: 13, marginBottom: '1rem' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: '1rem' }}>{error}</p>}
 
       {showPicker ? (
         <TemplatePicker

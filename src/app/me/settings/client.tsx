@@ -87,8 +87,8 @@ export function SettingsClient({ email }: { email: string }) {
               style={inputStyle}
             />
           </div>
-          {pwError && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 10 }}>{pwError}</p>}
-          {pwStatus === 'ok' && <p style={{ color: '#22c55e', fontSize: 13, marginBottom: 10 }}>Password updated successfully.</p>}
+          {pwError && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 10 }}>{pwError}</p>}
+          {pwStatus === 'ok' && <p style={{ color: 'var(--pz-success-fill)', fontSize: 13, marginBottom: 10 }}>Password updated successfully.</p>}
           <button
             type="submit"
             disabled={isPending || !newPassword}
@@ -130,14 +130,14 @@ export function SettingsClient({ email }: { email: string }) {
           </button>
           <button
             onClick={() => setShowDelete(v => !v)}
-            style={{ padding: '8px 16px', background: 'var(--pz-bg)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+            style={{ padding: '8px 16px', background: 'var(--pz-bg)', color: 'var(--pz-error)', border: '1px solid var(--pz-error)', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
           >
             Delete account
           </button>
         </div>
         {showDelete && (
-          <div style={{ marginTop: 14, padding: '1rem', background: '#ef444411', border: '1px solid #ef4444', borderRadius: 8 }}>
-            <p style={{ fontSize: 13, color: '#ef4444', marginBottom: 8 }}>
+          <div style={{ marginTop: 14, padding: '1rem', background: '#ef444411', border: '1px solid var(--pz-error)', borderRadius: 8 }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-error)', marginBottom: 8 }}>
               Account deletion is permanent and cannot be undone. All your data will be erased.
             </p>
             <p style={{ fontSize: 13, color: 'var(--pz-muted)' }}>

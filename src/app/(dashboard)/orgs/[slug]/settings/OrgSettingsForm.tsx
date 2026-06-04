@@ -27,7 +27,7 @@ export function OrgSettingsForm({ org }: Props) {
   const [logoUrl, setLogoUrl] = useState(org.logo_url ?? '')
   const [uploading, setUploading] = useState(false)
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
 
   async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -68,7 +68,7 @@ export function OrgSettingsForm({ org }: Props) {
           {logoUrl && (
             <img src={logoUrl} alt="Logo" className="h-14 w-14 rounded-lg object-contain border border-[#1E3A5F] bg-[#0D1B2A] p-1" />
           )}
-          <label className="cursor-pointer flex items-center gap-2 rounded-lg border border-[#1E3A5F] px-3 py-2 text-sm text-[#94A3B8] hover:border-[#00BFA6] transition-colors">
+          <label className="cursor-pointer flex items-center gap-2 rounded-lg border border-[#1E3A5F] px-3 py-2 text-sm text-[#94A3B8] hover:border-[#2DD4BF] transition-colors">
             <Upload size={14} />
             {uploading ? 'Uploading…' : 'Choose file'}
             <input type="file" accept="image/*" onChange={handleLogoChange} className="sr-only" />
@@ -141,7 +141,7 @@ export function OrgSettingsForm({ org }: Props) {
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
-      {success && <p className="text-sm text-[#00BFA6]">Changes saved.</p>}
+      {success && <p className="text-sm text-[#2DD4BF]">Changes saved.</p>}
 
       <button
         type="submit"

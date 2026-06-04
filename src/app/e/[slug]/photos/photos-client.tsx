@@ -58,7 +58,7 @@ export function PhotosClient({ eventId, eventSlug, initialEntries }: Props) {
           {uploading ? 'Uploading…' : '+ Upload photo'}
           <input type="file" className="sr-only" accept="image/*" onChange={handleUpload} disabled={uploading} />
         </label>
-        {uploadError && <p style={{ fontSize: 12, color: 'var(--pz-error, #ef4444)', marginTop: 4 }}>{uploadError}</p>}
+        {uploadError && <p style={{ fontSize: 12, color: 'var(--pz-error, var(--pz-error))', marginTop: 4 }}>{uploadError}</p>}
       </div>
 
       {entries.length === 0 ? (
@@ -82,7 +82,7 @@ export function PhotosClient({ eventId, eventSlug, initialEntries }: Props) {
                   >
                     ❤️ {entry.vote_count}
                   </button>
-                  {entry.is_winner && <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>🏆 Winner</span>}
+                  {entry.is_winner && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-warning-fill)' }}>🏆 Winner</span>}
                 </div>
               </div>
             </div>

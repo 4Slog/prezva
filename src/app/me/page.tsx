@@ -439,7 +439,7 @@ function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
   if (role.kind === 'speaker') {
     const href = role.token ? `/speaker/${role.token}` : `/e/${eventSlug}`
     return (
-      <Link href={href} style={pillStyle('#F59E0B')}>
+      <Link href={href} style={pillStyle('var(--pz-warning-fill)')}>
         🎤 Speaker{role.sessionName ? ` · ${role.sessionName}` : ''}
       </Link>
     )
@@ -449,7 +449,7 @@ function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
     ? new Date(role.shiftStart).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : null
   return (
-    <Link href={href} style={pillStyle('#22C55E')}>
+    <Link href={href} style={pillStyle('var(--pz-success-fill)')}>
       🙋 Volunteer{role.role ? ` · ${role.role}` : ''}{shift ? ` · ${shift}` : ''}
     </Link>
   )

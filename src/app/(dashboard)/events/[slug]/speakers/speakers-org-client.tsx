@@ -9,9 +9,9 @@ type Props = {
 }
 
 const statusBadge: Record<string, { bg: string; label: string }> = {
-  invited:   { bg: 'var(--pz-warning, #f59e0b)',  label: 'Invited' },
+  invited:   { bg: 'var(--pz-warning, var(--pz-warning-fill))',  label: 'Invited' },
   confirmed: { bg: 'var(--pz-success)',            label: 'Confirmed' },
-  declined:  { bg: 'var(--pz-error, #ef4444)',     label: 'Declined' },
+  declined:  { bg: 'var(--pz-error, var(--pz-error))',     label: 'Declined' },
 }
 
 export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
@@ -140,7 +140,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                       </button>
                       {libResult[sp.id] && (
                         <p style={{ fontSize: 11, marginTop: 2,
-                                    color: libResult[sp.id] === 'Added!' ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+                                    color: libResult[sp.id] === 'Added!' ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>
                           {libResult[sp.id]}
                         </p>
                       )}
@@ -157,7 +157,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
       {showAdd && (
         <form onSubmit={handleAdd} className="pz-card p-4 space-y-3">
           <h3 className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>New Speaker</h3>
-          {addError && <p className="text-xs" style={{ color: 'var(--pz-error, #ef4444)' }}>{addError}</p>}
+          {addError && <p className="text-xs" style={{ color: 'var(--pz-error, var(--pz-error))' }}>{addError}</p>}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Name *</label>

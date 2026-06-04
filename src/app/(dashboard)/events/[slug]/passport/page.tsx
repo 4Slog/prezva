@@ -10,7 +10,7 @@ export default async function PassportAdminPage({ params }: Props) {
   const { getPassportAdmin } = await import('@/lib/engagement/passport-admin-actions')
   const result = await getPassportAdmin(event.id)
 
-  if ('error' in result) return <div style={{ padding: '2rem', color: '#EF4444' }}>{result.error}</div>
+  if ('error' in result) return <div style={{ padding: '2rem', color: 'var(--pz-error)' }}>{result.error}</div>
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>

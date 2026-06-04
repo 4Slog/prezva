@@ -22,7 +22,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       { day: 2, hours_offset: 0, duration: 45, type: 'keynote', title: 'Day 2 — Opening Keynote' },
     ],
     tracks: [
-      { name: 'Business Strategy', color: '#00BFA6' },
+      { name: 'Business Strategy', color: '#2DD4BF' },
       { name: 'Tech & Tools', color: '#3b82f6' },
     ],
     starter_announcements: ['welcome', 'day-of-reminder'],
@@ -131,7 +131,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     ],
     tracks: [
       { name: 'Governance', color: '#0D1B2A' },
-      { name: 'Professional Development', color: '#00BFA6' },
+      { name: 'Professional Development', color: '#2DD4BF' },
     ],
     starter_announcements: ['welcome', 'day-of-reminder', 'thank-you-and-survey'],
     starter_survey: 'annual-assoc-meeting-survey',
@@ -286,7 +286,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
       { day: 2, hours_offset: 1.5, duration: 60, type: 'panel', title: 'Panel Discussion (Live + Streamed)' },
     ],
     tracks: [
-      { name: 'In-Person Track', color: '#00BFA6' },
+      { name: 'In-Person Track', color: '#2DD4BF' },
       { name: 'Virtual Track', color: '#3b82f6' },
     ],
     starter_announcements: ['welcome', 'day-of-reminder', 'thank-you-and-survey'],

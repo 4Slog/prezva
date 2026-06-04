@@ -149,8 +149,8 @@ async function notifyAttendeesOfHandout(
       <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
         <p style="font-size:15px;">Hi ${firstName},</p>
         <p style="font-size:15px;">${orgName} has uploaded new materials for <strong style="color:#F0F4F8;">${sessionTitle}</strong> at ${eventTitle}.</p>
-        <p style="margin:16px 0;"><a href="${agendaUrl}" style="color:#00BFA6;text-decoration:none;">Download at the agenda page →</a></p>
-        <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a></p>
+        <p style="margin:16px 0;"><a href="${agendaUrl}" style="color:#2DD4BF;text-decoration:none;">Download at the agenda page →</a></p>
+        <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#2DD4BF;text-decoration:none;">Prezva</a></p>
       </div>
     </div>`
 

@@ -22,7 +22,7 @@ export default async function AdminDashboard() {
     return (
       <div style={{ padding: '2rem', maxWidth: 900 }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--pz-text)' }}>Platform Admin</h1>
-        <p style={{ color: '#EF4444' }}>{error === 'Not authorized' ? 'Access denied. Super admin only.' : error}</p>
+        <p style={{ color: 'var(--pz-error)' }}>{error === 'Not authorized' ? 'Access denied. Super admin only.' : error}</p>
       </div>
     )
   }
@@ -42,15 +42,15 @@ export default async function AdminDashboard() {
     { label: 'Organizations', value: stats.totalOrgs, sub: `+${stats.newOrgsLast30d} last 30d`, color: 'var(--pz-teal)' },
     { label: 'Total Events', value: stats.totalEvents, sub: `${stats.activeEvents} live now`, color: '#3B82F6' },
     { label: 'Registrations', value: stats.totalRegistrations.toLocaleString(), sub: `+${stats.newRegsLast30d} last 30d`, color: '#8B5CF6' },
-    { label: 'Platform Revenue', value: `$${(stats.totalRevenueCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sub: 'all time', color: '#22C55E' },
-    { label: 'Published Events', value: stats.publishedEvents, sub: 'awaiting go-live', color: '#F59E0B' },
+    { label: 'Platform Revenue', value: `$${(stats.totalRevenueCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sub: 'all time', color: 'var(--pz-success-fill)' },
+    { label: 'Published Events', value: stats.publishedEvents, sub: 'awaiting go-live', color: 'var(--pz-warning-fill)' },
     { label: 'Avg Regs / Event', value: stats.avgRegsPerEvent, sub: 'across all events', color: 'var(--pz-muted)' },
   ]
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1000 }}>
       {missingVars.length > 0 && (
-        <div style={{ border: '1px solid #EF4444', borderRadius: 10, padding: '1rem 1.25rem', background: '#FEF2F2', marginBottom: '1.5rem' }}>
+        <div style={{ border: '1px solid var(--pz-error)', borderRadius: 10, padding: '1rem 1.25rem', background: '#FEF2F2', marginBottom: '1.5rem' }}>
           <p style={{ fontWeight: 700, color: '#DC2626', fontSize: 14, margin: '0 0 8px' }}>
             {missingVars.length} production env var{missingVars.length > 1 ? 's' : ''} missing
           </p>

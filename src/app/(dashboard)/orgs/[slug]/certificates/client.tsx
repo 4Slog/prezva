@@ -32,7 +32,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
       name: 'New Template',
       is_default: list.length === 0,
       payload: {
-        accent_color: '#00BFA6',
+        accent_color: '#2DD4BF',
         title: 'Certificate of Attendance',
         body: 'This certifies that {attendee_name} attended {event_title} on {event_date} for {ce_credit_hours} CE credit hours.',
         footer: 'Issued by {org_name} | Verify at {verification_url}',
@@ -93,7 +93,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
           <div>
             <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 2 }}>{t.name}</p>
             <p style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
-              Accent: <span style={{ color: t.payload.accent_color ?? '#00BFA6' }}>{t.payload.accent_color ?? '#00BFA6'}</span>
+              Accent: <span style={{ color: t.payload.accent_color ?? '#2DD4BF' }}>{t.payload.accent_color ?? '#2DD4BF'}</span>
               {t.is_default && <span style={{ marginLeft: 8, color: 'var(--pz-teal)', fontWeight: 600 }}>Default</span>}
             </p>
           </div>
@@ -122,12 +122,12 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="color"
-                value={editing.payload?.accent_color ?? '#00BFA6'}
+                value={editing.payload?.accent_color ?? '#2DD4BF'}
                 onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, accent_color: e.target.value } }))}
                 style={{ width: 40, height: 32, border: 'none', cursor: 'pointer', background: 'none' }}
               />
               <input
-                value={editing.payload?.accent_color ?? '#00BFA6'}
+                value={editing.payload?.accent_color ?? '#2DD4BF'}
                 onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, accent_color: e.target.value } }))}
                 style={{ ...inputStyle, flex: 1 }}
               />
@@ -174,7 +174,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
             </label>
           </div>
 
-          {error && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 10 }}>{error}</p>}
+          {error && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 10 }}>{error}</p>}
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button

@@ -75,7 +75,7 @@ export default async function MyProfilePage() {
               </div>
               <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
                              background: sp.status === 'confirmed' ? 'var(--pz-teal)22' : '#F59E0B22',
-                             color: sp.status === 'confirmed' ? 'var(--pz-teal)' : '#F59E0B' }}>
+                             color: sp.status === 'confirmed' ? 'var(--pz-teal)' : 'var(--pz-warning-fill)' }}>
                 {sp.status}
               </span>
             </div>

@@ -47,7 +47,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
   const [pending, setPending]   = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
@@ -90,7 +90,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-[#64748B]">
-                  <span className="text-[#00BFA6] font-semibold">{fmtPrice(t.price_cents, t.currency)}</span>
+                  <span className="text-[#2DD4BF] font-semibold">{fmtPrice(t.price_cents, t.currency)}</span>
                   {t.quantity !== null && (
                     <span>{t.quantity_sold} / {t.quantity} sold</span>
                   )}
@@ -101,7 +101,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               <button
                 onClick={() => handleDelete(t.id)}
                 disabled={deleting === t.id}
-                className="text-xs text-[#EF4444] hover:text-red-400 disabled:opacity-50"
+                className="text-xs text-[var(--pz-error)] hover:text-red-400 disabled:opacity-50"
               >
                 {deleting === t.id ? 'Removing…' : 'Remove'}
               </button>
@@ -111,7 +111,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       )}
 
       {error && (
-        <p className="mb-4 rounded-lg bg-[#EF4444]/10 px-4 py-3 text-sm text-[#EF4444]">{error}</p>
+        <p className="mb-4 rounded-lg bg-[var(--pz-error)]/10 px-4 py-3 text-sm text-[var(--pz-error)]">{error}</p>
       )}
 
       {/* Add ticket form */}
@@ -233,7 +233,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-[#1E3A5F] px-4 py-3 text-sm text-[#64748B] hover:border-[#00BFA6]/40 hover:text-[#94A3B8] transition-colors w-full"
+          className="flex items-center gap-2 rounded-lg border border-dashed border-[#1E3A5F] px-4 py-3 text-sm text-[#64748B] hover:border-[#2DD4BF]/40 hover:text-[#94A3B8] transition-colors w-full"
         >
           <span className="text-lg">+</span>
           Add ticket type

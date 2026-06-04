@@ -125,7 +125,7 @@ export default function SurveyQuestionsClient({
       </div>
 
       {error && (
-        <p style={{ color: '#ef4444', fontSize: 13, marginBottom: '1rem' }}>{error}</p>
+        <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: '1rem' }}>{error}</p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '1.5rem' }}>
@@ -170,7 +170,7 @@ export default function SurveyQuestionsClient({
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 600 }}>
                   {q.question_text}
-                  {q.is_required && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
+                  {q.is_required && <span style={{ color: 'var(--pz-error)', marginLeft: 4 }}>*</span>}
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {QUESTION_TYPES.find(t => t.value === q.question_type)?.label ?? q.question_type}
@@ -201,7 +201,7 @@ export default function SurveyQuestionsClient({
                   borderRadius: 6,
                   padding: '4px 8px',
                   cursor: 'pointer',
-                  color: '#ef4444',
+                  color: 'var(--pz-error)',
                 }}
                 aria-label="Delete question"
               >

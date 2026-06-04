@@ -41,20 +41,20 @@ export async function POST(req: Request) {
     const slug = r.events?.slug ?? ''
     const title = r.events?.title ?? 'an event'
     const url = `${appUrl}/e/${slug}/confirmation?reg=${r.id}`
-    return `<li style="margin-bottom:8px;"><strong style="color:#F0F4F8;">${title}</strong><br/><a href="${url}" style="color:#00BFA6;font-size:13px;">${url}</a></li>`
+    return `<li style="margin-bottom:8px;"><strong style="color:#F0F4F8;">${title}</strong><br/><a href="${url}" style="color:#2DD4BF;font-size:13px;">${url}</a></li>`
   }).join('')
 
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
       <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
-        <span style="background:#00BFA6;color:#0D1B2A;font-weight:900;font-size:18px;padding:4px 10px;border-radius:6px;">P</span>
+        <span style="background:#2DD4BF;color:#0D1B2A;font-weight:900;font-size:18px;padding:4px 10px;border-radius:6px;">P</span>
         <h1 style="color:#F0F4F8;font-size:20px;margin:12px 0 0;">Your registration links</h1>
       </div>
       <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
         <p>We found the following registrations for <strong>${email}</strong>:</p>
         <ul style="padding-left:0;list-style:none;">${items}</ul>
         <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;"/>
-        <p style="color:#475569;font-size:12px;">Sent by <a href="${appUrl}" style="color:#00BFA6;">Prezva</a>. If you did not request this, ignore this email.</p>
+        <p style="color:#475569;font-size:12px;">Sent by <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>. If you did not request this, ignore this email.</p>
       </div>
     </div>
   `

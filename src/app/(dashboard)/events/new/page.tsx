@@ -80,7 +80,7 @@ export default function NewEventPage() {
     window.location.href = `/events/${result.slug}`
   }
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]'
+  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
 
   return (
@@ -120,7 +120,7 @@ export default function NewEventPage() {
         <div className="pz-card p-6 mb-6 text-center">
           <p className="text-sm text-[#94A3B8]">
             You need an organization to create events.{' '}
-            <Link href="/orgs/new" className="text-[#00BFA6] hover:underline">Create one</Link>
+            <Link href="/orgs/new" className="text-[#2DD4BF] hover:underline">Create one</Link>
           </p>
         </div>
       )}
@@ -218,7 +218,7 @@ export default function NewEventPage() {
             </div>
             <div>
               <label className={labelCls}>URL slug *</label>
-              <div className="flex rounded-lg overflow-hidden border border-[#1E3A5F] focus-within:border-[#00BFA6] focus-within:ring-1 focus-within:ring-[#00BFA6]">
+              <div className="flex rounded-lg overflow-hidden border border-[#1E3A5F] focus-within:border-[#2DD4BF] focus-within:ring-1 focus-within:ring-[#2DD4BF]">
                 <span className="bg-[#0D1B2A] border-r border-[#1E3A5F] px-3 py-2 text-sm text-[#64748B] select-none">
                   prezva.app/e/
                 </span>
@@ -341,7 +341,7 @@ export default function NewEventPage() {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-[#EF4444]/10 px-4 py-3 text-sm text-[#EF4444]">{error}</p>
+          <p className="rounded-lg bg-[var(--pz-error)]/10 px-4 py-3 text-sm text-[var(--pz-error)]">{error}</p>
         )}
 
         <button

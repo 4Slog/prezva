@@ -52,9 +52,9 @@ export default async function AttendeeDetailPage({ params }: Props) {
     iso ? new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : null
 
   const statusColor: Record<string, string> = {
-    confirmed: '#00BFA6',
-    pending: '#F59E0B',
-    cancelled: '#EF4444',
+    confirmed: '#2DD4BF',
+    pending: 'var(--pz-warning-fill)',
+    cancelled: 'var(--pz-error)',
     waitlisted: '#8B5CF6',
     refunded: '#6B7280',
   }

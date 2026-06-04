@@ -42,7 +42,7 @@ export default function SelfCheckInClient({ token }: Props) {
         <div style={{ marginBottom: '1.5rem' }}>
           <svg viewBox="0 0 120 96" width={48} height={48} style={{ margin: '0 auto' }}>
             <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
-              stroke="#00BFA6" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              stroke="#2DD4BF" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         </div>
 
@@ -57,7 +57,7 @@ export default function SelfCheckInClient({ token }: Props) {
             <button
               onClick={handleCheckIn}
               style={{
-                background: '#00BFA6', color: '#0D1B2A', border: 'none',
+                background: '#2DD4BF', color: '#0D1B2A', border: 'none',
                 borderRadius: 10, padding: '14px 32px', fontSize: 16,
                 fontWeight: 700, cursor: 'pointer', width: '100%',
               }}
@@ -77,7 +77,7 @@ export default function SelfCheckInClient({ token }: Props) {
         {state === 'done' && !result.already_checked_in && (
           <>
             <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
-            <h2 style={{ color: '#00BFA6', fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+            <h2 style={{ color: '#2DD4BF', fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
               You&apos;re checked in!
             </h2>
             {result.attendee_name && (
@@ -118,7 +118,7 @@ export default function SelfCheckInClient({ token }: Props) {
         {state === 'error' && (
           <>
             <div style={{ fontSize: 40, marginBottom: 12 }}>❌</div>
-            <h2 style={{ color: '#EF4444', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+            <h2 style={{ color: 'var(--pz-error)', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
               Check-in failed
             </h2>
             <p style={{ color: '#94A3B8', fontSize: 14 }}>

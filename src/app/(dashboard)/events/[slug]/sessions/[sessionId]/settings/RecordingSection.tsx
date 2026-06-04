@@ -50,7 +50,7 @@ function Toggle({
         />
         <div style={{
           width: 40, height: 22, borderRadius: 11,
-          background: checked ? 'var(--pz-teal, #00BFA6)' : '#334155',
+          background: checked ? 'var(--pz-teal, #2DD4BF)' : '#334155',
           transition: 'background 0.2s',
           opacity: disabled ? 0.5 : 1,
         }} />
@@ -241,7 +241,7 @@ export default function RecordingSection({
           background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
           borderRadius: 8, padding: '10px 12px', marginBottom: 16,
         }}>
-          <AlertTriangle size={15} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+          <AlertTriangle size={15} style={{ color: 'var(--pz-warning-fill)', flexShrink: 0, marginTop: 1 }} />
           <div style={{ flex: 1, fontSize: 12, color: '#d97706' }}>
             <span style={{ fontWeight: 600 }}>Recording is off</span> — the video will be deleted when the stream ends.
             Turn on recording to save it for download or attendee rewatch.
@@ -251,7 +251,7 @@ export default function RecordingSection({
               onClick={() => handleToggleRecording(true)}
               style={{
                 fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                background: '#f59e0b', color: '#000', border: 'none', cursor: 'pointer',
+                background: 'var(--pz-warning-fill)', color: '#000', border: 'none', cursor: 'pointer',
               }}
             >
               Turn on
@@ -294,7 +294,7 @@ export default function RecordingSection({
           <div style={{ borderTop: '1px solid #1E3A5F', paddingTop: 16 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 8 }}>Recording download</p>
             {downloadState === 'processing' ? (
-              <p style={{ fontSize: 12, color: '#f59e0b' }}>
+              <p style={{ fontSize: 12, color: 'var(--pz-warning-fill)' }}>
                 MP4 is still processing — check back in a few minutes.
               </p>
             ) : (
@@ -304,7 +304,7 @@ export default function RecordingSection({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 7,
-                  background: 'var(--pz-teal, #00BFA6)', color: '#0D1B2A',
+                  background: 'var(--pz-teal, #2DD4BF)', color: '#0D1B2A',
                   border: 'none', cursor: downloadState === 'loading' ? 'default' : 'pointer',
                   opacity: downloadState === 'loading' ? 0.7 : 1,
                 }}
@@ -374,14 +374,14 @@ export default function RecordingSection({
                 <p style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Uploading… {uploadProgress}%</p>
               </div>
             ) : uploadStatus === 'processing' ? (
-              <p style={{ fontSize: 12, color: '#f59e0b' }}>Processing video…</p>
+              <p style={{ fontSize: 12, color: 'var(--pz-warning-fill)' }}>Processing video…</p>
             ) : uploadStatus === 'ready' ? (
-              <p style={{ fontSize: 12, color: '#22c55e', fontWeight: 600 }}>
+              <p style={{ fontSize: 12, color: 'var(--pz-success-fill)', fontWeight: 600 }}>
                 ✓ Video ready{muxAssetPlaybackId ? ` (${muxAssetPlaybackId.slice(0, 8)}…)` : ''}
               </p>
             ) : null}
             {uploadError && (
-              <p style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{uploadError}</p>
+              <p style={{ fontSize: 12, color: 'var(--pz-error)', marginTop: 6 }}>{uploadError}</p>
             )}
           </div>
         ) : (
@@ -412,12 +412,12 @@ export default function RecordingSection({
           </div>
         )}
         {uploadStatus === 'ready' && muxAssetPlaybackId && uploadMode === 'url' && (
-          <p style={{ fontSize: 12, color: '#22c55e', fontWeight: 600, marginTop: 8 }}>
+          <p style={{ fontSize: 12, color: 'var(--pz-success-fill)', fontWeight: 600, marginTop: 8 }}>
             ✓ Video imported
           </p>
         )}
         {uploadError && uploadMode === 'url' && (
-          <p style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{uploadError}</p>
+          <p style={{ fontSize: 12, color: 'var(--pz-error)', marginTop: 6 }}>{uploadError}</p>
         )}
       </div>
 
@@ -434,7 +434,7 @@ export default function RecordingSection({
 
           {simuliveScheduledAt ? (
             <div>
-              <p style={{ fontSize: 13, color: '#22c55e', fontWeight: 600, marginBottom: 8 }}>
+              <p style={{ fontSize: 13, color: 'var(--pz-success-fill)', fontWeight: 600, marginBottom: 8 }}>
                 Scheduled for {new Date(simuliveScheduledAt).toLocaleString(undefined, {
                   dateStyle: 'medium', timeStyle: 'short',
                 })} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
@@ -444,7 +444,7 @@ export default function RecordingSection({
                 disabled={savingSchedule}
                 style={{
                   fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 6,
-                  background: 'transparent', color: '#ef4444',
+                  background: 'transparent', color: 'var(--pz-error)',
                   border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
                 }}
               >
@@ -481,7 +481,7 @@ export default function RecordingSection({
             </div>
           )}
           {scheduleError && (
-            <p style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{scheduleError}</p>
+            <p style={{ fontSize: 12, color: 'var(--pz-error)', marginTop: 6 }}>{scheduleError}</p>
           )}
 
           <div style={{

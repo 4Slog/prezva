@@ -77,7 +77,7 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
     return (
       <div style={{ background: 'rgba(0,191,166,0.1)', border: '1px solid rgba(0,191,166,0.4)', borderRadius: 12, padding: '2rem', textAlign: 'center' }}>
         <p style={{ fontSize: 24, marginBottom: 8 }}>✓</p>
-        <p style={{ fontWeight: 700, fontSize: 16, color: '#00BFA6', marginBottom: 8 }}>Application submitted!</p>
+        <p style={{ fontWeight: 700, fontSize: 16, color: '#2DD4BF', marginBottom: 8 }}>Application submitted!</p>
         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
           You&apos;ll receive an email when your assignment is confirmed.
         </p>
@@ -164,7 +164,7 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
           type="submit"
           disabled={submitting}
           style={{
-            background: '#00BFA6',
+            background: '#2DD4BF',
             color: '#0D1B2A',
             padding: '12px 28px',
             borderRadius: 8,

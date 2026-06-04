@@ -348,7 +348,7 @@ export async function sendSponsorPortalInvite(sponsorId: string) {
                <li>Export your lead list as CSV</li>
                <li>View event materials</li>
              </ul>
-             <p><a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#00BFA6;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Open sponsor portal →</a></p>
+             <p><a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#2DD4BF;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Open sponsor portal →</a></p>
              <p>Keep this link private — it provides direct access to your portal.</p>
              <p>— ${orgName}</p>`,
     }),

@@ -129,7 +129,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
           </p>
         </div>
         {!past && (
-          <span style={{ fontSize: 11, background: '#22c55e22', color: '#22c55e', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+          <span style={{ fontSize: 11, background: '#22c55e22', color: 'var(--pz-success-fill)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
             ACTIVE
           </span>
         )}

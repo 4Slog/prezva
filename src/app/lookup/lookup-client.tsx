@@ -24,7 +24,7 @@ export function LookupClient() {
     <div style={{ minHeight: '100vh', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', padding: '2rem' }}>
       <div style={{ maxWidth: 420, width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ background: '#00BFA6', width: 40, height: 40, borderRadius: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ background: '#2DD4BF', width: 40, height: 40, borderRadius: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <span style={{ color: '#0D1B2A', fontWeight: 900, fontSize: 20 }}>P</span>
           </div>
           <h1 style={{ color: '#F0F4F8', fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>Lost your registration?</h1>
@@ -33,7 +33,7 @@ export function LookupClient() {
 
         {submitted ? (
           <div style={{ background: '#112240', border: '1px solid #1E3A5F', borderRadius: 12, padding: '1.5rem', textAlign: 'center' }}>
-            <p style={{ color: '#00BFA6', fontWeight: 700, marginBottom: 8 }}>Check your inbox</p>
+            <p style={{ color: '#2DD4BF', fontWeight: 700, marginBottom: 8 }}>Check your inbox</p>
             <p style={{ color: '#94A3B8', fontSize: 14 }}>
               If we found any registrations for <strong style={{ color: '#F0F4F8' }}>{email}</strong>, we&apos;ve sent your links there.
             </p>
@@ -61,7 +61,7 @@ export function LookupClient() {
               type="submit"
               disabled={loading}
               style={{
-                background: '#00BFA6', color: '#0D1B2A', padding: '12px', borderRadius: 8,
+                background: '#2DD4BF', color: '#0D1B2A', padding: '12px', borderRadius: 8,
                 fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >

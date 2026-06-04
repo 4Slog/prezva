@@ -113,7 +113,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
                   <span style={{ fontSize: 22, flexShrink: 0 }}>{int.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)' }}>{int.name}</p>
-                    <p style={{ fontSize: 11, color: connected ? '#22c55e' : 'var(--pz-muted)', fontWeight: 600 }}>
+                    <p style={{ fontSize: 11, color: connected ? 'var(--pz-success-fill)' : 'var(--pz-muted)', fontWeight: 600 }}>
                       {connected ? '● Connected' : '○ Not connected'}
                     </p>
                   </div>
@@ -153,7 +153,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
                   </span>
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, background: '#F59E0B22', color: '#F59E0B', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, background: '#F59E0B22', color: 'var(--pz-warning-fill)', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
                 Pending carrier approval
               </span>
             </div>

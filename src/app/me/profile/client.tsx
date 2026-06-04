@@ -185,7 +185,7 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
         </label>
       </div>
 
-      {error && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
       <button
         type="submit"

@@ -49,14 +49,13 @@ export default function SimulivePlayer({
     return () => clearInterval(id)
   }, [started, scheduledMs])
 
-  // Compute start offset for late joiners
-  const startTime = (() => {
+  // Compute start offset once on mount — `Date.now()` in a lazy initializer is safe
+  const [startTime] = useState(() => {
     if (simuliveStartedAt) {
       return Math.max(0, Math.floor((Date.now() - new Date(simuliveStartedAt).getTime()) / 1000))
     }
-    // Fall back to offset from scheduled time if started_at not recorded
     return Math.max(0, Math.floor((Date.now() - scheduledMs) / 1000))
-  })()
+  })
 
   function handleTimeUpdate(e: Event) {
     const video = e.target as HTMLVideoElement
@@ -86,8 +85,8 @@ export default function SimulivePlayer({
           display: 'flex', alignItems: 'center', gap: 5,
           background: 'rgba(239,68,68,0.15)', borderRadius: 4, padding: '4px 10px',
         }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 1 }}>LIVE SOON</span>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-error)', letterSpacing: 1 }}>LIVE SOON</span>
         </div>
       </div>
     )
@@ -116,7 +115,7 @@ export default function SimulivePlayer({
         pointerEvents: 'none',
       }}>
         <span style={{
-          width: 8, height: 8, borderRadius: '50%', background: '#ef4444',
+          width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)',
           animation: 'livePulse 1.4s ease-in-out infinite',
         }} />
         <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>LIVE</span>

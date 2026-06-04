@@ -61,8 +61,8 @@ export async function transferRegistration(
           <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
             <p>Hi ${newFirstName},</p>
             <p>A ticket for <strong style="color:#F0F4F8;">${eventTitle}</strong> has been transferred to you.</p>
-            <p><a href="${confirmUrl}" style="color:#00BFA6;">View your ticket</a></p>
-            <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#00BFA6;">Prezva</a></p>
+            <p><a href="${confirmUrl}" style="color:#2DD4BF;">View your ticket</a></p>
+            <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#2DD4BF;">Prezva</a></p>
           </div>
         </div>`,
       }),
@@ -80,7 +80,7 @@ export async function transferRegistration(
           </div>
           <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
             <p>Your ticket for <strong style="color:#F0F4F8;">${eventTitle}</strong> has been transferred to ${newName}.</p>
-            <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#00BFA6;">Prezva</a></p>
+            <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#2DD4BF;">Prezva</a></p>
           </div>
         </div>`,
       }),

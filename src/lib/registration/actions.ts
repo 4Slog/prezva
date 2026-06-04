@@ -325,7 +325,7 @@ async function confirmFreeRegistration(
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
-          <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+          <div style="background:#2DD4BF;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
             <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
           </div>
           <h1 style="color:#F0F4F8;font-size:22px;margin:0;">Application received!</h1>
@@ -334,7 +334,7 @@ async function confirmFreeRegistration(
           <p style="font-size:15px;">Hi ${data.attendee_name},</p>
           <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${event.title as string}</strong> is pending approval. You'll hear from us once the organizer reviews your application.</p>
           <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
-          <p style="color:#475569;font-size:12px;margin:0;">Sent by ${orgName} via <a href="https://prezva.app" style="color:#00BFA6;text-decoration:none;">Prezva</a>.</p>
+          <p style="color:#475569;font-size:12px;margin:0;">Sent by ${orgName} via <a href="https://prezva.app" style="color:#2DD4BF;text-decoration:none;">Prezva</a>.</p>
           <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;"><a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from all emails</a></p>
         </div>
       </div>

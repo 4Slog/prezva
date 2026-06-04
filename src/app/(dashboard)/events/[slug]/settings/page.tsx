@@ -34,7 +34,7 @@ export default async function EventSettingsPage({ params }: Props) {
   const integrationMap: Record<string, string> = {}
   for (const row of integrationRows ?? []) integrationMap[row.provider] = row.status
 
-  const inputCls = `w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
+  const inputCls = `w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
   const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
 
   return (
@@ -347,8 +347,8 @@ export default async function EventSettingsPage({ params }: Props) {
       {/* Danger zone */}
 
       {!isStaff && event.status !== 'live' && (
-        <section className="rounded-lg border border-[#EF4444]/30 bg-[#EF4444]/5 p-6">
-          <h2 className="text-sm font-semibold text-[#EF4444] mb-2">Danger zone</h2>
+        <section className="rounded-lg border border-[var(--pz-error)]/30 bg-[var(--pz-error)]/5 p-6">
+          <h2 className="text-sm font-semibold text-[var(--pz-error)] mb-2">Danger zone</h2>
           <p className="text-sm text-[#94A3B8] mb-4">
             Permanently delete this event and all its data. This cannot be undone.
           </p>
@@ -360,7 +360,7 @@ export default async function EventSettingsPage({ params }: Props) {
           >
             <button
               type="submit"
-              className="rounded-lg border border-[#EF4444]/40 px-4 py-2 text-sm font-medium text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+              className="rounded-lg border border-[var(--pz-error)]/40 px-4 py-2 text-sm font-medium text-[var(--pz-error)] hover:bg-[var(--pz-error)]/10 transition-colors"
             >
               Delete event
             </button>
@@ -428,7 +428,7 @@ async function CertificateSettingsSection({
         {certTemplates.length === 0 && (
           <p className="text-xs text-[#64748B]">
             No certificate templates yet.{' '}
-            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[#00BFA6]">Create one in org settings →</a>
+            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[#2DD4BF]">Create one in org settings →</a>
           </p>
         )}
         <button

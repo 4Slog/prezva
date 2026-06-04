@@ -50,8 +50,8 @@ const STATUS_COLORS: Record<string, string> = {
   invited:    '#64748b',
   confirmed:  '#0ea5e9',
   checked_in: '#10b981',
-  no_show:    '#ef4444',
-  declined:   '#f59e0b',
+  no_show:    'var(--pz-error)',
+  declined:   'var(--pz-warning-fill)',
 }
 
 function fmtShift(start?: string | null, end?: string | null) {
@@ -63,15 +63,15 @@ function fmtShift(start?: string | null, end?: string | null) {
 }
 
 const ALERT_TYPE_COLORS: Record<string, string> = {
-  urgent:   '#EF4444',
-  issue:    '#F59E0B',
+  urgent:   'var(--pz-error)',
+  issue:    'var(--pz-warning-fill)',
   question: '#3B82F6',
   info:     '#64748B',
 }
 
 const SHIFT_RESPONSE_COLORS: Record<string, string> = {
   confirmed: '#10b981',
-  declined:  '#ef4444',
+  declined:  'var(--pz-error)',
   pending:   '#94a3b8',
 }
 
@@ -157,8 +157,8 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
       {alerts.length > 0 && (
         <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '1rem', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', margin: 0 }}>Volunteer Alerts</h2>
-            <span style={{ fontSize: 11, background: '#ef4444', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-error)', margin: 0 }}>Volunteer Alerts</h2>
+            <span style={{ fontSize: 11, background: 'var(--pz-error)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
               {alerts.length}
             </span>
           </div>
@@ -218,7 +218,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
       {showAdd && (
         <form onSubmit={handleAdd} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 16 }}>Add Volunteer</h3>
-          {err && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>{err}</p>}
+          {err && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{err}</p>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Name *</label>
@@ -341,7 +341,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                       <button onClick={() => handleAction(v.id, 'resend')}
                         style={{ fontSize: 12, color: 'var(--pz-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resend</button>
                       <button onClick={() => handleAction(v.id, 'remove')}
-                        style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
+                        style={{ fontSize: 12, color: 'var(--pz-error)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
                     </div>
                   </td>
                 </tr>

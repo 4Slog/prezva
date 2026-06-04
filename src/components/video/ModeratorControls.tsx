@@ -117,7 +117,7 @@ export default function ModeratorControls({ sessionId: _sessionId, spotlightedId
                   onClick={() => handleRemove(p.identity)}
                   disabled={removing === p.identity}
                   title="Remove participant"
-                  style={{ ...btnStyle, borderColor: '#ef4444', color: '#ef4444', opacity: removing === p.identity ? 0.5 : 1 }}
+                  style={{ ...btnStyle, borderColor: 'var(--pz-error)', color: 'var(--pz-error)', opacity: removing === p.identity ? 0.5 : 1 }}
                 >
                   <UserMinus size={11} />
                 </button>

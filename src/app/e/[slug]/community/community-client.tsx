@@ -282,7 +282,7 @@ export function CommunityClient({
                   />
                 </label>
               )}
-              {imageUploadError && <p className="text-xs text-[#EF4444] mt-1">{imageUploadError}</p>}
+              {imageUploadError && <p className="text-xs text-[var(--pz-error)] mt-1">{imageUploadError}</p>}
             </div>
           )}
 

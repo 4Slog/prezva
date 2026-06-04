@@ -59,7 +59,7 @@ export default async function AnnouncementDetailPage({ params }: Props) {
         <span
           style={{
             background: isDraft ? '#f59e0b20' : '#00BFA620',
-            color: isDraft ? '#f59e0b' : '#00BFA6',
+            color: isDraft ? 'var(--pz-warning-fill)' : '#2DD4BF',
             borderRadius: '20px',
             padding: '3px 12px',
             fontSize: '12px',

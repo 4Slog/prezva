@@ -71,7 +71,7 @@ export default function TransferButton({ registrationId, eventTitle }: Props) {
                     <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                       style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }} />
                   </div>
-                  {err && <p style={{ color: '#ef4444', fontSize: 12 }}>{err}</p>}
+                  {err && <p style={{ color: 'var(--pz-error)', fontSize: 12 }}>{err}</p>}
                   <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                     <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontSize: 13 }}>
                       Cancel

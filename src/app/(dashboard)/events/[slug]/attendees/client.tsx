@@ -346,7 +346,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
                             <div style={{
                               height: '100%',
                               width: `${s.score}%`,
-                              background: s.score >= 70 ? '#22C55E' : s.score >= 40 ? 'var(--pz-teal)' : '#F59E0B',
+                              background: s.score >= 70 ? 'var(--pz-success-fill)' : s.score >= 40 ? 'var(--pz-teal)' : 'var(--pz-warning-fill)',
                               borderRadius: 3,
                             }} />
                           </div>

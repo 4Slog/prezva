@@ -19,10 +19,10 @@ const SURFACE_LABELS: Record<TemplateSurface, string> = {
 const SURFACE_COLOR: Record<TemplateSurface, string> = {
   survey: '#3b82f6',
   badge: '#8b5cf6',
-  event: '#00BFA6',
-  announcement: '#f59e0b',
+  event: '#2DD4BF',
+  announcement: 'var(--pz-warning-fill)',
   icebreaker: '#ec4899',
-  trivia: '#ef4444',
+  trivia: 'var(--pz-error)',
   certificate: '#B8860B',
 }
 
@@ -63,7 +63,7 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {eventTemplates.map(t => (
               <div key={t.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-surface)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#00BFA622', color: '#00BFA6', flexShrink: 0, textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#00BFA622', color: '#2DD4BF', flexShrink: 0, textTransform: 'uppercase' }}>
                   Event
                 </span>
                 <div style={{ flex: 1 }}>
@@ -145,7 +145,7 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
                 <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Delete?</span>
                   <button onClick={() => handleDelete(t.id)} disabled={pending}
-                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid #ef4444', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Yes</button>
+                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-error)', background: 'transparent', color: 'var(--pz-error)', cursor: 'pointer' }}>Yes</button>
                   <button onClick={() => setDeleteId(null)}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: 'pointer' }}>No</button>
                 </span>

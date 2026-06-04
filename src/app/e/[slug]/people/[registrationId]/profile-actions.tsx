@@ -107,7 +107,7 @@ export function ProfileActions({
       </div>
 
       {videoError && (
-        <p className="text-sm" style={{ color: '#ef4444' }}>{videoError}</p>
+        <p className="text-sm" style={{ color: 'var(--pz-error)' }}>{videoError}</p>
       )}
 
       {sent && (
