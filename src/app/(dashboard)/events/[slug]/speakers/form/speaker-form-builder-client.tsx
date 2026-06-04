@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { saveSpeakerFormSchema } from '@/lib/speaker/speaker-actions'
+import { Field } from '@/components/ui/Field'
 
 type Field = { key: string; label: string; type: string; required: boolean }
 
@@ -45,26 +46,30 @@ export function SpeakerFormBuilderClient({ eventId, initialSchema }: { eventId: 
               <div className="flex-1 space-y-2">
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pz-label)' }}>Label</label>
-                    <input
-                      className="pz-input w-full text-sm"
-                      value={field.label}
-                      onChange={e => updateField(idx, { label: e.target.value })}
-                      placeholder="Field label"
-                    />
+                    <Field label="Label" htmlFor={`sfb-label-${field.key || idx}`}>
+                      <input
+                        id={`sfb-label-${field.key || idx}`}
+                        className="pz-input w-full text-sm"
+                        value={field.label}
+                        onChange={e => updateField(idx, { label: e.target.value })}
+                        placeholder="Field label"
+                      />
+                    </Field>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pz-label)' }}>Type</label>
-                    <select
-                      className="pz-input text-sm"
-                      value={field.type}
-                      onChange={e => updateField(idx, { type: e.target.value })}
-                    >
-                      <option value="text">Text</option>
-                      <option value="textarea">Textarea</option>
-                      <option value="url">URL</option>
-                      <option value="email">Email</option>
-                    </select>
+                    <Field label="Type" htmlFor={`sfb-type-${field.key || idx}`}>
+                      <select
+                        id={`sfb-type-${field.key || idx}`}
+                        className="pz-input text-sm"
+                        value={field.type}
+                        onChange={e => updateField(idx, { type: e.target.value })}
+                      >
+                        <option value="text">Text</option>
+                        <option value="textarea">Textarea</option>
+                        <option value="url">URL</option>
+                        <option value="email">Email</option>
+                      </select>
+                    </Field>
                   </div>
                 </div>
                 <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--pz-muted)' }}>

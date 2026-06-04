@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { resolveVolunteerAlert, exportVolunteerHours } from '@/lib/volunteers/actions'
+import { Field } from '@/components/ui/Field'
 
 interface Volunteer {
   id: string
@@ -220,43 +221,38 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 16 }}>Add Volunteer</h3>
           {err && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{err}</p>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Name *</label>
-              <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            <Field label="Name" htmlFor="vol-name" required>
+              <input id="vol-name" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Email *</label>
-              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            </Field>
+            <Field label="Email" htmlFor="vol-email" required>
+              <input id="vol-email" required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Phone</label>
-              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            </Field>
+            <Field label="Phone" htmlFor="vol-phone">
+              <input id="vol-phone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Role *</label>
-              <select required value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+            </Field>
+            <Field label="Role" htmlFor="vol-role" required>
+              <select id="vol-role" required value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }}>
                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Shift Start</label>
-              <input type="datetime-local" value={form.shift_start} onChange={e => setForm(f => ({ ...f, shift_start: e.target.value }))}
+            </Field>
+            <Field label="Shift Start" htmlFor="vol-shift-start">
+              <input id="vol-shift-start" type="datetime-local" value={form.shift_start} onChange={e => setForm(f => ({ ...f, shift_start: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Shift End</label>
-              <input type="datetime-local" value={form.shift_end} onChange={e => setForm(f => ({ ...f, shift_end: e.target.value }))}
+            </Field>
+            <Field label="Shift End" htmlFor="vol-shift-end">
+              <input id="vol-shift-end" type="datetime-local" value={form.shift_end} onChange={e => setForm(f => ({ ...f, shift_end: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
+            </Field>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Notes</label>
-            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
-              style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box', resize: 'vertical' }} />
+            <Field label="Notes" htmlFor="vol-notes">
+              <textarea id="vol-notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
+                style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box', resize: 'vertical' }} />
+            </Field>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="submit" disabled={saving}

@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { Field } from '@/components/ui/Field'
 
 type Props = { params: Promise<{ slug: string; id: string }> }
 
@@ -85,11 +86,9 @@ export default async function AnnouncementDetailPage({ params }: Props) {
           }}
           style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
         >
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', color: 'var(--pz-text)', marginBottom: '6px' }}>
-              Subject
-            </label>
+          <Field label="Subject" htmlFor="ann-edit-title">
             <input
+              id="ann-edit-title"
               name="title"
               required
               defaultValue={ann.title}
@@ -105,12 +104,10 @@ export default async function AnnouncementDetailPage({ params }: Props) {
                 boxSizing: 'border-box',
               }}
             />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', color: 'var(--pz-text)', marginBottom: '6px' }}>
-              Message
-            </label>
+          </Field>
+          <Field label="Message" htmlFor="ann-edit-body">
             <textarea
+              id="ann-edit-body"
               name="body"
               required
               defaultValue={ann.body}
@@ -128,12 +125,10 @@ export default async function AnnouncementDetailPage({ params }: Props) {
                 boxSizing: 'border-box',
               }}
             />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', color: 'var(--pz-text)', marginBottom: '6px' }}>
-              Channel
-            </label>
+          </Field>
+          <Field label="Channel" htmlFor="ann-edit-channel">
             <select
+              id="ann-edit-channel"
               name="channel"
               defaultValue={ann.channel}
               style={{
@@ -149,7 +144,7 @@ export default async function AnnouncementDetailPage({ params }: Props) {
               <option value="push">Push only</option>
               <option value="both">Email + Push</option>
             </select>
-          </div>
+          </Field>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               type="submit"

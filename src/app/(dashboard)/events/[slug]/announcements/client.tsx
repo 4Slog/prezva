@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { Field } from '@/components/ui/Field'
 import { Send, Trash2, Mail, Bell, BellRing, Sparkles } from 'lucide-react'
 import { createAnnouncement, deleteAnnouncement } from '@/lib/announcements/actions'
 import { draftAnnouncement } from '@/lib/announcements/ai-draft-actions'
@@ -130,9 +131,8 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
           <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>New Announcement</h2>
           {error && <p style={{ color: 'var(--pz-error)', marginBottom: '0.75rem', fontSize: 14 }}>{error}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Subject</label>
-              <input name="title" required maxLength={200} defaultValue={titleDefault} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }} />
+            <Field label="Subject" htmlFor="ann-title">
+              <input id="ann-title" name="title" required maxLength={200} defaultValue={titleDefault} placeholder="Announcement subject..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }} />
               {subjectOptions.length > 1 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   <span style={{ fontSize: 11, color: 'var(--pz-muted)', alignSelf: 'center', marginRight: 2 }}>Subject options:</span>
@@ -145,11 +145,10 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                   ))}
                 </div>
               )}
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <label style={{ fontWeight: 600, fontSize: 13 }}>Message</label>
-                {process.env.NEXT_PUBLIC_AI_DRAFTING_ENABLED !== 'false' && (
+            </Field>
+            <Field label="Message" htmlFor="ann-message">
+              {process.env.NEXT_PUBLIC_AI_DRAFTING_ENABLED !== 'false' && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
                   <button
                     type="button"
                     onClick={() => setShowAiPanel(p => !p)}
@@ -157,8 +156,8 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                   >
                     <Sparkles size={11} /> Draft with AI
                   </button>
-                )}
-              </div>
+                </div>
+              )}
               {showAiPanel && (
                 <div style={{ marginBottom: 8, padding: '0.75rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8 }}>
                   <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 6 }}>What&apos;s this announcement about?</p>
@@ -183,16 +182,15 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                   {aiError && <p style={{ fontSize: 12, color: 'var(--pz-error)', marginTop: 4 }}>{aiError}</p>}
                 </div>
               )}
-              <textarea ref={bodyRef} name="body" required maxLength={2000} rows={4} defaultValue={bodyDefault} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Channel</label>
-              <select name="channel" defaultValue={channelDefault} style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14 }}>
+              <textarea id="ann-message" ref={bodyRef} name="body" required maxLength={2000} rows={4} defaultValue={bodyDefault} placeholder="Write your message..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }} />
+            </Field>
+            <Field label="Channel" htmlFor="ann-channel">
+              <select id="ann-channel" name="channel" defaultValue={channelDefault} style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14 }}>
                 <option value="email">Email only</option>
                 <option value="push">Push only</option>
                 <option value="both">Email + Push</option>
               </select>
-            </div>
+            </Field>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
                 {isPending ? 'Sending...' : 'Send Now'}

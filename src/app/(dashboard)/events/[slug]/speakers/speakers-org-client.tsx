@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken, getOrgSpeakerLibrary, addSpeakerFromLibrary } from '@/lib/speaker/speaker-actions'
+import { Field } from '@/components/ui/Field'
 
 type Props = {
   event: any
@@ -159,30 +160,25 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
           <h3 className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>New Speaker</h3>
           {addError && <p className="text-xs" style={{ color: 'var(--pz-error, var(--pz-error))' }}>{addError}</p>}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Name *</label>
-              <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
+            <Field label="Name" htmlFor="spk-name" required>
+              <input id="spk-name" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Email</label>
-              <input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))}
+            </Field>
+            <Field label="Email" htmlFor="spk-email">
+              <input id="spk-email" value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))}
                 type="email" className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Job title</label>
-              <input value={form.job_title} onChange={e => setForm(f => ({...f, job_title: e.target.value}))}
+            </Field>
+            <Field label="Job title" htmlFor="spk-job-title">
+              <input id="spk-job-title" value={form.job_title} onChange={e => setForm(f => ({...f, job_title: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Company</label>
-              <input value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))}
+            </Field>
+            <Field label="Company" htmlFor="spk-company">
+              <input id="spk-company" value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Event role</label>
-            <select value={form.event_role} onChange={e => setForm(f => ({...f, event_role: e.target.value}))}
+          <Field label="Event role" htmlFor="spk-event-role">
+            <select id="spk-event-role" value={form.event_role} onChange={e => setForm(f => ({...f, event_role: e.target.value}))}
               className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }}>
               <option value="speaker">Speaker</option>
               <option value="mc">MC / Emcee</option>
@@ -191,12 +187,11 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
               <option value="guest">Guest</option>
               <option value="vip">VIP</option>
             </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Bio</label>
-            <textarea value={form.bio} onChange={e => setForm(f => ({...f, bio: e.target.value}))} rows={3}
+          </Field>
+          <Field label="Bio" htmlFor="spk-bio">
+            <textarea id="spk-bio" value={form.bio} onChange={e => setForm(f => ({...f, bio: e.target.value}))} rows={3}
               className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)', resize: 'vertical' }} />
-          </div>
+          </Field>
           <div className="flex gap-2 justify-end">
             <button type="submit" disabled={adding}
               className="rounded-lg px-4 py-2 text-sm font-medium"

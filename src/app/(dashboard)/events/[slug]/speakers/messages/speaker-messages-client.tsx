@@ -8,6 +8,7 @@ import {
   getSpeakersWithMissingInfo,
 } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/client'
+import { Field } from '@/components/ui/Field'
 
 type Props = {
   event: any
@@ -126,9 +127,9 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
           <div className="p-6">
             <h3 className="font-semibold mb-4" style={{ color: 'var(--pz-text)' }}>Send bulk message</h3>
             <div className="max-w-lg space-y-4">
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pz-label)' }}>Send to</label>
+              <Field label="Send to" htmlFor="bulk-send-to">
                 <select
+                  id="bulk-send-to"
                   className="pz-input w-full text-sm"
                   value={bulkFilter}
                   onChange={e => setBulkFilter(e.target.value)}
@@ -138,17 +139,17 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
                   <option value="photo">Speakers missing headshot</option>
                   <option value="form">Speakers missing form submission</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pz-label)' }}>Message</label>
+              </Field>
+              <Field label="Message" htmlFor="bulk-message">
                 <textarea
+                  id="bulk-message"
                   className="pz-input w-full text-sm"
                   rows={4}
                   value={bulkBody}
                   onChange={e => setBulkBody(e.target.value)}
                   placeholder="Type your message to speakers…"
                 />
-              </div>
+              </Field>
               <div className="flex items-center gap-3">
                 <button
                   onClick={sendBulk}

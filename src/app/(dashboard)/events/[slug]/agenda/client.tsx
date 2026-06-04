@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { Field } from '@/components/ui/Field'
 import { SessionForm } from '@/components/agenda/SessionForm'
 import { AgendaGrid } from '@/components/agenda/AgendaGrid'
 import { createSession, updateSession, deleteSession, createRoom, deleteRoom } from '@/lib/agenda/actions'
@@ -504,18 +505,18 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
               </table>
             )}
             <div className="flex gap-2 items-end pt-1">
-              <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1">Name *</label>
+              <Field label="Name" htmlFor="room-name" required>
                 <input
+                  id="room-name"
                   className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-36"
                   placeholder="e.g. Room A"
                   value={newRoomName}
                   onChange={e => setNewRoomName(e.target.value)}
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1">Capacity</label>
+              </Field>
+              <Field label="Capacity" htmlFor="room-capacity">
                 <input
+                  id="room-capacity"
                   type="number"
                   min="1"
                   className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-20"
@@ -523,16 +524,16 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
                   value={newRoomCap}
                   onChange={e => setNewRoomCap(e.target.value)}
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-1">Location hint</label>
+              </Field>
+              <Field label="Location hint" htmlFor="room-location-hint">
                 <input
+                  id="room-location-hint"
                   className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-36"
                   placeholder="e.g. 2nd floor"
                   value={newRoomHint}
                   onChange={e => setNewRoomHint(e.target.value)}
                 />
-              </div>
+              </Field>
               <button
                 onClick={handleAddRoom}
                 disabled={roomAdding || !newRoomName.trim()}

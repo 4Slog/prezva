@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { createSponsor, updateSponsor, deleteSponsor } from '@/lib/sponsors/actions'
 import { addSponsorContact, getSponsorContacts, sendSponsorPortalInvite } from '@/lib/sponsors/portal-actions'
+import { Field } from '@/components/ui/Field'
 
 type Sponsor = {
   id: string
@@ -83,68 +84,57 @@ function SponsorForm({
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-            Name *
-          </label>
+        <Field label="Name" htmlFor="sponsor-name" required>
           <input
+            id="sponsor-name"
             name="name"
             required
             defaultValue={initial?.name ?? ''}
             placeholder="Acme Corp"
             style={inputStyle}
           />
-        </div>
-        <div>
-          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-            Tier *
-          </label>
-          <select name="tier" defaultValue={initial?.tier ?? 'bronze'} style={inputStyle}>
+        </Field>
+        <Field label="Tier" htmlFor="sponsor-tier" required>
+          <select id="sponsor-tier" name="tier" defaultValue={initial?.tier ?? 'bronze'} style={inputStyle}>
             {TIERS.map(t => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
-        </div>
+        </Field>
       </div>
 
-      <div>
-        <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-          Website URL
-        </label>
+      <Field label="Website URL" htmlFor="sponsor-website-url">
         <input
+          id="sponsor-website-url"
           name="website_url"
           type="url"
           defaultValue={initial?.website_url ?? ''}
           placeholder="https://acmecorp.com"
           style={inputStyle}
         />
-      </div>
+      </Field>
 
-      <div>
-        <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-          Logo URL
-        </label>
+      <Field label="Logo URL" htmlFor="sponsor-logo-url">
         <input
+          id="sponsor-logo-url"
           name="logo_url"
           type="url"
           defaultValue={initial?.logo_url ?? ''}
           placeholder="https://cdn.acmecorp.com/logo.png"
           style={inputStyle}
         />
-      </div>
+      </Field>
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <div>
-          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-            Sort order
-          </label>
+        <Field label="Sort order" htmlFor="sponsor-sort-order">
           <input
+            id="sponsor-sort-order"
             name="sort_order"
             type="number"
             defaultValue={initial?.sort_order ?? 0}
             style={{ ...inputStyle, width: 80 }}
           />
-        </div>
+        </Field>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--pz-text)', cursor: 'pointer', marginTop: 16 }}>
           <input
             name="is_featured"
