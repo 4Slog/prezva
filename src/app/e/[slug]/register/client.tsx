@@ -83,8 +83,8 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
     setQuantities(prev => ({ ...prev, [ticketId]: val }))
   }
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
+  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   async function applyDiscount() {
     if (!selectedTicket || !discountCode.trim()) return
@@ -147,23 +147,23 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
 
         {/* Event header */}
         <div className="pz-card p-6 mb-6">
-          <h1 className="text-xl font-bold text-[#F0F4F8] mb-1">{event.title}</h1>
-          <p className="text-sm text-[#94A3B8]">
+          <h1 className="text-xl font-bold text-[var(--pz-text)] mb-1">{event.title}</h1>
+          <p className="text-sm text-[var(--pz-muted)]">
             📅 {fmtDate(event.start_at, event.timezone)}
           </p>
           {(event.venue_name || event.venue_city) && (
-            <p className="text-sm text-[#94A3B8]">
+            <p className="text-sm text-[var(--pz-muted)]">
               📍 {[event.venue_name, event.venue_city, event.venue_state].filter(Boolean).join(', ')}
             </p>
           )}
           {event.organizations && (
-            <p className="text-xs text-[#64748B] mt-2">Hosted by {event.organizations.name}</p>
+            <p className="text-xs text-[var(--pz-muted)] mt-2">Hosted by {event.organizations.name}</p>
           )}
         </div>
 
         {/* Ticket selection */}
         <div className="mb-6">
-          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">Select a ticket</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-3">Select a ticket</h2>
           <div className="flex flex-col gap-3">
             {tickets.map((t) => {
               const soldOut = t.quantity !== null && t.quantity_sold >= t.quantity
@@ -171,7 +171,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
               const disabled = soldOut || unpaidUnavailable
               const selected = selectedTicket?.id === t.id
               return (
-                <div key={t.id} className={`pz-card p-4 transition-all ${disabled ? 'opacity-50' : ''} ${selected ? 'border-[#2DD4BF] pz-glow-teal' : ''}`}>
+                <div key={t.id} className={`pz-card p-4 transition-all ${disabled ? 'opacity-50' : ''} ${selected ? 'border-[var(--pz-teal)] pz-glow-teal' : ''}`}>
                   <button
                     type="button"
                     disabled={disabled}
@@ -180,17 +180,17 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-[#F0F4F8]">{t.name}</p>
-                        {t.description && <p className="text-xs text-[#94A3B8] mt-0.5">{t.description}</p>}
+                        <p className="font-medium text-[var(--pz-text)]">{t.name}</p>
+                        {t.description && <p className="text-xs text-[var(--pz-muted)] mt-0.5">{t.description}</p>}
                         {soldOut && <p className="text-xs text-[var(--pz-error)] mt-1">Sold out</p>}
                         {!soldOut && unpaidUnavailable && (
                           <p className="text-xs text-[var(--pz-warning-fill)] mt-1">Payment not yet configured for this event</p>
                         )}
                       </div>
                       <div className="text-right ml-4 flex-shrink-0">
-                        <p className="font-bold text-[#2DD4BF]">{fmtPrice(t.price_cents, t.currency)}</p>
+                        <p className="font-bold text-[var(--pz-teal-ink)]">{fmtPrice(t.price_cents, t.currency)}</p>
                         {t.quantity !== null && (
-                          <p className="text-xs text-[#64748B]">
+                          <p className="text-xs text-[var(--pz-muted)]">
                             {t.quantity - t.quantity_sold} left
                           </p>
                         )}
@@ -198,26 +198,26 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                     </div>
                   </button>
                   {selected && !disabled && (
-                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#1E3A5F]">
-                      <span className="text-sm text-[#94A3B8]">Quantity:</span>
+                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[var(--pz-border)]">
+                      <span className="text-sm text-[var(--pz-muted)]">Quantity:</span>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setQty(t.id, Math.max(1, getQty(t.id) - 1))}
-                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors flex items-center justify-center text-sm"
+                          className="w-7 h-7 rounded border border-[var(--pz-border)] text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors flex items-center justify-center text-sm"
                         >−</button>
-                        <span className="w-8 text-center text-[#F0F4F8] font-medium">{getQty(t.id)}</span>
+                        <span className="w-8 text-center text-[var(--pz-text)] font-medium">{getQty(t.id)}</span>
                         <button
                           type="button"
                           onClick={() => {
                             const maxQty = Math.min(10, t.quantity !== null ? t.quantity - t.quantity_sold : 10)
                             setQty(t.id, Math.min(maxQty, getQty(t.id) + 1))
                           }}
-                          className="w-7 h-7 rounded border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors flex items-center justify-center text-sm"
+                          className="w-7 h-7 rounded border border-[var(--pz-border)] text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors flex items-center justify-center text-sm"
                         >+</button>
                       </div>
                       {t.price_cents > 0 && getQty(t.id) > 1 && (
-                        <span className="text-xs text-[#64748B] ml-auto">
+                        <span className="text-xs text-[var(--pz-muted)] ml-auto">
                           Subtotal: {fmtPrice(t.price_cents * getQty(t.id), t.currency)}
                         </span>
                       )}
@@ -235,13 +235,13 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
             {/* Delivery method choice (only for hybrid tickets) */}
             {selectedTicket.delivery_method === 'both' && (
               <div className="pz-card p-5">
-                <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">How will you attend?</h2>
+                <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-3">How will you attend?</h2>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
                     <input type="radio" name="delivery_method" value="in_person" checked={deliveryMethodChoice === 'in_person'} onChange={() => setDeliveryMethodChoice('in_person')} />
                     📍 In-person
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
                     <input type="radio" name="delivery_method" value="virtual" checked={deliveryMethodChoice === 'virtual'} onChange={() => setDeliveryMethodChoice('virtual')} />
                     💻 Virtual
                   </label>
@@ -251,7 +251,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
 
             {/* Attendee info */}
             <div className="pz-card p-5">
-              <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Your information</h2>
+              <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Your information</h2>
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -292,7 +292,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
               if (visible.length === 0) return null
               return (
                 <div className="pz-card p-5">
-                  <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Additional questions</h2>
+                  <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Additional questions</h2>
                   <div className="flex flex-col gap-4">
                     {visible.map(f => (
                       <div key={f.id}>
@@ -317,7 +317,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                         {f.field_type === 'radio' && f.options && (
                           <div className="flex flex-col gap-2 mt-1">
                             {f.options.map(o => (
-                              <label key={o} className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                              <label key={o} className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
                                 <input type="radio" name={`cf_${f.id}`} value={o} required={f.is_required} />
                                 {o}
                               </label>
@@ -327,7 +327,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                         {f.field_type === 'checkbox' && f.options && (
                           <div className="flex flex-col gap-2 mt-1">
                             {f.options.map(o => (
-                              <label key={o} className="flex items-center gap-2 text-sm text-[#94A3B8] cursor-pointer">
+                              <label key={o} className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
                                 <input type="checkbox" name={`cf_${f.id}`} value={o} />
                                 {o}
                               </label>
@@ -344,7 +344,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
             {/* Discount code */}
             {selectedTicket.price_cents > 0 && (
               <div className="pz-card p-5">
-                <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">Discount code</h2>
+                <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-3">Discount code</h2>
                 <div className="flex gap-2">
                   <input
                     value={discountCode}
@@ -356,7 +356,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                     type="button"
                     onClick={applyDiscount}
                     disabled={checkingCode || !discountCode.trim()}
-                    className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50"
+                    className="rounded-lg border border-[var(--pz-border)] px-4 py-2 text-sm font-medium text-[var(--pz-muted)] hover:text-[var(--pz-text)] disabled:opacity-50"
                   >
                     {checkingCode ? '…' : 'Apply'}
                   </button>
@@ -372,8 +372,8 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
 
             {/* Order summary */}
             <div className="pz-card p-5">
-              <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">Order summary</h2>
-              <div className="flex justify-between text-sm text-[#94A3B8] mb-1">
+              <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-3">Order summary</h2>
+              <div className="flex justify-between text-sm text-[var(--pz-muted)] mb-1">
                 <span>{selectedTicket.name}{selectedQty > 1 ? ` × ${selectedQty}` : ''}</span>
                 <span>{fmtPrice(selectedTicket.price_cents * selectedQty, selectedTicket.currency)}</span>
               </div>
@@ -383,9 +383,9 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   <span>−{fmtPrice(discount.discountAmountCents * selectedQty, selectedTicket.currency)}</span>
                 </div>
               )}
-              <div className="border-t border-[#1E3A5F] mt-2 pt-2 flex justify-between font-semibold text-[#F0F4F8]">
+              <div className="border-t border-[var(--pz-border)] mt-2 pt-2 flex justify-between font-semibold text-[var(--pz-text)]">
                 <span>Total</span>
-                <span className="text-[#2DD4BF]">{fmtPrice(finalPrice, selectedTicket.currency)}</span>
+                <span className="text-[var(--pz-teal-ink)]">{fmtPrice(finalPrice, selectedTicket.currency)}</span>
               </div>
             </div>
 
@@ -399,7 +399,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   className={inputCls}
                   placeholder="Enter your invite code"
                 />
-                <p className="text-xs text-[#64748B] mt-1">This event requires an invite code to register.</p>
+                <p className="text-xs text-[var(--pz-muted)] mt-1">This event requires an invite code to register.</p>
               </div>
             )}
 
@@ -410,7 +410,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   type="checkbox"
                   name="sms_opt_in"
                   defaultChecked={false}
-                  className="mt-0.5 flex-shrink-0 accent-[#2DD4BF]"
+                  className="mt-0.5 flex-shrink-0 accent-[var(--pz-teal)]"
                 />
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--pz-muted)' }}>
                   Text me event updates. I agree to receive recurring automated SMS messages from Prezva about this event (session reminders, schedule changes, and check-in confirmations) at the number above. Consent is not a condition of registration. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. We will not share your mobile information with third parties for promotional or marketing purposes. See our{' '}
@@ -428,7 +428,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
               type="submit"
               disabled={pending}
               className="rounded-lg py-3 text-sm font-bold disabled:opacity-50 transition-opacity"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {pending
                 ? 'Processing…'
@@ -437,7 +437,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   : `Pay ${fmtPrice(finalPrice, selectedTicket.currency)}`}
             </button>
 
-            <p className="text-center text-xs text-[#64748B]">
+            <p className="text-center text-xs text-[var(--pz-muted)]">
               Payments secured by Stripe. Your QR code will be emailed upon confirmation.
             </p>
           </form>
@@ -445,7 +445,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
 
         {tickets.length === 0 && (
           <div className="pz-card p-8 text-center">
-            <p className="text-[#94A3B8]">No tickets are currently available for this event.</p>
+            <p className="text-[var(--pz-muted)]">No tickets are currently available for this event.</p>
           </div>
         )}
       </div>

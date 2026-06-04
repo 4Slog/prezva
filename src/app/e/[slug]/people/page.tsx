@@ -100,7 +100,7 @@ export default async function PeoplePage({ params, searchParams }: Props) {
                   <div className="flex items-center gap-2 mb-1.5">
                     <div
                       className="rounded-full shrink-0 flex items-center justify-center text-xs font-semibold"
-                      style={{ width: 32, height: 32, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: '#0D1B2A', overflow: 'hidden' }}
+                      style={{ width: 32, height: 32, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: 'var(--pz-on-accent)', overflow: 'hidden' }}
                     >
                       {p.avatar_url ? <img src={p.avatar_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.name.charAt(0).toUpperCase()}
                     </div>

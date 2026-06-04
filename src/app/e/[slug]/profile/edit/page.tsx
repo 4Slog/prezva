@@ -142,7 +142,7 @@ export default async function ProfileEditPage({ params }: Props) {
 
           <div className="pz-card p-5">
             <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--pz-muted)' }}>
-              <input type="checkbox" name="is_visible" defaultChecked={p.is_visible !== false} className="accent-[#2DD4BF]" />
+              <input type="checkbox" name="is_visible" defaultChecked={p.is_visible !== false} className="accent-[var(--pz-teal)]" />
               Show my profile in the attendee directory
             </label>
           </div>
@@ -150,7 +150,7 @@ export default async function ProfileEditPage({ params }: Props) {
           <button
             type="submit"
             className="w-full rounded-lg px-4 py-3 text-sm font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
           >
             Save profile
           </button>

@@ -80,7 +80,7 @@ export default async function AttendeePage({ params }: Props) {
           <div className="flex items-start gap-4 mb-4">
             <div
               className="rounded-full flex items-center justify-center text-lg font-bold shrink-0"
-              style={{ width: 64, height: 64, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: '#0D1B2A', overflow: 'hidden' }}
+              style={{ width: 64, height: 64, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: 'var(--pz-on-accent)', overflow: 'hidden' }}
             >
               {p.avatar_url ? (
                 <img src={p.avatar_url} alt={r.attendee_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

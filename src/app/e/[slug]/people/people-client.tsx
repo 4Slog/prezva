@@ -64,7 +64,7 @@ export function PeopleClient({
           onClick={() => handleSearch(query)}
           disabled={searching}
           className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           {searching ? '…' : 'Search'}
         </button>
@@ -107,7 +107,7 @@ export function PeopleClient({
                     width: 40,
                     height: 40,
                     background: p.avatar_url ? undefined : 'var(--pz-teal)',
-                    color: '#0D1B2A',
+                    color: 'var(--pz-on-accent)',
                     overflow: 'hidden',
                   }}
                 >

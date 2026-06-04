@@ -71,7 +71,7 @@ export default async function MyQRPage({ params, searchParams }: Props) {
               <button
                 type="submit"
                 className="w-full py-2 rounded-lg font-semibold text-sm"
-                style={{ background: 'var(--pz-teal)', color: '#fff' }}
+                style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
               >
                 Get My QR
               </button>

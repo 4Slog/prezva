@@ -30,19 +30,19 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
 
   const inputStyle = {
     width: '100%',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'var(--pz-surface)',
+    border: '1px solid var(--pz-border)',
     borderRadius: 8,
     padding: '10px 14px',
     fontSize: 14,
-    color: '#fff',
+    color: 'var(--pz-text)',
     outline: 'none',
     boxSizing: 'border-box' as const,
   }
 
   const labelStyle = {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'var(--pz-muted)',
     display: 'block',
     marginBottom: 4,
     fontWeight: 600,
@@ -75,10 +75,10 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
 
   if (done) {
     return (
-      <div style={{ background: 'rgba(0,191,166,0.1)', border: '1px solid rgba(0,191,166,0.4)', borderRadius: 12, padding: '2rem', textAlign: 'center' }}>
+      <div style={{ background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', borderRadius: 12, padding: '2rem', textAlign: 'center' }}>
         <p style={{ fontSize: 24, marginBottom: 8 }}>✓</p>
-        <p style={{ fontWeight: 700, fontSize: 16, color: '#2DD4BF', marginBottom: 8 }}>Application submitted!</p>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+        <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--pz-teal-ink)', marginBottom: 8 }}>Application submitted!</p>
+        <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>
           You&apos;ll receive an email when your assignment is confirmed.
         </p>
       </div>
@@ -91,13 +91,13 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
         <h1 style={{ fontSize: 'clamp(1.5rem,3.5vw,2rem)', fontWeight: 800, marginBottom: 8 }}>
           Volunteer for {eventTitle}
         </h1>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: 'var(--pz-muted)', lineHeight: 1.6 }}>
           Fill out the form below to apply as a volunteer. The organizer will review your application and send your assignment details.
         </p>
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '10px 14px', color: '#fca5a5', fontSize: 13 }}>
+        <div style={{ background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)', borderRadius: 8, padding: '10px 14px', color: 'var(--pz-error)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -164,8 +164,8 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
           type="submit"
           disabled={submitting}
           style={{
-            background: '#2DD4BF',
-            color: '#0D1B2A',
+            background: 'var(--pz-teal)',
+            color: 'var(--pz-on-accent)',
             padding: '12px 28px',
             borderRadius: 8,
             fontWeight: 700,

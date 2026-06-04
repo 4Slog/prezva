@@ -78,7 +78,7 @@ export function ProfileActions({
             className="rounded-lg px-4 py-2 text-sm font-semibold"
             style={{
               background: following ? 'var(--pz-surface-2)' : 'var(--pz-teal)',
-              color: following ? 'var(--pz-muted)' : '#0D1B2A',
+              color: following ? 'var(--pz-muted)' : 'var(--pz-on-accent)',
             }}
           >
             {following ? 'Following' : 'Follow'}
@@ -143,7 +143,7 @@ export function ProfileActions({
               onClick={handleMeetingRequest}
               disabled={sending}
               className="rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {sending ? 'Sending…' : 'Send request'}
             </button>

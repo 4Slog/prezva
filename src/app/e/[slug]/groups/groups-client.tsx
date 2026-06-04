@@ -88,7 +88,7 @@ export function GroupsClient({
           <button
             onClick={() => setShowCreate(!showCreate)}
             className="w-full rounded-lg px-3 py-2 text-xs font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
           >
             + New group
           </button>
@@ -152,7 +152,7 @@ export function GroupsClient({
                     className="rounded-xl px-3 py-2 text-sm max-w-[75%]"
                     style={{
                       background: m.sender_id === userId ? 'var(--pz-teal)' : 'var(--pz-surface-2)',
-                      color: m.sender_id === userId ? '#0D1B2A' : 'var(--pz-text)',
+                      color: m.sender_id === userId ? 'var(--pz-on-accent)' : 'var(--pz-text)',
                     }}
                   >
                     {m.body}
@@ -175,7 +175,7 @@ export function GroupsClient({
                   onClick={handleSend}
                   disabled={sending || !body.trim()}
                   className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40"
-                  style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                  style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                 >
                   Send
                 </button>

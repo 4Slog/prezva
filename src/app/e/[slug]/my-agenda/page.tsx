@@ -30,7 +30,7 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             <Link
               href={`/login?next=/e/${slug}/my-agenda`}
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '0.5rem 1.25rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '0.5rem 1.25rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Sign in
             </Link>

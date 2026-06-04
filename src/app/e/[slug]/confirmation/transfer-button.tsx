@@ -43,7 +43,7 @@ export default function TransferButton({ registrationId, eventTitle }: Props) {
                 <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
                 <p style={{ color: 'var(--pz-text)', fontWeight: 600, marginBottom: 4 }}>Ticket transferred</p>
                 <p style={{ color: 'var(--pz-muted)', fontSize: 13, marginBottom: 20 }}>Confirmation emails have been sent.</p>
-                <button onClick={() => setOpen(false)} style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>
+                <button onClick={() => setOpen(false)} style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>
                   Close
                 </button>
               </div>
@@ -76,7 +76,7 @@ export default function TransferButton({ registrationId, eventTitle }: Props) {
                     <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontSize: 13 }}>
                       Cancel
                     </button>
-                    <button type="submit" disabled={busy} style={{ flex: 1, background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontSize: 13, opacity: busy ? 0.7 : 1 }}>
+                    <button type="submit" disabled={busy} style={{ flex: 1, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontSize: 13, opacity: busy ? 0.7 : 1 }}>
                       {busy ? 'Transferring…' : 'Transfer ticket'}
                     </button>
                   </div>

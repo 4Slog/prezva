@@ -201,7 +201,7 @@ export function CommunityClient({
                   />
                   <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
                     <button onClick={() => setReportingPostId(null)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-                    <button onClick={submitReport} disabled={reportSubmitting} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--pz-teal)', color: '#0D1B2A', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: reportSubmitting ? 0.6 : 1 }}>
+                    <button onClick={submitReport} disabled={reportSubmitting} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: reportSubmitting ? 0.6 : 1 }}>
                       {reportSubmitting ? 'Reporting…' : 'Submit Report'}
                     </button>
                   </div>
@@ -214,7 +214,7 @@ export function CommunityClient({
       {!userId && (
         <div className="pz-card p-4 mb-6 text-center">
           <p className="text-sm mb-3" style={{ color: 'var(--pz-muted)' }}>Sign in to post and connect with attendees</p>
-          <a href={`/login?next=/e/${eventSlug}/community`} className="inline-block text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: 'var(--pz-teal)', color: '#0D1B2A', textDecoration: 'none' }}>Sign in to post</a>
+          <a href={`/login?next=/e/${eventSlug}/community`} className="inline-block text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', textDecoration: 'none' }}>Sign in to post</a>
         </div>
       )}
       {userId && (
@@ -227,7 +227,7 @@ export function CommunityClient({
                 className="rounded-full px-3 py-1 text-xs font-semibold"
                 style={{
                   background: postType === t.value ? 'var(--pz-teal)' : 'var(--pz-surface-2)',
-                  color: postType === t.value ? '#0D1B2A' : 'var(--pz-muted)',
+                  color: postType === t.value ? 'var(--pz-on-accent)' : 'var(--pz-muted)',
                 }}
               >
                 {t.label}
@@ -321,7 +321,7 @@ export function CommunityClient({
               onClick={handleSubmit}
               disabled={submitting || (!body.trim() && postType !== 'article')}
               className="rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-40"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {submitting ? 'Posting…' : 'Post'}
             </button>
@@ -338,7 +338,7 @@ export function CommunityClient({
             className="rounded-full px-3 py-1 text-xs font-semibold"
             style={{
               background: filter === f.value ? 'var(--pz-teal)' : 'var(--pz-surface-2)',
-              color: filter === f.value ? '#0D1B2A' : 'var(--pz-muted)',
+              color: filter === f.value ? 'var(--pz-on-accent)' : 'var(--pz-muted)',
             }}
           >
             {f.label}
@@ -358,7 +358,7 @@ export function CommunityClient({
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   {post.is_pinned && (
-                    <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>Pinned</span>
+                    <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>Pinned</span>
                   )}
                   <span className="rounded-full px-2 py-0.5 text-xs" style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)' }}>
                     {post.post_type === 'meetup' ? '📅 Meetup' : post.post_type === 'article' ? '📄 Article' : '💬 Post'}
@@ -367,7 +367,7 @@ export function CommunityClient({
                     <button
                       onClick={() => setFilter(`session:${post.session_id}`)}
                       className="rounded-full px-2 py-0.5 text-xs"
-                      style={{ background: 'var(--pz-teal)22', color: 'var(--pz-teal)', border: 'none', cursor: 'pointer' }}
+                      style={{ background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', border: 'none', cursor: 'pointer' }}
                     >
                       re: {sessionTitles[post.session_id] ?? 'session'}
                     </button>
@@ -445,7 +445,7 @@ export function CommunityClient({
                       <button
                         onClick={() => handleReply(post.id)}
                         className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-                        style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                        style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                       >
                         Reply
                       </button>
