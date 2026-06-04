@@ -195,7 +195,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {surveys.length === 0 && <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem 0' }}>No surveys created yet.</p>}
         {surveys.map(s => {
-          const color = STATUS_COLOR[s.status] ?? '#6b7280'
+          const color = STATUS_COLOR[s.status] ?? 'var(--pz-muted)'
           const isOpen = expanded === s.id
           const isPublished = s.status === 'active'
           return (
@@ -204,7 +204,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <p style={{ fontWeight: 600 }}>{s.title}</p>
-                    <span style={{ fontSize: 11, fontWeight: 600, background: color + '22', color, padding: '2px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{s.status}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, background: 'var(--pz-surface-2)', color, padding: '2px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{s.status}</span>
                   </div>
                   {s.description && <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>{s.description}</p>}
                   {sendMsg[s.id] && <p style={{ fontSize: 12, color: 'var(--pz-success)', marginTop: 4 }}>{sendMsg[s.id]}</p>}
@@ -217,7 +217,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                     <Pencil size={12} /> Edit Questions
                   </NextLink>
                   {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-success)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
-                  {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
+                  {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
                   {isPublished && (
                     <button
                       onClick={() => handleCopyLink(s.id)}

@@ -30,16 +30,16 @@ export default async function SessionSettingsPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
-        <Link href={`/events/${slug}`} className="text-[#64748B] hover:text-[#94A3B8] text-sm">
+        <Link href={`/events/${slug}`} className="text-[var(--pz-muted)] hover:text-[var(--pz-muted)] text-sm">
           ← {access!.event.title}
         </Link>
-        <span className="text-[#1E3A5F]">/</span>
-        <span className="text-sm text-[#94A3B8]">{session.title}</span>
-        <span className="text-[#1E3A5F]">/</span>
-        <span className="text-sm text-[#F0F4F8]">Settings</span>
+        <span className="text-[var(--pz-border)]">/</span>
+        <span className="text-sm text-[var(--pz-muted)]">{session.title}</span>
+        <span className="text-[var(--pz-border)]">/</span>
+        <span className="text-sm text-[var(--pz-text)]">Settings</span>
       </div>
 
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-6">Session settings</h1>
+      <h1 className="text-xl font-bold text-[var(--pz-text)] mb-6">Session settings</h1>
 
       <LivestreamSection
         sessionId={session.id}

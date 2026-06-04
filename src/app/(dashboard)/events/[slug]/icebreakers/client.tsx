@@ -13,7 +13,7 @@ interface IcebreakerQuestion {
 }
 interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
 
-const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none'
+const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none'
 
 const getPromptText = (q: IcebreakerQuestion) => q.question || q.question_text || q.prompt || ''
 
@@ -71,7 +71,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
 
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <button onClick={() => setShowPreview(true)} disabled={pending}
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
           + Use starter pack (10 prompts)
         </button>
         {eventSlug && (
@@ -91,7 +91,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
             })} disabled={pending}
-            style={{ background: published ? '#05966922' : 'var(--pz-surface)', border: `1px solid ${published ? 'var(--pz-success)' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? 'var(--pz-success)' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+            style={{ background: published ? 'var(--pz-success-bg)' : 'var(--pz-surface)', border: `1px solid ${published ? 'var(--pz-success)' : 'var(--pz-border)'}`, borderRadius: 8, padding: '0.6rem 1.25rem', color: published ? 'var(--pz-success)' : 'var(--pz-muted)', fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
             {published ? '✓ Published' : 'Publish to attendees'}
           </button>
         </>)}
@@ -126,24 +126,24 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
       {/* Starter pack preview modal */}
       {showPreview && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
-          <div style={{ background: '#112240', border: '1px solid #1E3A5F', borderRadius: 12, width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #1E3A5F' }}>
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--pz-border)' }}>
               <div>
-                <h2 style={{ color: '#F0F4F8', fontWeight: 700, fontSize: 16, margin: 0 }}>Starter pack — prompts {starterOffset + 1}–{Math.min(starterOffset + 10, 50)} of 50</h2>
-                <p style={{ color: '#94A3B8', fontSize: 13, margin: '2px 0 0' }}>Preview before loading</p>
+                <h2 style={{ color: 'var(--pz-text)', fontWeight: 700, fontSize: 16, margin: 0 }}>Starter pack — prompts {starterOffset + 1}–{Math.min(starterOffset + 10, 50)} of 50</h2>
+                <p style={{ color: 'var(--pz-muted)', fontSize: 13, margin: '2px 0 0' }}>Preview before loading</p>
               </div>
-              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', color: 'var(--pz-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ICEBREAKER_PROMPTS.slice(starterOffset, starterOffset + 10).map((p, i) => (
-                <div key={p.id} style={{ border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.75rem 1rem', background: '#0D1B2A', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <span style={{ color: '#475569', fontSize: 12, fontWeight: 600, minWidth: 20 }}>{i + 1}</span>
+                <div key={p.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.75rem 1rem', background: 'var(--pz-surface-2)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--pz-muted)', fontSize: 12, fontWeight: 600, minWidth: 20 }}>{i + 1}</span>
                   <div style={{ flex: 1 }}>
-                    <p style={{ color: '#F0F4F8', fontSize: 13, margin: '0 0 4px' }}>{p.text.replace('{event_title}', 'your event')}</p>
+                    <p style={{ color: 'var(--pz-text)', fontSize: 13, margin: '0 0 4px' }}>{p.text.replace('{event_title}', 'your event')}</p>
                     {p.tags.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {p.tags.map(tag => (
-                          <span key={tag} style={{ fontSize: 10, fontWeight: 600, background: '#00BFA622', color: '#2DD4BF', padding: '1px 5px', borderRadius: 4 }}>{tag}</span>
+                          <span key={tag} style={{ fontSize: 10, fontWeight: 600, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '1px 5px', borderRadius: 4 }}>{tag}</span>
                         ))}
                       </div>
                     )}
@@ -151,13 +151,13 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
                 </div>
               ))}
             </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #1E3A5F', display: 'flex', gap: 8 }}>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--pz-border)', display: 'flex', gap: 8 }}>
               <button onClick={handleLoadStarter} disabled={pending}
-                style={{ flex: 1, background: '#2DD4BF', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+                style={{ flex: 1, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '0.7rem', fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
                 {pending ? 'Loading…' : `Load prompts ${starterOffset + 1}–${Math.min(starterOffset + 10, 50)}`}
               </button>
               <button onClick={() => setShowPreview(false)}
-                style={{ background: 'transparent', border: '1px solid #1E3A5F', borderRadius: 8, padding: '0.7rem 1.25rem', color: '#94A3B8', cursor: 'pointer' }}>
+                style={{ background: 'transparent', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '0.7rem 1.25rem', color: 'var(--pz-muted)', cursor: 'pointer' }}>
                 Cancel
               </button>
             </div>

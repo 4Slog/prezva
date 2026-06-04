@@ -34,30 +34,30 @@ export default async function EventSettingsPage({ params }: Props) {
   const integrationMap: Record<string, string> = {}
   for (const row of integrationRows ?? []) integrationMap[row.provider] = row.status
 
-  const inputCls = `w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = `w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
+  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
-        <Link href={`/events/${slug}`} className="text-[#64748B] hover:text-[#94A3B8] text-sm">
+        <Link href={`/events/${slug}`} className="text-[var(--pz-muted)] hover:text-[var(--pz-muted)] text-sm">
           ← {event.title}
         </Link>
-        <span className="text-[#1E3A5F]">/</span>
-        <span className="text-sm text-[#F0F4F8]">Settings</span>
+        <span className="text-[var(--pz-border)]">/</span>
+        <span className="text-sm text-[var(--pz-text)]">Settings</span>
       </div>
 
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-6">Event settings</h1>
+      <h1 className="text-xl font-bold text-[var(--pz-text)] mb-6">Event settings</h1>
 
       {isStaff && (
-        <div className="mb-6 rounded-lg bg-[#112240] border border-[#1E3A5F] px-4 py-3 text-sm text-[#94A3B8]">
+        <div className="mb-6 rounded-lg bg-[var(--pz-surface)] border border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)]">
           You&apos;re viewing settings in read-only mode. Contact an admin to make changes.
         </div>
       )}
 
       {/* General */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">General</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">General</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -109,7 +109,7 @@ export default async function EventSettingsPage({ params }: Props) {
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save changes
             </button>
@@ -119,7 +119,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Venue */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Venue</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Venue</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -149,7 +149,7 @@ export default async function EventSettingsPage({ params }: Props) {
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save venue
             </button>
@@ -159,7 +159,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Discovery */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Discovery</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Discovery</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -191,7 +191,7 @@ export default async function EventSettingsPage({ params }: Props) {
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save discovery
             </button>
@@ -207,7 +207,7 @@ export default async function EventSettingsPage({ params }: Props) {
             const tags = tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
             await updateEventTagsAndCategory(event.id, category, tags)
           }}
-          className="flex flex-col gap-4 mt-6 pt-6 border-t border-[#1E3A5F]"
+          className="flex flex-col gap-4 mt-6 pt-6 border-t border-[var(--pz-border)]"
         >
           <div>
             <label className={labelCls}>Category</label>
@@ -240,7 +240,7 @@ export default async function EventSettingsPage({ params }: Props) {
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save category &amp; tags
             </button>
@@ -250,7 +250,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Registration settings */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Registration</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Registration</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -271,7 +271,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 defaultChecked={event.waitlist_enabled}
                 className="rounded"
               />
-              <span className="text-sm text-[#94A3B8]">Enable waitlist when at capacity</span>
+              <span className="text-sm text-[var(--pz-muted)]">Enable waitlist when at capacity</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -281,7 +281,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 defaultChecked={event.require_approval}
                 className="rounded"
               />
-              <span className="text-sm text-[#94A3B8]">Require approval for registrations</span>
+              <span className="text-sm text-[var(--pz-muted)]">Require approval for registrations</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -291,7 +291,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 defaultChecked={event.allow_public_attendee_list}
                 className="rounded"
               />
-              <span className="text-sm text-[#94A3B8]">Show public attendee list</span>
+              <span className="text-sm text-[var(--pz-muted)]">Show public attendee list</span>
             </label>
           </div>
           <div>
@@ -304,7 +304,7 @@ export default async function EventSettingsPage({ params }: Props) {
               className={inputCls}
               maxLength={50}
             />
-            <p className="text-xs text-[#64748B] mt-1">Attendees must enter this code to register.</p>
+            <p className="text-xs text-[var(--pz-muted)] mt-1">Attendees must enter this code to register.</p>
           </div>
           <div>
             <label className={labelCls}>Domain restriction (optional)</label>
@@ -316,13 +316,13 @@ export default async function EventSettingsPage({ params }: Props) {
               className={inputCls}
               maxLength={100}
             />
-            <p className="text-xs text-[#64748B] mt-1">Only emails from this domain can register.</p>
+            <p className="text-xs text-[var(--pz-muted)] mt-1">Only emails from this domain can register.</p>
           </div>
           {!isStaff && (
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save settings
             </button>
@@ -349,7 +349,7 @@ export default async function EventSettingsPage({ params }: Props) {
       {!isStaff && event.status !== 'live' && (
         <section className="rounded-lg border border-[var(--pz-error)]/30 bg-[var(--pz-error)]/5 p-6">
           <h2 className="text-sm font-semibold text-[var(--pz-error)] mb-2">Danger zone</h2>
-          <p className="text-sm text-[#94A3B8] mb-4">
+          <p className="text-sm text-[var(--pz-muted)] mb-4">
             Permanently delete this event and all its data. This cannot be undone.
           </p>
           <form
@@ -384,8 +384,8 @@ async function CertificateSettingsSection({
 
   return (
     <section className="pz-card p-6 mb-6">
-      <h2 className="text-sm font-semibold text-[#F0F4F8] mb-1">Certificates</h2>
-      <p className="text-xs text-[#64748B] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
+      <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Certificates</h2>
+      <p className="text-xs text-[var(--pz-muted)] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
       <form
         action={async (fd: FormData) => {
           'use server'
@@ -401,7 +401,7 @@ async function CertificateSettingsSection({
             defaultChecked={event.certificate_enabled ?? false}
             className="rounded"
           />
-          <span className="text-sm text-[#94A3B8]">Enable certificates for this event</span>
+          <span className="text-sm text-[var(--pz-muted)]">Enable certificates for this event</span>
         </label>
         <div>
           <label className={labelCls}>Minimum session attendance %</label>
@@ -426,15 +426,15 @@ async function CertificateSettingsSection({
           </div>
         )}
         {certTemplates.length === 0 && (
-          <p className="text-xs text-[#64748B]">
+          <p className="text-xs text-[var(--pz-muted)]">
             No certificate templates yet.{' '}
-            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[#2DD4BF]">Create one in org settings →</a>
+            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[var(--pz-teal-ink)]">Create one in org settings →</a>
           </p>
         )}
         <button
           type="submit"
           className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           Save certificate settings
         </button>

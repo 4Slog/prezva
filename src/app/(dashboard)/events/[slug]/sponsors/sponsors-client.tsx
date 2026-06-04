@@ -259,7 +259,7 @@ function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: strin
           </div>
           <button
             onClick={() => copyLink(c.portal_token)}
-            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--pz-teal)', color: 'var(--pz-teal)', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--pz-teal)', color: 'var(--pz-teal-ink)', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             {copied === c.portal_token ? 'Copied!' : 'Copy link'}
           </button>
@@ -383,7 +383,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                           <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--pz-text)' }}>{sp.name}</span>
                           <TierBadge tier={sp.tier} />
                           {sp.is_featured && (
-                            <span style={{ fontSize: 11, color: 'var(--pz-teal)', fontWeight: 600 }}>★ Featured</span>
+                            <span style={{ fontSize: 11, color: 'var(--pz-teal-ink)', fontWeight: 600 }}>★ Featured</span>
                           )}
                         </div>
                         {sp.website_url && (
@@ -405,7 +405,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                             <button
                               onClick={() => handleSendInvite(sp.id)}
                               disabled={inviteStatus[sp.id] === 'sending'}
-                              style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: inviteStatus[sp.id] === 'sending' ? 'not-allowed' : 'pointer', opacity: inviteStatus[sp.id] === 'sending' ? 0.6 : 1, whiteSpace: 'nowrap' }}
+                              style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal-ink)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: inviteStatus[sp.id] === 'sending' ? 'not-allowed' : 'pointer', opacity: inviteStatus[sp.id] === 'sending' ? 0.6 : 1, whiteSpace: 'nowrap' }}
                             >
                               {inviteStatus[sp.id] === 'sending' ? 'Sending…' : inviteStatus[sp.id] === 'sent' ? '✓ Sent' : 'Send portal link'}
                             </button>

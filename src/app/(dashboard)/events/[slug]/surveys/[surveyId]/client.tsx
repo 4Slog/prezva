@@ -109,8 +109,8 @@ export default function SurveyQuestionsClient({
             style={{
               fontSize: 11,
               fontWeight: 600,
-              background: '#6b728022',
-              color: '#6b7280',
+              background: 'var(--pz-surface-2)',
+              color: 'var(--pz-label)',
               padding: '2px 8px',
               borderRadius: 20,
               textTransform: 'capitalize',

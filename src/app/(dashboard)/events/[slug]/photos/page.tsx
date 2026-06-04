@@ -21,7 +21,7 @@ export default async function EventPhotosAdminPage({ params }: Props) {
       </div>
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#F0F4F8]">Event Photos</h1>
+        <h1 className="text-xl font-bold text-[var(--pz-text)]">Event Photos</h1>
         <span style={{ fontSize: 13, color: 'var(--pz-muted)' }}>{count ?? 0} total</span>
       </div>
 
@@ -34,7 +34,7 @@ export default async function EventPhotosAdminPage({ params }: Props) {
           <Link
             href={`/e/${slug}/photos`}
             target="_blank"
-            style={{ padding: '8px 16px', background: 'var(--pz-teal)', color: '#0D1B2A', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+            style={{ padding: '8px 16px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
           >
             View public gallery ↗
           </Link>

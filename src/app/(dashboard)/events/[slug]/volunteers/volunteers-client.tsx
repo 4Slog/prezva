@@ -47,9 +47,9 @@ const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support'
 const STATUSES = ['All', 'invited', 'confirmed', 'checked_in', 'no_show']
 
 const STATUS_COLORS: Record<string, string> = {
-  invited:    '#64748b',
+  invited:    'var(--pz-muted)',
   confirmed:  '#0ea5e9',
-  checked_in: '#10b981',
+  checked_in: 'var(--pz-success)',
   no_show:    'var(--pz-error)',
   declined:   'var(--pz-warning-fill)',
 }
@@ -66,13 +66,13 @@ const ALERT_TYPE_COLORS: Record<string, string> = {
   urgent:   'var(--pz-error)',
   issue:    'var(--pz-warning-fill)',
   question: '#3B82F6',
-  info:     '#64748B',
+  info:     'var(--pz-muted)',
 }
 
 const SHIFT_RESPONSE_COLORS: Record<string, string> = {
-  confirmed: '#10b981',
+  confirmed: 'var(--pz-success)',
   declined:  'var(--pz-error)',
-  pending:   '#94a3b8',
+  pending:   'var(--pz-muted)',
 }
 
 export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts }: Props) {
@@ -207,7 +207,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           </button>
           <button
             onClick={() => setShowAdd(true)}
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
           >
             + Add Volunteer
           </button>
@@ -260,7 +260,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="submit" disabled={saving}
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '8px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '8px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
               {saving ? 'Saving…' : 'Add & Send Invite'}
             </button>
             <button type="button" onClick={() => setShowAdd(false)}
@@ -308,7 +308,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                   <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--pz-text)', fontWeight: 500 }}>{v.name}</td>
                   <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--pz-muted)' }}>{v.email}</td>
                   <td style={{ padding: '10px 14px', fontSize: 12 }}>
-                    <span style={{ background: 'rgba(0,191,166,0.1)', color: 'var(--pz-teal)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
+                    <span style={{ background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
                       {v.role}
                     </span>
                   </td>
@@ -336,7 +336,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                         style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>Portal</a>
                       {v.status !== 'checked_in' && (
                         <button onClick={() => handleAction(v.id, 'checkin')}
-                          style={{ fontSize: 12, color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Check in</button>
+                          style={{ fontSize: 12, color: 'var(--pz-success)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Check in</button>
                       )}
                       <button onClick={() => handleAction(v.id, 'resend')}
                         style={{ fontSize: 12, color: 'var(--pz-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resend</button>

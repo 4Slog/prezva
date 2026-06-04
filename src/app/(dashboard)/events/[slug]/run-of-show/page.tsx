@@ -22,8 +22,8 @@ export default async function RunOfShowPage({ params }: Props) {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#F0F4F8]">Run of Show</h1>
-        <p className="text-sm text-[#94A3B8] mt-1">{event.title}</p>
+        <h1 className="text-2xl font-bold text-[var(--pz-text)]">Run of Show</h1>
+        <p className="text-sm text-[var(--pz-muted)] mt-1">{event.title}</p>
       </div>
       <RunOfShowClient
         eventId={event.id}

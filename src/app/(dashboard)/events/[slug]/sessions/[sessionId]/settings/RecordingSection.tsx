@@ -50,7 +50,7 @@ function Toggle({
         />
         <div style={{
           width: 40, height: 22, borderRadius: 11,
-          background: checked ? 'var(--pz-teal, #2DD4BF)' : '#334155',
+          background: checked ? 'var(--pz-teal)' : 'var(--pz-border)',
           transition: 'background 0.2s',
           opacity: disabled ? 0.5 : 1,
         }} />
@@ -61,9 +61,9 @@ function Toggle({
         }} />
       </div>
       <div>
-        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text, #F0F4F8)', margin: 0 }}>{label}</p>
+        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>{label}</p>
         {description && (
-          <p style={{ fontSize: 12, color: 'var(--pz-muted, #94A3B8)', margin: '2px 0 0' }}>{description}</p>
+          <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '2px 0 0' }}>{description}</p>
         )}
       </div>
     </label>
@@ -232,7 +232,7 @@ export default function RecordingSection({
 
   return (
     <section className="pz-card p-6 mb-6">
-      <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Recording</h2>
+      <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Recording</h2>
 
       {/* Livestream-on + recording-off warning banner */}
       {showRecordingBanner && (
@@ -242,7 +242,7 @@ export default function RecordingSection({
           borderRadius: 8, padding: '10px 12px', marginBottom: 16,
         }}>
           <AlertTriangle size={15} style={{ color: 'var(--pz-warning-fill)', flexShrink: 0, marginTop: 1 }} />
-          <div style={{ flex: 1, fontSize: 12, color: '#d97706' }}>
+          <div style={{ flex: 1, fontSize: 12, color: 'var(--pz-warning)' }}>
             <span style={{ fontWeight: 600 }}>Recording is off</span> — the video will be deleted when the stream ends.
             Turn on recording to save it for download or attendee rewatch.
           </div>
@@ -260,7 +260,7 @@ export default function RecordingSection({
               onClick={() => setDismissedBanner(true)}
               style={{
                 fontSize: 11, padding: '3px 8px', borderRadius: 6,
-                background: 'transparent', color: '#d97706', border: '1px solid rgba(245,158,11,0.4)',
+                background: 'transparent', color: 'var(--pz-warning)', border: '1px solid rgba(245,158,11,0.4)',
                 cursor: 'pointer',
               }}
             >
@@ -291,7 +291,7 @@ export default function RecordingSection({
 
         {/* Organizer download */}
         {muxAssetId && (
-          <div style={{ borderTop: '1px solid #1E3A5F', paddingTop: 16 }}>
+          <div style={{ borderTop: '1px solid var(--pz-border)', paddingTop: 16 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 8 }}>Recording download</p>
             {downloadState === 'processing' ? (
               <p style={{ fontSize: 12, color: 'var(--pz-warning-fill)' }}>
@@ -304,7 +304,7 @@ export default function RecordingSection({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 7,
-                  background: 'var(--pz-teal, #2DD4BF)', color: '#0D1B2A',
+                  background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                   border: 'none', cursor: downloadState === 'loading' ? 'default' : 'pointer',
                   opacity: downloadState === 'loading' ? 0.7 : 1,
                 }}
@@ -318,22 +318,22 @@ export default function RecordingSection({
       </div>
 
       {/* Pre-recorded upload */}
-      <div style={{ borderTop: '1px solid #1E3A5F', paddingTop: 20, marginTop: 20 }}>
+      <div style={{ borderTop: '1px solid var(--pz-border)', paddingTop: 20, marginTop: 20 }}>
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 4 }}>Pre-recorded video</p>
         <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 14 }}>
           Upload a video to use for simulive broadcasting or on-demand rewatch without running a live stream.
         </p>
 
         {/* Mode toggle */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 14, border: '1px solid #1E3A5F', borderRadius: 7, overflow: 'hidden', width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 0, marginBottom: 14, border: '1px solid var(--pz-border)', borderRadius: 7, overflow: 'hidden', width: 'fit-content' }}>
           {(['file', 'url'] as const).map(mode => (
             <button
               key={mode}
               onClick={() => setUploadMode(mode)}
               style={{
                 fontSize: 12, fontWeight: 600, padding: '5px 14px',
-                background: uploadMode === mode ? '#1E3A5F' : 'transparent',
-                color: uploadMode === mode ? '#F0F4F8' : '#64748B',
+                background: uploadMode === mode ? 'var(--pz-border)' : 'transparent',
+                color: uploadMode === mode ? 'var(--pz-text)' : 'var(--pz-muted)',
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
               }}
             >
@@ -359,7 +359,7 @@ export default function RecordingSection({
                 onClick={() => fileInputRef.current?.click()}
                 style={{
                   fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 7,
-                  background: '#112240', border: '1px solid #1E3A5F',
+                  background: 'var(--pz-surface)', border: '1px solid var(--pz-border)',
                   color: 'var(--pz-text)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
@@ -368,7 +368,7 @@ export default function RecordingSection({
               </button>
             ) : uploadStatus === 'uploading' ? (
               <div>
-                <div style={{ height: 6, borderRadius: 3, background: '#1E3A5F', overflow: 'hidden', marginBottom: 6, width: 280 }}>
+                <div style={{ height: 6, borderRadius: 3, background: 'var(--pz-border)', overflow: 'hidden', marginBottom: 6, width: 280 }}>
                   <div style={{ height: '100%', background: 'var(--pz-teal)', width: `${uploadProgress ?? 0}%`, transition: 'width 0.3s' }} />
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Uploading… {uploadProgress}%</p>
@@ -393,7 +393,7 @@ export default function RecordingSection({
               placeholder="https://example.com/video.mp4"
               style={{
                 flex: 1, maxWidth: 360, fontSize: 13, padding: '7px 10px', borderRadius: 7,
-                background: '#0D1B2A', border: '1px solid #1E3A5F', color: 'var(--pz-text)',
+                background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
                 outline: 'none',
               }}
             />
@@ -402,7 +402,7 @@ export default function RecordingSection({
               disabled={importingUrl || !urlInput.trim()}
               style={{
                 fontSize: 13, fontWeight: 600, padding: '7px 14px', borderRadius: 7,
-                background: 'var(--pz-teal)', color: '#0D1B2A',
+                background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                 border: 'none', cursor: importingUrl ? 'default' : 'pointer',
                 opacity: importingUrl || !urlInput.trim() ? 0.6 : 1,
               }}
@@ -423,7 +423,7 @@ export default function RecordingSection({
 
       {/* Simulive scheduler — only when video is ready */}
       {muxAssetPlaybackId && (
-        <div style={{ borderTop: '1px solid #1E3A5F', paddingTop: 20, marginTop: 4 }}>
+        <div style={{ borderTop: '1px solid var(--pz-border)', paddingTop: 20, marginTop: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
             <Clock size={14} style={{ color: 'var(--pz-muted)' }} />
             <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', margin: 0 }}>Simulive broadcast</p>
@@ -462,7 +462,7 @@ export default function RecordingSection({
                 onChange={e => setScheduleDateInput(e.target.value)}
                 style={{
                   fontSize: 13, padding: '6px 10px', borderRadius: 7,
-                  background: '#0D1B2A', border: '1px solid #1E3A5F', color: 'var(--pz-text)',
+                  background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
                   outline: 'none',
                 }}
               />
@@ -471,7 +471,7 @@ export default function RecordingSection({
                 disabled={savingSchedule || !scheduleDateInput}
                 style={{
                   fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 7,
-                  background: 'var(--pz-teal)', color: '#0D1B2A',
+                  background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                   border: 'none', cursor: savingSchedule || !scheduleDateInput ? 'default' : 'pointer',
                   opacity: savingSchedule || !scheduleDateInput ? 0.6 : 1,
                 }}
@@ -486,7 +486,7 @@ export default function RecordingSection({
 
           <div style={{
             marginTop: 12, fontSize: 12, color: 'var(--pz-muted)',
-            background: '#112240', border: '1px solid #1E3A5F',
+            background: 'var(--pz-surface)', border: '1px solid var(--pz-border)',
             borderRadius: 6, padding: '8px 12px',
           }}>
             Attendees will see this session as live at the scheduled time. Chat and Q&A will be active during the broadcast.

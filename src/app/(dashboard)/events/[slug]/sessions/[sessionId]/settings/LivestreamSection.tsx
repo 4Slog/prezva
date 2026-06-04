@@ -66,14 +66,14 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
   const statusPill = isConfigured ? (
     <span style={{
       fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20,
-      background: 'rgba(234, 179, 8, 0.15)', color: '#d97706', border: '1px solid rgba(234,179,8,0.3)',
+      background: 'rgba(234, 179, 8, 0.15)', color: 'var(--pz-warning)', border: '1px solid rgba(234,179,8,0.3)',
     }}>
       Ready
     </span>
   ) : (
     <span style={{
       fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20,
-      background: 'rgba(100,116,139,0.15)', color: '#64748b', border: '1px solid rgba(100,116,139,0.3)',
+      background: 'rgba(100,116,139,0.15)', color: 'var(--pz-muted)', border: '1px solid rgba(100,116,139,0.3)',
     }}>
       Not configured
     </span>
@@ -82,7 +82,7 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
   return (
     <section className="pz-card p-6 mb-6">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 className="text-sm font-semibold text-[#F0F4F8]">Livestream</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)]">Livestream</h2>
         {statusPill}
       </div>
 
@@ -97,7 +97,7 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
           />
           <div style={{
             width: 40, height: 22, borderRadius: 11,
-            background: isConfigured ? 'var(--pz-teal, #2DD4BF)' : '#334155',
+            background: isConfigured ? 'var(--pz-teal, #2DD4BF)' : 'var(--pz-border)',
             transition: 'background 0.2s',
           }} />
           <div style={{
@@ -107,17 +107,17 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
           }} />
         </div>
         <div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text, #F0F4F8)', margin: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>
             Enable livestream for this session
           </p>
-          <p style={{ fontSize: 12, color: 'var(--pz-muted, #94A3B8)', margin: '2px 0 0' }}>
+          <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '2px 0 0' }}>
             Creates a Mux live stream for this session and generates RTMP credentials.
           </p>
         </div>
       </label>
 
       {loading && (
-        <p style={{ fontSize: 13, color: 'var(--pz-muted, #94A3B8)', marginTop: 12 }}>
+        <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginTop: 12 }}>
           {isConfigured ? 'Disabling…' : 'Creating stream…'}
         </p>
       )}
@@ -127,15 +127,15 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
       )}
 
       {isConfigured && !loading && (
-        <div style={{ marginTop: 20, borderTop: '1px solid #1E3A5F', paddingTop: 20 }}>
+        <div style={{ marginTop: 20, borderTop: '1px solid var(--pz-border)', paddingTop: 20 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* RTMP Server URL */}
             <div>
-              <p style={{ fontSize: 12, color: 'var(--pz-muted, #94A3B8)', marginBottom: 6, fontWeight: 600 }}>RTMP Server URL</p>
+              <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 6, fontWeight: 600 }}>RTMP Server URL</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <code style={{
                   flex: 1, fontSize: 12, padding: '8px 12px', borderRadius: 6,
-                  background: '#0D1B2A', border: '1px solid #1E3A5F', color: '#F0F4F8',
+                  background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
                   fontFamily: 'monospace', wordBreak: 'break-all',
                 }}>
                   {RTMP_URL}
@@ -144,8 +144,8 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
                   onClick={() => copy(RTMP_URL, 'url')}
                   title="Copy RTMP URL"
                   style={{
-                    padding: '6px 8px', borderRadius: 6, border: '1px solid #1E3A5F',
-                    background: '#112240', color: copiedUrl ? '#2DD4BF' : '#94A3B8',
+                    padding: '6px 8px', borderRadius: 6, border: '1px solid var(--pz-border)',
+                    background: 'var(--pz-surface)', color: copiedUrl ? 'var(--pz-teal-ink)' : 'var(--pz-muted)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0,
                   }}
                 >
@@ -156,11 +156,11 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
 
             {/* Stream Key */}
             <div>
-              <p style={{ fontSize: 12, color: 'var(--pz-muted, #94A3B8)', marginBottom: 6, fontWeight: 600 }}>Stream Key</p>
+              <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 6, fontWeight: 600 }}>Stream Key</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <code style={{
                   flex: 1, fontSize: 12, padding: '8px 12px', borderRadius: 6,
-                  background: '#0D1B2A', border: '1px solid #1E3A5F', color: '#F0F4F8',
+                  background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
                   fontFamily: 'monospace', wordBreak: 'break-all', letterSpacing: showKey ? 'normal' : 2,
                 }}>
                   {streamKey
@@ -173,8 +173,8 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
                       onClick={() => setShowKey(v => !v)}
                       title={showKey ? 'Hide key' : 'Reveal key'}
                       style={{
-                        padding: '6px 8px', borderRadius: 6, border: '1px solid #1E3A5F',
-                        background: '#112240', color: '#94A3B8', cursor: 'pointer',
+                        padding: '6px 8px', borderRadius: 6, border: '1px solid var(--pz-border)',
+                        background: 'var(--pz-surface)', color: 'var(--pz-muted)', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', flexShrink: 0,
                       }}
                     >
@@ -184,8 +184,8 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
                       onClick={() => copy(streamKey, 'key')}
                       title="Copy stream key"
                       style={{
-                        padding: '6px 8px', borderRadius: 6, border: '1px solid #1E3A5F',
-                        background: '#112240', color: copiedKey ? '#2DD4BF' : '#94A3B8',
+                        padding: '6px 8px', borderRadius: 6, border: '1px solid var(--pz-border)',
+                        background: 'var(--pz-surface)', color: copiedKey ? 'var(--pz-teal-ink)' : 'var(--pz-muted)',
                         cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0,
                       }}
                     >
@@ -198,8 +198,8 @@ export default function LivestreamSection({ sessionId, eventSlug, initialMuxStre
 
             {/* Encoder callout */}
             <p style={{
-              fontSize: 12, color: 'var(--pz-muted, #94A3B8)',
-              background: '#112240', border: '1px solid #1E3A5F',
+              fontSize: 12, color: 'var(--pz-muted)',
+              background: 'var(--pz-surface)', border: '1px solid var(--pz-border)',
               borderRadius: 6, padding: '8px 12px', margin: 0,
             }}>
               Paste these into OBS → Settings → Stream, or any RTMP encoder (vMix, Zoom custom stream, hardware encoders)

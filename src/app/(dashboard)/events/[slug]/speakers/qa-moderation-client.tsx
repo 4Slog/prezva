@@ -54,9 +54,9 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
                 {q.sessions?.title ?? 'Unknown session'} · ▲ {q.upvote_count ?? 0}
               </p>
               {q.organizer_answer && (
-                <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--pz-teal)15',
+                <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--pz-teal-bg)',
                               borderLeft: '3px solid var(--pz-teal)', borderRadius: 4 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal)', margin: '0 0 2px' }}>Your answer</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal-ink)', margin: '0 0 2px' }}>Your answer</p>
                   <p style={{ fontSize: 13, color: 'var(--pz-text)', margin: 0 }}>{q.organizer_answer}</p>
                 </div>
               )}
@@ -113,8 +113,8 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
                                        background: 'var(--pz-surface-2)', opacity: 0.6,
                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: 0 }}>{q.body}</p>
-                <span style={{ fontSize: 10, background: 'var(--pz-error, var(--pz-error))22',
-                               color: 'var(--pz-error, var(--pz-error))', borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>Hidden</span>
+                <span style={{ fontSize: 10, background: 'var(--pz-error-bg, rgba(239,68,68,0.1))',
+                               color: 'var(--pz-error)', borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>Hidden</span>
               </div>
             ))}
           </div>

@@ -58,8 +58,8 @@ export default async function AnnouncementDetailPage({ params }: Props) {
         </h1>
         <span
           style={{
-            background: isDraft ? '#f59e0b20' : '#00BFA620',
-            color: isDraft ? 'var(--pz-warning-fill)' : '#2DD4BF',
+            background: isDraft ? 'var(--pz-warning-bg)' : 'var(--pz-teal-bg)',
+            color: isDraft ? 'var(--pz-warning)' : 'var(--pz-teal-ink)',
             borderRadius: '20px',
             padding: '3px 12px',
             fontSize: '12px',
@@ -155,7 +155,7 @@ export default async function AnnouncementDetailPage({ params }: Props) {
               type="submit"
               style={{
                 background: 'var(--pz-teal)',
-                color: '#0D1B2A',
+                color: 'var(--pz-on-accent)',
                 border: 'none',
                 borderRadius: '8px',
                 padding: '10px 20px',

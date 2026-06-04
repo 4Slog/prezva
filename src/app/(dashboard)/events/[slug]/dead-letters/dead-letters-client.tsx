@@ -67,7 +67,7 @@ export function DeadLettersClient({ items: initial, eventSlug }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: showResolved ? '#1e3a5f' : 'rgba(239,68,68,0.15)', color: showResolved ? '#64748b' : 'var(--pz-error)', padding: '2px 8px', borderRadius: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: showResolved ? 'var(--pz-border)' : 'rgba(239,68,68,0.15)', color: showResolved ? 'var(--pz-muted)' : 'var(--pz-error)', padding: '2px 8px', borderRadius: 4 }}>
                     {item.type}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>
@@ -99,7 +99,7 @@ export function DeadLettersClient({ items: initial, eventSlug }: Props) {
                     <button
                       onClick={() => handleResolve(item.id)}
                       disabled={loading === item.id}
-                      style={{ fontSize: 12, color: '#10b981', background: 'none', border: '1px solid #10b981', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
+                      style={{ fontSize: 12, color: 'var(--pz-success)', background: 'none', border: '1px solid var(--pz-success)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
                     >
                       Resolve
                     </button>

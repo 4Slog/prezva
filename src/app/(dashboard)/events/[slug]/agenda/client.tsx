@@ -97,28 +97,28 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
     onImported()
   }
 
-  const confidenceColor = (c: number) => c >= 1 ? '#2DD4BF' : c >= 0.8 ? 'var(--pz-warning-fill)' : '#94A3B8'
+  const confidenceColor = (c: number) => c >= 1 ? 'var(--pz-teal-ink)' : c >= 0.8 ? 'var(--pz-warning-fill)' : 'var(--pz-muted)'
   const confidenceLabel = (c: number) => c >= 1 ? 'Exact match' : c >= 0.8 ? 'Synonym match' : 'Partial match'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div className="bg-[#112240] border border-[#1E3A5F] rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--pz-surface)] border border-[var(--pz-border)] rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-[#F0F4F8]">Import agenda from CSV</h2>
-          <button onClick={onClose} className="text-[#64748B] hover:text-[#94A3B8] text-lg">✕</button>
+          <h2 className="text-base font-semibold text-[var(--pz-text)]">Import agenda from CSV</h2>
+          <button onClick={onClose} className="text-[var(--pz-muted)] hover:text-[var(--pz-muted)] text-lg">✕</button>
         </div>
 
         {error && <p className="mb-3 text-sm text-[var(--pz-error)] bg-[var(--pz-error)]/10 rounded-lg px-3 py-2">{error}</p>}
 
         {step === 'upload' && (
           <div className="text-center py-8">
-            <p className="text-sm text-[#94A3B8] mb-4">Upload a CSV file with session data. Required column: <strong className="text-[#F0F4F8]">title</strong>.</p>
+            <p className="text-sm text-[var(--pz-muted)] mb-4">Upload a CSV file with session data. Required column: <strong className="text-[var(--pz-text)]">title</strong>.</p>
             <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFile} />
             <button
               onClick={() => fileRef.current?.click()}
               disabled={loading}
               className="rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {loading ? 'Parsing…' : 'Choose CSV file'}
             </button>
@@ -127,12 +127,12 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
 
         {step === 'map' && (
           <div>
-            <p className="text-sm text-[#94A3B8] mb-4">{rowCount} rows found. Map CSV columns to session fields:</p>
+            <p className="text-sm text-[var(--pz-muted)] mb-4">{rowCount} rows found. Map CSV columns to session fields:</p>
             <div className="space-y-2 mb-4">
               {headers.map(h => (
                 <div key={h} className="flex items-center gap-3">
                   <div className="w-44 flex-shrink-0">
-                    <span className="text-sm text-[#F0F4F8] font-mono">{h}</span>
+                    <span className="text-sm text-[var(--pz-text)] font-mono">{h}</span>
                     {detected[h] && (
                       <span className="ml-2 text-xs" style={{ color: confidenceColor(detected[h].confidence) }}>
                         {confidenceLabel(detected[h].confidence)}
@@ -142,7 +142,7 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
                   <select
                     value={columnMap[h] ?? ''}
                     onChange={e => setColumnMap(prev => ({ ...prev, [h]: e.target.value }))}
-                    className="flex-1 rounded border border-[#1E3A5F] bg-[#0D1B2A] px-2 py-1 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none"
+                    className="flex-1 rounded border border-[var(--pz-border)] bg-[var(--pz-surface)] px-2 py-1 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none"
                   >
                     <option value="">— skip —</option>
                     {SESSION_FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
@@ -151,8 +151,8 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
               ))}
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={onClose} className="px-3 py-1.5 text-sm text-[#94A3B8] hover:text-[#F0F4F8]">Cancel</button>
-              <button onClick={handlePreview} disabled={loading} className="rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+              <button onClick={onClose} className="px-3 py-1.5 text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)]">Cancel</button>
+              <button onClick={handlePreview} disabled={loading} className="rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>
                 {loading ? 'Loading…' : 'Preview'}
               </button>
             </div>
@@ -161,17 +161,17 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
 
         {step === 'preview' && (
           <div>
-            <p className="text-sm text-[#94A3B8] mb-3">Preview (first 5 rows):</p>
+            <p className="text-sm text-[var(--pz-muted)] mb-3">Preview (first 5 rows):</p>
             <div className="overflow-x-auto mb-4">
-              <table className="w-full text-xs text-[#F0F4F8]">
+              <table className="w-full text-xs text-[var(--pz-text)]">
                 <thead>
-                  <tr className="border-b border-[#1E3A5F]">
-                    {Object.keys(previewRows[0] ?? {}).map(k => <th key={k} className="text-left px-2 py-1 text-[#94A3B8]">{k}</th>)}
+                  <tr className="border-b border-[var(--pz-border)]">
+                    {Object.keys(previewRows[0] ?? {}).map(k => <th key={k} className="text-left px-2 py-1 text-[var(--pz-muted)]">{k}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {previewRows.map((row, i) => (
-                    <tr key={i} className="border-b border-[#1E3A5F]/40">
+                    <tr key={i} className="border-b border-[var(--pz-border)]">
                       {Object.values(row).map((v, j) => <td key={j} className="px-2 py-1 truncate max-w-[160px]">{String(v)}</td>)}
                     </tr>
                   ))}
@@ -179,8 +179,8 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
               </table>
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setStep('map')} className="px-3 py-1.5 text-sm text-[#94A3B8] hover:text-[#F0F4F8]">Back</button>
-              <button onClick={handleImport} disabled={loading} className="rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+              <button onClick={() => setStep('map')} className="px-3 py-1.5 text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)]">Back</button>
+              <button onClick={handleImport} disabled={loading} className="rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50" style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>
                 {loading ? 'Importing…' : `Import ${rowCount} sessions`}
               </button>
             </div>
@@ -189,9 +189,9 @@ function CsvImportModal({ eventId, onClose, onImported }: { eventId: string; onC
 
         {step === 'done' && (
           <div className="text-center py-6">
-            <p className="text-[#2DD4BF] font-semibold mb-2">Import complete</p>
-            <p className="text-sm text-[#94A3B8]">{imported} session{imported !== 1 ? 's' : ''} added to the agenda.</p>
-            <button onClick={onClose} className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold" style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+            <p className="text-[var(--pz-teal-ink)] font-semibold mb-2">Import complete</p>
+            <p className="text-sm text-[var(--pz-muted)]">{imported} session{imported !== 1 ? 's' : ''} added to the agenda.</p>
+            <button onClick={onClose} className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold" style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>
               Close
             </button>
           </div>
@@ -289,14 +289,14 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
                     <div key={p.id} className="rounded-lg border border-[var(--border)] p-3 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium text-[var(--text-primary)]">{p.question}</p>
-                        {p.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-[#2DD4BF]/20 text-[#2DD4BF] shrink-0">Active</span>}
+                        {p.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--pz-teal-bg)] text-[var(--pz-teal-ink)] shrink-0">Active</span>}
                         {p.closed_at && <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] shrink-0">Closed</span>}
                       </div>
                       {p.options.map((opt: string, i: number) => (
                         <div key={i} className="flex items-center gap-2 text-sm">
                           <div className="flex-1 h-5 rounded bg-[var(--bg-subtle)] overflow-hidden">
                             <div
-                              className="h-full bg-[#2DD4BF]/40 transition-all"
+                              className="h-full bg-[var(--pz-teal-bg)] transition-all"
                               style={{ width: p.totalVotes > 0 ? `${(p.voteCounts[i] / p.totalVotes) * 100}%` : '0%' }}
                             />
                           </div>
@@ -307,7 +307,7 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
                       <p className="text-xs text-[var(--text-muted)]">{p.totalVotes} vote{p.totalVotes !== 1 ? 's' : ''}</p>
                       <div className="flex gap-2 flex-wrap">
                         {!p.is_active && !p.closed_at && (
-                          <button onClick={() => activatePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[#2DD4BF] text-[#2DD4BF] hover:bg-[#2DD4BF]/10">Activate</button>
+                          <button onClick={() => activatePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[var(--pz-teal)] text-[var(--pz-teal-ink)] hover:bg-[var(--pz-teal-bg)]">Activate</button>
                         )}
                         {p.is_active && (
                           <button onClick={() => closePoll(p.id).then(() => loadPolls(selectedSessionId))} className="text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Close</button>
@@ -347,7 +347,7 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
                   onClick={handleCreate}
                   disabled={creating || !question.trim()}
                   className="rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
-                  style={{ background: 'var(--brand-teal)', color: '#0D1B2A' }}
+                  style={{ background: 'var(--brand-teal)', color: 'var(--pz-on-accent)' }}
                 >
                   {creating ? 'Creating…' : 'Start poll'}
                 </button>
@@ -447,7 +447,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
           <div className="flex gap-2">
             <button
               onClick={() => setShowImport(true)}
-              className="px-3 py-2 text-sm border border-[#1E3A5F] text-[#94A3B8] rounded-lg hover:text-[#F0F4F8] hover:border-[#2DD4BF] transition-colors"
+              className="px-3 py-2 text-sm border border-[var(--pz-border)] text-[var(--pz-muted)] rounded-lg hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
             >
               Import CSV
             </button>
@@ -537,7 +537,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
                 onClick={handleAddRoom}
                 disabled={roomAdding || !newRoomName.trim()}
                 className="px-3 py-1.5 text-sm font-semibold rounded-lg disabled:opacity-50"
-                style={{ background: 'var(--brand-teal)', color: '#0D1B2A' }}
+                style={{ background: 'var(--brand-teal)', color: 'var(--pz-on-accent)' }}
               >
                 {roomAdding ? 'Adding…' : '+ Add'}
               </button>

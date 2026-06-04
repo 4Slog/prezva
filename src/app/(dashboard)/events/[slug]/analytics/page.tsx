@@ -101,7 +101,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
       {/* Check-in velocity — live events only */}
       {evtRow?.status === 'live' && analytics.checkInsLast30min > 0 && (
         <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.25rem',
-                      border: '1px solid var(--pz-teal)44', marginBottom: 12 }}>
+                      border: '1px solid var(--pz-teal)', marginBottom: 12 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-teal)', margin: '0 0 8px' }}>
             🔴 Live check-in velocity
           </p>

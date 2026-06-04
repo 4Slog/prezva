@@ -66,7 +66,7 @@ export default async function CertificatesPage({ params }: Props) {
           <button
             style={{
               background: 'var(--pz-teal)',
-              color: '#0D1B2A',
+              color: 'var(--pz-on-accent)',
               border: 'none',
               borderRadius: '8px',
               padding: '8px 16px',
@@ -99,8 +99,8 @@ export default async function CertificatesPage({ params }: Props) {
         <div
           style={{
             marginLeft: 'auto',
-            background: (event as any).certificate_enabled ? '#00BFA620' : 'var(--pz-border)',
-            color: (event as any).certificate_enabled ? '#2DD4BF' : 'var(--pz-muted)',
+            background: (event as any).certificate_enabled ? 'var(--pz-teal-bg)' : 'var(--pz-border)',
+            color: (event as any).certificate_enabled ? 'var(--pz-teal-ink)' : 'var(--pz-muted)',
             borderRadius: '20px',
             padding: '2px 10px',
             fontSize: '12px',
@@ -129,7 +129,7 @@ export default async function CertificatesPage({ params }: Props) {
           <button
             style={{
               background: 'var(--pz-teal)',
-              color: '#0D1B2A',
+              color: 'var(--pz-on-accent)',
               border: 'none',
               borderRadius: '8px',
               padding: '10px 20px',
@@ -164,8 +164,8 @@ export default async function CertificatesPage({ params }: Props) {
                   {tmpl.is_default && (
                     <span
                       style={{
-                        background: '#00BFA620',
-                        color: '#2DD4BF',
+                        background: 'var(--pz-teal-bg)',
+                        color: 'var(--pz-teal-ink)',
                         borderRadius: '20px',
                         padding: '1px 8px',
                         fontSize: '11px',

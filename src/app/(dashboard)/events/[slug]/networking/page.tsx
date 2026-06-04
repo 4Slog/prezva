@@ -19,7 +19,7 @@ export default async function NetworkingPage({ params }: { params: Promise<{ slu
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Networking</h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 4 }}>Connect with other attendees</p>
         </div>
-        <Link href={`/e/${slug}/profile/edit`} style={{ fontSize: 13, color: 'var(--pz-teal)', textDecoration: 'none' }}>
+        <Link href={`/e/${slug}/profile/edit`} style={{ fontSize: 13, color: 'var(--pz-teal-ink)', textDecoration: 'none' }}>
           Update my profile →
         </Link>
       </div>
@@ -33,7 +33,7 @@ export default async function NetworkingPage({ params }: { params: Promise<{ slu
                 <p style={{ fontWeight: 600, fontSize: 13 }}>{s.attendee_name}</p>
                 {s.profiles?.job_title && <p style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{s.profiles.job_title}</p>}
                 {s.interests.slice(0, 2).map((i: string) => (
-                  <span key={i} style={{ display: 'inline-block', fontSize: 10, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', borderRadius: 4, padding: '1px 6px', marginRight: 4, marginTop: 4 }}>{i}</span>
+                  <span key={i} style={{ display: 'inline-block', fontSize: 10, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', borderRadius: 4, padding: '1px 6px', marginRight: 4, marginTop: 4 }}>{i}</span>
                 ))}
               </div>
             ))}

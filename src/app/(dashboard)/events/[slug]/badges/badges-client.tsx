@@ -136,12 +136,12 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   return (
     <div className="space-y-6">
       {error && <p className="text-sm text-[var(--pz-error)] bg-[var(--pz-error)]/10 rounded-lg px-3 py-2">{error}</p>}
-      {success && <p className="text-sm text-[#2DD4BF] bg-[#2DD4BF]/10 rounded-lg px-3 py-2">{success}</p>}
+      {success && <p className="text-sm text-[var(--pz-teal-ink)] bg-[var(--pz-teal-bg)] rounded-lg px-3 py-2">{success}</p>}
 
       {/* Event templates */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-[#F0F4F8]">This event&apos;s templates</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)]">This event&apos;s templates</h2>
           {defaultTemplateId && (
             <div className="flex items-center gap-2">
               <a
@@ -159,12 +159,12 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
 
         {eventTpls.length === 0 ? (
           <div className="pz-card p-6 text-center space-y-3">
-            <p className="text-sm text-[#64748B]">No badge templates for this event yet.</p>
+            <p className="text-sm text-[var(--pz-muted)]">No badge templates for this event yet.</p>
             <div className="flex justify-center gap-3">
               <a
                 href={`/events/${eventSlug}/badges/new`}
                 className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-                style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
               >
                 + New badge template
               </a>
@@ -184,13 +184,13 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     >
                       <span className={`inline-block w-2.5 h-2.5 rounded-full border-2 ${
                         defaultTemplateId === t.id
-                          ? 'bg-[#2DD4BF] border-[#2DD4BF]'
-                          : 'bg-transparent border-[#475569]'
+                          ? 'bg-[var(--pz-teal)] border-[var(--pz-teal)]'
+                          : 'bg-transparent border-[var(--pz-muted)]'
                       }`} />
                     </button>
                     <div>
-                      <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
-                      <p className="text-xs text-[#64748B]">{t.paper_size}</p>
+                      <p className="text-sm font-medium text-[var(--pz-text)]">{t.name}</p>
+                      <p className="text-xs text-[var(--pz-muted)]">{t.paper_size}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -210,20 +210,20 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
-                      style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                      style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                     >
                       Print all
                     </a>
                     <button
                       onClick={() => handleSaveToOrg(t.id)}
                       disabled={saving === t.id}
-                      className="text-xs text-[#2DD4BF] hover:underline disabled:opacity-50"
+                      className="text-xs text-[var(--pz-teal-ink)] hover:underline disabled:opacity-50"
                     >
                       {saving === t.id ? 'Saving…' : 'Save to org library'}
                     </button>
                     {confirmDelete === t.id ? (
                       <span className="flex items-center gap-1">
-                        <span className="text-xs text-[#94A3B8]">Delete?</span>
+                        <span className="text-xs text-[var(--pz-muted)]">Delete?</span>
                         <button
                           onClick={() => handleDelete(t.id)}
                           disabled={deleting === t.id}
@@ -233,7 +233,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                         </button>
                         <button
                           onClick={() => setConfirmDelete(null)}
-                          className="text-xs text-[#94A3B8] hover:underline"
+                          className="text-xs text-[var(--pz-muted)] hover:underline"
                         >
                           No
                         </button>
@@ -250,7 +250,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                 </div>
               </div>
             ))}
-            <p className="text-xs text-[#475569] mt-1 px-1">
+            <p className="text-xs text-[var(--pz-muted)] mt-1 px-1">
               ● = default template used for &quot;Print all attendees&quot; above. Click a dot to change it.
             </p>
           </div>
@@ -259,30 +259,30 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
 
       {/* Org template library */}
       <section>
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-3">Org template library</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-3">Org template library</h2>
         {orgTpls.length === 0 ? (
-          <p className="text-sm text-[#64748B]">No org-level templates yet. Save an event template above to add one.</p>
+          <p className="text-sm text-[var(--pz-muted)]">No org-level templates yet. Save an event template above to add one.</p>
         ) : (
           <div className="space-y-2">
             {orgTpls.map(t => (
               <div key={t.id} className={cardCls}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#F0F4F8]">{t.name}</p>
-                    <p className="text-xs text-[#64748B]">{t.paper_size}</p>
+                    <p className="text-sm font-medium text-[var(--pz-text)]">{t.name}</p>
+                    <p className="text-xs text-[var(--pz-muted)]">{t.paper_size}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleCopyToEvent(t.id)}
                       disabled={copying === t.id}
                       className="rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
-                      style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                      style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                     >
                       {copying === t.id ? 'Copying…' : 'Use template'}
                     </button>
                     {confirmDeleteOrg === t.id ? (
                       <span className="flex items-center gap-1">
-                        <span className="text-xs text-[#94A3B8]">Delete?</span>
+                        <span className="text-xs text-[var(--pz-muted)]">Delete?</span>
                         <button
                           onClick={() => handleDeleteOrg(t.id)}
                           disabled={deletingOrg === t.id}
@@ -292,7 +292,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                         </button>
                         <button
                           onClick={() => setConfirmDeleteOrg(null)}
-                          className="text-xs text-[#94A3B8] hover:underline"
+                          className="text-xs text-[var(--pz-muted)] hover:underline"
                         >
                           No
                         </button>
@@ -317,8 +317,8 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
       <section>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-sm font-semibold text-[#F0F4F8]">Badge rules</h2>
-            <p className="text-xs text-[#64748B] mt-0.5">Map conditions to templates. Evaluated in order — first match wins.</p>
+            <h2 className="text-sm font-semibold text-[var(--pz-text)]">Badge rules</h2>
+            <p className="text-xs text-[var(--pz-muted)] mt-0.5">Map conditions to templates. Evaluated in order — first match wins.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -332,7 +332,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
               onClick={handleSaveRules}
               disabled={savingRules}
               className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {savingRules ? 'Saving…' : 'Save rules'}
             </button>
@@ -340,7 +340,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
         </div>
 
         {rules.length === 0 ? (
-          <p className="text-xs text-[#64748B]">No rules yet. Without rules, all badges use the default template selected above.</p>
+          <p className="text-xs text-[var(--pz-muted)]">No rules yet. Without rules, all badges use the default template selected above.</p>
         ) : (
           <div className="space-y-2">
             {rules.map((rule, i) => {
@@ -377,7 +377,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     </select>
                   )}
 
-                  <span className="text-xs text-[#64748B]">→</span>
+                  <span className="text-xs text-[var(--pz-muted)]">→</span>
 
                   <select
                     value={rule.templateId}

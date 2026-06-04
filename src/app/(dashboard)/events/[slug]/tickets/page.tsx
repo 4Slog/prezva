@@ -34,10 +34,10 @@ export default async function TicketsPage({ params }: Props) {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="text-xs text-[#64748B] mb-1">
-            <a href={`/events/${slug}`} className="hover:text-[#94A3B8]">← {event.title}</a>
+          <p className="text-xs text-[var(--pz-muted)] mb-1">
+            <a href={`/events/${slug}`} className="hover:text-[var(--pz-muted)]">← {event.title}</a>
           </p>
-          <h1 className="text-xl font-bold text-[#F0F4F8]">Tickets</h1>
+          <h1 className="text-xl font-bold text-[var(--pz-text)]">Tickets</h1>
         </div>
       </div>
       <TicketManager

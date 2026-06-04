@@ -105,7 +105,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
         <button
           onClick={() => { setShowForm(true); setForm(EMPTY_FORM) }}
           style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
-                   background: 'var(--pz-teal)', color: '#0D1B2A',
+                   background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                    fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add item
         </button>
@@ -201,7 +201,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" disabled={saving}
                 style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
-                         background: 'var(--pz-teal)', color: '#0D1B2A',
+                         background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                          fontWeight: 700, fontSize: 13, cursor: 'pointer',
                          opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Saving…' : 'Save'}
@@ -225,7 +225,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
         items.map(item => (
           <div key={item.id} style={{
             display: 'flex', gap: 12, padding: '0.875rem',
-            background: item.status === 'in_progress' ? 'var(--pz-teal, #2DD4BF)1a' : 'var(--pz-surface)',
+            background: item.status === 'in_progress' ? 'var(--pz-teal-bg)' : 'var(--pz-surface)',
             borderRadius: 10, marginBottom: 8,
             border: `1px solid ${item.status === 'in_progress' ? 'var(--pz-teal)' : 'var(--pz-border)'}`,
           }}>

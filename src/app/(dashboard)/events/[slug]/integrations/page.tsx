@@ -148,12 +148,12 @@ export default async function EventIntegrationsPage({ params }: Props) {
                   <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>
                     Prezva SMS <span style={{ fontSize: 11, color: 'var(--pz-muted)', fontWeight: 400 }}>(Recommended)</span>
                   </p>
-                  <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700, background: '#1E3A5F', color: '#94A3B8', borderRadius: 4, padding: '1px 6px' }}>
+                  <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700, background: 'var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 4, padding: '1px 6px' }}>
                     Powered by Telnyx
                   </span>
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, background: '#F59E0B22', color: 'var(--pz-warning-fill)', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--pz-warning-bg)', color: 'var(--pz-warning-fill)', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
                 Pending carrier approval
               </span>
             </div>
@@ -165,7 +165,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
               <li>Shared Prezva sender number</li>
               <li>Included in your plan</li>
             </ul>
-            <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', fontStyle: 'italic' }}>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--pz-muted)', fontStyle: 'italic' }}>
               SMS delivery begins once carrier campaign CRX9TO7 is approved (typically 2–4 weeks)
             </p>
           </div>
@@ -176,7 +176,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
                 <span style={{ fontSize: 22 }}>🔢</span>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>Your own number</p>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, background: '#1E3A5F', color: '#64748B', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>
                 Coming soon
               </span>
             </div>

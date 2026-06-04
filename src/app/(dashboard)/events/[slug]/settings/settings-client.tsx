@@ -92,8 +92,8 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
     setSpLoading(false)
   }
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
+  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
   const btnCls = 'rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50'
 
   async function handleClone(e: React.FormEvent) {
@@ -146,8 +146,8 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
     <>
       {/* T-119: Clone event */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-1">Clone event</h2>
-        <p className="text-xs text-[#64748B] mb-4">Creates a copy with the same sessions, tickets, and speakers (no registrations).</p>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Clone event</h2>
+        <p className="text-xs text-[var(--pz-muted)] mb-4">Creates a copy with the same sessions, tickets, and speakers (no registrations).</p>
         <form onSubmit={handleClone} className="flex flex-col gap-3">
           <div>
             <label className={labelCls}>New event name</label>
@@ -173,7 +173,7 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
             />
           </div>
           {cloneError && <p className="text-sm text-[var(--pz-error)]">{cloneError}</p>}
-          <button type="submit" disabled={cloneLoading} className={btnCls} style={{ background: 'var(--pz-teal)', color: '#0D1B2A', alignSelf: 'flex-start' }}>
+          <button type="submit" disabled={cloneLoading} className={btnCls} style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', alignSelf: 'flex-start' }}>
             {cloneLoading ? 'Cloning…' : 'Clone event'}
           </button>
         </form>
@@ -181,10 +181,10 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
 
       {/* T-120: Save as template */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-1">Save as org template</h2>
-        <p className="text-xs text-[#64748B] mb-4">Save this event structure as a reusable template for your organization.</p>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Save as org template</h2>
+        <p className="text-xs text-[var(--pz-muted)] mb-4">Save this event structure as a reusable template for your organization.</p>
         {tplSaved ? (
-          <p className="text-sm text-[#2DD4BF]">Template saved successfully.</p>
+          <p className="text-sm text-[var(--pz-teal-ink)]">Template saved successfully.</p>
         ) : (
           <form onSubmit={handleSaveTemplate} className="flex flex-col gap-3">
             <div>
@@ -196,7 +196,7 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
               <input className={inputCls} placeholder="Optional description" value={tplDesc} onChange={e => setTplDesc(e.target.value)} />
             </div>
             {tplError && <p className="text-sm text-[var(--pz-error)]">{tplError}</p>}
-            <button type="submit" disabled={tplLoading} className={btnCls} style={{ background: 'var(--pz-teal)', color: '#0D1B2A', alignSelf: 'flex-start' }}>
+            <button type="submit" disabled={tplLoading} className={btnCls} style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', alignSelf: 'flex-start' }}>
               {tplLoading ? 'Saving…' : 'Save as template'}
             </button>
           </form>
@@ -205,8 +205,8 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
 
       {/* T-121: Recurring event */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-1">Recurrence</h2>
-        <p className="text-xs text-[#64748B] mb-4">Set a recurrence schedule to automatically generate the next occurrence.</p>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Recurrence</h2>
+        <p className="text-xs text-[var(--pz-muted)] mb-4">Set a recurrence schedule to automatically generate the next occurrence.</p>
         <form onSubmit={handleSaveRecurrence} className="flex flex-col gap-3">
           <div>
             <label className={labelCls}>Recurrence</label>
@@ -219,7 +219,7 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
           </div>
           {recurError && <p className="text-sm text-[var(--pz-error)]">{recurError}</p>}
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={recurLoading} className={btnCls} style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+            <button type="submit" disabled={recurLoading} className={btnCls} style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>
               {recurLoading ? 'Saving…' : recurSaved ? 'Saved!' : 'Save recurrence'}
             </button>
             {currentRecurrence && (
@@ -227,7 +227,7 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
                 type="button"
                 onClick={handleCreateNext}
                 disabled={nextLoading}
-                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8]`}
+                className={`${btnCls} border border-[var(--pz-border)] text-[var(--pz-muted)] hover:text-[var(--pz-text)]`}
               >
                 {nextLoading ? 'Creating…' : 'Create next occurrence now'}
               </button>
@@ -240,13 +240,13 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
       {/* Integrations */}
       {(outlookConnected || driveConnected || sharepointConnected) && (
         <section className="pz-card p-6 mb-6">
-          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Integrations</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Integrations</h2>
           <div className="flex flex-wrap gap-3">
             {outlookConnected && (
               <button
                 onClick={handleOutlookAdd}
                 disabled={outlookLoading || outlookDone}
-                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50`}
+                className={`${btnCls} border border-[var(--pz-border)] text-[var(--pz-muted)] hover:text-[var(--pz-text)] disabled:opacity-50`}
               >
                 {outlookDone ? 'Added to Outlook ✓' : outlookLoading ? 'Adding…' : 'Add to Outlook Calendar'}
               </button>
@@ -255,7 +255,7 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
               <button
                 onClick={openDrive}
                 disabled={driveLoading}
-                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50`}
+                className={`${btnCls} border border-[var(--pz-border)] text-[var(--pz-muted)] hover:text-[var(--pz-text)] disabled:opacity-50`}
               >
                 {driveLoading ? 'Loading…' : 'Attach from Drive'}
               </button>
@@ -264,7 +264,7 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
               <button
                 onClick={openSharePoint}
                 disabled={spLoading}
-                className={`${btnCls} border border-[#1E3A5F] text-[#94A3B8] hover:text-[#F0F4F8] disabled:opacity-50`}
+                className={`${btnCls} border border-[var(--pz-border)] text-[var(--pz-muted)] hover:text-[var(--pz-text)] disabled:opacity-50`}
               >
                 {spLoading ? 'Loading…' : 'Attach from SharePoint'}
               </button>
@@ -276,21 +276,21 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
       {/* Google Drive file picker modal */}
       {showDrive && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#112240] rounded-xl p-6 w-full max-w-md space-y-4 border border-[#1E3A5F] max-h-[80vh] flex flex-col">
+          <div className="bg-[var(--pz-surface)] rounded-xl p-6 w-full max-w-md space-y-4 border border-[var(--pz-border)] max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-[#F0F4F8]">Google Drive files</h2>
-              <button onClick={() => setShowDrive(false)} className="text-[#64748B] hover:text-[#94A3B8] text-lg">✕</button>
+              <h2 className="font-semibold text-[var(--pz-text)]">Google Drive files</h2>
+              <button onClick={() => setShowDrive(false)} className="text-[var(--pz-muted)] hover:text-[var(--pz-muted)] text-lg">✕</button>
             </div>
             <div className="overflow-y-auto flex-1 space-y-1">
               {driveFiles.length === 0 ? (
-                <p className="text-sm text-[#64748B]">No files found.</p>
+                <p className="text-sm text-[var(--pz-muted)]">No files found.</p>
               ) : driveFiles.map(f => (
                 <a
                   key={f.id}
                   href={f.webViewLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1E3A5F] text-sm text-[#94A3B8] hover:text-[#F0F4F8] transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--pz-surface-2)] text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] transition-colors"
                 >
                   <span className="text-xs opacity-60 shrink-0 w-16 truncate">{f.mimeType.split('.').pop()}</span>
                   <span className="flex-1 truncate">{f.name}</span>
@@ -304,21 +304,21 @@ export function EventSettingsClient({ eventId, eventSlug, orgId, currentRecurren
       {/* SharePoint file picker modal */}
       {showSP && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#112240] rounded-xl p-6 w-full max-w-md space-y-4 border border-[#1E3A5F] max-h-[80vh] flex flex-col">
+          <div className="bg-[var(--pz-surface)] rounded-xl p-6 w-full max-w-md space-y-4 border border-[var(--pz-border)] max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-[#F0F4F8]">SharePoint files</h2>
-              <button onClick={() => setShowSP(false)} className="text-[#64748B] hover:text-[#94A3B8] text-lg">✕</button>
+              <h2 className="font-semibold text-[var(--pz-text)]">SharePoint files</h2>
+              <button onClick={() => setShowSP(false)} className="text-[var(--pz-muted)] hover:text-[var(--pz-muted)] text-lg">✕</button>
             </div>
             <div className="overflow-y-auto flex-1 space-y-1">
               {spFiles.length === 0 ? (
-                <p className="text-sm text-[#64748B]">No files found.</p>
+                <p className="text-sm text-[var(--pz-muted)]">No files found.</p>
               ) : spFiles.map(f => (
                 <a
                   key={f.id}
                   href={f.downloadUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1E3A5F] text-sm text-[#94A3B8] hover:text-[#F0F4F8] transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--pz-surface-2)] text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] transition-colors"
                 >
                   <span className="flex-1 truncate">{f.name}</span>
                 </a>
