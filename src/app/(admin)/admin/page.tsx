@@ -50,12 +50,12 @@ export default async function AdminDashboard() {
   return (
     <div style={{ padding: '2rem', maxWidth: 1000 }}>
       {missingVars.length > 0 && (
-        <div style={{ border: '1px solid var(--pz-error)', borderRadius: 10, padding: '1rem 1.25rem', background: '#FEF2F2', marginBottom: '1.5rem' }}>
-          <p style={{ fontWeight: 700, color: '#DC2626', fontSize: 14, margin: '0 0 8px' }}>
+        <div style={{ border: '1px solid var(--pz-error)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-error-bg)', marginBottom: '1.5rem' }}>
+          <p style={{ fontWeight: 700, color: 'var(--pz-error)', fontSize: 14, margin: '0 0 8px' }}>
             {missingVars.length} production env var{missingVars.length > 1 ? 's' : ''} missing
           </p>
           {missingVars.map(v => (
-            <p key={v} style={{ fontSize: 13, color: '#DC2626', margin: '2px 0', fontFamily: 'monospace' }}>{v}</p>
+            <p key={v} style={{ fontSize: 13, color: 'var(--pz-error)', margin: '2px 0', fontFamily: 'monospace' }}>{v}</p>
           ))}
         </div>
       )}

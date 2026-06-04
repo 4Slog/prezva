@@ -9,10 +9,10 @@ export function VerifyForm({ email }: { email: string }) {
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-label)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           Email
         </label>
-        <div style={{ fontSize: 13, color: '#F0F4F8', padding: '10px 12px', background: '#0D1B2A', border: '1px solid #1E3A5F', borderRadius: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--pz-text)', padding: '10px 12px', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 8 }}>
           {email}
         </div>
       </div>
@@ -20,7 +20,7 @@ export function VerifyForm({ email }: { email: string }) {
       <div>
         <label
           htmlFor="password"
-          style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}
+          style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-label)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}
         >
           Password
         </label>
@@ -33,10 +33,10 @@ export function VerifyForm({ email }: { email: string }) {
           style={{
             width: '100%',
             fontSize: 13,
-            color: '#F0F4F8',
+            color: 'var(--pz-text)',
             padding: '10px 12px',
-            background: '#0D1B2A',
-            border: `1px solid ${state?.error ? 'var(--pz-error)' : '#1E3A5F'}`,
+            background: 'var(--pz-bg)',
+            border: `1px solid ${state?.error ? 'var(--pz-error)' : 'var(--pz-border)'}`,
             borderRadius: 8,
             outline: 'none',
             boxSizing: 'border-box',
@@ -54,11 +54,12 @@ export function VerifyForm({ email }: { email: string }) {
           padding: '10px 0',
           borderRadius: 8,
           border: 'none',
-          background: pending ? '#0A4A3F' : '#2DD4BF',
-          color: '#0D1B2A',
+          background: 'var(--pz-teal)',
+          color: 'var(--pz-on-accent)',
           fontWeight: 700,
           fontSize: 14,
           cursor: pending ? 'not-allowed' : 'pointer',
+          opacity: pending ? 0.6 : 1,
         }}
       >
         {pending ? 'Verifying…' : 'Confirm access'}

@@ -76,37 +76,37 @@ export default async function AdminRevenuePage() {
 
   return (
     <div className="space-y-8 max-w-5xl">
-      <h1 className="text-xl font-bold text-[#F0F4F8]">Revenue</h1>
+      <h1 className="text-xl font-bold text-[var(--pz-text)]">Revenue</h1>
       <div className="grid grid-cols-3 gap-4">
         {stats.map(s => (
-          <div key={s.label} className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-5">
-            <p className="text-xs text-[#64748B] mb-1">{s.label}</p>
-            <p className={`text-2xl font-bold ${'positive' in s ? (s.positive ? 'text-[#2DD4BF]' : 'text-red-400') : 'text-[#F0F4F8]'}`}>{s.value}</p>
+          <div key={s.label} className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-5">
+            <p className="text-xs text-[var(--pz-label)] mb-1">{s.label}</p>
+            <p className={`text-2xl font-bold ${'positive' in s ? (s.positive ? 'text-[var(--pz-teal-ink)]' : 'text-[var(--pz-error)]') : 'text-[var(--pz-text)]'}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-[#F0F4F8]">Monthly Revenue (last 6 months)</h2>
-          <div className="rounded-xl border border-[#1E3A5F] overflow-hidden">
+          <h2 className="text-sm font-semibold text-[var(--pz-text)]">Monthly Revenue (last 6 months)</h2>
+          <div className="rounded-xl border border-[var(--pz-border)] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-[#071629]">
+              <thead className="bg-[var(--pz-surface-2)]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748B] uppercase">Month</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[#64748B] uppercase">Revenue</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--pz-label)] uppercase">Month</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--pz-label)] uppercase">Revenue</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E3A5F]">
+              <tbody className="divide-y divide-[var(--pz-border)]">
                 {months.map(([month, cents]) => (
-                  <tr key={month} className="bg-[#112240]">
-                    <td className="px-4 py-3 text-[#94A3B8]">{month}</td>
-                    <td className="px-4 py-3 text-right text-[#F0F4F8]">{fmt(cents)}</td>
+                  <tr key={month} className="bg-[var(--pz-surface)]">
+                    <td className="px-4 py-3 text-[var(--pz-muted)]">{month}</td>
+                    <td className="px-4 py-3 text-right text-[var(--pz-text)]">{fmt(cents)}</td>
                   </tr>
                 ))}
                 {months.length === 0 && (
-                  <tr className="bg-[#112240]">
-                    <td colSpan={2} className="px-4 py-6 text-center text-[#64748B]">No revenue data</td>
+                  <tr className="bg-[var(--pz-surface)]">
+                    <td colSpan={2} className="px-4 py-6 text-center text-[var(--pz-label)]">No revenue data</td>
                   </tr>
                 )}
               </tbody>
@@ -115,25 +115,25 @@ export default async function AdminRevenuePage() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-[#F0F4F8]">Top Organizations by Revenue</h2>
-          <div className="rounded-xl border border-[#1E3A5F] overflow-hidden">
+          <h2 className="text-sm font-semibold text-[var(--pz-text)]">Top Organizations by Revenue</h2>
+          <div className="rounded-xl border border-[var(--pz-border)] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-[#071629]">
+              <thead className="bg-[var(--pz-surface-2)]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748B] uppercase">Organization</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[#64748B] uppercase">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--pz-label)] uppercase">Organization</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--pz-label)] uppercase">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E3A5F]">
+              <tbody className="divide-y divide-[var(--pz-border)]">
                 {topOrgs.map((org, i) => (
-                  <tr key={i} className="bg-[#112240]">
-                    <td className="px-4 py-3 text-[#94A3B8]">{org.name}</td>
-                    <td className="px-4 py-3 text-right text-[#F0F4F8]">{fmt(org.total)}</td>
+                  <tr key={i} className="bg-[var(--pz-surface)]">
+                    <td className="px-4 py-3 text-[var(--pz-muted)]">{org.name}</td>
+                    <td className="px-4 py-3 text-right text-[var(--pz-text)]">{fmt(org.total)}</td>
                   </tr>
                 ))}
                 {topOrgs.length === 0 && (
-                  <tr className="bg-[#112240]">
-                    <td colSpan={2} className="px-4 py-6 text-center text-[#64748B]">No data</td>
+                  <tr className="bg-[var(--pz-surface)]">
+                    <td colSpan={2} className="px-4 py-6 text-center text-[var(--pz-label)]">No data</td>
                   </tr>
                 )}
               </tbody>
