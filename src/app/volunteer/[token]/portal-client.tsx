@@ -171,13 +171,13 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.5rem' }}>
         {/* Greeting */}
         <div style={{ marginBottom: 24 }}>
-          <p style={{ color: '#2DD4BF', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>
+          <p style={{ color: 'var(--pz-teal-ink)', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>
             {ROLE_LABELS[volunteer.role] ?? volunteer.role}
           </p>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 4 }}>
             Hi, {volunteer.name.split(' ')[0]}!
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>
+          <p style={{ color: 'var(--pz-text)', fontSize: 14 }}>
             You&apos;re volunteering at <strong>{event.title}</strong>
           </p>
         </div>
@@ -185,13 +185,13 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         {/* Assigned sessions */}
         {assignedSessions.length > 0 ? (
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#2DD4BF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, color: 'var(--pz-teal-ink)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
               YOUR ASSIGNMENTS
             </h2>
             {assignedSessions.map(s => (
-              <div key={s.id} style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '0.875rem 1rem', marginBottom: 8 }}>
-                <p style={{ fontWeight: 600, fontSize: 14, color: '#F0F4F8', margin: '0 0 4px' }}>{s.title}</p>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              <div key={s.id} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '0.875rem 1rem', marginBottom: 8 }}>
+                <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--pz-text)', margin: '0 0 4px' }}>{s.title}</p>
+                <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>
                   {new Date(s.starts_at).toLocaleTimeString('en-US', { timeZone: event.timezone, hour: 'numeric', minute: '2-digit' })}
                   {Array.isArray(s.rooms) ? (s.rooms[0]?.name ? ` · ${s.rooms[0].name}` : '') : (s.rooms?.name ? ` · ${(s.rooms as { name: string }).name}` : '')}
                 </p>
@@ -199,8 +199,8 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
             ))}
           </div>
         ) : (
-          <div style={{ marginBottom: 24, padding: '1rem', background: '#112240', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+          <div style={{ marginBottom: 24, padding: '1rem', background: 'var(--pz-surface)', borderRadius: 10, border: '1px solid var(--pz-border)', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: 0 }}>
               No sessions assigned yet. Check with your event coordinator.
             </p>
           </div>
@@ -208,8 +208,8 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
 
         {/* Shift response */}
         {shiftResponse === 'pending' && (
-          <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '1rem', marginBottom: 16 }}>
-            <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 12px', color: '#F0F4F8' }}>
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem', marginBottom: 16 }}>
+            <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 12px', color: 'var(--pz-text)' }}>
               Can you make it?
             </p>
             {responseMsg && <p style={{ fontSize: 12, color: 'var(--pz-error)', marginBottom: 8 }}>{responseMsg}</p>}
@@ -217,14 +217,14 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
               <button
                 onClick={() => handleResponse('confirmed')}
                 disabled={responding}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: 8, border: 'none', background: '#2DD4BF', color: '#0D1B2A', fontWeight: 700, cursor: responding ? 'not-allowed' : 'pointer', opacity: responding ? 0.7 : 1 }}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: 8, border: 'none', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', fontWeight: 700, cursor: responding ? 'not-allowed' : 'pointer', opacity: responding ? 0.7 : 1 }}
               >
                 Yes, I&apos;ll be there
               </button>
               <button
                 onClick={() => setShowDecline(true)}
                 disabled={responding}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: responding ? 'not-allowed' : 'pointer' }}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: responding ? 'not-allowed' : 'pointer' }}
               >
                 Can&apos;t make it
               </button>
@@ -236,12 +236,12 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
                   rows={2}
                   value={declineReason}
                   onChange={e => setDeclineReason(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', fontSize: 14, background: '#0D1B2A', color: '#F0F4F8', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1px solid var(--pz-border)', fontSize: 14, background: 'var(--pz-bg)', color: 'var(--pz-text)', boxSizing: 'border-box' }}
                 />
                 <button
                   onClick={() => handleResponse('declined', declineReason)}
                   disabled={responding}
-                  style={{ marginTop: 8, width: '100%', padding: '0.625rem', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: responding ? 'not-allowed' : 'pointer', opacity: responding ? 0.7 : 1 }}
+                  style={{ marginTop: 8, width: '100%', padding: '0.625rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: responding ? 'not-allowed' : 'pointer', opacity: responding ? 0.7 : 1 }}
                 >
                   {responding ? 'Saving…' : 'Submit'}
                 </button>
@@ -250,26 +250,26 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
           </div>
         )}
         {shiftResponse === 'confirmed' && (
-          <div style={{ background: 'rgba(0,191,166,0.1)', border: '1px solid rgba(0,191,166,0.3)', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 16 }}>
-            <p style={{ fontSize: 13, color: '#2DD4BF', margin: 0, fontWeight: 600 }}>You confirmed your shift</p>
+          <div style={{ background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-teal-ink)', margin: 0, fontWeight: 600 }}>You confirmed your shift</p>
           </div>
         )}
         {shiftResponse === 'declined' && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 16 }}>
+          <div style={{ background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)', borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 16 }}>
             <p style={{ fontSize: 13, color: 'var(--pz-error)', margin: 0 }}>You declined this shift</p>
           </div>
         )}
 
         {/* Event info card */}
-        <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>📅 {fmtDate(event.start_at)}</p>
+        <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--pz-muted)', marginBottom: 4 }}>📅 {fmtDate(event.start_at)}</p>
           {event.venue_name && (
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+            <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>
               📍 {event.venue_name}{event.venue_city ? ', ' + event.venue_city : ''}
             </p>
           )}
           {volunteer.shift_start && (
-            <p style={{ fontSize: 14, color: '#2DD4BF', marginTop: 8, fontWeight: 600 }}>
+            <p style={{ fontSize: 14, color: 'var(--pz-teal-ink)', marginTop: 8, fontWeight: 600 }}>
               Your shift: {fmtTime(volunteer.shift_start)}
               {volunteer.shift_end ? ' – ' + fmtTime(volunteer.shift_end) : ''}
             </p>
@@ -277,23 +277,23 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         </div>
 
         {/* Clock in/out */}
-        <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'rgba(255,255,255,0.8)' }}>Time Tracking</h2>
+        <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--pz-text)' }}>Time Tracking</h2>
           {volunteer.clocked_in_at && (
-            <p style={{ fontSize: 13, color: '#2DD4BF', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-teal-ink)', marginBottom: 12 }}>
               Clocked in at {fmtTime(volunteer.clocked_in_at)}
               {volunteer.clocked_out_at && ` → out at ${fmtTime(volunteer.clocked_out_at)}`}
               {totalHours && ` (${totalHours}h total)`}
             </p>
           )}
           {msg && (
-            <p style={{ fontSize: 13, color: msg.includes('success') || msg.includes('Thanks') ? '#2DD4BF' : 'var(--pz-error)', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: msg.includes('success') || msg.includes('Thanks') ? 'var(--pz-teal-ink)' : 'var(--pz-error)', marginBottom: 12 }}>
               {msg}
             </p>
           )}
           <div style={{ display: 'flex', gap: 10 }}>
             {!volunteer.clocked_in_at && (
-              <button onClick={clockIn} disabled={loading} style={{ background: '#2DD4BF', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+              <button onClick={clockIn} disabled={loading} style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
                 {loading ? 'Clocking in…' : 'Clock In'}
               </button>
             )}
@@ -307,19 +307,19 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
 
         {/* Role-specific tools */}
         {volunteer.role === 'check-in' && (
-          <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.8)' }}>Check-In Scanner</h2>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Scan attendee QR codes to check them in.</p>
-            <a href={`/volunteer/${token}/scan`} style={{ display: 'inline-block', background: '#2DD4BF', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--pz-text)' }}>Check-In Scanner</h2>
+            <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginBottom: 12 }}>Scan attendee QR codes to check them in.</p>
+            <a href={`/volunteer/${token}/scan`} style={{ display: 'inline-block', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
               Open QR Scanner
             </a>
           </div>
         )}
         {volunteer.role === 'registration-desk' && (
-          <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'rgba(255,255,255,0.8)' }}>Walk-In Registration</h2>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Register walk-in attendees at the front desk.</p>
-            <a href={`/e/${event.slug}/register`} style={{ display: 'inline-block', background: '#2DD4BF', color: '#0D1B2A', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.25rem', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--pz-text)' }}>Walk-In Registration</h2>
+            <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginBottom: 12 }}>Register walk-in attendees at the front desk.</p>
+            <a href={`/e/${event.slug}/register`} style={{ display: 'inline-block', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
               Open Registration Form
             </a>
           </div>
@@ -328,7 +328,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         {/* Attendee lookup */}
         {canLookup && (
           <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 12, fontWeight: 700, color: '#2DD4BF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, color: 'var(--pz-teal-ink)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>
               ATTENDEE LOOKUP
             </h2>
             <input
@@ -336,15 +336,15 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
               placeholder="Search name or email..."
               value={lookupQuery}
               onChange={e => { setLookupQuery(e.target.value); debouncedLookup(e.target.value) }}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: 10, fontSize: 16, border: '1px solid rgba(255,255,255,0.15)', background: '#112240', color: '#F0F4F8', marginBottom: 8, boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: 10, fontSize: 16, border: '1px solid var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)', marginBottom: 8, boxSizing: 'border-box' }}
             />
             {lookupResults.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#112240', borderRadius: 8, marginBottom: 6, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--pz-surface)', borderRadius: 8, marginBottom: 6, border: '1px solid var(--pz-border)' }}>
                 <div>
-                  <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#F0F4F8' }}>{r.name}</p>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{r.ticket ? `${r.ticket} · ` : ''}{r.email}</p>
+                  <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: 'var(--pz-text)' }}>{r.name}</p>
+                  <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: 0 }}>{r.ticket ? `${r.ticket} · ` : ''}{r.email}</p>
                 </div>
-                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 600, background: r.checked_in ? 'rgba(0,191,166,0.15)' : 'rgba(245,158,11,0.15)', color: r.checked_in ? '#2DD4BF' : 'var(--pz-warning-fill)', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 600, background: r.checked_in ? 'var(--pz-teal-bg)' : 'var(--pz-warning-bg)', color: r.checked_in ? 'var(--pz-teal-ink)' : 'var(--pz-warning)', whiteSpace: 'nowrap', marginLeft: 8 }}>
                   {r.checked_in ? 'Checked in' : r.status}
                 </span>
               </div>
@@ -353,19 +353,19 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
         )}
 
         {/* Alert organizer */}
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <h2 style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 2 }}>
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pz-border)' }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: 'var(--pz-label)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 2 }}>
             SEND ALERT TO ORGANIZER
           </h2>
           {!showAlert ? (
-            <button onClick={() => setShowAlert(true)} style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 14 }}>
+            <button onClick={() => setShowAlert(true)} style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-label)', cursor: 'pointer', fontSize: 14 }}>
               + Send alert
             </button>
           ) : (
-            <div style={{ background: '#112240', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', padding: '1rem' }}>
+            <div style={{ background: 'var(--pz-surface)', borderRadius: 10, border: '1px solid var(--pz-border)', padding: '1rem' }}>
               <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
                 {ALERT_TYPES.map(t => (
-                  <button key={t.value} onClick={() => setAlertType(t.value)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: `1px solid ${alertType === t.value ? t.color : 'rgba(255,255,255,0.15)'}`, background: alertType === t.value ? t.color + '22' : 'transparent', color: alertType === t.value ? t.color : 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                  <button key={t.value} onClick={() => setAlertType(t.value)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer', border: `1px solid ${alertType === t.value ? t.color : 'var(--pz-border)'}`, background: alertType === t.value ? t.color + '22' : 'transparent', color: alertType === t.value ? t.color : 'var(--pz-label)', fontWeight: 600 }}>
                     {t.label}
                   </button>
                 ))}
@@ -375,24 +375,24 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
                 placeholder="Describe the situation..."
                 value={alertMsg}
                 onChange={e => setAlertMsg(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: 8, fontSize: 14, border: '1px solid rgba(255,255,255,0.15)', background: '#0D1B2A', color: '#F0F4F8', marginBottom: 10, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: 8, fontSize: 14, border: '1px solid var(--pz-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', marginBottom: 10, boxSizing: 'border-box' }}
               />
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={handleSendAlert} disabled={!alertMsg.trim() || sendingAlert} style={{ flex: 1, padding: '0.625rem', borderRadius: 8, border: 'none', background: alertType === 'urgent' ? 'var(--pz-error)' : '#2DD4BF', color: alertType === 'urgent' ? '#fff' : '#0D1B2A', fontWeight: 700, cursor: !alertMsg.trim() || sendingAlert ? 'not-allowed' : 'pointer', opacity: !alertMsg.trim() || sendingAlert ? 0.5 : 1 }}>
+                <button onClick={handleSendAlert} disabled={!alertMsg.trim() || sendingAlert} style={{ flex: 1, padding: '0.625rem', borderRadius: 8, border: 'none', background: alertType === 'urgent' ? 'var(--pz-error)' : 'var(--pz-teal)', color: alertType === 'urgent' ? '#fff' : 'var(--pz-on-accent)', fontWeight: 700, cursor: !alertMsg.trim() || sendingAlert ? 'not-allowed' : 'pointer', opacity: !alertMsg.trim() || sendingAlert ? 0.5 : 1 }}>
                   {sendingAlert ? 'Sending…' : 'Send alert'}
                 </button>
-                <button onClick={() => { setShowAlert(false); setAlertMsg('') }} style={{ padding: '0.625rem 1rem', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                <button onClick={() => { setShowAlert(false); setAlertMsg('') }} style={{ padding: '0.625rem 1rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-label)', cursor: 'pointer' }}>
                   Cancel
                 </button>
               </div>
             </div>
           )}
           {alertSent && (
-            <p style={{ fontSize: 12, color: '#2DD4BF', marginTop: 8, textAlign: 'center' }}>Alert sent to organizer</p>
+            <p style={{ fontSize: 12, color: 'var(--pz-teal-ink)', marginTop: 8, textAlign: 'center' }}>Alert sent to organizer</p>
           )}
         </div>
 
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 32 }}>
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', textAlign: 'center', marginTop: 32 }}>
           Powered by Prezva · This link is unique to you
         </p>
       </div>

@@ -49,7 +49,7 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
     !result ? undefined :
     result.error ? 'var(--pz-error)' :
     result.already_checked_in ? 'var(--pz-warning-fill)' :
-    '#2DD4BF'
+    'var(--pz-teal)'
 
   return (
     <PortalShell
@@ -58,34 +58,34 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
       entityName={volunteerName}
     >
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '2rem 1.5rem' }}>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 24 }}>
+        <p style={{ fontSize: 14, color: 'var(--pz-muted)', marginBottom: 24 }}>
           Hi, {volunteerName.split(' ')[0]}. Scan or type a QR code to check in an attendee.
         </p>
 
         {/* Result display */}
         {result && (
-          <div style={{ background: '#112240', border: `2px solid ${resultColor}`, borderRadius: 12, padding: '1.25rem', marginBottom: 20 }}>
+          <div style={{ background: 'var(--pz-surface)', border: `2px solid ${resultColor}`, borderRadius: 12, padding: '1.25rem', marginBottom: 20 }}>
             {result.error ? (
               <p style={{ color: 'var(--pz-error)', fontWeight: 700 }}>{result.error}</p>
             ) : result.already_checked_in ? (
               <>
                 <p style={{ color: 'var(--pz-warning-fill)', fontWeight: 700, marginBottom: 4 }}>Already checked in</p>
                 <p style={{ fontSize: 18, fontWeight: 800 }}>{result.attendee_name}</p>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{result.ticket_type_name}</p>
+                <p style={{ fontSize: 13, color: 'var(--pz-muted)' }}>{result.ticket_type_name}</p>
               </>
             ) : (
               <>
-                <p style={{ color: '#2DD4BF', fontWeight: 700, marginBottom: 4 }}>Checked in!</p>
+                <p style={{ color: 'var(--pz-teal-ink)', fontWeight: 700, marginBottom: 4 }}>Checked in!</p>
                 <p style={{ fontSize: 18, fontWeight: 800 }}>{result.attendee_name}</p>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{result.ticket_type_name}</p>
+                <p style={{ fontSize: 13, color: 'var(--pz-muted)' }}>{result.ticket_type_name}</p>
               </>
             )}
           </div>
         )}
 
         {/* Manual / barcode scanner input */}
-        <div style={{ background: '#112240', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '1.25rem' }}>
-          <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: '1.25rem' }}>
+          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
             QR Code
           </label>
           <input
@@ -96,15 +96,15 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
             onKeyDown={handleKeyDown}
             placeholder="Scan or type code…"
             style={{
-              width: '100%', boxSizing: 'border-box', background: '#0D1B2A', border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 8, padding: '10px 12px', fontSize: 14, color: '#F0F4F8', outline: 'none', marginBottom: 12,
+              width: '100%', boxSizing: 'border-box', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)',
+              borderRadius: 8, padding: '10px 12px', fontSize: 14, color: 'var(--pz-text)', outline: 'none', marginBottom: 12,
             }}
           />
           <button
             onClick={() => submitCode(manualCode)}
             disabled={loading || !manualCode.trim()}
             style={{
-              width: '100%', background: '#2DD4BF', color: '#0D1B2A', padding: '12px', borderRadius: 8,
+              width: '100%', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '12px', borderRadius: 8,
               fontWeight: 700, fontSize: 15, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
           >
@@ -112,7 +112,7 @@ export function VolunteerScanClient({ token, volunteerName, eventName }: Props) 
           </button>
         </div>
 
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 32 }}>
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', textAlign: 'center', marginTop: 32 }}>
           Powered by Prezva · Volunteer portal
         </p>
       </div>

@@ -74,6 +74,12 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
     done: 'var(--pz-success-fill)',
     skipped: 'var(--pz-error)',
   }
+  const STATUS_BG: Record<string, string> = {
+    upcoming: 'var(--pz-surface-2)',
+    in_progress: 'var(--pz-teal-bg)',
+    done: 'var(--pz-success-bg)',
+    skipped: 'var(--pz-error-bg)',
+  }
 
   const currentItem = rosItems.find(i => i.status === 'in_progress')
   const nextItem = rosItems.find(i => i.status === 'upcoming' && (!currentItem || i.time_at > currentItem.time_at))
@@ -91,12 +97,12 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
       {/* Header */}
-      <div style={{ background: '#1E3A5F', padding: '1rem 1.5rem',
+      <div style={{ background: 'var(--pz-surface-2)', padding: '1rem 1.5rem',
                     borderBottom: '2px solid var(--pz-teal)' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex',
                       alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal)',
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-muted)',
                            textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               MC Hub
             </span>
@@ -107,7 +113,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
           </div>
           {currentItem && (
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: 11, color: 'var(--pz-teal)', margin: 0 }}>NOW</p>
+              <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>NOW</p>
               <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text)', margin: 0 }}>
                 {currentItem.title}
               </p>
@@ -156,7 +162,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
               rosItems.map(item => (
                 <div key={item.id} style={{
                   display: 'flex', gap: 12, padding: '0.875rem',
-                  background: item.status === 'in_progress' ? 'rgba(0,191,166,0.08)' : 'var(--pz-surface)',
+                  background: item.status === 'in_progress' ? 'var(--pz-teal-bg)' : 'var(--pz-surface)',
                   borderRadius: 10, marginBottom: 8,
                   border: `1px solid ${item.status === 'in_progress' ? 'var(--pz-teal)' : 'var(--pz-border)'}`,
                 }}>
@@ -178,7 +184,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
                   </div>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 700,
-                                   background: STATUS_COLOR[item.status] + '22',
+                                   background: STATUS_BG[item.status],
                                    color: STATUS_COLOR[item.status] }}>
                       {item.status.replace('_', ' ')}
                     </span>
@@ -257,7 +263,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
                 <button onClick={() => setSelectedSession(null)}
                   style={{ fontSize: 12, padding: '4px 10px', borderRadius: 20, cursor: 'pointer',
                            border: `1px solid ${selectedSession === null ? 'var(--pz-teal)' : 'var(--pz-border)'}`,
-                           background: selectedSession === null ? 'rgba(0,191,166,0.13)' : 'transparent',
+                           background: selectedSession === null ? 'var(--pz-teal-bg)' : 'transparent',
                            color: selectedSession === null ? 'var(--pz-teal)' : 'var(--pz-muted)' }}>
                   All sessions
                 </button>
@@ -265,7 +271,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
                   <button key={s.id} onClick={() => setSelectedSession(s.id)}
                     style={{ fontSize: 12, padding: '4px 10px', borderRadius: 20, cursor: 'pointer',
                              border: `1px solid ${selectedSession === s.id ? 'var(--pz-teal)' : 'var(--pz-border)'}`,
-                             background: selectedSession === s.id ? 'rgba(0,191,166,0.13)' : 'transparent',
+                             background: selectedSession === s.id ? 'var(--pz-teal-bg)' : 'transparent',
                              color: selectedSession === s.id ? 'var(--pz-teal)' : 'var(--pz-muted)' }}>
                     {s.title.length > 20 ? s.title.slice(0, 20) + '…' : s.title}
                   </button>
@@ -292,7 +298,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
                   </p>
                   {q.organizer_answer && (
                     <div style={{ marginTop: 8, padding: '6px 10px',
-                                  background: 'rgba(0,191,166,0.08)', borderLeft: '3px solid var(--pz-teal)',
+                                  background: 'var(--pz-teal-bg)', borderLeft: '3px solid var(--pz-teal)',
                                   borderRadius: 4 }}>
                       <p style={{ fontSize: 12, color: 'var(--pz-teal)', fontWeight: 700, margin: '0 0 2px' }}>Answer</p>
                       <p style={{ fontSize: 13, color: 'var(--pz-text)', margin: 0 }}>{q.organizer_answer}</p>
