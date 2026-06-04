@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react'
 import { Trash2, Plus } from 'lucide-react'
 import { createPassportLocation, deletePassportLocation } from '@/lib/engagement/passport-admin-actions'
+import { Field } from '@/components/ui/Field'
 
 interface Location { id: string; name: string; code: string; points: number; created_at: string }
 interface LeaderEntry { userId?: string; registrationId?: string; name: string; count: number; totalPoints: number }
@@ -61,12 +62,14 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
         <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 16 }}>Add Location</h2>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4 }}>Location Name</label>
-            <input className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Registration Desk" required />
+            <Field label="Location Name" htmlFor="passport-location-name" required>
+              <input id="passport-location-name" className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Registration Desk" required />
+            </Field>
           </div>
           <div style={{ width: 80 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4 }}>Points</label>
-            <input type="number" min="1" max="100" className={inputCls} value={points} onChange={e => setPoints(e.target.value)} />
+            <Field label="Points" htmlFor="passport-points">
+              <input id="passport-points" type="number" min="1" max="100" className={inputCls} value={points} onChange={e => setPoints(e.target.value)} />
+            </Field>
           </div>
           <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.55rem 1rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Plus size={14} /> Add

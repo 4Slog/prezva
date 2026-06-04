@@ -13,6 +13,7 @@ import {
   updateSimuliveSchedule,
 } from '@/lib/video/actions'
 import { AlertTriangle, Download, Upload, Link2, Clock } from 'lucide-react'
+import { Field } from '@/components/ui/Field'
 
 interface Props {
   sessionId: string
@@ -453,19 +454,19 @@ export default function RecordingSection({
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', flexShrink: 0 }}>
-                Broadcast at:
-              </label>
-              <input
-                type="datetime-local"
-                value={scheduleDateInput}
-                onChange={e => setScheduleDateInput(e.target.value)}
-                style={{
-                  fontSize: 13, padding: '6px 10px', borderRadius: 7,
-                  background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
-                  outline: 'none',
-                }}
-              />
+              <Field label="Broadcast at:" htmlFor="simulive-broadcast-at" error={scheduleError ?? undefined}>
+                <input
+                  id="simulive-broadcast-at"
+                  type="datetime-local"
+                  value={scheduleDateInput}
+                  onChange={e => setScheduleDateInput(e.target.value)}
+                  style={{
+                    fontSize: 13, padding: '6px 10px', borderRadius: 7,
+                    background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)',
+                    outline: 'none',
+                  }}
+                />
+              </Field>
               <button
                 onClick={handleSaveSchedule}
                 disabled={savingSchedule || !scheduleDateInput}
@@ -479,9 +480,6 @@ export default function RecordingSection({
                 {savingSchedule ? 'Saving…' : 'Schedule'}
               </button>
             </div>
-          )}
-          {scheduleError && (
-            <p style={{ fontSize: 12, color: 'var(--pz-error)', marginTop: 6 }}>{scheduleError}</p>
           )}
 
           <div style={{

@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Plus, Trash2, Pencil, X, Save } from 'lucide-react'
 import { addQuestion, updateQuestion, deleteQuestion } from '@/lib/surveys/actions'
+import { Field } from '@/components/ui/Field'
 
 interface Question {
   id: string
@@ -272,11 +273,9 @@ function QuestionEditForm({
     >
       <input type="hidden" name="sort_order" defaultValue={question?.sort_order ?? index} />
 
-      <div>
-        <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-          Question
-        </label>
+      <Field label="Question" htmlFor="survey-question-text" required>
         <input
+          id="survey-question-text"
           name="question_text"
           required
           maxLength={500}
@@ -293,13 +292,11 @@ function QuestionEditForm({
             boxSizing: 'border-box',
           }}
         />
-      </div>
+      </Field>
 
-      <div>
-        <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-          Type
-        </label>
+      <Field label="Type" htmlFor="survey-question-type">
         <select
+          id="survey-question-type"
           name="question_type"
           value={type}
           onChange={e => setType(e.target.value as Question['question_type'])}
@@ -318,7 +315,7 @@ function QuestionEditForm({
             </option>
           ))}
         </select>
-      </div>
+      </Field>
 
       {type === 'multiple_choice' && (
         <div>
