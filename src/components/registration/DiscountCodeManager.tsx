@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createDiscountCode, toggleDiscountCode, deleteDiscountCode } from '@/lib/events/discount-actions'
+import { Field } from '@/components/ui/Field'
 
 interface DiscountCode {
   id: string
@@ -15,7 +16,6 @@ interface DiscountCode {
 }
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
-const labelCls = 'mb-1 block text-xs font-medium text-[var(--pz-muted)]'
 
 export function DiscountCodeManager({ eventId, initial }: { eventId: string; initial: DiscountCode[] }) {
   const [codes, setCodes] = useState(initial)
@@ -126,25 +126,24 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
           <h3 className="text-sm font-semibold text-[var(--pz-text)]">New discount code</h3>
           {error && <p className="text-xs text-red-400">{error}</p>}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Code *</label>
+            <Field label="Code" htmlFor="dc-code" required>
               <input
+                id="dc-code"
                 className={inputCls}
                 placeholder="SUMMER20"
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
               />
-            </div>
-            <div>
-              <label className={labelCls}>Type *</label>
-              <select className={inputCls} value={discountType} onChange={e => setDiscountType(e.target.value as 'percent' | 'fixed')}>
+            </Field>
+            <Field label="Type" htmlFor="dc-type" required>
+              <select id="dc-type" className={inputCls} value={discountType} onChange={e => setDiscountType(e.target.value as 'percent' | 'fixed')}>
                 <option value="percent">Percent (%)</option>
                 <option value="fixed">Fixed amount (cents)</option>
               </select>
-            </div>
-            <div>
-              <label className={labelCls}>{discountType === 'percent' ? 'Percent off *' : 'Amount off (cents) *'}</label>
+            </Field>
+            <Field label={discountType === 'percent' ? 'Percent off' : 'Amount off (cents)'} required htmlFor="dc-amount">
               <input
+                id="dc-amount"
                 type="number"
                 min="1"
                 className={inputCls}
@@ -152,10 +151,10 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
                 value={value}
                 onChange={e => setValue(e.target.value)}
               />
-            </div>
-            <div>
-              <label className={labelCls}>Max uses (blank = unlimited)</label>
+            </Field>
+            <Field label="Max uses (blank = unlimited)" htmlFor="dc-maxuses">
               <input
+                id="dc-maxuses"
                 type="number"
                 min="1"
                 className={inputCls}
@@ -163,15 +162,17 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
                 value={maxUses}
                 onChange={e => setMaxUses(e.target.value)}
               />
-            </div>
+            </Field>
             <div className="col-span-2">
-              <label className={labelCls}>Expires (optional)</label>
-              <input
-                type="date"
-                className={inputCls}
-                value={validUntil}
-                onChange={e => setValidUntil(e.target.value)}
-              />
+              <Field label="Expires (optional)" htmlFor="dc-expires">
+                <input
+                  id="dc-expires"
+                  type="date"
+                  className={inputCls}
+                  value={validUntil}
+                  onChange={e => setValidUntil(e.target.value)}
+                />
+              </Field>
             </div>
           </div>
           <div className="flex gap-3">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createTicketType, deleteTicketType } from '@/lib/registration/ticket-actions'
+import { Field } from '@/components/ui/Field'
 
 interface Ticket {
   id: string
@@ -120,42 +121,38 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
           <h3 className="text-sm font-semibold text-[var(--pz-text)]">New ticket type</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className={labelCls}>Name *</label>
-              <input name="name" required placeholder="General Admission" className={inputCls} />
+              <Field label="Name" htmlFor="tkt-name" required>
+                <input id="tkt-name" name="name" required placeholder="General Admission" className={inputCls} />
+              </Field>
             </div>
-            <div>
-              <label className={labelCls}>Type *</label>
-              <select name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
+            <Field label="Type" htmlFor="tkt-type" required>
+              <select id="tkt-type" name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
                 <option value="free">Free</option>
                 <option value="paid">Paid</option>
                 <option value="donation">Donation</option>
               </select>
-            </div>
+            </Field>
             {type !== 'free' && (
-              <div>
-                <label className={labelCls}>Price (USD) *</label>
-                <input name="price_cents" type="number" min="0" step="1" placeholder="2500 = $25.00" className={inputCls} />
-              </div>
+              <Field label="Price (USD)" htmlFor="tkt-price" required>
+                <input id="tkt-price" name="price_cents" type="number" min="0" step="1" placeholder="2500 = $25.00" className={inputCls} />
+              </Field>
             )}
-            <div>
-              <label className={labelCls}>Quantity (blank = unlimited)</label>
-              <input name="quantity" type="number" min="1" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Max per order</label>
-              <input name="max_per_order" type="number" min="1" max="100" defaultValue="10" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Sale starts at</label>
-              <input name="sale_starts_at" type="datetime-local" className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Sale ends at</label>
-              <input name="sale_ends_at" type="datetime-local" className={inputCls} />
-            </div>
+            <Field label="Quantity (blank = unlimited)" htmlFor="tkt-qty">
+              <input id="tkt-qty" name="quantity" type="number" min="1" className={inputCls} />
+            </Field>
+            <Field label="Max per order" htmlFor="tkt-maxord">
+              <input id="tkt-maxord" name="max_per_order" type="number" min="1" max="100" defaultValue="10" className={inputCls} />
+            </Field>
+            <Field label="Sale starts at" htmlFor="tkt-sale-start">
+              <input id="tkt-sale-start" name="sale_starts_at" type="datetime-local" className={inputCls} />
+            </Field>
+            <Field label="Sale ends at" htmlFor="tkt-sale-end">
+              <input id="tkt-sale-end" name="sale_ends_at" type="datetime-local" className={inputCls} />
+            </Field>
             <div className="col-span-2">
-              <label className={labelCls}>Description</label>
-              <input name="description" placeholder="Optional details" className={inputCls} />
+              <Field label="Description" htmlFor="tkt-desc">
+                <input id="tkt-desc" name="description" placeholder="Optional details" className={inputCls} />
+              </Field>
             </div>
             <div className="col-span-2 flex items-center gap-2">
               <input
@@ -202,13 +199,14 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
             </div>
             {membershipRequired && connectedAssociations.length > 0 && (
               <div className="col-span-2">
-                <label className={labelCls}>Verify against which association?</label>
-                <select name="membership_provider" className={inputCls}>
-                  <option value="">Any connected association</option>
-                  {connectedAssociations.map(p => (
-                    <option key={p} value={p}>{ASSOCIATION_LABELS[p] ?? p}</option>
-                  ))}
-                </select>
+                <Field label="Verify against which association?" htmlFor="tkt-memb-prov">
+                  <select id="tkt-memb-prov" name="membership_provider" className={inputCls}>
+                    <option value="">Any connected association</option>
+                    {connectedAssociations.map(p => (
+                      <option key={p} value={p}>{ASSOCIATION_LABELS[p] ?? p}</option>
+                    ))}
+                  </select>
+                </Field>
               </div>
             )}
           </div>

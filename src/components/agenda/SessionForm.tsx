@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Track, Room, Speaker, Session } from '@/lib/agenda/actions'
+import { Field } from '@/components/ui/Field'
 
 interface SessionSponsor {
   id: string
@@ -104,54 +105,47 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
 
   return (
     <div className="space-y-4">
-      <div>
-        <label className={labelCls}>Title *</label>
-        <input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="Session title" />
-      </div>
+      <Field label="Title" htmlFor="sess-title" required>
+        <input id="sess-title" className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="Session title" />
+      </Field>
 
-      <div>
-        <label className={labelCls}>Description</label>
-        <textarea className={inputCls + ' resize-none'} rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
-      </div>
+      <Field label="Description" htmlFor="sess-desc">
+        <textarea id="sess-desc" className={inputCls + ' resize-none'} rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" />
+      </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Type</label>
-          <select className={inputCls} value={type} onChange={e => setType(e.target.value as any)}>
+        <Field label="Type" htmlFor="sess-type">
+          <select id="sess-type" className={inputCls} value={type} onChange={e => setType(e.target.value as any)}>
             {SESSION_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
           </select>
-        </div>
-        <div>
-          <label className={labelCls}>Track</label>
-          <select className={inputCls} value={trackId} onChange={e => setTrackId(e.target.value)}>
+        </Field>
+        <Field label="Track" htmlFor="sess-track">
+          <select id="sess-track" className={inputCls} value={trackId} onChange={e => setTrackId(e.target.value)}>
             <option value="">No track</option>
             {tracks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-        </div>
+        </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Starts At *</label>
-          <input type="datetime-local" className={inputCls} value={startsAt} onChange={e => setStartsAt(e.target.value)} />
-        </div>
-        <div>
-          <label className={labelCls}>Ends At *</label>
-          <input type="datetime-local" className={inputCls} value={endsAt} onChange={e => setEndsAt(e.target.value)} />
-        </div>
+        <Field label="Starts At" htmlFor="sess-start" required>
+          <input id="sess-start" type="datetime-local" className={inputCls} value={startsAt} onChange={e => setStartsAt(e.target.value)} />
+        </Field>
+        <Field label="Ends At" htmlFor="sess-end" required>
+          <input id="sess-end" type="datetime-local" className={inputCls} value={endsAt} onChange={e => setEndsAt(e.target.value)} />
+        </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelCls}>Room</label>
-          <select className={inputCls} value={roomId} onChange={e => setRoomId(e.target.value)}>
+        <Field label="Room" htmlFor="sess-room">
+          <select id="sess-room" className={inputCls} value={roomId} onChange={e => setRoomId(e.target.value)}>
             <option value="">No room</option>
             {rooms.map(r => <option key={r.id} value={r.id}>{r.name}{r.capacity ? ` (cap. ${r.capacity})` : ''}</option>)}
           </select>
-        </div>
-        <div>
-          <label className={labelCls}>Max attendees</label>
+        </Field>
+        <Field label="Max attendees" htmlFor="sess-cap">
           <input
+            id="sess-cap"
             type="number"
             min="1"
             className={inputCls}
@@ -159,17 +153,16 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
             onChange={e => setCapacity(e.target.value)}
             placeholder="Unlimited"
           />
-        </div>
+        </Field>
       </div>
 
       {sponsors.length > 0 && (
-        <div>
-          <label className={labelCls}>Sponsor</label>
-          <select className={inputCls} value={sponsoredById} onChange={e => setSponsoredById(e.target.value)}>
+        <Field label="Sponsor" htmlFor="sess-sponsor">
+          <select id="sess-sponsor" className={inputCls} value={sponsoredById} onChange={e => setSponsoredById(e.target.value)}>
             <option value="">No sponsor</option>
             {sponsors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
-        </div>
+        </Field>
       )}
 
       {conflict && (
@@ -178,9 +171,9 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
         </p>
       )}
 
-      <div>
-        <label className={labelCls}>CE Credit Hours</label>
+      <Field label="CE Credit Hours" htmlFor="sess-ce">
         <input
+          id="sess-ce"
           type="number"
           step="0.25"
           min="0"
@@ -190,7 +183,7 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
           onChange={e => setCeHours(e.target.value)}
           placeholder="0.00"
         />
-      </div>
+      </Field>
 
       {speakers.length > 0 && (
         <div>

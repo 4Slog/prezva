@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createFormField, deleteFormField, reorderFormFields } from '@/lib/events/form-field-actions'
+import { Field } from '@/components/ui/Field'
 
 interface FormField {
   id: string
@@ -165,25 +166,24 @@ export function FormFieldManager({ eventId, initial, tickets }: Props) {
           {error && <p className="text-xs text-red-400">{error}</p>}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className={labelCls}>Question label *</label>
-              <input className={inputCls} placeholder="e.g. Dietary restrictions" value={label} onChange={e => setLabel(e.target.value)} />
+              <Field label="Question label" htmlFor="ff-label" required>
+                <input id="ff-label" className={inputCls} placeholder="e.g. Dietary restrictions" value={label} onChange={e => setLabel(e.target.value)} />
+              </Field>
             </div>
-            <div>
-              <label className={labelCls}>Field type *</label>
-              <select className={inputCls} value={fieldType} onChange={e => { setFieldType(e.target.value); setOptions(['']) }}>
+            <Field label="Field type" htmlFor="ff-type" required>
+              <select id="ff-type" className={inputCls} value={fieldType} onChange={e => { setFieldType(e.target.value); setOptions(['']) }}>
                 {Object.entries(FIELD_TYPE_LABELS).map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>
-            </div>
+            </Field>
             {tickets.length > 0 && (
-              <div>
-                <label className={labelCls}>Ticket scope</label>
-                <select className={inputCls} value={ticketTypeId} onChange={e => setTicketTypeId(e.target.value)}>
+              <Field label="Ticket scope" htmlFor="ff-ticket">
+                <select id="ff-ticket" className={inputCls} value={ticketTypeId} onChange={e => setTicketTypeId(e.target.value)}>
                   <option value="">All tickets</option>
                   {tickets.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
-              </div>
+              </Field>
             )}
             <div className="col-span-2 flex items-center gap-2">
               <input id="ff_required" type="checkbox" checked={isRequired} onChange={e => setIsRequired(e.target.checked)} className="rounded" />

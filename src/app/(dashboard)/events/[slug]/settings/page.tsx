@@ -5,6 +5,7 @@ import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { Field } from '@/components/ui/Field'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -35,7 +36,6 @@ export default async function EventSettingsPage({ params }: Props) {
   for (const row of integrationRows ?? []) integrationMap[row.provider] = row.status
 
   const inputCls = `w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
-  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -65,46 +65,43 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className={labelCls}>Event name</label>
-            <input name="title" defaultValue={event.title} required className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Description</label>
-            <textarea name="description" rows={3} defaultValue={event.description ?? ''} className={`${inputCls} resize-none`} />
-          </div>
+          <Field label="Event name" htmlFor="cfg-title" required>
+            <input id="cfg-title" name="title" defaultValue={event.title} required className={inputCls} />
+          </Field>
+          <Field label="Description" htmlFor="cfg-desc">
+            <textarea id="cfg-desc" name="description" rows={3} defaultValue={event.description ?? ''} className={`${inputCls} resize-none`} />
+          </Field>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Start</label>
+            <Field label="Start" htmlFor="cfg-start" required>
               <input
+                id="cfg-start"
                 type="datetime-local"
                 name="start_at"
                 defaultValue={event.start_at.slice(0, 16)}
                 required
                 className={inputCls}
               />
-            </div>
-            <div>
-              <label className={labelCls}>End</label>
+            </Field>
+            <Field label="End" htmlFor="cfg-end" required>
               <input
+                id="cfg-end"
                 type="datetime-local"
                 name="end_at"
                 defaultValue={event.end_at.slice(0, 16)}
                 required
                 className={inputCls}
               />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className={labelCls}>Timezone</label>
-            <select name="timezone" defaultValue={event.timezone} className={inputCls}>
+          <Field label="Timezone" htmlFor="cfg-tz">
+            <select id="cfg-tz" name="timezone" defaultValue={event.timezone} className={inputCls}>
               <option value="America/New_York">Eastern (ET)</option>
               <option value="America/Chicago">Central (CT)</option>
               <option value="America/Denver">Mountain (MT)</option>
               <option value="America/Los_Angeles">Pacific (PT)</option>
               <option value="UTC">UTC</option>
             </select>
-          </div>
+          </Field>
           {!isStaff && (
             <button
               type="submit"
@@ -127,23 +124,19 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className={labelCls}>Venue name</label>
-            <input name="venue_name" defaultValue={event.venue_name ?? ''} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Address</label>
-            <input name="venue_address" defaultValue={event.venue_address ?? ''} className={inputCls} />
-          </div>
+          <Field label="Venue name" htmlFor="cfg-venue">
+            <input id="cfg-venue" name="venue_name" defaultValue={event.venue_name ?? ''} className={inputCls} />
+          </Field>
+          <Field label="Address" htmlFor="cfg-addr">
+            <input id="cfg-addr" name="venue_address" defaultValue={event.venue_address ?? ''} className={inputCls} />
+          </Field>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>City</label>
-              <input name="venue_city" defaultValue={event.venue_city ?? ''} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>State</label>
-              <input name="venue_state" defaultValue={event.venue_state ?? ''} className={inputCls} />
-            </div>
+            <Field label="City" htmlFor="cfg-city">
+              <input id="cfg-city" name="venue_city" defaultValue={event.venue_city ?? ''} className={inputCls} />
+            </Field>
+            <Field label="State" htmlFor="cfg-state">
+              <input id="cfg-state" name="venue_state" defaultValue={event.venue_state ?? ''} className={inputCls} />
+            </Field>
           </div>
           {!isStaff && (
             <button
@@ -209,9 +202,8 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4 mt-6 pt-6 border-t border-[var(--pz-border)]"
         >
-          <div>
-            <label className={labelCls}>Category</label>
-            <select name="category" defaultValue={(event as any).category ?? ''} disabled={isStaff} className={inputCls}>
+          <Field label="Category" htmlFor="cfg-cat">
+            <select id="cfg-cat" name="category" defaultValue={(event as any).category ?? ''} disabled={isStaff} className={inputCls}>
               <option value="">Select a category</option>
               <option value="conference">Conference</option>
               <option value="workshop">Workshop</option>
@@ -221,10 +213,10 @@ export default async function EventSettingsPage({ params }: Props) {
               <option value="networking">Networking</option>
               <option value="other">Other</option>
             </select>
-          </div>
-          <div>
-            <label className={labelCls}>Tags</label>
+          </Field>
+          <Field label="Tags" htmlFor="cfg-tags" helper="Tags help attendees find your event in search. Use 3–5 relevant keywords.">
             <input
+              id="cfg-tags"
               name="tags"
               type="text"
               placeholder="e.g. technology, policy, nonprofit (comma-separated)"
@@ -232,10 +224,7 @@ export default async function EventSettingsPage({ params }: Props) {
               disabled={isStaff}
               className={inputCls}
             />
-            <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 4 }}>
-              Tags help attendees find your event in search. Use 3–5 relevant keywords.
-            </p>
-          </div>
+          </Field>
           {!isStaff && (
             <button
               type="submit"
@@ -258,10 +247,9 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className={labelCls}>Max capacity</label>
-            <input name="capacity" type="number" min="1" defaultValue={event.capacity ?? ''} placeholder="Unlimited" className={inputCls} />
-          </div>
+          <Field label="Max capacity" htmlFor="cfg-cap">
+            <input id="cfg-cap" name="capacity" type="number" min="1" defaultValue={event.capacity ?? ''} placeholder="Unlimited" className={inputCls} />
+          </Field>
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -294,9 +282,9 @@ export default async function EventSettingsPage({ params }: Props) {
               <span className="text-sm text-[var(--pz-muted)]">Show public attendee list</span>
             </label>
           </div>
-          <div>
-            <label className={labelCls}>Invite code (optional)</label>
+          <Field label="Invite code (optional)" htmlFor="cfg-invite" helper="Attendees must enter this code to register.">
             <input
+              id="cfg-invite"
               name="registration_invite_code"
               type="text"
               defaultValue={(event as any).registration_invite_code ?? ''}
@@ -304,11 +292,10 @@ export default async function EventSettingsPage({ params }: Props) {
               className={inputCls}
               maxLength={50}
             />
-            <p className="text-xs text-[var(--pz-muted)] mt-1">Attendees must enter this code to register.</p>
-          </div>
-          <div>
-            <label className={labelCls}>Domain restriction (optional)</label>
+          </Field>
+          <Field label="Domain restriction (optional)" htmlFor="cfg-domain" helper="Only emails from this domain can register.">
             <input
+              id="cfg-domain"
               name="registration_domain_restrict"
               type="text"
               defaultValue={(event as any).registration_domain_restrict ?? ''}
@@ -316,8 +303,7 @@ export default async function EventSettingsPage({ params }: Props) {
               className={inputCls}
               maxLength={100}
             />
-            <p className="text-xs text-[var(--pz-muted)] mt-1">Only emails from this domain can register.</p>
-          </div>
+          </Field>
           {!isStaff && (
             <button
               type="submit"
@@ -331,7 +317,7 @@ export default async function EventSettingsPage({ params }: Props) {
       </section>
 
       {/* Sprint 22: Certificate settings */}
-      <CertificateSettingsSection event={event} inputCls={inputCls} labelCls={labelCls} />
+      <CertificateSettingsSection event={event} inputCls={inputCls} />
 
       {/* T-119/T-120/T-121: Clone, Templates, Recurrence */}
       <EventSettingsClient
@@ -374,11 +360,9 @@ export default async function EventSettingsPage({ params }: Props) {
 async function CertificateSettingsSection({
   event,
   inputCls,
-  labelCls,
 }: {
   event: any
   inputCls: string
-  labelCls: string
 }) {
   const certTemplates = await listOrgCertificateTemplates(event.org_id)
 
@@ -403,9 +387,9 @@ async function CertificateSettingsSection({
           />
           <span className="text-sm text-[var(--pz-muted)]">Enable certificates for this event</span>
         </label>
-        <div>
-          <label className={labelCls}>Minimum session attendance %</label>
+        <Field label="Minimum session attendance %" htmlFor="cfg-cert-pct">
           <input
+            id="cfg-cert-pct"
             name="certificate_min_session_attendance_pct"
             type="number"
             min="0"
@@ -413,17 +397,16 @@ async function CertificateSettingsSection({
             defaultValue={event.certificate_min_session_attendance_pct ?? 60}
             className={inputCls}
           />
-        </div>
+        </Field>
         {certTemplates.length > 0 && (
-          <div>
-            <label className={labelCls}>Certificate template</label>
-            <select name="certificate_template_id" defaultValue={event.certificate_template_id ?? ''} className={inputCls}>
+          <Field label="Certificate template" htmlFor="cfg-cert-tpl">
+            <select id="cfg-cert-tpl" name="certificate_template_id" defaultValue={event.certificate_template_id ?? ''} className={inputCls}>
               <option value="">Use org default</option>
               {certTemplates.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name}{t.is_default ? ' (default)' : ''}</option>
               ))}
             </select>
-          </div>
+          </Field>
         )}
         {certTemplates.length === 0 && (
           <p className="text-xs text-[var(--pz-muted)]">
