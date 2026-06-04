@@ -97,7 +97,7 @@ export function PreferencesClient({ initial }: { initial: (Prefs & { user_id?: s
       <button
         onClick={handleSave}
         disabled={isPending}
-        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
+        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
       >
         {isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save preferences'}
       </button>

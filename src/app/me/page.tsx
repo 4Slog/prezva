@@ -209,7 +209,7 @@ export default async function MePage() {
                 <div
                   key={org.id}
                   style={{
-                    background: '#0D1B2A',
+                    background: 'var(--pz-surface)',
                     border: '1px solid var(--pz-border)',
                     borderRadius: 12,
                     padding: '1rem 1.25rem',
@@ -257,7 +257,7 @@ export default async function MePage() {
       {!hasAnything && (
         <section
           style={{
-            background: '#0D1B2A',
+            background: 'var(--pz-surface)',
             border: '1px solid var(--pz-border)',
             borderRadius: 12,
             padding: '2rem 1.5rem',
@@ -279,7 +279,7 @@ export default async function MePage() {
                 fontSize: 14,
                 fontWeight: 700,
                 background: 'var(--pz-teal)',
-                color: '#0D1B2A',
+                color: 'var(--pz-on-accent)',
                 textDecoration: 'none',
               }}
             >
@@ -343,7 +343,7 @@ function TimelineCard({ event, roles }: { event: EventRef; roles: Role[] }) {
   return (
     <div
       style={{
-        background: '#0D1B2A',
+        background: 'var(--pz-surface)',
         border: '1px solid var(--pz-border)',
         borderRadius: 12,
         padding: '1rem 1.25rem',
@@ -403,7 +403,7 @@ function PrimaryActionLink({ role, eventSlug }: { role: Role; eventSlug: string 
         fontSize: 13,
         fontWeight: 600,
         background: 'var(--pz-teal)',
-        color: '#0D1B2A',
+        color: 'var(--pz-on-accent)',
         textDecoration: 'none',
       }}
     >
@@ -428,10 +428,22 @@ function primaryActionFor(role: Role, eventSlug: string): { href: string; label:
 
 // ── Role pills ─────────────────────────────────────────────────────────────────
 
+const ROLE_PILL: Record<Role['kind'], React.CSSProperties> = {
+  attendee: { background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', border: '1px solid var(--pz-teal)' },
+  speaker:  { background: 'var(--pz-warning-bg)', color: 'var(--pz-warning)', border: '1px solid var(--pz-warning-fill)' },
+  volunteer: { background: 'var(--pz-success-bg)', color: 'var(--pz-success)', border: '1px solid var(--pz-success-fill)' },
+}
+
+const PILL_BASE: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 4,
+  fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, textDecoration: 'none',
+}
+
 function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
+  const pillStyle = { ...PILL_BASE, ...ROLE_PILL[role.kind] }
   if (role.kind === 'attendee') {
     return (
-      <Link href={`/e/${eventSlug}`} style={pillStyle('#2DD4BF')}>
+      <Link href={`/e/${eventSlug}`} style={pillStyle}>
         🎟️ Attendee{role.ticketName ? ` · ${role.ticketName}` : ''}
       </Link>
     )
@@ -439,7 +451,7 @@ function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
   if (role.kind === 'speaker') {
     const href = role.token ? `/speaker/${role.token}` : `/e/${eventSlug}`
     return (
-      <Link href={href} style={pillStyle('var(--pz-warning-fill)')}>
+      <Link href={href} style={pillStyle}>
         🎤 Speaker{role.sessionName ? ` · ${role.sessionName}` : ''}
       </Link>
     )
@@ -449,26 +461,10 @@ function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
     ? new Date(role.shiftStart).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : null
   return (
-    <Link href={href} style={pillStyle('var(--pz-success-fill)')}>
+    <Link href={href} style={pillStyle}>
       🙋 Volunteer{role.role ? ` · ${role.role}` : ''}{shift ? ` · ${shift}` : ''}
     </Link>
   )
-}
-
-function pillStyle(color: string): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    fontSize: 11,
-    fontWeight: 600,
-    padding: '3px 10px',
-    borderRadius: 20,
-    background: color + '22',
-    color,
-    textDecoration: 'none',
-    border: `1px solid ${color}44`,
-  }
 }
 
 // ── Org role badges ────────────────────────────────────────────────────────────

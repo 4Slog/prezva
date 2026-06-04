@@ -25,7 +25,7 @@ export default async function MyNotificationsPage() {
             const sentAt = n.sent_at ? new Date(n.sent_at) : null
             const isRecent = sentAt && (now - sentAt.getTime()) < 7 * 24 * 60 * 60 * 1000
             return (
-              <div key={n.id} style={{ background: 'var(--pz-surface)', border: `1px solid ${isRecent ? 'var(--pz-teal)44' : 'var(--pz-border)'}`, borderRadius: 10, padding: '1.25rem' }}>
+              <div key={n.id} style={{ background: 'var(--pz-surface)', border: `1px solid ${isRecent ? 'var(--pz-teal)' : 'var(--pz-border)'}`, borderRadius: 10, padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
                   <div>
                     <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 2 }}>{n.title}</p>

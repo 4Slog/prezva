@@ -92,7 +92,7 @@ export function SettingsClient({ email }: { email: string }) {
           <button
             type="submit"
             disabled={isPending || !newPassword}
-            style={{ padding: '8px 24px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
+            style={{ padding: '8px 24px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
           >
             {isPending ? 'Updating…' : 'Update password'}
           </button>
@@ -136,7 +136,7 @@ export function SettingsClient({ email }: { email: string }) {
           </button>
         </div>
         {showDelete && (
-          <div style={{ marginTop: 14, padding: '1rem', background: '#ef444411', border: '1px solid var(--pz-error)', borderRadius: 8 }}>
+          <div style={{ marginTop: 14, padding: '1rem', background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)', borderRadius: 8 }}>
             <p style={{ fontSize: 13, color: 'var(--pz-error)', marginBottom: 8 }}>
               Account deletion is permanent and cannot be undone. All your data will be erased.
             </p>

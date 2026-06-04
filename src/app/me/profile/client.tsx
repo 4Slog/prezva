@@ -117,7 +117,7 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
         <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 16 }}>Interests</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
           {form.interests.map(tag => (
-            <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', fontSize: 12, padding: '3px 10px', borderRadius: 4 }}>
+            <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', fontSize: 12, padding: '3px 10px', borderRadius: 4 }}>
               {tag}
               <button type="button" onClick={() => removeInterest(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 14, lineHeight: 1 }}>×</button>
             </span>
@@ -134,7 +134,7 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
           <button
             type="button"
             onClick={addInterest}
-            style={{ padding: '8px 16px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            style={{ padding: '8px 16px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
             Add
           </button>
@@ -190,7 +190,7 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
       <button
         type="submit"
         disabled={isPending}
-        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
+        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
       >
         {isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save profile'}
       </button>

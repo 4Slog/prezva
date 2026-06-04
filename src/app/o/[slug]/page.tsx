@@ -53,7 +53,7 @@ export default async function PublicOrgPage({ params }: Props) {
             ) : (
               <div style={{
                 width: 56, height: 56, borderRadius: 12,
-                background: 'var(--pz-teal)22', color: 'var(--pz-teal)',
+                background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 24, fontWeight: 800
               }}>
@@ -114,7 +114,7 @@ export default async function PublicOrgPage({ params }: Props) {
                         </span>
                         {e.status === 'live' && (
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px',
-                                         borderRadius: 20, background: '#EF444422', color: 'var(--pz-error)' }}>
+                                         borderRadius: 20, background: 'var(--pz-error-bg)', color: 'var(--pz-error)' }}>
                             LIVE NOW
                           </span>
                         )}
