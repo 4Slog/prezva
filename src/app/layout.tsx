@@ -59,7 +59,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#0D1B2A] text-[#F0F4F8]">
+      <body className="min-h-full flex flex-col bg-[var(--pz-bg)] text-[var(--pz-text)]">
         <OfflineIndicator />
         <ToastProvider>{children}</ToastProvider>
         <IOSInstallPrompt />

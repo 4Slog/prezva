@@ -16,7 +16,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         </p>
         <button
           onClick={reset}
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
         >
           Try again
         </button>
