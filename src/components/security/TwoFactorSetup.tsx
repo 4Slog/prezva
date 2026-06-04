@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Field } from '@/components/ui/Field'
 
 interface Factor {
   id: string
@@ -97,16 +98,16 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
         <p className="text-sm font-semibold text-[var(--pz-text)]">Scan this QR code with your authenticator app</p>
         <img src={qrCode} alt="2FA QR code" className="w-40 h-40 rounded-lg bg-white p-2" />
         <p className="text-xs text-[var(--pz-muted)]">Can&apos;t scan? Enter this secret manually: <code className="text-[var(--pz-teal-ink)]">{secret}</code></p>
-        <div className="space-y-2">
-          <p className="text-xs text-[var(--pz-muted)]">Enter the 6-digit code from your authenticator app</p>
+        <Field label="Verification code" htmlFor="totp-code" helper="Enter the 6-digit code from your authenticator app">
           <input
+            id="totp-code"
             value={code}
             onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="000000"
             maxLength={6}
             className="w-32 text-center tracking-widest font-mono bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
+        </Field>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <div className="flex gap-3">
           <button className={btnPrimary} onClick={verify} disabled={loading || code.length !== 6}>

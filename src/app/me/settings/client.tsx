@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Field } from '@/components/ui/Field'
 
 export function SettingsClient({ email }: { email: string }) {
   const [newPassword, setNewPassword] = useState('')
@@ -64,28 +65,28 @@ export function SettingsClient({ email }: { email: string }) {
         <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 16 }}>Change password</h2>
         <form onSubmit={changePassword}>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              New password
-            </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => { setNewPassword(e.target.value); setPwStatus('idle') }}
-              autoComplete="new-password"
-              style={inputStyle}
-            />
+            <Field label="New password" htmlFor="settings-new-password">
+              <input
+                id="settings-new-password"
+                type="password"
+                value={newPassword}
+                onChange={e => { setNewPassword(e.target.value); setPwStatus('idle') }}
+                autoComplete="new-password"
+                style={inputStyle}
+              />
+            </Field>
           </div>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Confirm password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => { setConfirmPassword(e.target.value); setPwStatus('idle') }}
-              autoComplete="new-password"
-              style={inputStyle}
-            />
+            <Field label="Confirm password" htmlFor="settings-confirm-password">
+              <input
+                id="settings-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={e => { setConfirmPassword(e.target.value); setPwStatus('idle') }}
+                autoComplete="new-password"
+                style={inputStyle}
+              />
+            </Field>
           </div>
           {pwError && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 10 }}>{pwError}</p>}
           {pwStatus === 'ok' && <p style={{ color: 'var(--pz-success-fill)', fontSize: 13, marginBottom: 10 }}>Password updated successfully.</p>}

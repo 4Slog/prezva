@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createOrg } from '@/lib/orgs/actions'
+import { Field } from '@/components/ui/Field'
 
 export default function NewOrgPage() {
   const [error, setError] = useState<string | null>(null)
@@ -57,11 +58,14 @@ export default function NewOrgPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div>
-          <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--pz-text)' }}>
-            Organization name <span className="text-red-500">*</span>
-          </label>
+        <Field
+          label="Organization name"
+          htmlFor="org-name"
+          required
+          counter={{ value: orgName.length, max: 80 }}
+        >
           <input
+            id="org-name"
             name="name"
             required
             minLength={2}
@@ -74,12 +78,16 @@ export default function NewOrgPage() {
             onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--pz-teal)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--pz-text)' }}>
-            URL slug <span className="text-red-500">*</span>
-          </label>
+        <Field
+          label="URL slug"
+          htmlFor="org-slug"
+          required
+          error={slugError ?? undefined}
+          helper="Lowercase letters, numbers, and hyphens only"
+          counter={{ value: slug.length, max: 40 }}
+        >
           <div
             className="flex items-center rounded-md border"
             style={{ borderColor: slugError ? 'var(--pz-error)' : 'var(--pz-border)' }}
@@ -91,6 +99,7 @@ export default function NewOrgPage() {
               prezva.app/orgs/
             </span>
             <input
+              id="org-slug"
               name="slug"
               required
               minLength={2}
@@ -103,20 +112,11 @@ export default function NewOrgPage() {
               style={{ background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
             />
           </div>
-          {slugError ? (
-            <p className="mt-1 text-xs text-red-500">{slugError}</p>
-          ) : (
-            <p className="mt-1 text-xs" style={{ color: 'var(--pz-muted)' }}>
-              Lowercase letters, numbers, and hyphens only
-            </p>
-          )}
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--pz-text)' }}>
-            Timezone
-          </label>
+        <Field label="Timezone" htmlFor="org-timezone">
           <select
+            id="org-timezone"
             name="timezone"
             defaultValue="America/Chicago"
             className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
@@ -132,7 +132,7 @@ export default function NewOrgPage() {
             <option value="Pacific/Honolulu">Hawaii (HT)</option>
             <option value="UTC">UTC</option>
           </select>
-        </div>
+        </Field>
 
         {error && (
           <p className="rounded-md px-3 py-2 text-sm text-red-400" style={{ background: 'var(--pz-error-bg)' }}>

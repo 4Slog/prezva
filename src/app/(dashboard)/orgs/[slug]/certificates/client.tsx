@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { upsertCertificateTemplate } from '@/lib/certificates/actions'
+import { Field } from '@/components/ui/Field'
 
 interface Template {
   id: string
@@ -113,8 +114,9 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
           </h3>
 
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Template name</label>
-            <input value={editing.name ?? ''} onChange={e => setEditing(p => ({ ...p!, name: e.target.value }))} style={inputStyle} />
+            <Field label="Template name" htmlFor="cert-name">
+              <input id="cert-name" value={editing.name ?? ''} onChange={e => setEditing(p => ({ ...p!, name: e.target.value }))} style={inputStyle} />
+            </Field>
           </div>
 
           <div style={{ marginBottom: 12 }}>
@@ -135,23 +137,27 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Title</label>
-            <input value={editing.payload?.title ?? ''} onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, title: e.target.value } }))} style={inputStyle} />
+            <Field label="Title" htmlFor="cert-title">
+              <input id="cert-title" value={editing.payload?.title ?? ''} onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, title: e.target.value } }))} style={inputStyle} />
+            </Field>
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Body text</label>
-            <textarea
-              value={editing.payload?.body ?? ''}
-              onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, body: e.target.value } }))}
-              rows={3}
-              style={{ ...inputStyle, resize: 'vertical' }}
-            />
+            <Field label="Body text" htmlFor="cert-body">
+              <textarea
+                id="cert-body"
+                value={editing.payload?.body ?? ''}
+                onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, body: e.target.value } }))}
+                rows={3}
+                style={{ ...inputStyle, resize: 'vertical' }}
+              />
+            </Field>
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Footer</label>
-            <input value={editing.payload?.footer ?? ''} onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, footer: e.target.value } }))} style={inputStyle} />
+            <Field label="Footer" htmlFor="cert-footer">
+              <input id="cert-footer" value={editing.payload?.footer ?? ''} onChange={e => setEditing(p => ({ ...p!, payload: { ...p!.payload, footer: e.target.value } }))} style={inputStyle} />
+            </Field>
           </div>
 
           <div style={{ marginBottom: 14, padding: '10px', background: 'var(--pz-bg)', borderRadius: 6, border: '1px solid var(--pz-border)' }}>

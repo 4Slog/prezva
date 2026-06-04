@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Field } from '@/components/ui/Field'
 
 export default function AdminNewPlannerPage() {
   const router = useRouter()
@@ -54,28 +55,28 @@ export default function AdminNewPlannerPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-[var(--pz-label)] uppercase mb-1">Full Name</label>
+        <Field label="Full Name" htmlFor="admin-full-name" required>
           <input
+            id="admin-full-name"
             name="fullName"
             required
             placeholder="Jane Smith"
             className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[var(--pz-label)] uppercase mb-1">Email Address</label>
+        </Field>
+        <Field label="Email Address" htmlFor="admin-email" required>
           <input
+            id="admin-email"
             name="email"
             type="email"
             required
             placeholder="jane@example.com"
             className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[var(--pz-label)] uppercase mb-1">Organization Name</label>
+        </Field>
+        <Field label="Organization Name" htmlFor="admin-org-name" required>
           <input
+            id="admin-org-name"
             name="orgName"
             required
             placeholder="Acme Events"
@@ -87,10 +88,10 @@ export default function AdminNewPlannerPage() {
             }}
             className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[var(--pz-label)] uppercase mb-1">Organization Slug</label>
+        </Field>
+        <Field label="Organization Slug" htmlFor="admin-org-slug" required helper="Lowercase letters, numbers, hyphens only.">
           <input
+            id="admin-org-slug"
             name="orgSlug"
             required
             placeholder="acme-events"
@@ -98,8 +99,7 @@ export default function AdminNewPlannerPage() {
             onInput={e => { (e.target as HTMLInputElement).dataset.edited = '1' }}
             className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] font-mono focus:outline-none focus:border-[var(--pz-teal)]"
           />
-          <p className="text-xs text-[var(--pz-label)] mt-1">Lowercase letters, numbers, hyphens only.</p>
-        </div>
+        </Field>
 
         {error && <p className="text-sm text-[var(--pz-error)] bg-[var(--pz-error-bg)] rounded-lg px-3 py-2">{error}</p>}
         {success && <p className="text-sm text-[var(--pz-teal-ink)] bg-[var(--pz-teal-bg)] rounded-lg px-3 py-2">{success}</p>}

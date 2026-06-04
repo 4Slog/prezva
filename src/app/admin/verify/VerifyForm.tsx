@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { verifyAdminStepUp } from './actions'
+import { Field } from '@/components/ui/Field'
 
 export function VerifyForm({ email }: { email: string }) {
   const [state, action, pending] = useActionState(verifyAdminStepUp, null)
@@ -17,13 +18,7 @@ export function VerifyForm({ email }: { email: string }) {
         </div>
       </div>
 
-      <div>
-        <label
-          htmlFor="password"
-          style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-label)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}
-        >
-          Password
-        </label>
+      <Field label="Password" htmlFor="password" error={state?.error ?? undefined}>
         <input
           id="password"
           name="password"
@@ -42,10 +37,7 @@ export function VerifyForm({ email }: { email: string }) {
             boxSizing: 'border-box',
           }}
         />
-        {state?.error && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--pz-error)' }}>{state.error}</p>
-        )}
-      </div>
+      </Field>
 
       <button
         type="submit"
