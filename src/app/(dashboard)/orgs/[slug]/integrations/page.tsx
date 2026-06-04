@@ -9,9 +9,9 @@ import { IntegrationsClient } from './integrations-client'
 type Props = { params: Promise<{ slug: string }> }
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  connected: { label: 'Connected', bg: '#2DD4BF', color: '#0D1B2A' },
-  available: { label: 'Not connected', bg: '#1E3A5F', color: '#94A3B8' },
-  awaiting_credentials: { label: 'Needs setup', bg: 'var(--pz-warning-fill)', color: '#0D1B2A' },
+  connected: { label: 'Connected', bg: 'var(--pz-teal)', color: 'var(--pz-on-accent)' },
+  available: { label: 'Not connected', bg: 'var(--pz-border)', color: 'var(--pz-muted)' },
+  awaiting_credentials: { label: 'Needs setup', bg: 'var(--pz-warning-fill)', color: 'var(--pz-on-accent)' },
   error: { label: 'Error', bg: 'var(--pz-error)', color: '#fff' },
 }
 
@@ -113,15 +113,15 @@ export default async function OrgIntegrationsPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-6 flex items-center gap-3">
-        <Link href={`/orgs/${slug}/settings`} className="text-sm text-[#64748B] hover:text-[#94A3B8]">
+        <Link href={`/orgs/${slug}/settings`} className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-muted)]">
           ← {(org as any).name}
         </Link>
-        <span className="text-[#1E3A5F]">/</span>
-        <span className="text-sm text-[#F0F4F8]">Integrations</span>
+        <span className="text-[var(--pz-label)]">/</span>
+        <span className="text-sm text-[var(--pz-text)]">Integrations</span>
       </div>
 
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-2">Integrations</h1>
-      <p className="text-sm text-[#64748B] mb-6">
+      <h1 className="text-xl font-bold text-[var(--pz-text)] mb-2">Integrations</h1>
+      <p className="text-sm text-[var(--pz-muted)] mb-6">
         Connect external services to sync attendees, import events, and verify memberships.
         Credentials are managed via environment variables — contact your administrator to enable new integrations.
       </p>

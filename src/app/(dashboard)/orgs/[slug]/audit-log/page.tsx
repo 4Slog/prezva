@@ -46,12 +46,12 @@ export default async function OrgAuditLogPage({ params }: Props) {
               {(logs as any[]).map(log => {
                 const ev = log.events
                 return (
-                  <tr key={log.id} style={{ borderBottom: '1px solid var(--pz-border)' }} className="hover:bg-[#ffffff08]">
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--pz-border)' }} className="hover:bg-[var(--pz-surface-2)]">
                     <td style={{ padding: '8px 12px', color: 'var(--pz-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '8px 12px' }}>
-                      <span style={{ fontSize: 11, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                      <span style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
                         {log.action}
                       </span>
                     </td>

@@ -71,7 +71,7 @@ export default function NewOrgPage() {
             onChange={handleNameChange}
             className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
             style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = '#2DD4BF')}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--pz-teal)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
           />
         </div>
@@ -121,7 +121,7 @@ export default function NewOrgPage() {
             defaultValue="America/Chicago"
             className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
             style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = '#2DD4BF')}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--pz-teal)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
           >
             <option value="America/New_York">Eastern (ET)</option>
@@ -135,7 +135,7 @@ export default function NewOrgPage() {
         </div>
 
         {error && (
-          <p className="rounded-md px-3 py-2 text-sm text-red-400" style={{ background: '#ef444420' }}>
+          <p className="rounded-md px-3 py-2 text-sm text-red-400" style={{ background: 'var(--pz-error-bg)' }}>
             {error}
           </p>
         )}
@@ -144,7 +144,7 @@ export default function NewOrgPage() {
           type="submit"
           disabled={pending}
           className="rounded-md py-2.5 text-sm font-semibold disabled:opacity-50"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           {pending ? 'Creating…' : 'Create organization'}
         </button>

@@ -34,8 +34,10 @@
   --pz-success-fg:  #047857;   /* alias; prefer --pz-success */
   --pz-warning:     #B45309;
   --pz-warning-fill:#F59E0B;
+  --pz-warning-bg:  #FEF5E7;
   --pz-error:       #DC2626;
   --pz-error-bg:    #FCEBEB;
+  --pz-teal-bg:     #EAFBF9;
   --pz-live:        #E11D48;
   --pz-red:         #DC2626;   /* alias */
   --pz-amber:       #F59E0B;   /* alias */

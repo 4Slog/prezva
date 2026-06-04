@@ -116,7 +116,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     <div>
       {impersonateOrg && (
         <div className="mb-6 rounded-lg px-4 py-3 flex items-center justify-between"
-          style={{ background: '#F59E0B22', border: '1px solid var(--pz-warning-fill)' }}>
+          style={{ background: 'var(--pz-warning-bg)', border: '1px solid var(--pz-warning-fill)' }}>
           <span className="text-sm font-medium" style={{ color: 'var(--pz-warning-fill)' }}>
             You are viewing as owner of {impersonateOrg.name} (Support mode)
           </span>
@@ -131,7 +131,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       {errorParam === 'admin_required' && (
         <div
           className="mb-6 rounded-lg px-4 py-3 text-sm"
-          style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#FCD34D' }}
+          style={{ background: 'var(--pz-warning-bg)', border: '1px solid var(--pz-warning-fill)', color: 'var(--pz-warning)' }}
         >
           You don&apos;t have admin access. Contact Paul if you think you should.
         </div>
@@ -139,7 +139,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       {joinedOrg && (
         <div
           className="mb-6 rounded-lg px-4 py-3 text-sm"
-          style={{ background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.3)', color: '#2DD4BF' }}
+          style={{ background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', color: 'var(--pz-teal-ink)' }}
         >
           You&apos;ve joined <strong>{joinedOrg}</strong>{joinedRole ? ` as ${joinedRole}` : ''}.
         </div>

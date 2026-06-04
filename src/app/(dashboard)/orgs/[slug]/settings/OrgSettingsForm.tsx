@@ -27,8 +27,8 @@ export function OrgSettingsForm({ org }: Props) {
   const [logoUrl, setLogoUrl] = useState(org.logo_url ?? '')
   const [uploading, setUploading] = useState(false)
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
+  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -66,9 +66,9 @@ export function OrgSettingsForm({ org }: Props) {
         <label className={labelCls}>Logo</label>
         <div className="flex items-center gap-4">
           {logoUrl && (
-            <img src={logoUrl} alt="Logo" className="h-14 w-14 rounded-lg object-contain border border-[#1E3A5F] bg-[#0D1B2A] p-1" />
+            <img src={logoUrl} alt="Logo" className="h-14 w-14 rounded-lg object-contain border border-[var(--pz-border)] bg-[var(--pz-surface-2)] p-1" />
           )}
-          <label className="cursor-pointer flex items-center gap-2 rounded-lg border border-[#1E3A5F] px-3 py-2 text-sm text-[#94A3B8] hover:border-[#2DD4BF] transition-colors">
+          <label className="cursor-pointer flex items-center gap-2 rounded-lg border border-[var(--pz-border)] px-3 py-2 text-sm text-[var(--pz-muted)] hover:border-[var(--pz-teal)] transition-colors">
             <Upload size={14} />
             {uploading ? 'Uploading…' : 'Choose file'}
             <input type="file" accept="image/*" onChange={handleLogoChange} className="sr-only" />
@@ -141,13 +141,13 @@ export function OrgSettingsForm({ org }: Props) {
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
-      {success && <p className="text-sm text-[#2DD4BF]">Changes saved.</p>}
+      {success && <p className="text-sm text-[var(--pz-teal-ink)]">Changes saved.</p>}
 
       <button
         type="submit"
         disabled={saving || uploading}
         className="self-start rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
-        style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+        style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
       >
         {saving ? 'Saving…' : 'Save changes'}
       </button>

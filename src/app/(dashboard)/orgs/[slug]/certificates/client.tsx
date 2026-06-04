@@ -76,7 +76,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button
           onClick={startNew}
-          style={{ padding: '8px 18px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '8px 18px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
           + New template
         </button>
@@ -158,7 +158,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
             <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Available placeholders</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {PLACEHOLDER_REF.map(p => (
-                <code key={p} style={{ fontSize: 11, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', padding: '2px 6px', borderRadius: 4 }}>{p}</code>
+                <code key={p} style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '2px 6px', borderRadius: 4 }}>{p}</code>
               ))}
             </div>
           </div>
@@ -180,7 +180,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
             <button
               onClick={handleSave}
               disabled={isPending}
-              style={{ padding: '8px 20px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
+              style={{ padding: '8px 20px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
             >
               {isPending ? 'Saving…' : 'Save template'}
             </button>

@@ -80,8 +80,8 @@ export default function NewEventPage() {
     window.location.href = `/events/${result.slug}`
   }
 
-  const inputCls = 'w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] placeholder-[#64748B] focus:border-[#2DD4BF] focus:outline-none focus:ring-1 focus:ring-[#2DD4BF]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-label)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
+  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -95,8 +95,8 @@ export default function NewEventPage() {
       )}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#F0F4F8]">Create a new event</h1>
-          <p className="text-sm text-[#94A3B8] mt-1">Fill in the details to get started.</p>
+          <h1 className="text-2xl font-bold text-[var(--pz-text)]">Create a new event</h1>
+          <p className="text-sm text-[var(--pz-muted)] mt-1">Fill in the details to get started.</p>
         </div>
         <button
           type="button"
@@ -118,9 +118,9 @@ export default function NewEventPage() {
 
       {orgs.length === 0 && (
         <div className="pz-card p-6 mb-6 text-center">
-          <p className="text-sm text-[#94A3B8]">
+          <p className="text-sm text-[var(--pz-muted)]">
             You need an organization to create events.{' '}
-            <Link href="/orgs/new" className="text-[#2DD4BF] hover:underline">Create one</Link>
+            <Link href="/orgs/new" className="text-[var(--pz-teal-ink)] hover:underline">Create one</Link>
           </p>
         </div>
       )}
@@ -131,10 +131,10 @@ export default function NewEventPage() {
           className="flex items-center justify-between gap-4"
         >
           <div>
-            <p className="text-sm font-semibold" style={{ color: '#F0F4F8' }}>
+            <p className="text-sm font-semibold" style={{ color: 'var(--pz-text)' }}>
               You have {templates.length} saved template{templates.length !== 1 ? 's' : ''}. Skip the setup?
             </p>
-            <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--pz-muted)' }}>
               Start from a template — never configure from scratch again.
             </p>
           </div>
@@ -145,7 +145,7 @@ export default function NewEventPage() {
               document.getElementById('template-section')?.scrollIntoView({ behavior: 'smooth' })
             }}
             className="flex-shrink-0 rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
           >
             Browse templates
           </button>
@@ -156,7 +156,7 @@ export default function NewEventPage() {
 
         {/* Organization */}
         <div className="pz-card p-5">
-          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Organization</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Organization</h2>
           <div>
             <label className={labelCls}>Organization *</label>
             <select
@@ -180,7 +180,7 @@ export default function NewEventPage() {
             <div className="flex items-center gap-3 mb-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} className="rounded" />
-                <span className="text-sm font-semibold text-[#F0F4F8]">Start from a template</span>
+                <span className="text-sm font-semibold text-[var(--pz-text)]">Start from a template</span>
               </label>
             </div>
             {useTemplate && (
@@ -199,7 +199,7 @@ export default function NewEventPage() {
 
         {/* Basic info */}
         <div className="pz-card p-5">
-          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Event details</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Event details</h2>
           <div className="flex flex-col gap-4">
             <div>
               <label className={labelCls}>Event name *</label>
@@ -218,8 +218,8 @@ export default function NewEventPage() {
             </div>
             <div>
               <label className={labelCls}>URL slug *</label>
-              <div className="flex rounded-lg overflow-hidden border border-[#1E3A5F] focus-within:border-[#2DD4BF] focus-within:ring-1 focus-within:ring-[#2DD4BF]">
-                <span className="bg-[#0D1B2A] border-r border-[#1E3A5F] px-3 py-2 text-sm text-[#64748B] select-none">
+              <div className="flex rounded-lg overflow-hidden border border-[var(--pz-border)] focus-within:border-[var(--pz-teal)] focus-within:ring-1 focus-within:ring-[var(--pz-teal)]">
+                <span className="bg-[var(--pz-surface-2)] border-r border-[var(--pz-border)] px-3 py-2 text-sm text-[var(--pz-label)] select-none">
                   prezva.app/e/
                 </span>
                 <input
@@ -229,7 +229,7 @@ export default function NewEventPage() {
                   pattern="[a-z0-9-]+"
                   placeholder="annual-leadership-summit"
                   onInput={(e) => { (e.target as HTMLInputElement).dataset.touched = 'true' }}
-                  className="flex-1 bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none"
+                  className="flex-1 bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none"
                 />
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function NewEventPage() {
 
         {/* Date & time */}
         <div className="pz-card p-5">
-          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Date & time</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Date & time</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Start *</label>
@@ -288,7 +288,7 @@ export default function NewEventPage() {
         {/* Venue */}
         {(eventType === 'in_person' || eventType === 'hybrid') && (
           <div className="pz-card p-5">
-            <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Venue</h2>
+            <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Venue</h2>
             <div className="flex flex-col gap-4">
               <div>
                 <label className={labelCls}>Venue name</label>
@@ -315,7 +315,7 @@ export default function NewEventPage() {
         {/* Virtual */}
         {(eventType === 'virtual' || eventType === 'hybrid') && (
           <div className="pz-card p-5">
-            <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Virtual</h2>
+            <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Virtual</h2>
             <div>
               <label className={labelCls}>Stream / meeting URL</label>
               <input name="virtual_url" type="url" placeholder="https://zoom.us/j/…" className={inputCls} />
@@ -325,7 +325,7 @@ export default function NewEventPage() {
 
         {/* Capacity */}
         <div className="pz-card p-5">
-          <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Capacity</h2>
+          <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Capacity</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Max attendees</label>
@@ -334,7 +334,7 @@ export default function NewEventPage() {
             <div className="flex items-end">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input name="waitlist_enabled" type="checkbox" value="true" className="rounded" />
-                <span className="text-sm text-[#94A3B8]">Enable waitlist</span>
+                <span className="text-sm text-[var(--pz-muted)]">Enable waitlist</span>
               </label>
             </div>
           </div>
@@ -348,7 +348,7 @@ export default function NewEventPage() {
           type="submit"
           disabled={pending || orgs.length === 0}
           className="rounded-lg py-3 text-sm font-semibold disabled:opacity-50 transition-opacity"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           {pending ? 'Creating event…' : 'Create event'}
         </button>
