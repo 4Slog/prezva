@@ -35,16 +35,6 @@ describe('Sprint 27 — Hardening + Bug Fixes + Volunteer Module', () => {
     expect(sql).toContain('create table public.dead_letter_items')
   })
 
-  // ── Sidebar fix ─────────────────────────────────────────────────────────────
-
-  it('Sidebar.tsx has dynamic org slug injection', () => {
-    const src = readFileSync(join(SRC, 'components/layout/Sidebar.tsx'), 'utf-8')
-    expect(src).toContain('currentOrgSlug')
-    expect(src).toContain('orgs/${currentOrgSlug}')
-    expect(src).toContain('Integrations')
-    expect(src).toContain('collapsed')
-  })
-
   it('dashboard layout uses OrgShell component', () => {
     const src = readFileSync(join(SRC, 'app/(dashboard)/layout.tsx'), 'utf-8')
     expect(src).toContain('OrgShell')

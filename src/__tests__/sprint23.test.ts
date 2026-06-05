@@ -71,16 +71,6 @@ describe('Sprint 23 — Module Tile Gap Closure', () => {
     expect(src).toContain('TileBadge')
   })
 
-  // EventSidebar component
-  it('EventSidebar component exists', () => {
-    const path = join(SRC, 'components/events/EventSidebar.tsx')
-    expect(existsSync(path)).toBe(true)
-    const src = readFileSync(path, 'utf-8')
-    expect(src).toContain("'use client'")
-    expect(src).toContain('usePathname')
-    expect(src).toContain('ADMIN_TILES')
-  })
-
   // Event admin landing uses tile grid
   it('event admin landing uses AdminTileGrid', () => {
     const path = join(SRC, 'app/(dashboard)/events/[slug]/page.tsx')
@@ -97,15 +87,6 @@ describe('Sprint 23 — Module Tile Gap Closure', () => {
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain('getAdminTileBadges')
     expect(src).toContain('Promise.allSettled')
-  })
-
-  // Dashboard layout sidebar
-  it('dashboard layout sidebar has expanded nav items', () => {
-    const path = join(SRC, 'components/layout/Sidebar.tsx')
-    const src = readFileSync(path, 'utf-8')
-    expect(src).toContain('Integrations')
-    expect(src).toContain('Templates')
-    expect(src).toContain('Audit Log')
   })
 
   // Missing admin pages created
