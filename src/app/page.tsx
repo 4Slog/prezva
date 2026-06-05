@@ -81,7 +81,7 @@ export default function MarketingHomepage() {
       <nav style={{ padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0,
                     background: 'var(--pz-chrome)', zIndex: 50 }}>
-        <img src="/logo-dark.svg" alt="Prezva" style={{ height: 28, width: 'auto', display: 'block' }} />
+        <img src="/logo.svg" alt="Prezva" style={{ height: 28, width: 'auto', display: 'block' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <a href="/discover" style={{ fontSize: 14, color: 'var(--pz-chrome-muted)', textDecoration: 'none' }}>Browse Events</a>
           <a href="#pricing" style={{ fontSize: 14, color: 'var(--pz-chrome-muted)', textDecoration: 'none' }}>Pricing</a>
