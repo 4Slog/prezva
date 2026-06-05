@@ -24,7 +24,7 @@ export default async function VerifyCertificatePage({ params }: Props) {
       <div style={{ maxWidth: 500, width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: 16 }}>
-            <Image src="/logo.svg" alt="Prezva" width={108} height={20} />
+            <Image src="/logo-dark.svg" alt="Prezva" width={108} height={20} />
           </Link>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 4 }}>Certificate Verification</h1>
           <p style={{ fontSize: 13, color: 'var(--pz-muted)' }}>Verification ID: {verificationId}</p>
@@ -34,7 +34,7 @@ export default async function VerifyCertificatePage({ params }: Props) {
           <div style={{ background: 'var(--pz-surface)', border: '2px solid var(--pz-teal)', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ background: 'var(--pz-teal)', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 20 }}>✓</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#0D1B2A' }}>Valid Certificate</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--pz-on-accent)' }}>Valid Certificate</span>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <Row label="Issued to" value={reg?.attendee_name ?? 'Attendee'} />
@@ -62,10 +62,10 @@ export default async function VerifyCertificatePage({ params }: Props) {
             )}
           </div>
         ) : (
-          <div style={{ background: 'var(--pz-surface)', border: '1px solid #ef4444', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ background: '#ef444422', borderBottom: '1px solid #ef4444', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-error)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--pz-error-bg)', borderBottom: '1px solid var(--pz-error)', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 20 }}>✗</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#ef4444' }}>Certificate Not Found</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--pz-error)' }}>Certificate Not Found</span>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>

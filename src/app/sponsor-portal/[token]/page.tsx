@@ -25,7 +25,7 @@ export default async function SponsorPortalPage({ params, searchParams }: Props)
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: 22, fontWeight: 700 }}>Access Denied</h1>
-          <p style={{ color: '#6B7280', marginTop: 8 }}>{result.error}</p>
+          <p style={{ color: 'var(--pz-muted)', marginTop: 8 }}>{result.error}</p>
         </div>
       </div>
     )

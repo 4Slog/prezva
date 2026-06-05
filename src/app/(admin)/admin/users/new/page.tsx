@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Field } from '@/components/ui/Field'
 
 export default function AdminNewPlannerPage() {
   const router = useRouter()
@@ -48,34 +49,34 @@ export default function AdminNewPlannerPage() {
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <Link href="/admin/orgs" className="text-xs text-[#64748B] hover:text-[#94A3B8]">← Organizations</Link>
-        <h1 className="text-xl font-bold text-[#F0F4F8] mt-1">Onboard New Planner</h1>
-        <p className="text-sm text-[#64748B] mt-1">Creates an organization and sends a welcome email invite.</p>
+        <Link href="/admin/orgs" className="text-xs text-[var(--pz-label)] hover:text-[var(--pz-muted)]">← Organizations</Link>
+        <h1 className="text-xl font-bold text-[var(--pz-text)] mt-1">Onboard New Planner</h1>
+        <p className="text-sm text-[var(--pz-label)] mt-1">Creates an organization and sends a welcome email invite.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-[#64748B] uppercase mb-1">Full Name</label>
+        <Field label="Full Name" htmlFor="admin-full-name" required>
           <input
+            id="admin-full-name"
             name="fullName"
             required
             placeholder="Jane Smith"
-            className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+            className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#64748B] uppercase mb-1">Email Address</label>
+        </Field>
+        <Field label="Email Address" htmlFor="admin-email" required>
           <input
+            id="admin-email"
             name="email"
             type="email"
             required
             placeholder="jane@example.com"
-            className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+            className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#64748B] uppercase mb-1">Organization Name</label>
+        </Field>
+        <Field label="Organization Name" htmlFor="admin-org-name" required>
           <input
+            id="admin-org-name"
             name="orgName"
             required
             placeholder="Acme Events"
@@ -85,37 +86,36 @@ export default function AdminNewPlannerPage() {
                 slugInput.value = slugify(e.target.value)
               }
             }}
-            className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+            className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#64748B] uppercase mb-1">Organization Slug</label>
+        </Field>
+        <Field label="Organization Slug" htmlFor="admin-org-slug" required helper="Lowercase letters, numbers, hyphens only.">
           <input
+            id="admin-org-slug"
             name="orgSlug"
             required
             placeholder="acme-events"
             pattern="[a-z0-9\-]+"
             onInput={e => { (e.target as HTMLInputElement).dataset.edited = '1' }}
-            className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] font-mono focus:outline-none focus:border-[#00BFA6]"
+            className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] font-mono focus:outline-none focus:border-[var(--pz-teal)]"
           />
-          <p className="text-xs text-[#64748B] mt-1">Lowercase letters, numbers, hyphens only.</p>
-        </div>
+        </Field>
 
-        {error && <p className="text-sm text-red-400 bg-red-900/20 rounded-lg px-3 py-2">{error}</p>}
-        {success && <p className="text-sm text-[#00BFA6] bg-[#00BFA6]/10 rounded-lg px-3 py-2">{success}</p>}
+        {error && <p className="text-sm text-[var(--pz-error)] bg-[var(--pz-error-bg)] rounded-lg px-3 py-2">{error}</p>}
+        {success && <p className="text-sm text-[var(--pz-teal-ink)] bg-[var(--pz-teal-bg)] rounded-lg px-3 py-2">{success}</p>}
 
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-[#00BFA6] text-[#0D1B2A] text-sm font-semibold hover:bg-[#00A896] disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-[var(--pz-teal)] text-[var(--pz-on-accent)] text-sm font-semibold hover:opacity-90 disabled:opacity-50"
           >
             {loading ? 'Sending invite…' : 'Send Invite'}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 rounded-lg bg-[#1E3A5F] text-sm text-[#94A3B8] hover:bg-[#2A4F7A]"
+            className="px-4 py-2 rounded-lg bg-[var(--pz-surface-2)] text-sm text-[var(--pz-muted)] hover:bg-[var(--pz-border)]"
           >
             Cancel
           </button>

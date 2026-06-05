@@ -32,15 +32,15 @@ const TYPE_ICON: Record<string, string> = {
 export function EventCard({ event }: EventCardProps) {
   return (
     <Link href={`/events/${event.slug}`} className="block">
-      <div className="pz-card p-5 hover:border-[#00BFA6]/40 transition-colors cursor-pointer">
+      <div className="pz-card p-5 hover:border-[var(--pz-teal)]/40 transition-colors cursor-pointer">
         <div className="flex items-start justify-between gap-3 mb-3">
-          <h3 className="font-semibold text-[#F0F4F8] text-base leading-snug flex-1">
+          <h3 className="font-semibold text-[var(--pz-text)] text-base leading-snug flex-1">
             {event.title}
           </h3>
           <EventStatusBadge status={event.status} />
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-[#94A3B8] mb-4">
+        <div className="flex items-center gap-3 text-xs text-[var(--pz-muted)] mb-4">
           <span>{TYPE_ICON[event.event_type] ?? '📅'}</span>
           <span>{formatDate(event.start_at)}</span>
           {(event.venue_city || event.venue_state) && (
@@ -53,22 +53,22 @@ export function EventCard({ event }: EventCardProps) {
 
         <div className="flex items-center gap-4">
           <div className="text-center">
-            <p className="text-lg font-bold text-[#F0F4F8]">{event.registration_count}</p>
-            <p className="text-xs text-[#64748B]">Registered</p>
+            <p className="text-lg font-bold text-[var(--pz-text)]">{event.registration_count}</p>
+            <p className="text-xs text-[var(--pz-muted)]">Registered</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-[#00BFA6]">{event.checked_in_count}</p>
-            <p className="text-xs text-[#64748B]">Checked In</p>
+            <p className="text-lg font-bold text-[var(--pz-teal-ink)]">{event.checked_in_count}</p>
+            <p className="text-xs text-[var(--pz-muted)]">Checked In</p>
           </div>
           {event.registration_count > 0 && (
             <div className="flex-1">
-              <div className="h-1.5 rounded-full bg-[#1E3A5F] overflow-hidden">
+              <div className="h-1.5 rounded-full bg-[var(--pz-surface-2)] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#00BFA6] to-[#00E5CC]"
+                  className="h-full rounded-full bg-[var(--pz-teal)]"
                   style={{ width: `${Math.min(100, (event.checked_in_count / event.registration_count) * 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-[#64748B] mt-1">
+              <p className="text-xs text-[var(--pz-muted)] mt-1">
                 {Math.round((event.checked_in_count / event.registration_count) * 100)}% checked in
               </p>
             </div>

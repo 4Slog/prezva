@@ -35,7 +35,7 @@ export default async function LeaderboardPage({ params }: Props) {
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
       <div style={{ background: 'var(--pz-teal)', padding: '1.5rem', textAlign: 'center' }}>
         <a href={`/e/${slug}`} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', display: 'block', marginBottom: '0.5rem' }}>← {(event as any).title}</a>
-        <h1 style={{ color: '#fff', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>Leaderboard</h1>
+        <h1 style={{ color: 'var(--pz-surface)', fontWeight: 800, fontSize: '1.5rem', margin: 0 }}>Leaderboard</h1>
       </div>
       <div style={{ maxWidth: 480, margin: '2rem auto', padding: '0 1.5rem' }}>
         {leaders.length === 0 ? (

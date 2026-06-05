@@ -26,7 +26,7 @@ export default async function EventAuditLogPage({ params }: Props) {
         <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Audit Log</span>
       </div>
 
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-6">Audit Log</h1>
+      <h1 className="text-xl font-bold text-[var(--pz-text)] mb-6">Audit Log</h1>
 
       {!logs || logs.length === 0 ? (
         <div className="pz-card p-6">
@@ -44,12 +44,12 @@ export default async function EventAuditLogPage({ params }: Props) {
             </thead>
             <tbody>
               {(logs as any[]).map(log => (
-                <tr key={log.id} style={{ borderBottom: '1px solid var(--pz-border)', transition: 'background 0.1s' }} className="hover:bg-[#ffffff08]">
+                <tr key={log.id} style={{ borderBottom: '1px solid var(--pz-border)', transition: 'background 0.1s' }} className="hover:bg-[var(--pz-surface-2)]">
                   <td style={{ padding: '8px 12px', color: 'var(--pz-muted)' }}>
                     {new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </td>
                   <td style={{ padding: '8px 12px' }}>
-                    <span style={{ fontSize: 11, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                    <span style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
                       {log.action}
                     </span>
                   </td>

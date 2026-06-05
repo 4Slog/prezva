@@ -18,19 +18,19 @@ export default async function VolunteerSignupPage({ params }: Props) {
 
   if (!event) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0D1B2A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', color: 'var(--pz-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
           <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Volunteer applications are not open</p>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>This event is not currently accepting volunteer applications.</p>
+          <p style={{ color: 'var(--pz-muted)', fontSize: 14 }}>This event is not currently accepting volunteer applications.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0D1B2A', color: '#fff' }}>
-      <header style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '0.75rem 1.5rem' }}>
-        <a href={`/e/${slug}`} style={{ color: '#00BFA6', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', color: 'var(--pz-text)' }}>
+      <header style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '0.75rem 1.5rem' }}>
+        <a href={`/e/${slug}`} style={{ color: 'var(--pz-teal-ink)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
           ← Back to {event.title}
         </a>
       </header>

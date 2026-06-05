@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getMyIssuedCertificates } from '@/lib/certificates/actions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { SOCIAL_BRAND_COLORS } from '@/lib/ui/category-colors'
 
 const GOOGLE_WALLET_ENABLED = !!(
   process.env.GOOGLE_WALLET_ISSUER_ID &&
@@ -86,7 +87,7 @@ export default async function MyWalletPage() {
                         {cert.sessions_attended > 0 ? ` · ${cert.sessions_attended} sessions` : ''}
                       </p>
                     </div>
-                    <span style={{ fontSize: 11, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+                    <span style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
                       EARNED
                     </span>
                   </div>
@@ -94,7 +95,7 @@ export default async function MyWalletPage() {
                     {ev?.slug && (
                       <Link
                         href={`/e/${ev.slug}/certificate`}
-                        style={{ flex: 1, padding: '7px', textAlign: 'center', background: 'var(--pz-teal)', color: '#0D1B2A', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+                        style={{ flex: 1, padding: '7px', textAlign: 'center', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
                       >
                         Download PDF
                       </Link>
@@ -129,7 +130,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
           </p>
         </div>
         {!past && (
-          <span style={{ fontSize: 11, background: '#22c55e22', color: '#22c55e', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+          <span style={{ fontSize: 11, background: 'var(--pz-success-bg)', color: 'var(--pz-success-fill)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
             ACTIVE
           </span>
         )}
@@ -139,7 +140,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link
           href={`/e/${ev?.slug}/confirmation`}
-          style={{ flex: 1, minWidth: 120, padding: '8px', textAlign: 'center', background: past ? 'var(--pz-bg)' : 'var(--pz-teal)', color: past ? 'var(--pz-muted)' : '#0D1B2A', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--pz-border)' }}
+          style={{ flex: 1, minWidth: 120, padding: '8px', textAlign: 'center', background: past ? 'var(--pz-bg)' : 'var(--pz-teal)', color: past ? 'var(--pz-muted)' : 'var(--pz-on-accent)', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--pz-border)' }}
         >
           View ticket &amp; QR
         </Link>
@@ -148,7 +149,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
           <Link
             href={`/api/passes/google/${reg.id}`}
             target="_blank"
-            style={{ padding: '8px 14px', background: '#1a73e8', color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ padding: '8px 14px', background: SOCIAL_BRAND_COLORS.googleWallet, color: 'var(--pz-surface)', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <GoogleWalletIcon />
             Add to Google Wallet

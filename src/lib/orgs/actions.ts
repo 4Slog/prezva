@@ -192,12 +192,12 @@ export async function inviteMember(orgId: string, formData: FormData) {
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
       <div style="background:#0D1B2A;padding:24px;border-radius:12px 12px 0 0;">
-        <h1 style="color:#00BFA6;margin:0;font-size:1.5rem;">You're invited!</h1>
+        <h1 style="color:#2DD4BF;margin:0;font-size:1.5rem;">You're invited!</h1>
       </div>
       <div style="background:#112240;padding:24px;border-radius:0 0 12px 12px;color:#F0F4F8;">
         <p>You've been invited to join <strong>${org?.name ?? 'an organization'}</strong> on Prezva as <strong>${parsed.data.role}</strong>.</p>
         <div style="margin:24px 0;text-align:center;">
-          <a href="${inviteUrl}" style="background:#00BFA6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;">Accept Invitation</a>
+          <a href="${inviteUrl}" style="background:#2DD4BF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;">Accept Invitation</a>
         </div>
         <p style="color:#94A3B8;font-size:0.875rem;">This invitation expires in 7 days. If you didn't expect this, you can ignore it.</p>
         <p style="color:#64748B;font-size:0.75rem;word-break:break-all;">${inviteUrl}</p>

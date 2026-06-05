@@ -92,12 +92,12 @@ export function PreferencesClient({ initial }: { initial: (Prefs & { user_id?: s
         ))}
       </Section>
 
-      {error && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
       <button
         onClick={handleSave}
         disabled={isPending}
-        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
+        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
       >
         {isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save preferences'}
       </button>
@@ -126,7 +126,7 @@ function ToggleRow({ label, sub, checked, onChange }: { label: string; sub: stri
       <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 24, cursor: 'pointer', flexShrink: 0 }}>
         <input type="checkbox" checked={checked} onChange={onChange} style={{ opacity: 0, width: 0, height: 0 }} />
         <span style={{ position: 'absolute', inset: 0, background: checked ? 'var(--pz-teal)' : 'var(--pz-border)', borderRadius: 24, transition: 'background 0.2s' }} />
-        <span style={{ position: 'absolute', width: 18, height: 18, top: 3, left: checked ? 21 : 3, background: '#fff', borderRadius: '50%', transition: 'left 0.2s' }} />
+        <span style={{ position: 'absolute', width: 18, height: 18, top: 3, left: checked ? 21 : 3, background: 'var(--pz-surface)', borderRadius: '50%', transition: 'left 0.2s' }} />
       </label>
     </div>
   )

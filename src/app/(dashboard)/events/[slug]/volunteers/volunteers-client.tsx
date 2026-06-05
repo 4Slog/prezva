@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { resolveVolunteerAlert, exportVolunteerHours } from '@/lib/volunteers/actions'
+import { Field } from '@/components/ui/Field'
+import { VOLUNTEER_STATUS_COLORS as STATUS_COLORS, VOLUNTEER_ALERT_TYPE_COLORS as ALERT_TYPE_COLORS } from '@/lib/ui/category-colors'
 
 interface Volunteer {
   id: string
@@ -46,14 +48,6 @@ interface Props {
 const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'team-lead', 'general']
 const STATUSES = ['All', 'invited', 'confirmed', 'checked_in', 'no_show']
 
-const STATUS_COLORS: Record<string, string> = {
-  invited:    '#64748b',
-  confirmed:  '#0ea5e9',
-  checked_in: '#10b981',
-  no_show:    '#ef4444',
-  declined:   '#f59e0b',
-}
-
 function fmtShift(start?: string | null, end?: string | null) {
   if (!start) return '—'
   const s = new Date(start).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -62,17 +56,11 @@ function fmtShift(start?: string | null, end?: string | null) {
   return `${s} – ${e}`
 }
 
-const ALERT_TYPE_COLORS: Record<string, string> = {
-  urgent:   '#EF4444',
-  issue:    '#F59E0B',
-  question: '#3B82F6',
-  info:     '#64748B',
-}
 
 const SHIFT_RESPONSE_COLORS: Record<string, string> = {
-  confirmed: '#10b981',
-  declined:  '#ef4444',
-  pending:   '#94a3b8',
+  confirmed: 'var(--pz-success)',
+  declined:  'var(--pz-error)',
+  pending:   'var(--pz-muted)',
 }
 
 export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts }: Props) {
@@ -157,8 +145,8 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
       {alerts.length > 0 && (
         <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '1rem', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', margin: 0 }}>Volunteer Alerts</h2>
-            <span style={{ fontSize: 11, background: '#ef4444', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-error)', margin: 0 }}>Volunteer Alerts</h2>
+            <span style={{ fontSize: 11, background: 'var(--pz-error)', color: 'var(--pz-surface)', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
               {alerts.length}
             </span>
           </div>
@@ -207,7 +195,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           </button>
           <button
             onClick={() => setShowAdd(true)}
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
           >
             + Add Volunteer
           </button>
@@ -218,49 +206,44 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
       {showAdd && (
         <form onSubmit={handleAdd} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 16 }}>Add Volunteer</h3>
-          {err && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12 }}>{err}</p>}
+          {err && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{err}</p>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Name *</label>
-              <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            <Field label="Name" htmlFor="vol-name" required>
+              <input id="vol-name" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Email *</label>
-              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            </Field>
+            <Field label="Email" htmlFor="vol-email" required>
+              <input id="vol-email" required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Phone</label>
-              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            </Field>
+            <Field label="Phone" htmlFor="vol-phone">
+              <input id="vol-phone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Role *</label>
-              <select required value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+            </Field>
+            <Field label="Role" htmlFor="vol-role" required>
+              <select id="vol-role" required value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }}>
                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Shift Start</label>
-              <input type="datetime-local" value={form.shift_start} onChange={e => setForm(f => ({ ...f, shift_start: e.target.value }))}
+            </Field>
+            <Field label="Shift Start" htmlFor="vol-shift-start">
+              <input id="vol-shift-start" type="datetime-local" value={form.shift_start} onChange={e => setForm(f => ({ ...f, shift_start: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Shift End</label>
-              <input type="datetime-local" value={form.shift_end} onChange={e => setForm(f => ({ ...f, shift_end: e.target.value }))}
+            </Field>
+            <Field label="Shift End" htmlFor="vol-shift-end">
+              <input id="vol-shift-end" type="datetime-local" value={form.shift_end} onChange={e => setForm(f => ({ ...f, shift_end: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
-            </div>
+            </Field>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Notes</label>
-            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
-              style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box', resize: 'vertical' }} />
+            <Field label="Notes" htmlFor="vol-notes">
+              <textarea id="vol-notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
+                style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box', resize: 'vertical' }} />
+            </Field>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="submit" disabled={saving}
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '8px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '8px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
               {saving ? 'Saving…' : 'Add & Send Invite'}
             </button>
             <button type="button" onClick={() => setShowAdd(false)}
@@ -308,7 +291,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                   <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--pz-text)', fontWeight: 500 }}>{v.name}</td>
                   <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--pz-muted)' }}>{v.email}</td>
                   <td style={{ padding: '10px 14px', fontSize: 12 }}>
-                    <span style={{ background: 'rgba(0,191,166,0.1)', color: 'var(--pz-teal)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
+                    <span style={{ background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
                       {v.role}
                     </span>
                   </td>
@@ -336,12 +319,12 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                         style={{ fontSize: 12, color: 'var(--pz-teal)', textDecoration: 'none' }}>Portal</a>
                       {v.status !== 'checked_in' && (
                         <button onClick={() => handleAction(v.id, 'checkin')}
-                          style={{ fontSize: 12, color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Check in</button>
+                          style={{ fontSize: 12, color: 'var(--pz-success)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Check in</button>
                       )}
                       <button onClick={() => handleAction(v.id, 'resend')}
                         style={{ fontSize: 12, color: 'var(--pz-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resend</button>
                       <button onClick={() => handleAction(v.id, 'remove')}
-                        style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
+                        style={{ fontSize: 12, color: 'var(--pz-error)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
                     </div>
                   </td>
                 </tr>

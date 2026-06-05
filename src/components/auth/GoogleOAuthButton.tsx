@@ -46,7 +46,7 @@ export function GoogleOAuthButton({ mode = 'signin' }: Props) {
           id="google-coming-soon"
           role="tooltip"
           className="absolute left-1/2 -translate-x-1/2 -top-10 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap z-10"
-          style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text-muted)' }}
+          style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)' }}
         >
           Google sign-in coming soon — use email for now
         </div>

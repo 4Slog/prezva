@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Field } from '@/components/ui/Field'
 
 interface Factor {
   id: string
@@ -12,8 +13,8 @@ interface TwoFactorSetupProps {
 }
 
 const btnBase = 'rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50'
-const btnPrimary = `${btnBase} bg-[#00BFA6] text-[#0D1B2A] hover:bg-[#00D4B8]`
-const btnGhost = `${btnBase} text-[#64748B] hover:text-[#F0F4F8]`
+const btnPrimary = `${btnBase} bg-[var(--pz-teal)] text-[var(--pz-on-accent)] hover:bg-[#00D4B8]`
+const btnGhost = `${btnBase} text-[var(--pz-muted)] hover:text-[var(--pz-text)]`
 const btnDestructive = `${btnBase} bg-red-900/40 text-red-400 hover:bg-red-900/60`
 
 export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
@@ -68,12 +69,12 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
 
   if (existingFactor?.status === 'verified') {
     return (
-      <div className="rounded-lg border border-[#1E3A5F] p-6 space-y-4">
+      <div className="rounded-lg border border-[var(--pz-border)] p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#00BFA6]" />
-          <p className="text-sm font-semibold text-[#F0F4F8]">Two-factor authentication is enabled</p>
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--pz-teal)]" />
+          <p className="text-sm font-semibold text-[var(--pz-text)]">Two-factor authentication is enabled</p>
         </div>
-        <p className="text-xs text-[#94A3B8]">Your account is protected with an authenticator app.</p>
+        <p className="text-xs text-[var(--pz-muted)]">Your account is protected with an authenticator app.</p>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button className={btnDestructive} onClick={unenroll} disabled={loading}>
           {loading ? 'Removing…' : 'Remove 2FA'}
@@ -84,29 +85,29 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
 
   if (step === 'done') {
     return (
-      <div className="rounded-lg border border-[#00BFA6]/30 p-6">
-        <p className="text-sm font-semibold text-[#00BFA6]">2FA enabled successfully!</p>
-        <p className="text-xs text-[#94A3B8] mt-1">Your account is now protected with your authenticator app.</p>
+      <div className="rounded-lg border border-[var(--pz-teal)]/30 p-6">
+        <p className="text-sm font-semibold text-[var(--pz-teal-ink)]">2FA enabled successfully!</p>
+        <p className="text-xs text-[var(--pz-muted)] mt-1">Your account is now protected with your authenticator app.</p>
       </div>
     )
   }
 
   if (step === 'enrolling') {
     return (
-      <div className="rounded-lg border border-[#1E3A5F] p-6 space-y-5">
-        <p className="text-sm font-semibold text-[#F0F4F8]">Scan this QR code with your authenticator app</p>
+      <div className="rounded-lg border border-[var(--pz-border)] p-6 space-y-5">
+        <p className="text-sm font-semibold text-[var(--pz-text)]">Scan this QR code with your authenticator app</p>
         <img src={qrCode} alt="2FA QR code" className="w-40 h-40 rounded-lg bg-white p-2" />
-        <p className="text-xs text-[#64748B]">Can&apos;t scan? Enter this secret manually: <code className="text-[#00BFA6]">{secret}</code></p>
-        <div className="space-y-2">
-          <p className="text-xs text-[#94A3B8]">Enter the 6-digit code from your authenticator app</p>
+        <p className="text-xs text-[var(--pz-muted)]">Can&apos;t scan? Enter this secret manually: <code className="text-[var(--pz-teal-ink)]">{secret}</code></p>
+        <Field label="Verification code" htmlFor="totp-code" helper="Enter the 6-digit code from your authenticator app">
           <input
+            id="totp-code"
             value={code}
             onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="000000"
             maxLength={6}
-            className="w-32 text-center tracking-widest font-mono bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+            className="w-32 text-center tracking-widest font-mono bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
           />
-        </div>
+        </Field>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <div className="flex gap-3">
           <button className={btnPrimary} onClick={verify} disabled={loading || code.length !== 6}>
@@ -119,9 +120,9 @@ export function TwoFactorSetup({ existingFactor }: TwoFactorSetupProps) {
   }
 
   return (
-    <div className="rounded-lg border border-[#1E3A5F] p-6 space-y-4">
-      <p className="text-sm font-semibold text-[#F0F4F8]">Two-factor authentication</p>
-      <p className="text-xs text-[#94A3B8]">Add an extra layer of security using an authenticator app (Google Authenticator, Authy, 1Password, etc.)</p>
+    <div className="rounded-lg border border-[var(--pz-border)] p-6 space-y-4">
+      <p className="text-sm font-semibold text-[var(--pz-text)]">Two-factor authentication</p>
+      <p className="text-xs text-[var(--pz-muted)]">Add an extra layer of security using an authenticator app (Google Authenticator, Authy, 1Password, etc.)</p>
       {error && <p className="text-xs text-red-400">{error}</p>}
       <button className={btnPrimary} onClick={startEnroll} disabled={loading}>
         {loading ? 'Setting up…' : 'Enable 2FA'}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import CancelRegistrationButton from '@/components/registration/cancel-button'
 import { useRouter } from 'next/navigation'
 import { transferRegistration } from '@/lib/registration/transfer-actions'
+import { Field } from '@/components/ui/Field'
 
 interface Reg {
   id: string
@@ -105,11 +106,11 @@ export default function MyEventsClient({ groups, active }: Props) {
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     {reg.ticket_types?.name && (
-                      <span style={{ fontSize: 11, background: 'var(--pz-teal)22', color: 'var(--pz-teal)', padding: '2px 8px', borderRadius: 4, fontWeight: 500 }}>
+                      <span style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '2px 8px', borderRadius: 4, fontWeight: 500 }}>
                         {reg.ticket_types.name}
                       </span>
                     )}
-                    <span style={{ fontSize: 11, background: reg.status === 'confirmed' ? '#22c55e22' : 'var(--pz-border)', color: reg.status === 'confirmed' ? '#22c55e' : 'var(--pz-muted)', padding: '2px 8px', borderRadius: 4, fontWeight: 500, textTransform: 'capitalize' }}>
+                    <span style={{ fontSize: 11, background: reg.status === 'confirmed' ? 'var(--pz-success-bg)' : 'var(--pz-border)', color: reg.status === 'confirmed' ? 'var(--pz-success-fill)' : 'var(--pz-muted)', padding: '2px 8px', borderRadius: 4, fontWeight: 500, textTransform: 'capitalize' }}>
                       {reg.status}
                     </span>
                     {canTransfer && (
@@ -155,7 +156,7 @@ export default function MyEventsClient({ groups, active }: Props) {
                   <p style={{ color: 'var(--pz-text)', fontWeight: 600 }}>Ticket transferred</p>
                   <p style={{ color: 'var(--pz-muted)', fontSize: 13, marginTop: 4 }}>Confirmation emails have been sent.</p>
                 </div>
-                <button onClick={closeTransfer} style={{ width: '100%', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: 'pointer' }}>
+                <button onClick={closeTransfer} style={{ width: '100%', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: 'pointer' }}>
                   Done
                 </button>
               </>
@@ -168,40 +169,46 @@ export default function MyEventsClient({ groups, active }: Props) {
                 <form onSubmit={handleTransfer} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>First name</label>
-                      <input
-                        required
-                        value={form.firstName}
-                        onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
-                        style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
-                      />
+                      <Field label="First name" htmlFor="transfer-first-name" required>
+                        <input
+                          id="transfer-first-name"
+                          required
+                          value={form.firstName}
+                          onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
+                          style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
+                        />
+                      </Field>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Last name</label>
-                      <input
-                        required
-                        value={form.lastName}
-                        onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
-                        style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
-                      />
+                      <Field label="Last name" htmlFor="transfer-last-name" required>
+                        <input
+                          id="transfer-last-name"
+                          required
+                          value={form.lastName}
+                          onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
+                          style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
+                        />
+                      </Field>
                     </div>
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Email address</label>
-                    <input
-                      required
-                      type="email"
-                      value={form.email}
-                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                      style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
-                    />
+                    <Field label="Email address" htmlFor="transfer-email" required>
+                      <input
+                        id="transfer-email"
+                        required
+                        type="email"
+                        value={form.email}
+                        onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                        style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }}
+                      />
+                    </Field>
                   </div>
-                  {err && <p style={{ color: '#ef4444', fontSize: 12 }}>{err}</p>}
+                  {err && <p style={{ color: 'var(--pz-error)', fontSize: 12 }}>{err}</p>}
                   <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                     <button type="button" onClick={closeTransfer} style={{ flex: 1, background: 'transparent', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontSize: 13 }}>
                       Cancel
                     </button>
-                    <button type="submit" disabled={busy} style={{ flex: 1, background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontSize: 13, opacity: busy ? 0.7 : 1 }}>
+                    <button type="submit" disabled={busy} style={{ flex: 1, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontSize: 13, opacity: busy ? 0.7 : 1 }}>
                       {busy ? 'Transferring…' : 'Transfer ticket'}
                     </button>
                   </div>

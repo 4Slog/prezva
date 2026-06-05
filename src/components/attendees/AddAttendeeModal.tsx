@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { manualAddAttendee } from '@/lib/attendees/actions'
 import { Modal } from '@/components/ui/Modal'
+import { Field } from '@/components/ui/Field'
 
 interface TicketType { id: string; name: string; price_cents?: number }
 
@@ -35,7 +36,6 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
 
   const inputCls = 'w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
   const inputStyle = { background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)' }
-  const labelStyle = { color: 'var(--pz-text-muted)' }
 
   function handleTicketChange(ticketTypeId: string) {
     const ticket = tickets.find(t => t.id === ticketTypeId)
@@ -85,29 +85,29 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
   return (
     <Modal onClose={onClose} title="Add Attendee">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>Full Name</label>
+        <Field label="Full Name" htmlFor="add-att-name" required>
           <input
+            id="add-att-name"
             required
             value={form.attendeeName}
             onChange={e => setForm(f => ({ ...f, attendeeName: e.target.value }))}
             className={inputCls} style={inputStyle}
             placeholder="Jane Smith"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>Email</label>
+        </Field>
+        <Field label="Email" htmlFor="add-att-email" required>
           <input
+            id="add-att-email"
             required type="email"
             value={form.attendeeEmail}
             onChange={e => setForm(f => ({ ...f, attendeeEmail: e.target.value }))}
             className={inputCls} style={inputStyle}
             placeholder="jane@example.com"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1" style={labelStyle}>Ticket Type</label>
+        </Field>
+        <Field label="Ticket Type" htmlFor="add-att-ticket">
           <select
+            id="add-att-ticket"
             value={form.ticketTypeId}
             onChange={e => handleTicketChange(e.target.value)}
             className={inputCls} style={inputStyle}
@@ -118,15 +118,15 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
               </option>
             ))}
           </select>
-        </div>
+        </Field>
 
         {/* Payment section — only show for paid tickets */}
         {isPaidTicket && (
           <div className="rounded-lg p-3 space-y-3" style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)' }}>
-            <p className="text-xs font-medium" style={{ color: 'var(--pz-text-muted)' }}>PAYMENT</p>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={labelStyle}>Payment method</label>
+            <p className="text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>PAYMENT</p>
+            <Field label="Payment method" htmlFor="add-att-payment">
               <select
+                id="add-att-payment"
                 value={form.paymentMethod}
                 onChange={e => handlePaymentMethodChange(e.target.value)}
                 className={inputCls} style={inputStyle}
@@ -135,15 +135,17 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
               </select>
-            </div>
+            </Field>
             {showAmountField && (
-              <div>
-                <label className="block text-sm font-medium mb-1" style={labelStyle}>
-                  Amount received (USD)
-                </label>
+              <Field
+                label="Amount received (USD)"
+                htmlFor="add-att-amount"
+                helper={`Ticket price: $${((selectedTicket?.price_cents ?? 0) / 100).toFixed(2)}`}
+              >
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--pz-text-muted)' }}>$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--pz-muted)' }}>$</span>
                   <input
+                    id="add-att-amount"
                     type="number"
                     min="0"
                     step="0.01"
@@ -153,13 +155,10 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
                     style={{ ...inputStyle, paddingLeft: '1.75rem' }}
                   />
                 </div>
-                <p className="text-xs mt-1" style={{ color: 'var(--pz-text-muted)' }}>
-                  Ticket price: ${((selectedTicket?.price_cents ?? 0) / 100).toFixed(2)}
-                </p>
-              </div>
+              </Field>
             )}
             {form.paymentMethod === 'comp' && (
-              <p className="text-xs" style={{ color: 'var(--pz-text-muted)' }}>
+              <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                 Complimentary — attendee will be registered at no charge.
               </p>
             )}
@@ -167,7 +166,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
         )}
 
         {error && (
-          <p className="rounded-lg px-3 py-2 text-sm" style={{ background: '#3B0000', color: '#FCA5A5' }}>{error}</p>
+          <p className="rounded-lg px-3 py-2 text-sm" style={{ background: 'var(--pz-error-bg)', color: 'var(--pz-error)' }}>{error}</p>
         )}
 
         <div className="flex gap-3 justify-end pt-2">
@@ -178,7 +177,7 @@ export function AddAttendeeModal({ eventId, tickets, onClose, onAdded }: AddAtte
           </button>
           <button type="submit" disabled={loading}
             className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}>
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}>
             {loading ? 'Adding…' : 'Add Attendee'}
           </button>
         </div>

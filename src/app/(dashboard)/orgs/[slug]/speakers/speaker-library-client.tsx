@@ -102,14 +102,14 @@ export function SpeakerLibraryClient({ speakers, events }: Props) {
                       onClick={() => handleAdd(sp.id)}
                       disabled={adding === sp.id}
                       style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5,
-                               background: 'var(--pz-teal)', color: '#fff', border: 'none',
+                               background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none',
                                cursor: 'pointer', opacity: adding === sp.id ? 0.6 : 1 }}
                     >
                       {adding === sp.id ? 'Adding…' : 'Add'}
                     </button>
                   </div>
                   {addResult[sp.id] && (
-                    <p style={{ fontSize: 11, marginTop: 3, color: addResult[sp.id] === 'Added to event!' ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+                    <p style={{ fontSize: 11, marginTop: 3, color: addResult[sp.id] === 'Added to event!' ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>
                       {addResult[sp.id]}
                     </p>
                   )}

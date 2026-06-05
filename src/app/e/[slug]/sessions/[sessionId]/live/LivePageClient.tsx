@@ -7,7 +7,7 @@ import LiveRoom from '@/components/video/LiveRoom'
 import SimulivePlayer from '@/components/video/SimulivePlayer'
 import CEProgressBar from '@/components/video/CEProgressBar'
 import LiveChat from '@/components/video/LiveChat'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, CheckCircle } from 'lucide-react'
 import OrganizerDashboard from '@/components/video/OrganizerDashboard'
 import QuestionQueue from '@/components/video/QuestionQueue'
 
@@ -53,11 +53,12 @@ export default function LivePageClient({ session, event, registrationId, userId,
   const hasLiveRoom = !!session.livekit_room_name
   const ceCredits = session.ce_credit_hours ?? 0
 
-  // Simulive: scheduled time has passed and video is available
-  const simuliveActive =
+  // Compute once on mount — Date.now() in lazy initializer is safe
+  const [simuliveActive] = useState(() =>
     !!session.simulive_scheduled_at &&
     !!session.mux_asset_playback_id &&
     Date.now() >= new Date(session.simulive_scheduled_at).getTime()
+  )
 
   // Rewatch: stream has ended (mux_stream_id set but !isLive) and allow_rewatch is on
   const canRewatch =
@@ -180,8 +181,8 @@ export default function LivePageClient({ session, event, registrationId, userId,
               onProgress={handleProgress}
             />
           ) : (
-            <div style={{ width: '100%', aspectRatio: '16/9', background: '#111', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ color: '#666', fontSize: 14 }}>Stream not yet available</p>
+            <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--pz-chrome-2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ color: 'var(--pz-chrome-muted)', fontSize: 14 }}>Stream not yet available</p>
             </div>
           )}
 
@@ -235,7 +236,7 @@ export default function LivePageClient({ session, event, registrationId, userId,
 
       {isOrganizer && (
         <div style={{ marginTop: 32, borderTop: '1px solid var(--color-border)', paddingTop: 24 }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 16 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--pz-chrome-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 16 }}>
             Organizer controls
           </p>
           <OrganizerDashboard
@@ -263,12 +264,11 @@ function CEProgressBarDisplay({ watchedSeconds, sessionDurationSeconds, ceCredit
   const threshold = sessionDurationSeconds * 0.8
   const barPct = threshold > 0 ? Math.min(100, (watchedSeconds / threshold) * 100) : 0
   const earned = watchPct >= 80
-  const { CheckCircle } = require('lucide-react')
   return (
     <div style={{ padding: '12px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
         {earned ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#2DD4BF' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--pz-teal)' }}>
             <CheckCircle size={15} /> CE credit earned — {ceCredits} credit{ceCredits !== 1 ? 's' : ''}
           </span>
         ) : (
@@ -278,7 +278,7 @@ function CEProgressBarDisplay({ watchedSeconds, sessionDurationSeconds, ceCredit
         )}
       </div>
       <div style={{ height: 6, borderRadius: 3, background: 'var(--color-border)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${barPct}%`, borderRadius: 3, background: earned ? '#2DD4BF' : '#6b7280', transition: 'width 0.4s ease, background 0.3s ease' }} />
+        <div style={{ height: '100%', width: `${barPct}%`, borderRadius: 3, background: earned ? 'var(--pz-teal)' : 'var(--pz-chrome-muted)', transition: 'width 0.4s ease, background 0.3s ease' }} />
       </div>
     </div>
   )

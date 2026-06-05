@@ -60,9 +60,9 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-[#F0F4F8]">{row.displayName}</p>
+            <p className="text-sm font-medium text-[var(--pz-text)]">{row.displayName}</p>
             {row.hasVerifyMembership && row.isConnected && (
-              <span className="text-xs rounded-full px-2 py-0.5 bg-[#00BFA6]/20 text-[#00BFA6]">
+              <span className="text-xs rounded-full px-2 py-0.5 bg-[var(--pz-teal-bg)] text-[var(--pz-teal-ink)]">
                 Membership verification active
               </span>
             )}
@@ -72,7 +72,7 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
               {row.badge.label}
             </span>
             {row.isConnected && row.lastSyncedAt && (
-              <span className="text-xs text-[#64748B]">Last sync: {relativeTime(row.lastSyncedAt)}</span>
+              <span className="text-xs text-[var(--pz-muted)]">Last sync: {relativeTime(row.lastSyncedAt)}</span>
             )}
           </div>
         </div>
@@ -82,7 +82,7 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
               <a
                 href={`/api/integrations/${row.provider}/auth?org_id=${orgId}`}
                 className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-                style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
               >
                 {row.statusKey === 'error' ? 'Reconnect' : 'Connect'}
               </a>
@@ -101,7 +101,7 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
             <form action={`/api/integrations/${row.provider}/disconnect`} method="POST">
               <input type="hidden" name="orgId" value={orgId} />
               <input type="hidden" name="returnTo" value={`/orgs/${orgSlug}/integrations`} />
-              <button type="submit" className="rounded-lg border border-[#EF4444]/30 px-3 py-1.5 text-xs text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
+              <button type="submit" className="rounded-lg border border-[var(--pz-error)]/30 px-3 py-1.5 text-xs text-[var(--pz-error)] hover:bg-[var(--pz-error)]/10 transition-colors">
                 Disconnect
               </button>
             </form>
@@ -111,12 +111,12 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
 
       {/* Mailchimp list picker */}
       {row.provider === 'mailchimp' && row.isConnected && mailchimpLists.length > 0 && (
-        <div className="mt-3 flex items-center gap-2 border-t border-[#1E3A5F] pt-3">
-          <label className="text-xs text-[#94A3B8] shrink-0">Default audience:</label>
+        <div className="mt-3 flex items-center gap-2 border-t border-[var(--pz-border)] pt-3">
+          <label className="text-xs text-[var(--pz-muted)] shrink-0">Default audience:</label>
           <select
             value={listId}
             onChange={e => setListId(e.target.value)}
-            className="flex-1 text-xs rounded-lg border border-[#1E3A5F] bg-[#112240] px-2 py-1 text-[#F0F4F8]"
+            className="flex-1 text-xs rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-2 py-1 text-[var(--pz-text)]"
           >
             <option value="">Select a list...</option>
             {mailchimpLists.map(l => (
@@ -127,7 +127,7 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
             onClick={saveMailchimpList}
             disabled={savingList || !listId}
             className="shrink-0 rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
           >
             {listSaved ? 'Saved!' : savingList ? 'Saving…' : 'Save'}
           </button>
@@ -142,7 +142,7 @@ export function IntegrationsClient({ sections, orgId, orgSlug, mailchimpLists, d
     <div className="space-y-8">
       {sections.map(section => (
         <div key={section.title}>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#64748B] mb-3">{section.title}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--pz-muted)] mb-3">{section.title}</h2>
           <div className="space-y-2">
             {section.integrations.map(row => (
               <IntegrationCard

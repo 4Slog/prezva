@@ -112,54 +112,54 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
           {isWaitlist ? (
             <>
               <div className="text-4xl mb-4">⏳</div>
-              <h1 className="text-xl font-bold text-[#F0F4F8] mb-2">You&apos;re on the waitlist</h1>
-              <p className="text-sm text-[#94A3B8] mb-2">
+              <h1 className="text-xl font-bold text-[var(--pz-text)] mb-2">You&apos;re on the waitlist</h1>
+              <p className="text-sm text-[var(--pz-muted)] mb-2">
                 Position #{reg?.waitlist_position ?? '—'}
               </p>
-              <p className="text-sm text-[#94A3B8]">
-                We&apos;ll email you at <strong className="text-[#F0F4F8]">{reg?.attendee_email}</strong> if a spot opens up.
+              <p className="text-sm text-[var(--pz-muted)]">
+                We&apos;ll email you at <strong className="text-[var(--pz-text)]">{reg?.attendee_email}</strong> if a spot opens up.
               </p>
             </>
           ) : (
             <>
               <div className="text-4xl mb-4">✅</div>
-              <h1 className="text-xl font-bold text-[#F0F4F8] mb-2">You&apos;re registered!</h1>
+              <h1 className="text-xl font-bold text-[var(--pz-text)] mb-2">You&apos;re registered!</h1>
               {reg && (
                 <>
-                  <p className="text-base font-semibold text-[#F0F4F8] mb-1">
+                  <p className="text-base font-semibold text-[var(--pz-text)] mb-1">
                     {(reg.events as { title: string } | null)?.title}
                   </p>
                   {(() => {
                     const ev = reg.events as { start_at?: string; timezone?: string } | null
                     const when = fmtEventDate(ev?.start_at, ev?.timezone)
-                    return when ? <p className="text-xs text-[#94A3B8] mb-1">{when}</p> : null
+                    return when ? <p className="text-xs text-[var(--pz-muted)] mb-1">{when}</p> : null
                   })()}
                   {(reg.ticket_types as { name: string } | null)?.name && (
-                    <p className="text-xs text-[#64748B] mb-3">
+                    <p className="text-xs text-[var(--pz-muted)] mb-3">
                       {(reg.ticket_types as { name: string }).name}
                       {reg.attendee_name ? ` — ${reg.attendee_name}` : ''}
                     </p>
                   )}
-                  <p className="text-sm text-[#94A3B8] mb-6">
+                  <p className="text-sm text-[var(--pz-muted)] mb-6">
                     A confirmation with your QR code has been emailed to{' '}
-                    <strong className="text-[#F0F4F8]">{reg.attendee_email}</strong>
+                    <strong className="text-[var(--pz-text)]">{reg.attendee_email}</strong>
                   </p>
                   <div className="mb-6">
                     <QRDisplay qrCode={reg.qr_code} />
-                    <p className="text-xs text-[#64748B] mt-2">Show this at check-in</p>
+                    <p className="text-xs text-[var(--pz-muted)] mt-2">Show this at check-in</p>
                   </div>
                   <a
                     href={`/api/registrations/${reg.id}/calendar.ics`}
                     className="text-sm mb-2"
-                    style={{ color: 'var(--pz-teal)' }}
+                    style={{ color: 'var(--pz-teal-ink)' }}
                   >
                     Add to Calendar
                   </a>
                 </>
               )}
               {previousCount > 0 && (
-                <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'var(--pz-teal, #00BFA6)15', borderRadius: 10, border: '1px solid rgba(0,191,166,0.27)', textAlign: 'center' }}>
-                  <p style={{ fontSize: 14, color: 'var(--pz-teal, #00BFA6)', fontWeight: 600, margin: 0 }}>
+                <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'var(--pz-teal-bg)', borderRadius: 10, border: '1px solid var(--pz-teal)', textAlign: 'center' }}>
+                  <p style={{ fontSize: 14, color: 'var(--pz-teal-ink)', fontWeight: 600, margin: 0 }}>
                     Welcome back! 👋
                   </p>
                   <p style={{ fontSize: 13, color: 'var(--pz-muted, #94A3B8)', margin: '4px 0 0' }}>
@@ -174,15 +174,15 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                 />
               )}
               {isGuest && (
-                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(45,212,191,0.08)', borderRadius: 10, border: '1px solid rgba(45,212,191,0.25)', textAlign: 'left' }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: '#F0F4F8', margin: '0 0 4px' }}>💡 Save your registration</p>
-                  <p style={{ fontSize: 12, color: '#94A3B8', margin: '0 0 10px' }}>
+                <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--pz-teal-bg)', borderRadius: 10, border: '1px solid var(--pz-teal)', textAlign: 'left' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', margin: '0 0 4px' }}>💡 Save your registration</p>
+                  <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '0 0 10px' }}>
                     Create a free Prezva account to manage your tickets, track your event history, and get personalized recommendations.
                   </p>
                   <Link
                     href="/signup"
                     className="inline-block rounded-lg px-4 py-1.5 text-xs font-semibold"
-                    style={{ background: 'var(--pz-teal, #2DD4BF)', color: '#0D1B2A' }}
+                    style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                   >
                     Create free account →
                   </Link>
@@ -192,7 +192,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                 <Link
                   href={`/e/${slug}`}
                   className="inline-block rounded-lg px-6 py-2 text-sm font-semibold"
-                  style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+                  style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                 >
                   View event details
                 </Link>
@@ -227,7 +227,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     {showAppleWallet && (
                       <a
                         href={`/api/passes/apple/${reg.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
                       >
                         Add to Apple Wallet
                       </a>
@@ -235,7 +235,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     {showGoogleWallet && (
                       <a
                         href={`/api/passes/google/${reg.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#1E3A5F] px-3 py-1.5 text-xs text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6] transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
                       >
                         Add to Google Wallet
                       </a>
@@ -246,7 +246,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
             </>
           )}
         </div>
-        <p className="text-center text-xs text-[#64748B] mt-4">
+        <p className="text-center text-xs text-[var(--pz-muted)] mt-4">
           Powered by Prezva
         </p>
       </div>

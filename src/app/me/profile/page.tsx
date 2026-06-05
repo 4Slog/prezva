@@ -74,8 +74,8 @@ export default async function MyProfilePage() {
                 </p>
               </div>
               <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
-                             background: sp.status === 'confirmed' ? 'var(--pz-teal)22' : '#F59E0B22',
-                             color: sp.status === 'confirmed' ? 'var(--pz-teal)' : '#F59E0B' }}>
+                             background: sp.status === 'confirmed' ? 'var(--pz-teal-bg)' : 'var(--pz-warning-bg)',
+                             color: sp.status === 'confirmed' ? 'var(--pz-teal-ink)' : 'var(--pz-warning)' }}>
                 {sp.status}
               </span>
             </div>
@@ -104,8 +104,8 @@ export default async function MyProfilePage() {
                 </p>
               </div>
               <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
-                             background: vol.shift_response === 'confirmed' ? 'var(--pz-teal)22' : 'var(--pz-surface-2)',
-                             color: vol.shift_response === 'confirmed' ? 'var(--pz-teal)' : 'var(--pz-muted)' }}>
+                             background: vol.shift_response === 'confirmed' ? 'var(--pz-teal-bg)' : 'var(--pz-surface-2)',
+                             color: vol.shift_response === 'confirmed' ? 'var(--pz-teal-ink)' : 'var(--pz-muted)' }}>
                 {vol.shift_response === 'confirmed' ? 'Confirmed' : vol.shift_response === 'declined' ? 'Declined' : 'Pending'}
               </span>
             </div>

@@ -110,7 +110,7 @@ export async function resendConfirmation(registrationId: string) {
       html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <p>Hi ${reg.attendee_name.trim().split(/\s+/)[0]},</p>
         <p>This is your confirmation for <strong>${ev.title}</strong>.</p>
-        <p><a href="${appUrl}/e/${ev.slug}/confirmation?token=${reg.qr_code}" style="background:#00BFA6;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">View Ticket</a></p>
+        <p><a href="${appUrl}/e/${ev.slug}/confirmation?token=${reg.qr_code}" style="background:#2DD4BF;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">View Ticket</a></p>
       </div>`,
     })
     return { ok: true }
@@ -285,7 +285,7 @@ export async function rejectRegistration(registrationId: string, reason?: string
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
       <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
-        <span style="color:#0D1B2A;font-weight:900;font-size:18px;background:#00BFA6;padding:4px 10px;border-radius:6px;">P</span>
+        <span style="color:#0D1B2A;font-weight:900;font-size:18px;background:#2DD4BF;padding:4px 10px;border-radius:6px;">P</span>
         <h1 style="color:#F0F4F8;font-size:22px;margin:12px 0 0;">Registration update</h1>
       </div>
       <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
@@ -294,7 +294,7 @@ export async function rejectRegistration(registrationId: string, reason?: string
         ${reasonText}
         <p style="font-size:15px;">If you have questions, please contact the event organizer.</p>
         <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
-        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#00BFA6;">Prezva</a>.</p>
+        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>.</p>
       </div>
     </div>
   `
@@ -392,7 +392,7 @@ export async function selfCancelRegistration(registrationId: string) {
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
       <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
-        <span style="color:#0D1B2A;font-weight:900;font-size:18px;background:#00BFA6;padding:4px 10px;border-radius:6px;">P</span>
+        <span style="color:#0D1B2A;font-weight:900;font-size:18px;background:#2DD4BF;padding:4px 10px;border-radius:6px;">P</span>
         <h1 style="color:#F0F4F8;font-size:22px;margin:12px 0 0;">Registration ${isPaid ? 'cancellation requested' : 'cancelled'}</h1>
       </div>
       <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
@@ -402,7 +402,7 @@ export async function selfCancelRegistration(registrationId: string) {
           : `<p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${ev.title}</strong> has been cancelled.</p>`
         }
         <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
-        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#00BFA6;">Prezva</a>.</p>
+        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>.</p>
       </div>
     </div>
   `

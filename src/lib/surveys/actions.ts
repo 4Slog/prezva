@@ -277,7 +277,7 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <p>Hi ${reg.attendee_name},</p>
           <p>Thank you for attending <strong>${event.title}</strong>. We'd love your feedback.</p>
-          <p><a href="${surveyUrl}" style="background:#00BFA6;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">Take the survey</a></p>
+          <p><a href="${surveyUrl}" style="background:#2DD4BF;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">Take the survey</a></p>
           <p style="font-size:12px;color:#888;">Or copy: ${surveyUrl}</p>
         </div>`,
       })

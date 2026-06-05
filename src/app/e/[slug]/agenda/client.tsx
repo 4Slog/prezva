@@ -7,6 +7,7 @@ import { submitVote } from '@/lib/engagement/poll-actions'
 import { createCommunityPost, getCommunityPosts } from '@/lib/networking/sprint8-actions'
 import { createClient } from '@/lib/supabase/client'
 import SessionCheckInButton from '@/components/sessions/SessionCheckInButton'
+import { SESSION_TYPE_COLORS as COLORS } from '@/lib/ui/category-colors'
 
 interface Session {
   id: string; title: string; session_type: string
@@ -70,11 +71,11 @@ function LivePollCard({ poll, userId, registrationId }: { poll: LivePoll; userId
   const showBar = voted || poll.show_results
 
   return (
-    <div style={{ background: 'var(--color-teal)11', border: '1px solid var(--color-teal)44', borderRadius: 10, padding: '0.875rem 1rem', marginBottom: 8 }}>
+    <div style={{ background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', borderRadius: 10, padding: '0.875rem 1rem', marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--color-teal)', background: 'var(--color-teal)22', padding: '2px 8px', borderRadius: 20 }}>Live Poll</span>
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--pz-teal-ink)', background: 'var(--pz-teal-bg)', padding: '2px 8px', borderRadius: 20 }}>Live Poll</span>
       </div>
-      <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 10, color: 'var(--color-text)' }}>{poll.question}</p>
+      <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 10, color: 'var(--pz-text)' }}>{poll.question}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {poll.options.map((opt: string, i: number) => (
           <button
@@ -86,29 +87,25 @@ function LivePollCard({ poll, userId, registrationId }: { poll: LivePoll; userId
               textAlign: 'left',
               padding: '8px 12px',
               borderRadius: 8,
-              border: votedIndex === i ? '1px solid var(--color-teal)' : '1px solid var(--color-border)',
-              background: 'var(--color-surface)',
+              border: votedIndex === i ? '1px solid var(--pz-teal)' : '1px solid var(--pz-border)',
+              background: 'var(--pz-surface)',
               cursor: voted ? 'default' : 'pointer',
               overflow: 'hidden',
               fontSize: 13,
-              color: 'var(--color-text)',
+              color: 'var(--pz-text)',
             }}
           >
             {showBar && total > 0 && (
-              <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'var(--color-teal)22', width: `${(counts[i] / total) * 100}%`, transition: 'width 0.4s' }} />
+              <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: 'var(--pz-teal-bg)', width: `${(counts[i] / total) * 100}%`, transition: 'width 0.4s' }} />
             )}
             <span style={{ position: 'relative' }}>{opt}</span>
-            {showBar && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--color-text-muted)' }}>{total > 0 ? Math.round((counts[i] / total) * 100) : 0}%</span>}
+            {showBar && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--pz-muted)' }}>{total > 0 ? Math.round((counts[i] / total) * 100) : 0}%</span>}
           </button>
         ))}
       </div>
-      {voted && <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 6 }}>{poll.show_results ? `${total} vote${total !== 1 ? 's' : ''}` : 'Vote recorded'}</p>}
+      {voted && <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 6 }}>{poll.show_results ? `${total} vote${total !== 1 ? 's' : ''}` : 'Vote recorded'}</p>}
     </div>
   )
-}
-const COLORS: Record<string,string> = {
-  keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
-  panel:'#059669', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
 
 function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: string; eventId: string; userId: string }) {
@@ -125,7 +122,7 @@ function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: strin
   }
 
   if (state === 'done') return (
-    <span style={{ fontSize:11, color:'var(--color-teal)', display:'flex', alignItems:'center', gap:3 }}>
+    <span style={{ fontSize:11, color:'var(--pz-teal-ink)', display:'flex', alignItems:'center', gap:3 }}>
       <CheckCircle2 size={13} /> Attended
     </span>
   )
@@ -133,7 +130,7 @@ function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: strin
     <button
       onClick={handleClick}
       disabled={state === 'loading'}
-      style={{ fontSize:11, color:'var(--color-teal)', textDecoration:'none', background:'var(--color-teal)22', padding:'2px 8px', borderRadius:10, border:'none', cursor:'pointer', whiteSpace:'nowrap', opacity: state === 'loading' ? 0.6 : 1 }}
+      style={{ fontSize:11, color:'var(--pz-teal-ink)', textDecoration:'none', background:'var(--pz-teal-bg)', padding:'2px 8px', borderRadius:10, border:'none', cursor:'pointer', whiteSpace:'nowrap', opacity: state === 'loading' ? 0.6 : 1 }}
     >
       {state === 'loading' ? '…' : state === 'error' ? 'Error' : 'Mark Attended'}
     </button>
@@ -167,22 +164,22 @@ function SessionDiscussionPanel({ sessionId, eventId, eventSlug, userId }: { ses
   }
 
   return (
-    <div style={{ marginTop: 12, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
-      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Discussion</p>
+    <div style={{ marginTop: 12, borderTop: '1px solid var(--pz-border)', paddingTop: 12 }}>
+      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Discussion</p>
       {posts.length === 0 && (
-        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 10 }}>
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 10 }}>
           No posts yet.{' '}
-          <a href={`/e/${eventSlug}/community`} style={{ color: 'var(--color-teal)', textDecoration: 'none' }}>Visit community feed</a>
+          <a href={`/e/${eventSlug}/community`} style={{ color: 'var(--pz-teal-ink)', textDecoration: 'none' }}>Visit community feed</a>
         </p>
       )}
       {posts.slice(0, 5).map((p: any) => (
-        <div key={p.id} style={{ fontSize: 13, color: 'var(--color-text)', marginBottom: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--color-surface-2, var(--color-surface))' }}>
+        <div key={p.id} style={{ fontSize: 13, color: 'var(--pz-text)', marginBottom: 8, padding: '6px 10px', borderRadius: 8, background: 'var(--pz-surface-2)' }}>
           {p.body}
-          <span style={{ fontSize: 10, color: 'var(--color-text-muted)', marginLeft: 8 }}>{new Date(p.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+          <span style={{ fontSize: 10, color: 'var(--pz-muted)', marginLeft: 8 }}>{new Date(p.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
         </div>
       ))}
       {posts.length > 5 && (
-        <a href={`/e/${eventSlug}/community`} style={{ fontSize: 12, color: 'var(--color-teal)', textDecoration: 'none' }}>See all {posts.length} posts →</a>
+        <a href={`/e/${eventSlug}/community`} style={{ fontSize: 12, color: 'var(--pz-teal-ink)', textDecoration: 'none' }}>See all {posts.length} posts →</a>
       )}
       {userId ? (
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -191,12 +188,12 @@ function SessionDiscussionPanel({ sessionId, eventId, eventSlug, userId }: { ses
             onChange={e => setBody(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePost() } }}
             placeholder="Join the discussion…"
-            style={{ flex: 1, fontSize: 13, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none' }}
+            style={{ flex: 1, fontSize: 13, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)', outline: 'none' }}
           />
-          <button onClick={handlePost} disabled={submitting || !body.trim()} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--color-teal)', color: '#0D1B2A', fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>Post</button>
+          <button onClick={handlePost} disabled={submitting || !body.trim()} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>Post</button>
         </div>
       ) : (
-        <a href={`/login?next=/e/${eventSlug}/agenda`} style={{ fontSize: 12, color: 'var(--color-teal)', textDecoration: 'none' }}>Sign in to join the discussion</a>
+        <a href={`/login?next=/e/${eventSlug}/agenda`} style={{ fontSize: 12, color: 'var(--pz-teal-ink)', textDecoration: 'none' }}>Sign in to join the discussion</a>
       )}
     </div>
   )
@@ -259,16 +256,16 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
     startTransition(() => { toggleBookmark(userId, eventId, sessionId) })
   }
   if (sessions.length === 0) return (
-    <p style={{ color:'var(--color-text-muted)', textAlign:'center', padding:'3rem 0' }}>No sessions published yet.</p>
+    <p style={{ color:'var(--pz-muted)', textAlign:'center', padding:'3rem 0' }}>No sessions published yet.</p>
   )
   return (
     <div>
       {showLoginPrompt && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--color-teal)11', border: '1px solid var(--color-teal)44', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, color: 'var(--color-text)' }}>Sign in to bookmark sessions</span>
+        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Sign in to bookmark sessions</span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {eventSlug && <a href={`/login?next=/e/${eventSlug}/agenda`} style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-teal)', textDecoration: 'none' }}>Sign in</a>}
-            <button onClick={() => setShowLoginPrompt(false)} style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+            {eventSlug && <a href={`/login?next=/e/${eventSlug}/agenda`} style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-teal-ink)', textDecoration: 'none' }}>Sign in</a>}
+            <button onClick={() => setShowLoginPrompt(false)} style={{ fontSize: 12, color: 'var(--pz-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
           </div>
         </div>
       )}
@@ -279,7 +276,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
             <select
               value={selectedDay ?? ''}
               onChange={e => setSelectedDay(e.target.value || null)}
-              style={{ fontSize:13, padding:'6px 10px', borderRadius:8, border:'1px solid var(--color-border)', background:'var(--color-surface)', color:'var(--color-text)', cursor:'pointer' }}
+              style={{ fontSize:13, padding:'6px 10px', borderRadius:8, border:'1px solid var(--pz-border)', background:'var(--pz-surface)', color:'var(--pz-text)', cursor:'pointer' }}
             >
               <option value=''>All days</option>
               {allDays.map(d => <option key={d} value={d}>{d}</option>)}
@@ -289,7 +286,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
             <select
               value={selectedTrack ?? ''}
               onChange={e => setSelectedTrack(e.target.value || null)}
-              style={{ fontSize:13, padding:'6px 10px', borderRadius:8, border:'1px solid var(--color-border)', background:'var(--color-surface)', color:'var(--color-text)', cursor:'pointer' }}
+              style={{ fontSize:13, padding:'6px 10px', borderRadius:8, border:'1px solid var(--pz-border)', background:'var(--pz-surface)', color:'var(--pz-text)', cursor:'pointer' }}
             >
               <option value=''>All tracks</option>
               {allTracks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -298,7 +295,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
           {(selectedDay || selectedTrack) && (
             <button
               onClick={() => { setSelectedDay(null); setSelectedTrack(null) }}
-              style={{ fontSize:12, padding:'6px 10px', borderRadius:8, border:'1px solid var(--color-border)', background:'transparent', color:'var(--color-text-muted)', cursor:'pointer' }}
+              style={{ fontSize:12, padding:'6px 10px', borderRadius:8, border:'1px solid var(--pz-border)', background:'transparent', color:'var(--pz-muted)', cursor:'pointer' }}
             >
               Clear filters
             </button>
@@ -307,7 +304,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
       )}
       {Object.entries(grouped).map(([day, daySessions]) => (
         <div key={day} style={{ marginBottom:'2.5rem' }}>
-          <h2 style={{ fontWeight:700, fontSize:'0.9rem', color:'var(--color-text-muted)', textTransform:'uppercase', letterSpacing:1, marginBottom:'1rem' }}>{day}</h2>
+          <h2 style={{ fontWeight:700, fontSize:'0.9rem', color:'var(--pz-muted)', textTransform:'uppercase', letterSpacing:1, marginBottom:'1rem' }}>{day}</h2>
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {daySessions.map(s => {
               const color = s.tracks?.color ?? COLORS[s.session_type] ?? '#64748b'
@@ -316,7 +313,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
               const isActive = new Date() >= new Date(s.starts_at) && new Date() <= new Date(s.ends_at)
               const isEnded = new Date(s.ends_at) < new Date()
               return (
-                <div key={s.id} style={{ border:'1px solid var(--color-border)', borderRadius:10, padding:'1rem 1.25rem', background:'var(--color-surface)', borderLeft:borderStyle }}>
+                <div key={s.id} style={{ border:'1px solid var(--pz-border)', borderRadius:10, padding:'1rem 1.25rem', background:'var(--pz-surface)', borderLeft:borderStyle }}>
                   {activePollsBySession[s.id] && (
                     <LivePollCard poll={activePollsBySession[s.id]} userId={userId} registrationId={registrationId} />
                   )}
@@ -324,19 +321,19 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>
                       <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, textTransform:'uppercase', background:color+'22', color }}>{s.session_type}</span>
-                      <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>
+                      <span style={{ fontSize:12, color:'var(--pz-muted)' }}>
                         {new Date(s.starts_at).toLocaleTimeString('en-US',{timeZone:timezone,hour:'numeric',minute:'2-digit'})} - {new Date(s.ends_at).toLocaleTimeString('en-US',{timeZone:timezone,hour:'numeric',minute:'2-digit'})}
                       </span>
-                      {s.rooms?.name && <span style={{ fontSize:12, color:'var(--color-text-muted)' }}>· {s.rooms.name}</span>}
+                      {s.rooms?.name && <span style={{ fontSize:12, color:'var(--pz-muted)' }}>· {s.rooms.name}</span>}
                     </div>
                     <p style={{ fontWeight:600, marginBottom: spks.length > 0 ? 6 : 0 }}>{s.title}</p>
                     {(s as any).sponsored_by?.name && (
-                      <p style={{ fontSize:11, color:'var(--color-text-muted)', marginBottom: spks.length > 0 ? 4 : 0 }}>
+                      <p style={{ fontSize:11, color:'var(--pz-muted)', marginBottom: spks.length > 0 ? 4 : 0 }}>
                         Sponsored by {(s as any).sponsored_by.name}
                       </p>
                     )}
                     {spks.length > 0 && (
-                      <p style={{ fontSize:13, color:'var(--color-text-muted)' }}>
+                      <p style={{ fontSize:13, color:'var(--pz-muted)' }}>
                         {spks.map((sp, i) => (
                           <span key={sp.id}>
                             {i > 0 && ', '}
@@ -356,7 +353,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                             href={`/api/speaker/handouts/${h.id}`}
                             target="_blank"
                             rel="noreferrer"
-                            style={{ fontSize: 11, color: 'var(--color-teal)', textDecoration: 'none', background: 'var(--color-teal)22', padding: '2px 8px', borderRadius: 10 }}
+                            style={{ fontSize: 11, color: 'var(--pz-teal-ink)', textDecoration: 'none', background: 'var(--pz-teal-bg)', padding: '2px 8px', borderRadius: 10 }}
                           >
                             📎 {h.filename}
                           </a>
@@ -375,7 +372,7 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                           href={s.virtual_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ fontSize:12, background:'#00BFA6', color:'#0D1B2A', padding:'6px 12px', borderRadius:6, fontWeight:700, textDecoration:'none' }}
+                          style={{ fontSize:12, background:'var(--pz-teal)', color:'var(--pz-on-accent)', padding:'6px 12px', borderRadius:6, fontWeight:700, textDecoration:'none' }}
                         >
                           Join session
                         </a>
@@ -390,21 +387,21 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     {eventSlug && isEnded && (
                       <a
                         href={`/e/${eventSlug}/feedback/${s.id}`}
-                        style={{ fontSize:11, color:'var(--color-teal)', textDecoration:'none', background:'var(--color-teal)22', padding:'2px 8px', borderRadius:10, whiteSpace:'nowrap' }}
+                        style={{ fontSize:11, color:'var(--pz-teal-ink)', textDecoration:'none', background:'var(--pz-teal-bg)', padding:'2px 8px', borderRadius:10, whiteSpace:'nowrap' }}
                       >
                         Rate
                       </a>
                     )}
                     <button
                       onClick={() => setExpandedDiscussion(prev => prev === s.id ? null : s.id)}
-                      style={{ fontSize:11, color: expandedDiscussion === s.id ? 'var(--color-teal)' : 'var(--color-text-muted)', background:'none', border:'none', cursor:'pointer', padding:'4px', whiteSpace:'nowrap' }}
+                      style={{ fontSize:11, color: expandedDiscussion === s.id ? 'var(--pz-teal-ink)' : 'var(--pz-muted)', background:'none', border:'none', cursor:'pointer', padding:'4px', whiteSpace:'nowrap' }}
                     >
                       💬
                     </button>
-                    <button onClick={() => handleBookmark(s.id)} style={{ background:'none', border:'none', cursor:'pointer', color: bookmarks.has(s.id) ? 'var(--color-teal)' : 'var(--color-text-muted)', padding:'4px' }}>
+                    <button onClick={() => handleBookmark(s.id)} style={{ background:'none', border:'none', cursor:'pointer', color: bookmarks.has(s.id) ? 'var(--pz-teal)' : 'var(--pz-muted)', padding:'4px' }}>
                       {bookmarks.has(s.id) ? <BookmarkCheck size={18}/> : <Bookmark size={18}/>}
                     </button>
-                    <a href={`/api/events/${eventId}/sessions/${s.id}/calendar.ics`} download title="Add to calendar" style={{ color:'var(--color-text-muted)', padding:'4px', textDecoration:'none', fontSize:16 }}>📅</a>
+                    <a href={`/api/events/${eventId}/sessions/${s.id}/calendar.ics`} download title="Add to calendar" style={{ color:'var(--pz-muted)', padding:'4px', textDecoration:'none', fontSize:16 }}>📅</a>
                   </div>
                   </div>
                   {expandedDiscussion === s.id && (

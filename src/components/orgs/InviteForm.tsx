@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { inviteMember } from '@/lib/orgs/actions'
+import { Field } from '@/components/ui/Field'
 
 interface InviteFormProps {
   orgId: string
@@ -35,24 +36,28 @@ export function InviteForm({ orgId }: InviteFormProps) {
       <h3 className="mb-4 text-base font-semibold text-gray-900">Invite a team member</h3>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Email address</label>
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="colleague@example.com"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <Field label="Email address" htmlFor="invite-email" required>
+            <input
+              id="invite-email"
+              name="email"
+              type="email"
+              required
+              placeholder="colleague@example.com"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </Field>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Role</label>
-          <select
-            name="role"
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="admin">Admin</option>
-            <option value="staff">Staff</option>
-          </select>
+          <Field label="Role" htmlFor="invite-role">
+            <select
+              id="invite-role"
+              name="role"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+            </select>
+          </Field>
         </div>
         <button
           type="submit"

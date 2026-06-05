@@ -49,14 +49,13 @@ export default function SimulivePlayer({
     return () => clearInterval(id)
   }, [started, scheduledMs])
 
-  // Compute start offset for late joiners
-  const startTime = (() => {
+  // Compute start offset once on mount — `Date.now()` in a lazy initializer is safe
+  const [startTime] = useState(() => {
     if (simuliveStartedAt) {
       return Math.max(0, Math.floor((Date.now() - new Date(simuliveStartedAt).getTime()) / 1000))
     }
-    // Fall back to offset from scheduled time if started_at not recorded
     return Math.max(0, Math.floor((Date.now() - scheduledMs) / 1000))
-  })()
+  })
 
   function handleTimeUpdate(e: Event) {
     const video = e.target as HTMLVideoElement
@@ -73,28 +72,36 @@ export default function SimulivePlayer({
   if (!started) {
     return (
       <div style={{
-        width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 8,
+        width: '100%', aspectRatio: '16/9',
+        // eslint-disable-next-line no-restricted-syntax -- pre-stream video-area bg — pure black matches the player color at broadcast start (seamless handoff)
+        background: '#000',
+        borderRadius: 8,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
       }}>
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1, textTransform: 'uppercase', margin: 0 }}>
           Broadcast starts in
         </p>
-        <p style={{ fontSize: '2.5rem', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
+        <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--pz-chrome-text)', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
           {formatCountdown(scheduledMs - now)}
         </p>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
           background: 'rgba(239,68,68,0.15)', borderRadius: 4, padding: '4px 10px',
         }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 1 }}>LIVE SOON</span>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-error)', letterSpacing: 1 }}>LIVE SOON</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{
+      position: 'relative', width: '100%', aspectRatio: '16/9',
+      // eslint-disable-next-line no-restricted-syntax -- video player letterbox bg — behind <MuxPlayer> / <video> element
+      background: '#000',
+      borderRadius: 8, overflow: 'hidden',
+    }}>
       <MuxPlayer
         playbackId={playbackId}
         streamType="on-demand"
@@ -116,10 +123,10 @@ export default function SimulivePlayer({
         pointerEvents: 'none',
       }}>
         <span style={{
-          width: 8, height: 8, borderRadius: '50%', background: '#ef4444',
+          width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)',
           animation: 'livePulse 1.4s ease-in-out infinite',
         }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>LIVE</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-chrome-text)', letterSpacing: 1 }}>LIVE</span>
       </div>
       <style>{`
         @keyframes livePulse {

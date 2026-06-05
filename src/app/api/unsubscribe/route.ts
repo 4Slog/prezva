@@ -49,10 +49,10 @@ export async function GET(req: Request) {
 function htmlResponse(message: string) {
   return new NextResponse(
     `<!doctype html><html><head><meta charset="utf-8"><title>Unsubscribed</title>
-    <style>body{font-family:sans-serif;background:#0D1B2A;color:#CBD5E1;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
-    .card{background:#112240;border-radius:12px;padding:2rem 2.5rem;max-width:420px;text-align:center;}
-    h1{color:#00BFA6;font-size:1.25rem;}p{color:#94A3B8;font-size:14px;}
-    a{color:#00BFA6;}</style></head>
+    <style>body{font-family:sans-serif;background:#EDF1F6;color:#0D1B2A;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
+    .card{background:#FFFFFF;border-radius:12px;padding:2rem 2.5rem;max-width:420px;text-align:center;}
+    h1{color:#0F766E;font-size:1.25rem;}p{color:#475A70;font-size:14px;}
+    a{color:#0F766E;}</style></head>
     <body><div class="card">
     <h1>✓ Unsubscribed</h1>
     <p>${message}</p>

@@ -53,7 +53,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
         <StatCard label="Total Registrations" value={analytics.totalRegistrations} />
         <StatCard label="Confirmed" value={analytics.confirmedRegistrations} color="var(--color-teal)" />
         <StatCard label="Checked In" value={analytics.checkedIn} sub={`${analytics.checkInRate}% check-in rate`} color="#7c3aed" />
-        <StatCard label="Revenue" value={`$${revenue}`} color="#059669" />
+        <StatCard label="Revenue" value={`$${revenue}`} color="var(--pz-success)" />
         {analytics.capacity && <StatCard label="Capacity" value={`${analytics.capacityUsed}/${analytics.capacity}`} sub={`${Math.round((analytics.capacityUsed / analytics.capacity) * 100)}% full`} />}
         <StatCard label="Announcements" value={analytics.announcementCount} />
         <StatCard label="Survey Responses" value={analytics.surveyResponseCount} />
@@ -101,7 +101,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
       {/* Check-in velocity — live events only */}
       {evtRow?.status === 'live' && analytics.checkInsLast30min > 0 && (
         <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.25rem',
-                      border: '1px solid var(--pz-teal)44', marginBottom: 12 }}>
+                      border: '1px solid var(--pz-teal)', marginBottom: 12 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-teal)', margin: '0 0 8px' }}>
             🔴 Live check-in velocity
           </p>
@@ -120,7 +120,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
             </div>
             {analytics.estimatedMinutesToComplete !== null && (
               <div>
-                <p style={{ fontSize: 20, fontWeight: 800, color: '#F59E0B', margin: 0 }}>
+                <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--pz-warning-fill)', margin: 0 }}>
                   ~{analytics.estimatedMinutesToComplete}m
                 </p>
                 <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: 0 }}>est. to complete</p>
@@ -186,7 +186,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ slug
                     {s.feedback_count}
                   </td>
                   <td style={{ textAlign: 'center', padding: '8px 8px',
-                               color: s.avg_rating >= 4 ? '#22C55E' : s.avg_rating >= 3 ? 'var(--pz-teal)' : '#F59E0B' }}>
+                               color: s.avg_rating >= 4 ? 'var(--pz-success-fill)' : s.avg_rating >= 3 ? 'var(--pz-teal)' : 'var(--pz-warning-fill)' }}>
                     {s.avg_rating > 0 ? `${s.avg_rating} ⭐` : '—'}
                   </td>
                 </tr>

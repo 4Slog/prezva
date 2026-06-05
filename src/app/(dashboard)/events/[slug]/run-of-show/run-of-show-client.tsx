@@ -6,6 +6,7 @@ import {
   deleteRosItem,
   importSessionsToRos,
 } from '@/lib/events/run-of-show-actions'
+import { Field } from '@/components/ui/Field'
 
 interface RosItem {
   id: string
@@ -36,8 +37,8 @@ interface Props {
 const STATUS_COLOR: Record<string, string> = {
   upcoming: 'var(--pz-muted)',
   in_progress: 'var(--pz-teal)',
-  done: '#22C55E',
-  skipped: '#EF4444',
+  done: 'var(--pz-success-fill)',
+  skipped: 'var(--pz-error)',
 }
 
 const EMPTY_FORM = {
@@ -105,7 +106,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
         <button
           onClick={() => { setShowForm(true); setForm(EMPTY_FORM) }}
           style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
-                   background: 'var(--pz-teal)', color: '#0D1B2A',
+                   background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                    fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add item
         </button>
@@ -123,7 +124,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
       </div>
 
       {error && (
-        <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 12 }}>{error}</p>
+        <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{error}</p>
       )}
 
       {showForm && (
@@ -133,9 +134,9 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
           <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>New item</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Time</label>
+              <Field label="Time" htmlFor="ros-time" required>
                 <input
+                  id="ros-time"
                   type="datetime-local"
                   required
                   value={form.time_at}
@@ -144,10 +145,10 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                            border: '1px solid var(--pz-border)', background: 'var(--pz-surface-2)',
                            color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }}
                 />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Duration (min)</label>
+              </Field>
+              <Field label="Duration (min)" htmlFor="ros-duration" required>
                 <input
+                  id="ros-duration"
                   type="number"
                   required
                   min={1}
@@ -157,11 +158,11 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                            border: '1px solid var(--pz-border)', background: 'var(--pz-surface-2)',
                            color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }}
                 />
-              </div>
+              </Field>
             </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Title</label>
+            <Field label="Title" htmlFor="ros-title" required>
               <input
+                id="ros-title"
                 type="text"
                 required
                 value={form.title}
@@ -171,11 +172,11 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                          border: '1px solid var(--pz-border)', background: 'var(--pz-surface-2)',
                          color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }}
               />
-            </div>
+            </Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Responsible person</label>
+              <Field label="Responsible person" htmlFor="ros-person">
                 <input
+                  id="ros-person"
                   type="text"
                   value={form.responsible_person}
                   onChange={e => setForm(f => ({ ...f, responsible_person: e.target.value }))}
@@ -184,10 +185,10 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                            border: '1px solid var(--pz-border)', background: 'var(--pz-surface-2)',
                            color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }}
                 />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Email (for cue notifications)</label>
+              </Field>
+              <Field label="Email (for cue notifications)" htmlFor="ros-email">
                 <input
+                  id="ros-email"
                   type="email"
                   value={form.responsible_email}
                   onChange={e => setForm(f => ({ ...f, responsible_email: e.target.value }))}
@@ -196,12 +197,12 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                            border: '1px solid var(--pz-border)', background: 'var(--pz-surface-2)',
                            color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }}
                 />
-              </div>
+              </Field>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" disabled={saving}
                 style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
-                         background: 'var(--pz-teal)', color: '#0D1B2A',
+                         background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                          fontWeight: 700, fontSize: 13, cursor: 'pointer',
                          opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Saving…' : 'Save'}
@@ -225,7 +226,7 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
         items.map(item => (
           <div key={item.id} style={{
             display: 'flex', gap: 12, padding: '0.875rem',
-            background: item.status === 'in_progress' ? 'var(--pz-teal, #00BFA6)1a' : 'var(--pz-surface)',
+            background: item.status === 'in_progress' ? 'var(--pz-teal-bg)' : 'var(--pz-surface)',
             borderRadius: 10, marginBottom: 8,
             border: `1px solid ${item.status === 'in_progress' ? 'var(--pz-teal)' : 'var(--pz-border)'}`,
           }}>
@@ -265,14 +266,14 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
                 <>
                   <button onClick={() => handleStatus(item.id, 'done')}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6,
-                             border: '1px solid #22C55E', background: 'transparent',
-                             color: '#22C55E', cursor: 'pointer' }}>
+                             border: '1px solid var(--pz-success-fill)', background: 'transparent',
+                             color: 'var(--pz-success-fill)', cursor: 'pointer' }}>
                     ✓ Done
                   </button>
                   <button onClick={() => handleStatus(item.id, 'skipped')}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6,
-                             border: '1px solid #EF4444', background: 'transparent',
-                             color: '#EF4444', cursor: 'pointer' }}>
+                             border: '1px solid var(--pz-error)', background: 'transparent',
+                             color: 'var(--pz-error)', cursor: 'pointer' }}>
                     ↷ Skip
                   </button>
                 </>

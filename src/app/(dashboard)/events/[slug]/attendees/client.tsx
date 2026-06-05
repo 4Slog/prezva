@@ -240,7 +240,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
           )}
           <button
             onClick={() => setShowAdd(true)}
-            className="px-4 py-2 bg-[var(--brand-teal)] text-white rounded-lg hover:opacity-90 text-sm font-medium"
+            className="px-4 py-2 bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-lg hover:opacity-90 text-sm font-medium"
           >
             + Add Attendee
           </button>
@@ -346,7 +346,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
                             <div style={{
                               height: '100%',
                               width: `${s.score}%`,
-                              background: s.score >= 70 ? '#22C55E' : s.score >= 40 ? 'var(--pz-teal)' : '#F59E0B',
+                              background: s.score >= 70 ? 'var(--pz-success-fill)' : s.score >= 40 ? 'var(--pz-teal)' : 'var(--pz-warning-fill)',
                               borderRadius: 3,
                             }} />
                           </div>
@@ -410,7 +410,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
             )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setShowEBImport(false)} className="px-4 py-2 text-sm border border-[var(--border)] rounded-lg">Cancel</button>
-              <button onClick={handleEBImport} disabled={syncing || !ebEventId} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
+              <button onClick={handleEBImport} disabled={syncing || !ebEventId} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-lg disabled:opacity-50">
                 {syncing ? 'Importing...' : 'Import'}
               </button>
             </div>
@@ -436,7 +436,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
             )}
             <div className="flex gap-2 justify-end">
               <button onClick={() => setSyncTarget(null)} className="px-4 py-2 text-sm border border-[var(--border)] rounded-lg">Cancel</button>
-              <button onClick={handleMailchimpSync} disabled={syncing || !syncListId} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
+              <button onClick={handleMailchimpSync} disabled={syncing || !syncListId} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-lg disabled:opacity-50">
                 {syncing ? 'Syncing...' : 'Sync'}
               </button>
             </div>
@@ -451,7 +451,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
             <p className="text-sm text-[var(--text-secondary)]">All attendees will be synced to your Constant Contact account.</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setSyncTarget(null)} className="px-4 py-2 text-sm border border-[var(--border)] rounded-lg">Cancel</button>
-              <button onClick={handleCCSync} disabled={syncing} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg disabled:opacity-50">
+              <button onClick={handleCCSync} disabled={syncing} className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-lg disabled:opacity-50">
                 {syncing ? 'Syncing...' : 'Sync'}
               </button>
             </div>
@@ -488,7 +488,7 @@ function WaitlistRow({ reg, position, onPromote, onRemove }: { reg: any; positio
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={promote} disabled={loading} className="px-3 py-1.5 text-xs bg-[var(--brand-teal)] text-white rounded hover:opacity-90 disabled:opacity-50">
+        <button onClick={promote} disabled={loading} className="px-3 py-1.5 text-xs bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded hover:opacity-90 disabled:opacity-50">
           {loading ? '…' : 'Promote'}
         </button>
         <button onClick={remove} disabled={loading} className="px-3 py-1.5 text-xs border border-red-500 text-red-500 rounded hover:bg-red-50 disabled:opacity-50">
@@ -537,7 +537,7 @@ function PendingRow({ reg, onApprove, onReject }: { reg: any; onApprove: (id: st
           </div>
         ) : (
           <>
-            <button onClick={approve} disabled={loading} className="px-3 py-1.5 text-xs bg-[var(--brand-teal)] text-white rounded hover:opacity-90 disabled:opacity-50">Approve</button>
+            <button onClick={approve} disabled={loading} className="px-3 py-1.5 text-xs bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded hover:opacity-90 disabled:opacity-50">Approve</button>
             <button onClick={() => setShowReject(true)} disabled={loading} className="px-3 py-1.5 text-xs border border-red-500 text-red-500 rounded hover:bg-red-50 disabled:opacity-50">Reject</button>
           </>
         )}

@@ -103,7 +103,7 @@ export default async function LiveSessionPage({ params }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div className="live-page-header" style={{ background: 'var(--color-navy)', color: '#fff', padding: '1rem 1.5rem' }}>
+      <div className="live-page-header" style={{ background: 'var(--color-navy)', color: 'var(--pz-chrome-text)', padding: '1rem 1.5rem' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <Link href={`/e/${slug}`} style={{ color: 'var(--color-teal)', fontSize: 12, textDecoration: 'none' }}>
             ← {event.title}
@@ -111,7 +111,7 @@ export default async function LiveSessionPage({ params }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
             <h1 style={{ fontSize: '1.375rem', fontWeight: 800, margin: 0 }}>{session.title}</h1>
             {isLive && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#ef4444', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--pz-error)', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
                 <Radio size={11} /> LIVE
               </span>
             )}

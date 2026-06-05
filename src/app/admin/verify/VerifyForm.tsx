@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { verifyAdminStepUp } from './actions'
+import { Field } from '@/components/ui/Field'
 
 export function VerifyForm({ email }: { email: string }) {
   const [state, action, pending] = useActionState(verifyAdminStepUp, null)
@@ -9,21 +10,15 @@ export function VerifyForm({ email }: { email: string }) {
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--pz-label)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           Email
         </label>
-        <div style={{ fontSize: 13, color: '#F0F4F8', padding: '10px 12px', background: '#0D1B2A', border: '1px solid #1E3A5F', borderRadius: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--pz-text)', padding: '10px 12px', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 8 }}>
           {email}
         </div>
       </div>
 
-      <div>
-        <label
-          htmlFor="password"
-          style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}
-        >
-          Password
-        </label>
+      <Field label="Password" htmlFor="password" error={state?.error ?? undefined}>
         <input
           id="password"
           name="password"
@@ -33,19 +28,16 @@ export function VerifyForm({ email }: { email: string }) {
           style={{
             width: '100%',
             fontSize: 13,
-            color: '#F0F4F8',
+            color: 'var(--pz-text)',
             padding: '10px 12px',
-            background: '#0D1B2A',
-            border: `1px solid ${state?.error ? '#EF4444' : '#1E3A5F'}`,
+            background: 'var(--pz-bg)',
+            border: `1px solid ${state?.error ? 'var(--pz-error)' : 'var(--pz-border)'}`,
             borderRadius: 8,
             outline: 'none',
             boxSizing: 'border-box',
           }}
         />
-        {state?.error && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#EF4444' }}>{state.error}</p>
-        )}
-      </div>
+      </Field>
 
       <button
         type="submit"
@@ -54,11 +46,12 @@ export function VerifyForm({ email }: { email: string }) {
           padding: '10px 0',
           borderRadius: 8,
           border: 'none',
-          background: pending ? '#0A4A3F' : '#00BFA6',
-          color: '#0D1B2A',
+          background: 'var(--pz-teal)',
+          color: 'var(--pz-on-accent)',
           fontWeight: 700,
           fontSize: 14,
           cursor: pending ? 'not-allowed' : 'pointer',
+          opacity: pending ? 0.6 : 1,
         }}
       >
         {pending ? 'Verifying…' : 'Confirm access'}

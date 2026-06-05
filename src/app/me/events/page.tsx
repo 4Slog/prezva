@@ -18,9 +18,12 @@ interface EventEntry {
 }
 
 function StatusBadge({ status }: { status: string | null }) {
-  const color = status === 'live' ? '#22c55e' : status === 'published' ? '#00BFA6' : status === 'ended' ? '#64748B' : '#94A3B8'
+  const [textColor, bg] =
+    status === 'live'      ? ['var(--pz-success)',  'var(--pz-success-bg)'] :
+    status === 'published' ? ['var(--pz-teal-ink)', 'var(--pz-teal-bg)']   :
+                             ['var(--pz-muted)',    'var(--pz-surface-2)']
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color, background: color + '22', padding: '2px 6px', borderRadius: 4 }}>
+    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: textColor, background: bg, padding: '2px 6px', borderRadius: 4 }}>
       {status ?? 'draft'}
     </span>
   )
@@ -29,20 +32,20 @@ function StatusBadge({ status }: { status: string | null }) {
 function RolePillLink({ pill }: { pill: RolePill }) {
   if (pill.type === 'attendee') {
     return (
-      <Link href={`/e/${pill.eventSlug}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: '#22c55e22', color: '#22c55e', textDecoration: 'none', border: '1px solid #22c55e44' }}>
+      <Link href={`/e/${pill.eventSlug}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'var(--pz-success-bg)', color: 'var(--pz-success-fill)', textDecoration: 'none', border: '1px solid var(--pz-success-fill)' }}>
         👤 Attendee · <span style={{ textTransform: 'capitalize' }}>{pill.status}</span>
       </Link>
     )
   }
   if (pill.type === 'speaker') {
     return (
-      <Link href={`/speaker/${pill.token}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'var(--pz-teal, #00BFA6)22', color: 'var(--pz-teal, #00BFA6)', textDecoration: 'none', border: '1px solid var(--pz-teal, #00BFA6)44' }}>
+      <Link href={`/speaker/${pill.token}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', textDecoration: 'none', border: '1px solid var(--pz-teal)' }}>
         🎙️ Speaker{pill.speakerRole ? ` · ${pill.speakerRole}` : ''}
       </Link>
     )
   }
   return (
-    <Link href={`/volunteer/${pill.token}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: '#f59e0b22', color: '#f59e0b', textDecoration: 'none', border: '1px solid #f59e0b44' }}>
+    <Link href={`/volunteer/${pill.token}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'var(--pz-warning-bg)', color: 'var(--pz-warning)', textDecoration: 'none', border: '1px solid var(--pz-warning-fill)' }}>
       🙋 Volunteer{pill.role ? ` · ${pill.role}` : ''}
     </Link>
   )

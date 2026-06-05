@@ -5,9 +5,9 @@ export default function TermsPage() {
     <div className="min-h-screen" style={{ background: 'var(--pz-bg)' }}>
       <div className="mx-auto max-w-3xl px-6 py-16">
         <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--pz-text)' }}>Terms of Service</h1>
-        <p className="text-sm mb-10" style={{ color: 'var(--pz-text-muted)' }}>Last updated: May 30, 2026</p>
+        <p className="text-sm mb-10" style={{ color: 'var(--pz-muted)' }}>Last updated: May 30, 2026</p>
 
-        <div className="space-y-8 text-sm leading-relaxed" style={{ color: 'var(--pz-text-muted)' }}>
+        <div className="space-y-8 text-sm leading-relaxed" style={{ color: 'var(--pz-muted)' }}>
           <section>
             <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--pz-text)' }}>Acceptance of Terms</h2>
             <p>By accessing or using Prezva, you agree to be bound by these Terms of Service. If you do not agree, please do not use our platform.</p>

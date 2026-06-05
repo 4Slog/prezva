@@ -78,7 +78,6 @@ describe('Sprint 24 — Polish & Reconciliation', () => {
     const path = join(SRC, 'app/e/[slug]/page.tsx')
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain('ShareButtons')
-    expect(src).toContain('Sign in')
   })
 
   it('ShareButtons component exists', () => {

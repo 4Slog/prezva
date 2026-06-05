@@ -327,7 +327,7 @@ export async function sendVolunteerThankYouEmails(eventId: string) {
                <p>Thank you for volunteering at <strong>${eventTitle}</strong>!</p>
                ${hours ? `<p>You contributed <strong>${hours} hours</strong> as ${vol.role}. That makes a real difference.</p>` : ''}
                <p>We truly appreciate your time and dedication.</p>
-               ${surveyUrl ? `<p><a href="${surveyUrl}" style="display:inline-block;padding:10px 20px;background:#00BFA6;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Share your feedback →</a></p>` : ''}
+               ${surveyUrl ? `<p><a href="${surveyUrl}" style="display:inline-block;padding:10px 20px;background:#2DD4BF;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Share your feedback →</a></p>` : ''}
                <p>— ${orgName}</p>`,
       }),
     }).catch(() => {})

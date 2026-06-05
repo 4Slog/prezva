@@ -18,7 +18,7 @@ export default function SessionCheckInButton({ registrationId, sessionId, sessio
 
   if (status === 'done') {
     return (
-      <span style={{ fontSize: 12, color: '#22C55E', fontWeight: 600, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 12, color: 'var(--pz-success-fill)', fontWeight: 600, whiteSpace: 'nowrap' }}>
         ✓ Checked in to session
       </span>
     )

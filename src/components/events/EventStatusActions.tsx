@@ -4,16 +4,16 @@ import { useState } from 'react'
 import { transitionEventStatus } from '@/lib/events/actions'
 
 const NEXT_STATUS: Record<string, { label: string; status: string; style: string; confirm?: string }[]> = {
-  draft:     [{ label: 'Publish',   status: 'published', style: 'bg-[#00BFA6] text-[#0D1B2A]' },
-              { label: 'Cancel',    status: 'cancelled', style: 'bg-[#EF4444]/10 text-[#EF4444]',
+  draft:     [{ label: 'Publish',   status: 'published', style: 'bg-[var(--pz-teal)] text-[var(--pz-on-accent)]' },
+              { label: 'Cancel',    status: 'cancelled', style: 'bg-[var(--pz-error)]/10 text-[var(--pz-error)]',
                 confirm: 'Cancel this event? Attendees will not be automatically notified.' }],
-  published: [{ label: 'Go Live',  status: 'live',      style: 'bg-[#00BFA6] text-[#0D1B2A]',
+  published: [{ label: 'Go Live',  status: 'live',      style: 'bg-[var(--pz-teal)] text-[var(--pz-on-accent)]',
                 confirm: 'Mark this event as Live? This opens check-in and updates the attendee home screen.' },
-              { label: 'Cancel',   status: 'cancelled', style: 'bg-[#EF4444]/10 text-[#EF4444]',
+              { label: 'Cancel',   status: 'cancelled', style: 'bg-[var(--pz-error)]/10 text-[var(--pz-error)]',
                 confirm: 'Cancel this event? Attendees will not be automatically notified.' }],
-  live:      [{ label: 'End Event', status: 'ended',    style: 'bg-[#1E3A5F] text-[#94A3B8]',
+  live:      [{ label: 'End Event', status: 'ended',    style: 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)]',
                 confirm: 'End this event? This will trigger post-event surveys and sponsor reports.' }],
-  ended:     [{ label: 'Archive',  status: 'archived',  style: 'bg-[#1E3A5F] text-[#64748B]' }],
+  ended:     [{ label: 'Archive',  status: 'archived',  style: 'bg-[var(--pz-surface-2)] text-[var(--pz-muted)]' }],
   cancelled: [],
   archived:  [],
 }
@@ -57,7 +57,7 @@ export function EventStatusActions({ eventId, currentStatus }: EventStatusAction
             onClick={() => handle(confirming.status)}
             disabled={pending !== null}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
-            style={{ background: '#EF4444', color: '#fff' }}
+            style={{ background: 'var(--pz-error)', color: 'var(--pz-surface)' }}
           >
             {pending ? 'Updating…' : 'Confirm'}
           </button>
@@ -85,7 +85,7 @@ export function EventStatusActions({ eventId, currentStatus }: EventStatusAction
           {pending === a.status ? 'Updating…' : a.label}
         </button>
       ))}
-      {error && <p className="text-sm text-[#EF4444]">{error}</p>}
+      {error && <p className="text-sm text-[var(--pz-error)]">{error}</p>}
     </div>
   )
 }

@@ -44,7 +44,7 @@ export default async function CertificatePage({ params }: Props) {
             </p>
             <Link
               href={`/login?next=/e/${slug}/certificate`}
-              style={{ display: 'inline-block', background: 'var(--pz-teal)', color: '#0D1B2A', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
+              style={{ display: 'inline-block', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
             >
               Sign in
             </Link>

@@ -84,7 +84,7 @@ export function CertificateClient({ eventId }: { eventId: string }) {
   if (status === 'error') {
     return (
       <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '2rem', textAlign: 'center' }}>
-        <p style={{ fontSize: 14, color: '#ef4444' }}>Something went wrong. Please try again later.</p>
+        <p style={{ fontSize: 14, color: 'var(--pz-error)' }}>Something went wrong. Please try again later.</p>
       </div>
     )
   }
@@ -98,7 +98,7 @@ export function CertificateClient({ eventId }: { eventId: string }) {
       <button
         onClick={download}
         disabled={downloading}
-        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: downloading ? 'not-allowed' : 'pointer', opacity: downloading ? 0.7 : 1 }}
+        style={{ padding: '10px 28px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: downloading ? 'not-allowed' : 'pointer', opacity: downloading ? 0.7 : 1 }}
       >
         {downloading ? 'Opening…' : 'Download PDF certificate'}
       </button>

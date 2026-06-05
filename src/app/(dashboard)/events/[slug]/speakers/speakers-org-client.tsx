@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken, getOrgSpeakerLibrary, addSpeakerFromLibrary } from '@/lib/speaker/speaker-actions'
+import { Field } from '@/components/ui/Field'
 
 type Props = {
   event: any
@@ -9,9 +10,9 @@ type Props = {
 }
 
 const statusBadge: Record<string, { bg: string; label: string }> = {
-  invited:   { bg: 'var(--pz-warning, #f59e0b)',  label: 'Invited' },
+  invited:   { bg: 'var(--pz-warning, var(--pz-warning-fill))',  label: 'Invited' },
   confirmed: { bg: 'var(--pz-success)',            label: 'Confirmed' },
-  declined:  { bg: 'var(--pz-error, #ef4444)',     label: 'Declined' },
+  declined:  { bg: 'var(--pz-error, var(--pz-error))',     label: 'Declined' },
 }
 
 export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
@@ -92,7 +93,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
         <button
           onClick={() => { setShowAdd(s => !s); setAddError('') }}
           className="rounded-lg px-4 py-2 text-sm font-medium"
-          style={{ background: 'var(--pz-teal)', color: '#fff' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)' }}
         >
           {showAdd ? 'Cancel' : '+ Add Speaker'}
         </button>
@@ -133,14 +134,14 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                         onClick={() => addFromLib(sp.id)}
                         disabled={libAdding === sp.id}
                         style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6,
-                                 background: 'var(--pz-teal)', color: '#fff', border: 'none',
+                                 background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none',
                                  cursor: 'pointer', opacity: libAdding === sp.id ? 0.6 : 1 }}
                       >
                         {libAdding === sp.id ? 'Adding…' : 'Add to event'}
                       </button>
                       {libResult[sp.id] && (
                         <p style={{ fontSize: 11, marginTop: 2,
-                                    color: libResult[sp.id] === 'Added!' ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+                                    color: libResult[sp.id] === 'Added!' ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>
                           {libResult[sp.id]}
                         </p>
                       )}
@@ -157,32 +158,27 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
       {showAdd && (
         <form onSubmit={handleAdd} className="pz-card p-4 space-y-3">
           <h3 className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>New Speaker</h3>
-          {addError && <p className="text-xs" style={{ color: 'var(--pz-error, #ef4444)' }}>{addError}</p>}
+          {addError && <p className="text-xs" style={{ color: 'var(--pz-error, var(--pz-error))' }}>{addError}</p>}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Name *</label>
-              <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
+            <Field label="Name" htmlFor="spk-name" required>
+              <input id="spk-name" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Email</label>
-              <input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))}
+            </Field>
+            <Field label="Email" htmlFor="spk-email">
+              <input id="spk-email" value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))}
                 type="email" className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Job title</label>
-              <input value={form.job_title} onChange={e => setForm(f => ({...f, job_title: e.target.value}))}
+            </Field>
+            <Field label="Job title" htmlFor="spk-job-title">
+              <input id="spk-job-title" value={form.job_title} onChange={e => setForm(f => ({...f, job_title: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
-            <div>
-              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Company</label>
-              <input value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))}
+            </Field>
+            <Field label="Company" htmlFor="spk-company">
+              <input id="spk-company" value={form.company} onChange={e => setForm(f => ({...f, company: e.target.value}))}
                 className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }} />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Event role</label>
-            <select value={form.event_role} onChange={e => setForm(f => ({...f, event_role: e.target.value}))}
+          <Field label="Event role" htmlFor="spk-event-role">
+            <select id="spk-event-role" value={form.event_role} onChange={e => setForm(f => ({...f, event_role: e.target.value}))}
               className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)' }}>
               <option value="speaker">Speaker</option>
               <option value="mc">MC / Emcee</option>
@@ -191,16 +187,15 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
               <option value="guest">Guest</option>
               <option value="vip">VIP</option>
             </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>Bio</label>
-            <textarea value={form.bio} onChange={e => setForm(f => ({...f, bio: e.target.value}))} rows={3}
+          </Field>
+          <Field label="Bio" htmlFor="spk-bio">
+            <textarea id="spk-bio" value={form.bio} onChange={e => setForm(f => ({...f, bio: e.target.value}))} rows={3}
               className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)', resize: 'vertical' }} />
-          </div>
+          </Field>
           <div className="flex gap-2 justify-end">
             <button type="submit" disabled={adding}
               className="rounded-lg px-4 py-2 text-sm font-medium"
-              style={{ background: 'var(--pz-teal)', color: '#fff', opacity: adding ? 0.6 : 1 }}>
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: adding ? 0.6 : 1 }}>
               {adding ? 'Adding…' : 'Add Speaker'}
             </button>
           </div>
@@ -226,7 +221,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>{sp.name}</p>
                   <span className="rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: badge.bg, color: '#fff' }}>{badge.label}</span>
+                    style={{ background: badge.bg, color: 'var(--pz-surface)' }}>{badge.label}</span>
                 </div>
                 <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                   {sp.email ?? 'No email'}
@@ -252,7 +247,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
               <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                 <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
                   className="rounded-lg px-3 py-1.5 text-xs font-medium"
-                  style={{ background: 'var(--pz-teal)', color: '#fff', opacity: !sp.email ? 0.5 : 1 }}>
+                  style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: !sp.email ? 0.5 : 1 }}>
                   {inviting === sp.id ? 'Sending…' : 'Send invite'}
                 </button>
                 <button

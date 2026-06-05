@@ -39,11 +39,11 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      <div style={{ background: 'var(--color-navy)', color: '#fff', padding: '2rem 1.5rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
+      <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '2rem 1.5rem' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <Link href={'/e/' + slug} style={{ color: 'var(--color-teal)', textDecoration: 'none', fontSize: 13 }}>Back to event</Link>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem' }}>Agenda</h1>
+          <Link href={'/e/' + slug} style={{ color: 'var(--pz-teal-ink)', textDecoration: 'none', fontSize: 13 }}>Back to event</Link>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--pz-text)' }}>Agenda</h1>
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>

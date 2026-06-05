@@ -70,12 +70,12 @@ export default function ModeratorControls({ sessionId: _sessionId, spotlightedId
   return (
     <div style={{
       marginTop: 12, padding: '12px 16px',
-      background: 'var(--color-surface, #1a1a2e)',
+      background: 'var(--pz-chrome-2)',
       border: '1px solid var(--color-border)',
       borderRadius: 8,
     }}>
       <p style={{
-        fontSize: 12, fontWeight: 700, color: '#64748B',
+        fontSize: 12, fontWeight: 700, color: 'var(--pz-chrome-muted)',
         textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 10px',
       }}>
         Participants ({remoteParticipants.length})
@@ -107,7 +107,7 @@ export default function ModeratorControls({ sessionId: _sessionId, spotlightedId
                   style={{
                     ...btnStyle,
                     background: isSpotlighted ? 'var(--color-teal)' : undefined,
-                    color: isSpotlighted ? '#fff' : undefined,
+                    color: isSpotlighted ? 'var(--pz-chrome-text)' : undefined,
                     borderColor: isSpotlighted ? 'var(--color-teal)' : undefined,
                   }}
                 >
@@ -117,7 +117,7 @@ export default function ModeratorControls({ sessionId: _sessionId, spotlightedId
                   onClick={() => handleRemove(p.identity)}
                   disabled={removing === p.identity}
                   title="Remove participant"
-                  style={{ ...btnStyle, borderColor: '#ef4444', color: '#ef4444', opacity: removing === p.identity ? 0.5 : 1 }}
+                  style={{ ...btnStyle, borderColor: 'var(--pz-error)', color: 'var(--pz-error)', opacity: removing === p.identity ? 0.5 : 1 }}
                 >
                   <UserMinus size={11} />
                 </button>

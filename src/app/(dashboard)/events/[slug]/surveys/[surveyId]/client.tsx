@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Plus, Trash2, Pencil, X, Save } from 'lucide-react'
 import { addQuestion, updateQuestion, deleteQuestion } from '@/lib/surveys/actions'
+import { Field } from '@/components/ui/Field'
 
 interface Question {
   id: string
@@ -109,8 +110,8 @@ export default function SurveyQuestionsClient({
             style={{
               fontSize: 11,
               fontWeight: 600,
-              background: '#6b728022',
-              color: '#6b7280',
+              background: 'var(--pz-surface-2)',
+              color: 'var(--pz-label)',
               padding: '2px 8px',
               borderRadius: 20,
               textTransform: 'capitalize',
@@ -125,7 +126,7 @@ export default function SurveyQuestionsClient({
       </div>
 
       {error && (
-        <p style={{ color: '#ef4444', fontSize: 13, marginBottom: '1rem' }}>{error}</p>
+        <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: '1rem' }}>{error}</p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '1.5rem' }}>
@@ -170,7 +171,7 @@ export default function SurveyQuestionsClient({
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 600 }}>
                   {q.question_text}
-                  {q.is_required && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
+                  {q.is_required && <span style={{ color: 'var(--pz-error)', marginLeft: 4 }}>*</span>}
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
                   {QUESTION_TYPES.find(t => t.value === q.question_type)?.label ?? q.question_type}
@@ -201,7 +202,7 @@ export default function SurveyQuestionsClient({
                   borderRadius: 6,
                   padding: '4px 8px',
                   cursor: 'pointer',
-                  color: '#ef4444',
+                  color: 'var(--pz-error)',
                 }}
                 aria-label="Delete question"
               >
@@ -227,7 +228,7 @@ export default function SurveyQuestionsClient({
             alignItems: 'center',
             gap: 8,
             background: 'var(--color-teal)',
-            color: '#fff',
+            color: 'var(--pz-surface)',
             border: 'none',
             borderRadius: 8,
             padding: '0.6rem 1.25rem',
@@ -272,11 +273,9 @@ function QuestionEditForm({
     >
       <input type="hidden" name="sort_order" defaultValue={question?.sort_order ?? index} />
 
-      <div>
-        <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-          Question
-        </label>
+      <Field label="Question" htmlFor="survey-question-text" required>
         <input
+          id="survey-question-text"
           name="question_text"
           required
           maxLength={500}
@@ -293,13 +292,11 @@ function QuestionEditForm({
             boxSizing: 'border-box',
           }}
         />
-      </div>
+      </Field>
 
-      <div>
-        <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
-          Type
-        </label>
+      <Field label="Type" htmlFor="survey-question-type">
         <select
+          id="survey-question-type"
           name="question_type"
           value={type}
           onChange={e => setType(e.target.value as Question['question_type'])}
@@ -318,7 +315,7 @@ function QuestionEditForm({
             </option>
           ))}
         </select>
-      </div>
+      </Field>
 
       {type === 'multiple_choice' && (
         <div>
@@ -365,7 +362,7 @@ function QuestionEditForm({
             alignItems: 'center',
             gap: 6,
             background: 'var(--color-teal)',
-            color: '#fff',
+            color: 'var(--pz-surface)',
             border: 'none',
             borderRadius: 8,
             padding: '0.6rem 1.25rem',

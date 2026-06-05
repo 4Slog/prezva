@@ -73,6 +73,7 @@ export default async function MeetPage({ params }: Props) {
       height: '100dvh',
       display: 'flex',
       flexDirection: 'column',
+      // eslint-disable-next-line no-restricted-syntax -- full-screen video-room theater bg — pure black matches the LiveKit room aesthetic
       background: '#000',
       overflow: 'hidden',
     }}>
@@ -90,7 +91,7 @@ export default async function MeetPage({ params }: Props) {
           <p style={{ fontSize: 11, color: 'var(--color-teal)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {ev.title}
           </p>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-chrome-text)', margin: 0 }}>
             Private video chat
           </p>
         </div>
@@ -100,8 +101,8 @@ export default async function MeetPage({ params }: Props) {
             flexShrink: 0,
             padding: '6px 14px',
             borderRadius: 6,
-            background: '#ef4444',
-            color: '#fff',
+            background: 'var(--pz-error)',
+            color: 'var(--pz-chrome-text)',
             fontSize: 13,
             fontWeight: 600,
             textDecoration: 'none',

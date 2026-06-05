@@ -5,6 +5,7 @@ import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { Field } from '@/components/ui/Field'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -34,30 +35,29 @@ export default async function EventSettingsPage({ params }: Props) {
   const integrationMap: Record<string, string> = {}
   for (const row of integrationRows ?? []) integrationMap[row.provider] = row.status
 
-  const inputCls = `w-full rounded-lg border border-[#1E3A5F] bg-[#112240] px-3 py-2 text-sm text-[#F0F4F8] focus:border-[#00BFA6] focus:outline-none focus:ring-1 focus:ring-[#00BFA6]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
-  const labelCls = 'mb-1 block text-sm font-medium text-[#94A3B8]'
+  const inputCls = `w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]${isStaff ? ' opacity-70 cursor-not-allowed' : ''}`
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
-        <Link href={`/events/${slug}`} className="text-[#64748B] hover:text-[#94A3B8] text-sm">
+        <Link href={`/events/${slug}`} className="text-[var(--pz-muted)] hover:text-[var(--pz-muted)] text-sm">
           ← {event.title}
         </Link>
-        <span className="text-[#1E3A5F]">/</span>
-        <span className="text-sm text-[#F0F4F8]">Settings</span>
+        <span className="text-[var(--pz-border)]">/</span>
+        <span className="text-sm text-[var(--pz-text)]">Settings</span>
       </div>
 
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-6">Event settings</h1>
+      <h1 className="text-xl font-bold text-[var(--pz-text)] mb-6">Event settings</h1>
 
       {isStaff && (
-        <div className="mb-6 rounded-lg bg-[#112240] border border-[#1E3A5F] px-4 py-3 text-sm text-[#94A3B8]">
+        <div className="mb-6 rounded-lg bg-[var(--pz-surface)] border border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)]">
           You&apos;re viewing settings in read-only mode. Contact an admin to make changes.
         </div>
       )}
 
       {/* General */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">General</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">General</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -65,51 +65,48 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className={labelCls}>Event name</label>
-            <input name="title" defaultValue={event.title} required className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Description</label>
-            <textarea name="description" rows={3} defaultValue={event.description ?? ''} className={`${inputCls} resize-none`} />
-          </div>
+          <Field label="Event name" htmlFor="cfg-title" required>
+            <input id="cfg-title" name="title" defaultValue={event.title} required className={inputCls} />
+          </Field>
+          <Field label="Description" htmlFor="cfg-desc">
+            <textarea id="cfg-desc" name="description" rows={3} defaultValue={event.description ?? ''} className={`${inputCls} resize-none`} />
+          </Field>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Start</label>
+            <Field label="Start" htmlFor="cfg-start" required>
               <input
+                id="cfg-start"
                 type="datetime-local"
                 name="start_at"
                 defaultValue={event.start_at.slice(0, 16)}
                 required
                 className={inputCls}
               />
-            </div>
-            <div>
-              <label className={labelCls}>End</label>
+            </Field>
+            <Field label="End" htmlFor="cfg-end" required>
               <input
+                id="cfg-end"
                 type="datetime-local"
                 name="end_at"
                 defaultValue={event.end_at.slice(0, 16)}
                 required
                 className={inputCls}
               />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className={labelCls}>Timezone</label>
-            <select name="timezone" defaultValue={event.timezone} className={inputCls}>
+          <Field label="Timezone" htmlFor="cfg-tz">
+            <select id="cfg-tz" name="timezone" defaultValue={event.timezone} className={inputCls}>
               <option value="America/New_York">Eastern (ET)</option>
               <option value="America/Chicago">Central (CT)</option>
               <option value="America/Denver">Mountain (MT)</option>
               <option value="America/Los_Angeles">Pacific (PT)</option>
               <option value="UTC">UTC</option>
             </select>
-          </div>
+          </Field>
           {!isStaff && (
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save changes
             </button>
@@ -119,7 +116,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Venue */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Venue</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Venue</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -127,29 +124,25 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className={labelCls}>Venue name</label>
-            <input name="venue_name" defaultValue={event.venue_name ?? ''} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Address</label>
-            <input name="venue_address" defaultValue={event.venue_address ?? ''} className={inputCls} />
-          </div>
+          <Field label="Venue name" htmlFor="cfg-venue">
+            <input id="cfg-venue" name="venue_name" defaultValue={event.venue_name ?? ''} className={inputCls} />
+          </Field>
+          <Field label="Address" htmlFor="cfg-addr">
+            <input id="cfg-addr" name="venue_address" defaultValue={event.venue_address ?? ''} className={inputCls} />
+          </Field>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>City</label>
-              <input name="venue_city" defaultValue={event.venue_city ?? ''} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>State</label>
-              <input name="venue_state" defaultValue={event.venue_state ?? ''} className={inputCls} />
-            </div>
+            <Field label="City" htmlFor="cfg-city">
+              <input id="cfg-city" name="venue_city" defaultValue={event.venue_city ?? ''} className={inputCls} />
+            </Field>
+            <Field label="State" htmlFor="cfg-state">
+              <input id="cfg-state" name="venue_state" defaultValue={event.venue_state ?? ''} className={inputCls} />
+            </Field>
           </div>
           {!isStaff && (
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save venue
             </button>
@@ -159,7 +152,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Discovery */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Discovery</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Discovery</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -191,7 +184,7 @@ export default async function EventSettingsPage({ params }: Props) {
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save discovery
             </button>
@@ -207,11 +200,10 @@ export default async function EventSettingsPage({ params }: Props) {
             const tags = tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
             await updateEventTagsAndCategory(event.id, category, tags)
           }}
-          className="flex flex-col gap-4 mt-6 pt-6 border-t border-[#1E3A5F]"
+          className="flex flex-col gap-4 mt-6 pt-6 border-t border-[var(--pz-border)]"
         >
-          <div>
-            <label className={labelCls}>Category</label>
-            <select name="category" defaultValue={(event as any).category ?? ''} disabled={isStaff} className={inputCls}>
+          <Field label="Category" htmlFor="cfg-cat">
+            <select id="cfg-cat" name="category" defaultValue={(event as any).category ?? ''} disabled={isStaff} className={inputCls}>
               <option value="">Select a category</option>
               <option value="conference">Conference</option>
               <option value="workshop">Workshop</option>
@@ -221,10 +213,10 @@ export default async function EventSettingsPage({ params }: Props) {
               <option value="networking">Networking</option>
               <option value="other">Other</option>
             </select>
-          </div>
-          <div>
-            <label className={labelCls}>Tags</label>
+          </Field>
+          <Field label="Tags" htmlFor="cfg-tags" helper="Tags help attendees find your event in search. Use 3–5 relevant keywords.">
             <input
+              id="cfg-tags"
               name="tags"
               type="text"
               placeholder="e.g. technology, policy, nonprofit (comma-separated)"
@@ -232,15 +224,12 @@ export default async function EventSettingsPage({ params }: Props) {
               disabled={isStaff}
               className={inputCls}
             />
-            <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 4 }}>
-              Tags help attendees find your event in search. Use 3–5 relevant keywords.
-            </p>
-          </div>
+          </Field>
           {!isStaff && (
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save category &amp; tags
             </button>
@@ -250,7 +239,7 @@ export default async function EventSettingsPage({ params }: Props) {
 
       {/* Registration settings */}
       <section className="pz-card p-6 mb-6">
-        <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Registration</h2>
+        <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Registration</h2>
         <form
           action={async (fd: FormData) => {
             'use server'
@@ -258,10 +247,9 @@ export default async function EventSettingsPage({ params }: Props) {
           }}
           className="flex flex-col gap-4"
         >
-          <div>
-            <label className={labelCls}>Max capacity</label>
-            <input name="capacity" type="number" min="1" defaultValue={event.capacity ?? ''} placeholder="Unlimited" className={inputCls} />
-          </div>
+          <Field label="Max capacity" htmlFor="cfg-cap">
+            <input id="cfg-cap" name="capacity" type="number" min="1" defaultValue={event.capacity ?? ''} placeholder="Unlimited" className={inputCls} />
+          </Field>
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -271,7 +259,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 defaultChecked={event.waitlist_enabled}
                 className="rounded"
               />
-              <span className="text-sm text-[#94A3B8]">Enable waitlist when at capacity</span>
+              <span className="text-sm text-[var(--pz-muted)]">Enable waitlist when at capacity</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -281,7 +269,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 defaultChecked={event.require_approval}
                 className="rounded"
               />
-              <span className="text-sm text-[#94A3B8]">Require approval for registrations</span>
+              <span className="text-sm text-[var(--pz-muted)]">Require approval for registrations</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -291,12 +279,12 @@ export default async function EventSettingsPage({ params }: Props) {
                 defaultChecked={event.allow_public_attendee_list}
                 className="rounded"
               />
-              <span className="text-sm text-[#94A3B8]">Show public attendee list</span>
+              <span className="text-sm text-[var(--pz-muted)]">Show public attendee list</span>
             </label>
           </div>
-          <div>
-            <label className={labelCls}>Invite code (optional)</label>
+          <Field label="Invite code (optional)" htmlFor="cfg-invite" helper="Attendees must enter this code to register.">
             <input
+              id="cfg-invite"
               name="registration_invite_code"
               type="text"
               defaultValue={(event as any).registration_invite_code ?? ''}
@@ -304,11 +292,10 @@ export default async function EventSettingsPage({ params }: Props) {
               className={inputCls}
               maxLength={50}
             />
-            <p className="text-xs text-[#64748B] mt-1">Attendees must enter this code to register.</p>
-          </div>
-          <div>
-            <label className={labelCls}>Domain restriction (optional)</label>
+          </Field>
+          <Field label="Domain restriction (optional)" htmlFor="cfg-domain" helper="Only emails from this domain can register.">
             <input
+              id="cfg-domain"
               name="registration_domain_restrict"
               type="text"
               defaultValue={(event as any).registration_domain_restrict ?? ''}
@@ -316,13 +303,12 @@ export default async function EventSettingsPage({ params }: Props) {
               className={inputCls}
               maxLength={100}
             />
-            <p className="text-xs text-[#64748B] mt-1">Only emails from this domain can register.</p>
-          </div>
+          </Field>
           {!isStaff && (
             <button
               type="submit"
               className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               Save settings
             </button>
@@ -331,7 +317,7 @@ export default async function EventSettingsPage({ params }: Props) {
       </section>
 
       {/* Sprint 22: Certificate settings */}
-      <CertificateSettingsSection event={event} inputCls={inputCls} labelCls={labelCls} />
+      <CertificateSettingsSection event={event} inputCls={inputCls} />
 
       {/* T-119/T-120/T-121: Clone, Templates, Recurrence */}
       <EventSettingsClient
@@ -347,9 +333,9 @@ export default async function EventSettingsPage({ params }: Props) {
       {/* Danger zone */}
 
       {!isStaff && event.status !== 'live' && (
-        <section className="rounded-lg border border-[#EF4444]/30 bg-[#EF4444]/5 p-6">
-          <h2 className="text-sm font-semibold text-[#EF4444] mb-2">Danger zone</h2>
-          <p className="text-sm text-[#94A3B8] mb-4">
+        <section className="rounded-lg border border-[var(--pz-error)]/30 bg-[var(--pz-error)]/5 p-6">
+          <h2 className="text-sm font-semibold text-[var(--pz-error)] mb-2">Danger zone</h2>
+          <p className="text-sm text-[var(--pz-muted)] mb-4">
             Permanently delete this event and all its data. This cannot be undone.
           </p>
           <form
@@ -360,7 +346,7 @@ export default async function EventSettingsPage({ params }: Props) {
           >
             <button
               type="submit"
-              className="rounded-lg border border-[#EF4444]/40 px-4 py-2 text-sm font-medium text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+              className="rounded-lg border border-[var(--pz-error)]/40 px-4 py-2 text-sm font-medium text-[var(--pz-error)] hover:bg-[var(--pz-error)]/10 transition-colors"
             >
               Delete event
             </button>
@@ -374,18 +360,16 @@ export default async function EventSettingsPage({ params }: Props) {
 async function CertificateSettingsSection({
   event,
   inputCls,
-  labelCls,
 }: {
   event: any
   inputCls: string
-  labelCls: string
 }) {
   const certTemplates = await listOrgCertificateTemplates(event.org_id)
 
   return (
     <section className="pz-card p-6 mb-6">
-      <h2 className="text-sm font-semibold text-[#F0F4F8] mb-1">Certificates</h2>
-      <p className="text-xs text-[#64748B] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
+      <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Certificates</h2>
+      <p className="text-xs text-[var(--pz-muted)] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
       <form
         action={async (fd: FormData) => {
           'use server'
@@ -401,11 +385,11 @@ async function CertificateSettingsSection({
             defaultChecked={event.certificate_enabled ?? false}
             className="rounded"
           />
-          <span className="text-sm text-[#94A3B8]">Enable certificates for this event</span>
+          <span className="text-sm text-[var(--pz-muted)]">Enable certificates for this event</span>
         </label>
-        <div>
-          <label className={labelCls}>Minimum session attendance %</label>
+        <Field label="Minimum session attendance %" htmlFor="cfg-cert-pct">
           <input
+            id="cfg-cert-pct"
             name="certificate_min_session_attendance_pct"
             type="number"
             min="0"
@@ -413,28 +397,27 @@ async function CertificateSettingsSection({
             defaultValue={event.certificate_min_session_attendance_pct ?? 60}
             className={inputCls}
           />
-        </div>
+        </Field>
         {certTemplates.length > 0 && (
-          <div>
-            <label className={labelCls}>Certificate template</label>
-            <select name="certificate_template_id" defaultValue={event.certificate_template_id ?? ''} className={inputCls}>
+          <Field label="Certificate template" htmlFor="cfg-cert-tpl">
+            <select id="cfg-cert-tpl" name="certificate_template_id" defaultValue={event.certificate_template_id ?? ''} className={inputCls}>
               <option value="">Use org default</option>
               {certTemplates.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name}{t.is_default ? ' (default)' : ''}</option>
               ))}
             </select>
-          </div>
+          </Field>
         )}
         {certTemplates.length === 0 && (
-          <p className="text-xs text-[#64748B]">
+          <p className="text-xs text-[var(--pz-muted)]">
             No certificate templates yet.{' '}
-            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[#00BFA6]">Create one in org settings →</a>
+            <a href={`/orgs/${event.org_slug ?? event.org_id}/certificates`} className="text-[var(--pz-teal-ink)]">Create one in org settings →</a>
           </p>
         )}
         <button
           type="submit"
           className="self-start rounded-lg px-4 py-2 text-sm font-semibold"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           Save certificate settings
         </button>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { declineSpeakerSlot } from '@/lib/speaker/speaker-actions'
+import { Field } from '@/components/ui/Field'
 
 type Props = { token: string }
 
@@ -43,18 +44,16 @@ export function DeclineForm({ token }: Props) {
   return (
     <div className="space-y-3 p-4 rounded-lg" style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)' }}>
       <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>Decline invitation</p>
-      <div>
-        <label className="text-xs font-medium block mb-1" style={{ color: 'var(--pz-muted)' }}>
-          Reason for declining (optional)
-        </label>
+      <Field label="Reason for declining (optional)" htmlFor="decline-reason">
         <textarea
+          id="decline-reason"
           rows={3}
           className="pz-input w-full text-sm"
           value={reason}
           onChange={e => setReason(e.target.value)}
           placeholder="Share why you're unable to participate…"
         />
-      </div>
+      </Field>
       <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--pz-text)' }}>
         <input
           type="checkbox"
@@ -76,7 +75,7 @@ export function DeclineForm({ token }: Props) {
         <button
           onClick={submit}
           className="rounded-lg px-4 py-2 text-sm font-semibold"
-          style={{ background: 'var(--pz-error, #ef4444)', color: '#fff' }}
+          style={{ background: 'var(--pz-error, var(--pz-error))', color: 'var(--pz-surface)' }}
         >
           Submit decline
         </button>

@@ -24,12 +24,12 @@ export default async function PublicSurveyPage({ params, searchParams }: {
     .order('sort_order', { ascending: true })
 
   return (
-    <main className="min-h-screen bg-[#0D1B2A] flex items-center justify-center p-4">
+    <main className="min-h-screen bg-[var(--pz-bg)] flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="mb-6">
           <img src="/icons/icon-192.png" alt="Prezva" className="w-10 h-10 mb-4" />
-          <h1 className="text-2xl font-bold text-[#F0F4F8]">{survey.title}</h1>
-          {survey.description && <p className="text-sm text-[#94A3B8] mt-1">{survey.description}</p>}
+          <h1 className="text-2xl font-bold text-[var(--pz-text)]">{survey.title}</h1>
+          {survey.description && <p className="text-sm text-[var(--pz-muted)] mt-1">{survey.description}</p>}
         </div>
         <SurveyGuestForm surveyId={id} token={token} questions={questions ?? []} />
       </div>

@@ -14,5 +14,17 @@ export default async function VolunteerScanPage({ params }: Props) {
   const allowedRoles = ['check-in', 'registration-desk']
   if (!allowedRoles.includes(volunteer.role)) notFound()
 
-  return <VolunteerScanClient token={token} volunteerName={volunteer.name} />
+  const { data: event } = await admin
+    .from('events')
+    .select('title')
+    .eq('id', volunteer.event_id)
+    .maybeSingle()
+
+  return (
+    <VolunteerScanClient
+      token={token}
+      volunteerName={volunteer.name}
+      eventName={event?.title ?? ''}
+    />
+  )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Field } from '@/components/ui/Field'
 
 export function SettingsClient({ email }: { email: string }) {
   const [newPassword, setNewPassword] = useState('')
@@ -64,35 +65,35 @@ export function SettingsClient({ email }: { email: string }) {
         <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 16 }}>Change password</h2>
         <form onSubmit={changePassword}>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              New password
-            </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => { setNewPassword(e.target.value); setPwStatus('idle') }}
-              autoComplete="new-password"
-              style={inputStyle}
-            />
+            <Field label="New password" htmlFor="settings-new-password">
+              <input
+                id="settings-new-password"
+                type="password"
+                value={newPassword}
+                onChange={e => { setNewPassword(e.target.value); setPwStatus('idle') }}
+                autoComplete="new-password"
+                style={inputStyle}
+              />
+            </Field>
           </div>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--pz-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Confirm password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => { setConfirmPassword(e.target.value); setPwStatus('idle') }}
-              autoComplete="new-password"
-              style={inputStyle}
-            />
+            <Field label="Confirm password" htmlFor="settings-confirm-password">
+              <input
+                id="settings-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={e => { setConfirmPassword(e.target.value); setPwStatus('idle') }}
+                autoComplete="new-password"
+                style={inputStyle}
+              />
+            </Field>
           </div>
-          {pwError && <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 10 }}>{pwError}</p>}
-          {pwStatus === 'ok' && <p style={{ color: '#22c55e', fontSize: 13, marginBottom: 10 }}>Password updated successfully.</p>}
+          {pwError && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 10 }}>{pwError}</p>}
+          {pwStatus === 'ok' && <p style={{ color: 'var(--pz-success-fill)', fontSize: 13, marginBottom: 10 }}>Password updated successfully.</p>}
           <button
             type="submit"
             disabled={isPending || !newPassword}
-            style={{ padding: '8px 24px', background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
+            style={{ padding: '8px 24px', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.7 : 1 }}
           >
             {isPending ? 'Updating…' : 'Update password'}
           </button>
@@ -130,14 +131,14 @@ export function SettingsClient({ email }: { email: string }) {
           </button>
           <button
             onClick={() => setShowDelete(v => !v)}
-            style={{ padding: '8px 16px', background: 'var(--pz-bg)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+            style={{ padding: '8px 16px', background: 'var(--pz-bg)', color: 'var(--pz-error)', border: '1px solid var(--pz-error)', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
           >
             Delete account
           </button>
         </div>
         {showDelete && (
-          <div style={{ marginTop: 14, padding: '1rem', background: '#ef444411', border: '1px solid #ef4444', borderRadius: 8 }}>
-            <p style={{ fontSize: 13, color: '#ef4444', marginBottom: 8 }}>
+          <div style={{ marginTop: 14, padding: '1rem', background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)', borderRadius: 8 }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-error)', marginBottom: 8 }}>
               Account deletion is permanent and cannot be undone. All your data will be erased.
             </p>
             <p style={{ fontSize: 13, color: 'var(--pz-muted)' }}>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
+import { PortalShell } from '@/components/portal/PortalShell'
 import {
   saveSpeakerFormSubmission,
   createPoll,
@@ -11,6 +12,7 @@ import {
   deleteHandout,
 } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/client'
+import { Field } from '@/components/ui/Field'
 
 type Props = {
   token: string
@@ -46,8 +48,8 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
 
   const statusColor: Record<string, string> = {
     confirmed: 'var(--pz-success)',
-    declined: 'var(--pz-error, #ef4444)',
-    invited: 'var(--pz-warning, #f59e0b)',
+    declined: 'var(--pz-error, var(--pz-error))',
+    invited: 'var(--pz-warning, var(--pz-warning-fill))',
   }
 
   async function saveForm() {
@@ -98,34 +100,13 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
-      {isLinkedUser && (
-        <div style={{ background: 'var(--pz-teal, #00BFA6)22', borderBottom: '1px solid var(--pz-teal, #00BFA6)', padding: '10px 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ fontSize: 13, color: 'var(--pz-teal, #00BFA6)', margin: 0 }}>
-            🎙️ You&apos;re viewing this as a speaker
-          </p>
-          <a href="/dashboard" style={{ fontSize: 12, color: 'var(--pz-teal, #00BFA6)', textDecoration: 'underline' }}>
-            Back to organizer dashboard →
-          </a>
-        </div>
-      )}
-      {/* Header */}
-      <div style={{ background: 'var(--pz-teal)', padding: '1.25rem 1.5rem' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <p className="text-xs font-medium text-white/70 mb-0.5" style={{ fontSize: 13 }}>{event?.title}</p>
-          <h1 className="text-lg font-bold text-white">Speaker Portal</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-white/90" style={{ fontSize: 18 }}>{speaker?.name}</span>
-            <span
-              className="rounded-full px-2 py-0.5 text-xs font-semibold"
-              style={{ background: statusColor[speaker?.status ?? 'invited'] ?? 'var(--pz-warning, #f59e0b)', color: '#fff' }}
-            >
-              {speaker?.status ?? 'invited'}
-            </span>
-          </div>
-        </div>
-      </div>
-
+    <PortalShell
+      eventName={event?.title ?? ''}
+      portalLabel="Speaker Portal"
+      entityName={speaker?.name}
+      entityDetail={speaker?.job_title ?? undefined}
+      exitHref={isLinkedUser ? '/dashboard' : undefined}
+    >
       {/* Tabs */}
       <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: '0.25rem', padding: '0 1.5rem', overflowX: 'auto' }}>
@@ -300,7 +281,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
                             <button
                               onClick={() => answerQuestion(q.id)}
                               className="rounded text-xs font-medium shrink-0"
-                              style={{ background: 'var(--pz-success)', color: '#fff', minWidth: 44, minHeight: 44 }}
+                              style={{ background: 'var(--pz-success)', color: 'var(--pz-surface)', minWidth: 44, minHeight: 44 }}
                             >
                               Mark answered
                             </button>
@@ -421,26 +402,27 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
             ) : (
               <div className="space-y-4">
                 {formSchema.map((field: any) => (
-                  <div key={field.key}>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pz-label)' }}>
-                      {field.label}{field.required && ' *'}
-                    </label>
-                    {field.type === 'textarea' ? (
+                  field.type === 'textarea' ? (
+                    <Field key={field.key} label={field.label} htmlFor={`sf-${field.key}`} required={field.required}>
                       <textarea
+                        id={`sf-${field.key}`}
                         className="pz-input w-full text-sm"
                         rows={3}
                         value={formData[field.key] ?? ''}
                         onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
                       />
-                    ) : (
+                    </Field>
+                  ) : (
+                    <Field key={field.key} label={field.label} htmlFor={`sf-${field.key}`} required={field.required}>
                       <input
+                        id={`sf-${field.key}`}
                         type={field.type ?? 'text'}
                         className="pz-input w-full text-sm"
                         value={formData[field.key] ?? ''}
                         onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
                       />
-                    )}
-                  </div>
+                    </Field>
+                  )
                 ))}
                 <div className="flex items-center gap-3">
                   <button onClick={saveForm} className="pz-btn-primary text-sm px-4 py-2">
@@ -509,7 +491,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
           </div>
         )}
       </div>
-    </div>
+    </PortalShell>
   )
 }
 
@@ -546,7 +528,7 @@ function HandoutUpload({ sessionId, speakerId, eventId, token }: { sessionId: st
         {uploading ? 'Uploading…' : '+ Upload handout'}
         <input type="file" className="sr-only" accept=".pdf,.ppt,.pptx,.key,.doc,.docx" onChange={handleFile} disabled={uploading} />
       </label>
-      {error && <p className="text-xs mt-0.5" style={{ color: 'var(--pz-error, #ef4444)' }}>{error}</p>}
+      {error && <p className="text-xs mt-0.5" style={{ color: 'var(--pz-error, var(--pz-error))' }}>{error}</p>}
     </div>
   )
 }

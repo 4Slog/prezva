@@ -105,14 +105,14 @@ export default async function EventDetailPage({ params }: Props) {
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <EventStatusBadge status={event.status} />
-            <span className="text-xs text-[#64748B] capitalize">{event.event_type.replace('_', ' ')}</span>
+            <span className="text-xs text-[var(--pz-muted)] capitalize">{event.event_type.replace('_', ' ')}</span>
           </div>
-          <h1 className="text-2xl font-bold text-[#F0F4F8]">{event.title}</h1>
-          <p className="text-sm text-[#94A3B8] mt-1">
+          <h1 className="text-2xl font-bold text-[var(--pz-text)]">{event.title}</h1>
+          <p className="text-sm text-[var(--pz-muted)] mt-1">
             {fmt(event.start_at, event.timezone)} → {fmt(event.end_at, event.timezone)}
           </p>
           {(event.venue_city || event.venue_name) && (
-            <p className="text-sm text-[#94A3B8]">
+            <p className="text-sm text-[var(--pz-muted)]">
               📍 {[event.venue_name, event.venue_city, event.venue_state].filter(Boolean).join(', ')}
             </p>
           )}
@@ -144,13 +144,13 @@ export default async function EventDetailPage({ params }: Props) {
           <Link
             href={`/e/${slug}`}
             target="_blank"
-            className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors"
+            className="rounded-lg border border-[var(--pz-border)] px-4 py-2 text-sm font-medium text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
           >
             Preview ↗
           </Link>
           <Link
             href={`/events/${slug}/settings`}
-            className="rounded-lg border border-[#1E3A5F] px-4 py-2 text-sm font-medium text-[#94A3B8] hover:text-[#F0F4F8] hover:border-[#00BFA6]/40 transition-colors"
+            className="rounded-lg border border-[var(--pz-border)] px-4 py-2 text-sm font-medium text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
           >
             Settings
           </Link>
@@ -161,13 +161,13 @@ export default async function EventDetailPage({ params }: Props) {
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
         {[
-          { label: 'Confirmed',   value: counts.confirmed,  color: 'text-[#F0F4F8]' },
-          { label: 'Checked In',  value: counts.checkedIn,  color: 'text-[#00BFA6]' },
-          { label: 'Not Arrived', value: notArrived,        color: 'text-[#F59E0B]' },
-          { label: 'Total Regs',  value: counts.total,      color: 'text-[#F0F4F8]' },
+          { label: 'Confirmed',   value: counts.confirmed,  color: 'text-[var(--pz-text)]' },
+          { label: 'Checked In',  value: counts.checkedIn,  color: 'text-[var(--pz-teal-ink)]' },
+          { label: 'Not Arrived', value: notArrived,        color: 'text-[var(--pz-warning)]' },
+          { label: 'Total Regs',  value: counts.total,      color: 'text-[var(--pz-text)]' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">
-            <p className="text-xs font-medium text-[#64748B] mb-2">{s.label}</p>
+            <p className="text-xs font-medium text-[var(--pz-muted)] mb-2">{s.label}</p>
             <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
             <div className="pz-stat-bar" />
           </div>

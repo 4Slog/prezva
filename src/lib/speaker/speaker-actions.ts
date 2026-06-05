@@ -466,7 +466,7 @@ export async function sendSpeakerMessage(conversationId: string, senderRole: 'or
             subject: `New message re: ${event?.title ?? 'your session'}`,
             html: `<p>Hi ${speaker.name},</p>
                    <p>${orgName} sent you a message:</p>
-                   <blockquote style="border-left:3px solid #00BFA6;padding:0 1rem;color:#555">${body}</blockquote>
+                   <blockquote style="border-left:3px solid #2DD4BF;padding:0 1rem;color:#555">${body}</blockquote>
                    <p><a href="${hubUrl}">View in your speaker hub →</a></p>`,
           }),
         }).catch(() => {})

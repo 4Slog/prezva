@@ -24,13 +24,13 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
         <div style={{ maxWidth: 800, margin: '4rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
           <h2 style={{ fontWeight: 700, marginBottom: 8, color: 'var(--pz-text)', fontSize: '1.25rem' }}>Sign in to see your personal agenda</h2>
-          <p style={{ color: 'var(--pz-text-muted)', marginBottom: 24, fontSize: 14 }}>
+          <p style={{ color: 'var(--pz-muted)', marginBottom: 24, fontSize: 14 }}>
             Bookmark sessions from the agenda to create your personalized schedule.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             <Link
               href={`/login?next=/e/${slug}/my-agenda`}
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A', padding: '0.5rem 1.25rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '0.5rem 1.25rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
             >
               Sign in
             </Link>
@@ -74,7 +74,7 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
         {mySessions.length === 0
-          ? <p style={{ color: 'var(--pz-text-muted)', padding: '3rem 0', textAlign: 'center' }}>
+          ? <p style={{ color: 'var(--pz-muted)', padding: '3rem 0', textAlign: 'center' }}>
               No bookmarks yet.{' '}
               <Link href={`/e/${slug}/agenda`} style={{ color: 'var(--pz-teal)' }}>Browse agenda</Link>
             </p>
@@ -82,7 +82,7 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
               {mySessions.map((s: any) => (
                 <div key={s.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-surface)', borderLeft: '4px solid var(--pz-teal)' }}>
                   <p style={{ fontWeight: 600, color: 'var(--pz-text)' }}>{s.title}</p>
-                  <p style={{ fontSize: 13, color: 'var(--pz-text-muted)', marginTop: 4 }}>
+                  <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginTop: 4 }}>
                     {new Date(s.starts_at).toLocaleString('en-US', { timeZone: (event as any).timezone ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                   </p>
                 </div>

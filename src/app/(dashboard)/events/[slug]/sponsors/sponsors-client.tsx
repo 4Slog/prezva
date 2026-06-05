@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { createSponsor, updateSponsor, deleteSponsor } from '@/lib/sponsors/actions'
 import { addSponsorContact, getSponsorContacts, sendSponsorPortalInvite } from '@/lib/sponsors/portal-actions'
+import { Field } from '@/components/ui/Field'
+import { SPONSOR_TIERS as TIERS } from '@/lib/ui/category-colors'
 
 type Sponsor = {
   id: string
@@ -23,13 +25,6 @@ type SponsorContact = {
   portal_token: string
   created_at: string
 }
-
-const TIERS = [
-  { value: 'title',  label: 'Title Sponsor',  color: '#7c3aed' },
-  { value: 'gold',   label: 'Gold Sponsor',   color: '#d97706' },
-  { value: 'silver', label: 'Silver Sponsor', color: '#6b7280' },
-  { value: 'bronze', label: 'Bronze Sponsor', color: '#92400e' },
-] as const
 
 type TierValue = typeof TIERS[number]['value']
 
@@ -83,68 +78,57 @@ function SponsorForm({
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-            Name *
-          </label>
+        <Field label="Name" htmlFor="sponsor-name" required>
           <input
+            id="sponsor-name"
             name="name"
             required
             defaultValue={initial?.name ?? ''}
             placeholder="Acme Corp"
             style={inputStyle}
           />
-        </div>
-        <div>
-          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-            Tier *
-          </label>
-          <select name="tier" defaultValue={initial?.tier ?? 'bronze'} style={inputStyle}>
+        </Field>
+        <Field label="Tier" htmlFor="sponsor-tier" required>
+          <select id="sponsor-tier" name="tier" defaultValue={initial?.tier ?? 'bronze'} style={inputStyle}>
             {TIERS.map(t => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
-        </div>
+        </Field>
       </div>
 
-      <div>
-        <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-          Website URL
-        </label>
+      <Field label="Website URL" htmlFor="sponsor-website-url">
         <input
+          id="sponsor-website-url"
           name="website_url"
           type="url"
           defaultValue={initial?.website_url ?? ''}
           placeholder="https://acmecorp.com"
           style={inputStyle}
         />
-      </div>
+      </Field>
 
-      <div>
-        <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-          Logo URL
-        </label>
+      <Field label="Logo URL" htmlFor="sponsor-logo-url">
         <input
+          id="sponsor-logo-url"
           name="logo_url"
           type="url"
           defaultValue={initial?.logo_url ?? ''}
           placeholder="https://cdn.acmecorp.com/logo.png"
           style={inputStyle}
         />
-      </div>
+      </Field>
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <div>
-          <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>
-            Sort order
-          </label>
+        <Field label="Sort order" htmlFor="sponsor-sort-order">
           <input
+            id="sponsor-sort-order"
             name="sort_order"
             type="number"
             defaultValue={initial?.sort_order ?? 0}
             style={{ ...inputStyle, width: 80 }}
           />
-        </div>
+        </Field>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--pz-text)', cursor: 'pointer', marginTop: 16 }}>
           <input
             name="is_featured"
@@ -157,7 +141,7 @@ function SponsorForm({
       </div>
 
       {error && (
-        <p style={{ fontSize: 13, color: 'var(--pz-error, #ef4444)' }}>{error}</p>
+        <p style={{ fontSize: 13, color: 'var(--pz-error, var(--pz-error))' }}>{error}</p>
       )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -172,7 +156,7 @@ function SponsorForm({
         <button
           type="submit"
           disabled={pending}
-          style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
           {pending ? 'Saving…' : initial ? 'Save changes' : 'Add sponsor'}
         </button>
@@ -259,7 +243,7 @@ function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: strin
           </div>
           <button
             onClick={() => copyLink(c.portal_token)}
-            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--pz-teal)', color: 'var(--pz-teal)', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--pz-teal)', color: 'var(--pz-teal-ink)', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             {copied === c.portal_token ? 'Copied!' : 'Copy link'}
           </button>
@@ -268,7 +252,7 @@ function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: strin
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
         <input style={inp} placeholder="Name *" value={newName} onChange={e => setNewName(e.target.value)} required />
         <input style={inp} placeholder="Email (optional)" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
-        <button type="submit" disabled={adding || !newName.trim()} style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: adding ? 0.6 : 1 }}>
+        <button type="submit" disabled={adding || !newName.trim()} style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: adding ? 0.6 : 1 }}>
           {adding ? '…' : '+ Add'}
         </button>
       </form>
@@ -314,7 +298,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
         <button
           onClick={() => { setShowAdd(true); setEditing(null) }}
-          style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
         >
           + Add sponsor
         </button>
@@ -383,7 +367,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                           <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--pz-text)' }}>{sp.name}</span>
                           <TierBadge tier={sp.tier} />
                           {sp.is_featured && (
-                            <span style={{ fontSize: 11, color: 'var(--pz-teal)', fontWeight: 600 }}>★ Featured</span>
+                            <span style={{ fontSize: 11, color: 'var(--pz-teal-ink)', fontWeight: 600 }}>★ Featured</span>
                           )}
                         </div>
                         {sp.website_url && (
@@ -405,12 +389,12 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                             <button
                               onClick={() => handleSendInvite(sp.id)}
                               disabled={inviteStatus[sp.id] === 'sending'}
-                              style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: inviteStatus[sp.id] === 'sending' ? 'not-allowed' : 'pointer', opacity: inviteStatus[sp.id] === 'sending' ? 0.6 : 1, whiteSpace: 'nowrap' }}
+                              style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-teal-ink)', border: '1px solid var(--pz-teal)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: inviteStatus[sp.id] === 'sending' ? 'not-allowed' : 'pointer', opacity: inviteStatus[sp.id] === 'sending' ? 0.6 : 1, whiteSpace: 'nowrap' }}
                             >
                               {inviteStatus[sp.id] === 'sending' ? 'Sending…' : inviteStatus[sp.id] === 'sent' ? '✓ Sent' : 'Send portal link'}
                             </button>
                             {inviteStatus[sp.id] && inviteStatus[sp.id] !== 'sending' && inviteStatus[sp.id] !== 'sent' && (
-                              <span style={{ fontSize: 11, color: '#ef4444' }}>{inviteStatus[sp.id]}</span>
+                              <span style={{ fontSize: 11, color: 'var(--pz-error)' }}>{inviteStatus[sp.id]}</span>
                             )}
                           </div>
                         ) : null}
@@ -429,7 +413,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                         <button
                           onClick={() => handleDelete(sp.id)}
                           disabled={deletingId === sp.id || pending}
-                          style={{ background: 'transparent', color: 'var(--pz-error, #ef4444)', border: '1px solid var(--pz-error, #ef4444)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', opacity: deletingId === sp.id ? 0.5 : 1 }}
+                          style={{ background: 'transparent', color: 'var(--pz-error, var(--pz-error))', border: '1px solid var(--pz-error, var(--pz-error))', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', opacity: deletingId === sp.id ? 0.5 : 1 }}
                         >
                           {deletingId === sp.id ? '…' : 'Delete'}
                         </button>

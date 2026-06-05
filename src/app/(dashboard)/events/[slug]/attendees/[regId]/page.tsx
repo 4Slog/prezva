@@ -3,6 +3,7 @@ import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { AttendeeActions } from './actions-client'
+import { ATTENDEE_STATUS_COLORS } from '@/lib/ui/category-colors'
 
 type Props = { params: Promise<{ slug: string; regId: string }> }
 
@@ -51,13 +52,7 @@ export default async function AttendeeDetailPage({ params }: Props) {
   const fmtDate = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : null
 
-  const statusColor: Record<string, string> = {
-    confirmed: '#00BFA6',
-    pending: '#F59E0B',
-    cancelled: '#EF4444',
-    waitlisted: '#8B5CF6',
-    refunded: '#6B7280',
-  }
+  const statusColor = ATTENDEE_STATUS_COLORS
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>

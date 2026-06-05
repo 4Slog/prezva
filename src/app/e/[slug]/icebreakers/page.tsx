@@ -49,7 +49,7 @@ export default async function IcebreakersPage({ params, searchParams }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
       {isPreview && (
-        <div style={{ background: '#F59E0B', color: '#0D1B2A', textAlign: 'center', padding: '8px', fontSize: 13, fontWeight: 600 }}>
+        <div style={{ background: 'var(--pz-warning-fill)', color: 'var(--pz-on-accent)', textAlign: 'center', padding: '8px', fontSize: 13, fontWeight: 600 }}>
           Preview mode — questions are not yet published to attendees
         </div>
       )}

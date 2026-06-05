@@ -58,9 +58,9 @@ export function ContextSwitcher({ currentContext, contexts, isSuperAdmin = false
           height: 32,
           padding: '0 12px',
           borderRadius: 999,
-          border: '1px solid var(--pz-border)',
-          background: 'var(--pz-surface)',
-          color: 'var(--pz-text)',
+          border: '1px solid var(--pz-chrome-line)',
+          background: 'var(--pz-chrome-elevated)',
+          color: 'var(--pz-chrome-text)',
           fontSize: 13,
           fontWeight: 600,
           cursor: 'pointer',
@@ -150,7 +150,7 @@ export function ContextSwitcher({ currentContext, contexts, isSuperAdmin = false
                     width: 8,
                     height: 8,
                     borderRadius: '50%',
-                    background: '#F59E0B',
+                    background: 'var(--pz-warning-fill)',
                     flexShrink: 0,
                   }}
                 />

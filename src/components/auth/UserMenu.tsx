@@ -53,7 +53,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
         className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2"
         style={{
           background: "var(--pz-teal)",
-          color: "#0D1B2A",
+          color: "var(--pz-on-accent)",
         }}
       >
         {initial}
@@ -83,7 +83,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
             )}
             <div
               className="text-xs truncate"
-              style={{ color: "var(--pz-text-muted)" }}
+              style={{ color: "var(--pz-muted)" }}
               title={email}
             >
               {email}

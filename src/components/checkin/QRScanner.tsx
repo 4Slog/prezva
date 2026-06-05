@@ -115,7 +115,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
             onClick={() => setState('scanning')}
             style={{
               padding: '0.75rem', borderRadius: 10, border: 'none',
-              background: 'var(--pz-teal)', color: '#0D1B2A',
+              background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
               fontWeight: 700, fontSize: 15, cursor: 'pointer'
             }}
           >
@@ -144,10 +144,10 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
       }}>
         {state === 'denied' && (
           <div style={{
-            background: '#EF444415', border: '1px solid #EF4444',
+            background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)',
             borderRadius: 8, padding: '0.75rem', marginBottom: '1rem'
           }}>
-            <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--pz-error)', margin: 0 }}>
               Camera access was denied. You can enter the attendee QR code manually below,
               or enable camera access in your browser settings and refresh.
             </p>
@@ -178,7 +178,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
             disabled={!manualCode.trim()}
             style={{
               padding: '0.625rem 1rem', borderRadius: 8, border: 'none',
-              background: 'var(--pz-teal)', color: '#0D1B2A',
+              background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
               fontWeight: 700, cursor: 'pointer', fontSize: 14,
               opacity: manualCode.trim() ? 1 : 0.5
             }}
@@ -207,10 +207,10 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
       <div
         id="qr-reader"
         ref={divRef}
-        className="rounded-lg overflow-hidden border border-[var(--border)]"
+        className="rounded-lg overflow-hidden border border-[var(--pz-border)]"
       />
       {!ready && (
-        <p className="text-sm text-[var(--text-muted)] text-center animate-pulse">
+        <p className="text-sm text-[var(--pz-muted)] text-center animate-pulse">
           Starting camera…
         </p>
       )}

@@ -204,7 +204,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
             </select>
             <button type="submit"
               style={{ padding: '0.625rem 1.25rem', borderRadius: 8, border: 'none',
-                       background: 'var(--pz-teal)', color: '#0D1B2A',
+                       background: 'var(--pz-teal)', color: 'var(--pz-on-accent)',
                        fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               Search
             </button>
@@ -248,7 +248,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
                   style={{ padding: '0.375rem 0.875rem', borderRadius: 6, fontSize: 13,
                            border: '1px solid var(--pz-border)', textDecoration: 'none',
                            background: !isMapView ? 'var(--pz-teal)' : 'transparent',
-                           color: !isMapView ? '#0D1B2A' : 'var(--pz-muted)',
+                           color: !isMapView ? 'var(--pz-on-accent)' : 'var(--pz-muted)',
                            fontWeight: !isMapView ? 700 : 400 }}>
                   List
                 </a>
@@ -256,7 +256,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
                   style={{ padding: '0.375rem 0.875rem', borderRadius: 6, fontSize: 13,
                            border: '1px solid var(--pz-border)', textDecoration: 'none',
                            background: isMapView ? 'var(--pz-teal)' : 'transparent',
-                           color: isMapView ? '#0D1B2A' : 'var(--pz-muted)',
+                           color: isMapView ? 'var(--pz-on-accent)' : 'var(--pz-muted)',
                            fontWeight: isMapView ? 700 : 400 }}>
                   Map
                 </a>
@@ -275,7 +275,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
                     {recommendations.map((e: any) => (
                       <a key={e.id} href={`/e/${e.slug}`}
                         style={{ display: 'block', background: 'var(--pz-surface)', borderRadius: 12,
-                                 border: '1px solid var(--pz-teal)44', overflow: 'hidden',
+                                 border: '1px solid var(--pz-teal)', overflow: 'hidden',
                                  textDecoration: 'none' }}>
                         {e.cover_image_url && (
                           <img src={e.cover_image_url} alt={e.title}

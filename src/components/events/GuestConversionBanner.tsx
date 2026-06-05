@@ -40,7 +40,7 @@ export function GuestConversionBanner({ regId, email, slug }: Props) {
           href={`/signup?email=${encodeURIComponent(email)}&next=/e/${slug}`}
           style={{
             display: 'inline-block', padding: '0.625rem 1.25rem', borderRadius: 8,
-            background: 'var(--pz-teal)', color: '#0D1B2A', fontWeight: 700,
+            background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', fontWeight: 700,
             fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap'
           }}
         >

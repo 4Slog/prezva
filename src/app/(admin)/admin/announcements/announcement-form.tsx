@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { sendPlatformAnnouncement } from '@/lib/admin/platform-actions'
+import { Field } from '@/components/ui/Field'
 
 export function AnnouncementForm() {
   const [subject, setSubject] = useState('')
@@ -29,41 +30,41 @@ export function AnnouncementForm() {
   }
 
   return (
-    <div className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-6 space-y-4">
+    <div className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-6 space-y-4">
       {result && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#00BFA622', border: '1px solid #00BFA6' }}>
-          <span className="text-[#00BFA6] font-medium">Sent to {result.sent} org owner{result.sent !== 1 ? 's' : ''}</span>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)' }}>
+          <span className="text-[var(--pz-teal-ink)] font-medium">Sent to {result.sent} org owner{result.sent !== 1 ? 's' : ''}</span>
         </div>
       )}
       {error && (
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#EF444422', border: '1px solid #EF4444' }}>
-          <span className="text-red-400">{error}</span>
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)' }}>
+          <span className="text-[var(--pz-error)]">{error}</span>
         </div>
       )}
-      <div>
-        <label className="block text-xs font-semibold text-[#94A3B8] mb-1">Subject</label>
+      <Field label="Subject" htmlFor="announcement-subject">
         <input
+          id="announcement-subject"
           value={subject}
           onChange={e => setSubject(e.target.value)}
           placeholder="Email subject..."
-          className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6]"
+          className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)]"
         />
-      </div>
-      <div>
-        <label className="block text-xs font-semibold text-[#94A3B8] mb-1">Message</label>
+      </Field>
+      <Field label="Message" htmlFor="announcement-message">
         <textarea
+          id="announcement-message"
           value={message}
           onChange={e => setMessage(e.target.value)}
           placeholder="Your announcement..."
           rows={8}
-          className="w-full bg-[#0D1B2A] border border-[#1E3A5F] rounded-lg px-3 py-2 text-sm text-[#F0F4F8] focus:outline-none focus:border-[#00BFA6] resize-y"
+          className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)] resize-y"
         />
-      </div>
+      </Field>
       <button
         onClick={handleSend}
         disabled={sending || !subject.trim() || !message.trim()}
-        className="px-5 py-2 rounded-lg text-sm font-bold text-[#0D1B2A] disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ background: '#00BFA6' }}
+        className="px-5 py-2 rounded-lg text-sm font-bold text-[var(--pz-on-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ background: 'var(--pz-teal)' }}
       >
         {sending ? 'Sending...' : 'Send to all org owners'}
       </button>

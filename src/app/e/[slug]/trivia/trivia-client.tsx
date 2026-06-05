@@ -57,7 +57,7 @@ export function TriviaClient({ questions }: Props) {
             let color = 'var(--pz-text)'
             if (selected !== null) {
               if (i === q.correct_index) { bg = 'var(--pz-success)'; color = '#fff' }
-              else if (i === selected && !result?.correct) { bg = 'var(--pz-error, #ef4444)'; color = '#fff' }
+              else if (i === selected && !result?.correct) { bg = 'var(--pz-error, var(--pz-error))'; color = '#fff' }
             }
             return (
               <button
@@ -75,7 +75,7 @@ export function TriviaClient({ questions }: Props) {
 
         {result && (
           <div style={{ marginTop: 16 }}>
-            <p style={{ fontWeight: 600, color: result.correct ? 'var(--pz-success)' : 'var(--pz-error, #ef4444)' }}>
+            <p style={{ fontWeight: 600, color: result.correct ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>
               {result.correct ? `Correct! +${result.points} pts` : 'Incorrect'}
             </p>
             <button onClick={next} className="pz-btn-primary text-sm px-5 py-2 mt-3">

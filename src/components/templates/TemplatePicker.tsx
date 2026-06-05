@@ -107,7 +107,7 @@ export function TemplatePicker({ surface, orgId: _orgId, orgTemplates = [], onPi
               {shownCards.map((card) => (
                 <div
                   key={card.id}
-                  style={{ background: 'var(--pz-surface-2, #1a2a3a)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 6 }}
+                  style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', borderRadius: 8, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 6 }}
                 >
                   <p style={{ color: 'var(--pz-text)', fontSize: 14, fontWeight: 600, margin: 0 }}>{card.name}</p>
                   {card.description && (
@@ -116,13 +116,13 @@ export function TemplatePicker({ surface, orgId: _orgId, orgTemplates = [], onPi
                   {card.tags && card.tags.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
                       {card.tags.map((tag) => (
-                        <span key={tag} style={{ background: 'var(--pz-teal)22', color: 'var(--pz-teal)', fontSize: 10, padding: '2px 6px', borderRadius: 4 }}>{tag}</span>
+                        <span key={tag} style={{ background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', fontSize: 10, padding: '2px 6px', borderRadius: 4 }}>{tag}</span>
                       ))}
                     </div>
                   )}
                   <button
                     onClick={() => onPick(card.raw, !!card.isOrg)}
-                    style={{ marginTop: 'auto', paddingTop: 6, background: 'var(--pz-teal)', color: '#0D1B2A', border: 'none', borderRadius: 6, padding: '0.4rem 0.75rem', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    style={{ marginTop: 'auto', paddingTop: 6, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, padding: '0.4rem 0.75rem', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                   >
                     Use template
                   </button>

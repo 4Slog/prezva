@@ -42,7 +42,7 @@ export function FeedbackClient({ sessionId, eventId, eventSlug }: Props) {
               border: 'none',
               cursor: 'pointer',
               fontSize: 32,
-              color: star <= rating ? '#f59e0b' : 'var(--pz-surface-2)',
+              color: star <= rating ? 'var(--pz-warning-fill)' : 'var(--pz-surface-2)',
               transition: 'color 0.1s',
             }}
           >

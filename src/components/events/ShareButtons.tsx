@@ -30,9 +30,9 @@ export function ShareButtons({ url, title, calendarHref }: ShareButtonsProps) {
     fontSize: 13,
     fontWeight: 500,
     cursor: 'pointer',
-    border: '1px solid rgba(255,255,255,0.2)',
-    background: 'rgba(255,255,255,0.08)',
-    color: '#fff',
+    border: '1px solid var(--pz-border)',
+    background: 'var(--pz-surface-2)',
+    color: 'var(--pz-text)',
     textDecoration: 'none',
   }
 

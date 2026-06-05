@@ -43,13 +43,13 @@ export default async function BadgesPage({ params }: Props) {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#F0F4F8]">Badge templates</h1>
+        <h1 className="text-xl font-bold text-[var(--pz-text)]">Badge templates</h1>
         <div className="flex items-center gap-3">
           {/* Print all only makes sense once a default template is selected — handled in BadgesClient */}
           <Link
             href={`/events/${slug}/badges/new`}
             className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
           >
             + New badge template
           </Link>

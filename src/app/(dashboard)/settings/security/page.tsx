@@ -13,8 +13,8 @@ export default async function SecuritySettingsPage() {
   return (
     <div className="max-w-xl space-y-8">
       <div>
-        <h1 className="text-xl font-bold text-[#F0F4F8]">Security Settings</h1>
-        <p className="text-sm text-[#64748B] mt-1">Manage two-factor authentication and account security.</p>
+        <h1 className="text-xl font-bold text-[var(--pz-text)]">Security Settings</h1>
+        <p className="text-sm text-[var(--pz-muted)] mt-1">Manage two-factor authentication and account security.</p>
       </div>
       <TwoFactorSetup existingFactor={totpFactor} />
     </div>

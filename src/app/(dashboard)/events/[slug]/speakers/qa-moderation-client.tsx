@@ -54,9 +54,9 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
                 {q.sessions?.title ?? 'Unknown session'} · ▲ {q.upvote_count ?? 0}
               </p>
               {q.organizer_answer && (
-                <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--pz-teal)15',
+                <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--pz-teal-bg)',
                               borderLeft: '3px solid var(--pz-teal)', borderRadius: 4 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal)', margin: '0 0 2px' }}>Your answer</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal-ink)', margin: '0 0 2px' }}>Your answer</p>
                   <p style={{ fontSize: 13, color: 'var(--pz-text)', margin: 0 }}>{q.organizer_answer}</p>
                 </div>
               )}
@@ -94,7 +94,7 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
               onClick={() => act(q.id, 'answer')}
               disabled={!answerDraft[q.id]?.trim() || pending !== null}
               style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5,
-                       background: 'var(--pz-teal)', color: '#fff', cursor: 'pointer',
+                       background: 'var(--pz-teal)', color: 'var(--pz-surface)', cursor: 'pointer',
                        border: 'none', opacity: !answerDraft[q.id]?.trim() ? 0.5 : 1 }}
             >
               Answer
@@ -113,8 +113,8 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
                                        background: 'var(--pz-surface-2)', opacity: 0.6,
                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: 0 }}>{q.body}</p>
-                <span style={{ fontSize: 10, background: 'var(--pz-error, #ef4444)22',
-                               color: 'var(--pz-error, #ef4444)', borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>Hidden</span>
+                <span style={{ fontSize: 10, background: 'var(--pz-error-bg, rgba(239,68,68,0.1))',
+                               color: 'var(--pz-error)', borderRadius: 4, padding: '1px 6px', flexShrink: 0 }}>Hidden</span>
               </div>
             ))}
           </div>

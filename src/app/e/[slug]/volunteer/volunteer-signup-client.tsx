@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { signupAsVolunteer } from '@/lib/volunteers/actions'
+import { Field } from '@/components/ui/Field'
 
 const ROLE_OPTIONS = [
   { value: 'registration-desk', label: 'Registration Desk' },
@@ -30,24 +31,14 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
 
   const inputStyle = {
     width: '100%',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'var(--pz-surface)',
+    border: '1px solid var(--pz-border)',
     borderRadius: 8,
     padding: '10px 14px',
     fontSize: 14,
-    color: '#fff',
+    color: 'var(--pz-text)',
     outline: 'none',
     boxSizing: 'border-box' as const,
-  }
-
-  const labelStyle = {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    display: 'block',
-    marginBottom: 4,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -75,10 +66,10 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
 
   if (done) {
     return (
-      <div style={{ background: 'rgba(0,191,166,0.1)', border: '1px solid rgba(0,191,166,0.4)', borderRadius: 12, padding: '2rem', textAlign: 'center' }}>
+      <div style={{ background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', borderRadius: 12, padding: '2rem', textAlign: 'center' }}>
         <p style={{ fontSize: 24, marginBottom: 8 }}>✓</p>
-        <p style={{ fontWeight: 700, fontSize: 16, color: '#00BFA6', marginBottom: 8 }}>Application submitted!</p>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+        <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--pz-teal-ink)', marginBottom: 8 }}>Application submitted!</p>
+        <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>
           You&apos;ll receive an email when your assignment is confirmed.
         </p>
       </div>
@@ -91,31 +82,31 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
         <h1 style={{ fontSize: 'clamp(1.5rem,3.5vw,2rem)', fontWeight: 800, marginBottom: 8 }}>
           Volunteer for {eventTitle}
         </h1>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: 'var(--pz-muted)', lineHeight: 1.6 }}>
           Fill out the form below to apply as a volunteer. The organizer will review your application and send your assignment details.
         </p>
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, padding: '10px 14px', color: '#fca5a5', fontSize: 13 }}>
+        <div style={{ background: 'var(--pz-error-bg)', border: '1px solid var(--pz-error)', borderRadius: 8, padding: '10px 14px', color: 'var(--pz-error)', fontSize: 13 }}>
           {error}
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <div>
-          <label style={labelStyle}>Full name *</label>
+        <Field label="Full name" htmlFor="vol-name" required>
           <input
+            id="vol-name"
             required
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             style={inputStyle}
             placeholder="Your full name"
           />
-        </div>
-        <div>
-          <label style={labelStyle}>Email *</label>
+        </Field>
+        <Field label="Email" htmlFor="vol-email" required>
           <input
+            id="vol-email"
             required
             type="email"
             value={form.email}
@@ -123,20 +114,20 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
             style={inputStyle}
             placeholder="you@example.com"
           />
-        </div>
-        <div>
-          <label style={labelStyle}>Phone</label>
+        </Field>
+        <Field label="Phone" htmlFor="vol-phone">
           <input
+            id="vol-phone"
             type="tel"
             value={form.phone}
             onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
             style={inputStyle}
             placeholder="Optional"
           />
-        </div>
-        <div>
-          <label style={labelStyle}>Role preference</label>
+        </Field>
+        <Field label="Role preference" htmlFor="vol-role">
           <select
+            id="vol-role"
             value={form.role}
             onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
             style={{ ...inputStyle, cursor: 'pointer' }}
@@ -145,27 +136,27 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-        </div>
+        </Field>
       </div>
 
-      <div>
-        <label style={labelStyle}>Availability notes</label>
+      <Field label="Availability notes" htmlFor="vol-notes">
         <textarea
+          id="vol-notes"
           value={form.notes}
           onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
           rows={3}
           style={{ ...inputStyle, resize: 'vertical' }}
           placeholder="e.g. Available all day Saturday only"
         />
-      </div>
+      </Field>
 
       <div>
         <button
           type="submit"
           disabled={submitting}
           style={{
-            background: '#00BFA6',
-            color: '#0D1B2A',
+            background: 'var(--pz-teal)',
+            color: 'var(--pz-on-accent)',
             padding: '12px 28px',
             borderRadius: 8,
             fontWeight: 700,

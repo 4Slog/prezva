@@ -26,31 +26,31 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
     <div className="space-y-8 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <Link href="/admin/orgs" className="text-xs text-[#64748B] hover:text-[#94A3B8]">← Organizations</Link>
-          <h1 className="text-xl font-bold text-[#F0F4F8] mt-1">{org.name}</h1>
-          <p className="text-sm text-[#64748B] font-mono">{org.slug}</p>
+          <Link href="/admin/orgs" className="text-xs text-[var(--pz-muted)] hover:text-[var(--pz-label)]">← Organizations</Link>
+          <h1 className="text-xl font-bold text-[var(--pz-text)] mt-1">{org.name}</h1>
+          <p className="text-sm text-[var(--pz-label)] font-mono">{org.slug}</p>
         </div>
         <div className="flex gap-2 items-center">
           {org.deleted_at ? (
-            <span className="px-3 py-1 rounded-full text-xs bg-red-900/40 text-red-400">Deleted</span>
+            <span className="px-3 py-1 rounded-full text-xs bg-red-100 text-red-700">Deleted</span>
           ) : org.suspended ? (
-            <span className="px-3 py-1 rounded-full text-xs bg-yellow-900/40 text-yellow-400">Suspended</span>
+            <span className="px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">Suspended</span>
           ) : (
-            <span className="px-3 py-1 rounded-full text-xs bg-[#00BFA6]/10 text-[#00BFA6]">Active</span>
+            <span className="px-3 py-1 rounded-full text-xs bg-[var(--pz-teal-bg)] text-[var(--pz-teal-ink)]">Active</span>
           )}
           {!org.deleted_at && (
             <div className="flex gap-2">
               {!org.suspended ? (
                 <form action={`/api/admin/orgs/${id}/suspend`} method="POST">
-                  <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-900/40 text-xs text-yellow-400 hover:bg-yellow-900/60">Suspend</button>
+                  <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-100 text-xs text-yellow-700 hover:bg-yellow-200">Suspend</button>
                 </form>
               ) : (
                 <form action={`/api/admin/orgs/${id}/unsuspend`} method="POST">
-                  <button type="submit" className="px-3 py-1.5 rounded-lg bg-[#1E3A5F] text-xs text-[#94A3B8] hover:bg-[#2A4F7A]">Unsuspend</button>
+                  <button type="submit" className="px-3 py-1.5 rounded-lg bg-[var(--pz-surface-2)] text-xs text-[var(--pz-muted)] hover:bg-[var(--pz-border)]">Unsuspend</button>
                 </form>
               )}
               <form action={`/api/admin/orgs/${id}/offboard`} method="POST" onSubmit={() => confirm('Permanently offboard this org? This cannot be undone.')}>
-                <button type="submit" className="px-3 py-1.5 rounded-lg bg-red-900/40 text-xs text-red-400 hover:bg-red-900/60">Offboard</button>
+                <button type="submit" className="px-3 py-1.5 rounded-lg bg-red-100 text-xs text-red-700 hover:bg-red-200">Offboard</button>
               </form>
             </div>
           )}
@@ -58,36 +58,36 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-4">
-          <p className="text-xs text-[#64748B]">Total Revenue</p>
-          <p className="text-xl font-bold text-[#F0F4F8]">${(revenue / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+        <div className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-4">
+          <p className="text-xs text-[var(--pz-label)]">Total Revenue</p>
+          <p className="text-xl font-bold text-[var(--pz-text)]">${(revenue / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
         </div>
-        <div className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-4">
-          <p className="text-xs text-[#64748B]">Events</p>
-          <p className="text-xl font-bold text-[#F0F4F8]">{events.length}</p>
+        <div className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-4">
+          <p className="text-xs text-[var(--pz-label)]">Events</p>
+          <p className="text-xl font-bold text-[var(--pz-text)]">{events.length}</p>
         </div>
-        <div className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-4">
-          <p className="text-xs text-[#64748B]">Members</p>
-          <p className="text-xl font-bold text-[#F0F4F8]">{members.length}</p>
+        <div className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-4">
+          <p className="text-xs text-[var(--pz-label)]">Members</p>
+          <p className="text-xl font-bold text-[var(--pz-text)]">{members.length}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-[#F0F4F8]">Members</h2>
-          <div className="rounded-xl border border-[#1E3A5F] overflow-hidden">
+          <h2 className="text-sm font-semibold text-[var(--pz-text)]">Members</h2>
+          <div className="rounded-xl border border-[var(--pz-border)] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-[#071629]">
+              <thead className="bg-[var(--pz-surface-2)]">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs text-[#64748B] uppercase">Email</th>
-                  <th className="px-4 py-2 text-left text-xs text-[#64748B] uppercase">Role</th>
+                  <th className="px-4 py-2 text-left text-xs text-[var(--pz-label)] uppercase">Email</th>
+                  <th className="px-4 py-2 text-left text-xs text-[var(--pz-label)] uppercase">Role</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E3A5F]">
+              <tbody className="divide-y divide-[var(--pz-border)]">
                 {members.map((m: any) => (
-                  <tr key={m.id} className="bg-[#112240]">
-                    <td className="px-4 py-2 text-[#94A3B8] text-xs">{m.profiles?.email ?? '—'}</td>
-                    <td className="px-4 py-2 text-[#64748B] text-xs capitalize">{m.role}</td>
+                  <tr key={m.id} className="bg-[var(--pz-surface)]">
+                    <td className="px-4 py-2 text-[var(--pz-muted)] text-xs">{m.profiles?.email ?? '—'}</td>
+                    <td className="px-4 py-2 text-[var(--pz-label)] text-xs capitalize">{m.role}</td>
                   </tr>
                 ))}
               </tbody>
@@ -96,20 +96,20 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-[#F0F4F8]">Recent Events</h2>
-          <div className="rounded-xl border border-[#1E3A5F] overflow-hidden">
+          <h2 className="text-sm font-semibold text-[var(--pz-text)]">Recent Events</h2>
+          <div className="rounded-xl border border-[var(--pz-border)] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-[#071629]">
+              <thead className="bg-[var(--pz-surface-2)]">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs text-[#64748B] uppercase">Title</th>
-                  <th className="px-4 py-2 text-left text-xs text-[#64748B] uppercase">Status</th>
+                  <th className="px-4 py-2 text-left text-xs text-[var(--pz-label)] uppercase">Title</th>
+                  <th className="px-4 py-2 text-left text-xs text-[var(--pz-label)] uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1E3A5F]">
+              <tbody className="divide-y divide-[var(--pz-border)]">
                 {events.map((ev: any) => (
-                  <tr key={ev.id} className="bg-[#112240]">
-                    <td className="px-4 py-2 text-[#94A3B8] text-xs truncate max-w-[150px]">{ev.title}</td>
-                    <td className="px-4 py-2 text-[#64748B] text-xs capitalize">{ev.status}</td>
+                  <tr key={ev.id} className="bg-[var(--pz-surface)]">
+                    <td className="px-4 py-2 text-[var(--pz-muted)] text-xs truncate max-w-[150px]">{ev.title}</td>
+                    <td className="px-4 py-2 text-[var(--pz-label)] text-xs capitalize">{ev.status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -119,19 +119,19 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-[#F0F4F8]">Details</h2>
-        <div className="rounded-xl border border-[#1E3A5F] bg-[#112240] p-4 text-sm space-y-2">
+        <h2 className="text-sm font-semibold text-[var(--pz-text)]">Details</h2>
+        <div className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-4 text-sm space-y-2">
           <div className="flex gap-4">
-            <span className="text-[#64748B] w-32">ID</span>
-            <span className="text-[#94A3B8] font-mono text-xs">{org.id}</span>
+            <span className="text-[var(--pz-label)] w-32">ID</span>
+            <span className="text-[var(--pz-muted)] font-mono text-xs">{org.id}</span>
           </div>
           <div className="flex gap-4">
-            <span className="text-[#64748B] w-32">Created</span>
-            <span className="text-[#94A3B8]">{new Date(org.created_at).toLocaleString()}</span>
+            <span className="text-[var(--pz-label)] w-32">Created</span>
+            <span className="text-[var(--pz-muted)]">{new Date(org.created_at).toLocaleString()}</span>
           </div>
-          {org.email && <div className="flex gap-4"><span className="text-[#64748B] w-32">Email</span><span className="text-[#94A3B8]">{org.email}</span></div>}
-          {org.website && <div className="flex gap-4"><span className="text-[#64748B] w-32">Website</span><span className="text-[#94A3B8]">{org.website}</span></div>}
-          {org.stripe_account_id && <div className="flex gap-4"><span className="text-[#64748B] w-32">Stripe</span><span className="text-[#94A3B8] font-mono text-xs">{org.stripe_account_id}</span></div>}
+          {org.email && <div className="flex gap-4"><span className="text-[var(--pz-label)] w-32">Email</span><span className="text-[var(--pz-muted)]">{org.email}</span></div>}
+          {org.website && <div className="flex gap-4"><span className="text-[var(--pz-label)] w-32">Website</span><span className="text-[var(--pz-muted)]">{org.website}</span></div>}
+          {org.stripe_account_id && <div className="flex gap-4"><span className="text-[var(--pz-label)] w-32">Stripe</span><span className="text-[var(--pz-muted)] font-mono text-xs">{org.stripe_account_id}</span></div>}
         </div>
       </div>
     </div>

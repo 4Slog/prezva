@@ -71,7 +71,7 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
 
   if (sessions.length === 0) {
     return (
-      <div className="text-center py-12 text-[var(--text-muted)]">
+      <div className="text-center py-12 text-[var(--pz-muted)]">
         <p className="text-sm">No sessions yet. Add your first session above.</p>
       </div>
     )
@@ -81,7 +81,7 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
     <div className="space-y-8">
       {days.map(day => (
         <div key={day}>
-          <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-3">
+          <h3 className="text-sm font-semibold text-[var(--pz-muted)] mb-3">
             {new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </h3>
           <div className="space-y-2">

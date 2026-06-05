@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getMyProfile, upsertAttendeeProfile, getIcebreakerQuestions } from '@/lib/networking/sprint8-actions'
 import { AvatarUpload } from '@/components/upload/AvatarUpload'
+import { Field } from '@/components/ui/Field'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -68,9 +69,9 @@ export default async function ProfileEditPage({ params }: Props) {
         >
           <div className="pz-card p-5 space-y-4">
             <h2 className="text-sm font-semibold" style={{ color: 'var(--pz-label)' }}>Basic info</h2>
-            <div>
-              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Bio</label>
+            <Field label="Bio" htmlFor="profile-bio">
               <textarea
+                id="profile-bio"
                 name="bio"
                 rows={4}
                 defaultValue={p.bio ?? ''}
@@ -78,27 +79,25 @@ export default async function ProfileEditPage({ params }: Props) {
                 className={inputCls + ' resize-none'}
                 style={inputStyle}
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Company</label>
-                <input name="company" defaultValue={p.company ?? ''} placeholder="Acme Corp" className={inputCls} style={inputStyle} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Job title</label>
-                <input name="job_title" defaultValue={p.job_title ?? ''} placeholder="Head of Product" className={inputCls} style={inputStyle} />
-              </div>
+              <Field label="Company" htmlFor="profile-company">
+                <input id="profile-company" name="company" defaultValue={p.company ?? ''} placeholder="Acme Corp" className={inputCls} style={inputStyle} />
+              </Field>
+              <Field label="Job title" htmlFor="profile-job-title">
+                <input id="profile-job-title" name="job_title" defaultValue={p.job_title ?? ''} placeholder="Head of Product" className={inputCls} style={inputStyle} />
+              </Field>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Interests (comma-separated)</label>
+            <Field label="Interests (comma-separated)" htmlFor="profile-interests">
               <input
+                id="profile-interests"
                 name="interests"
                 defaultValue={(p.interests ?? []).join(', ')}
                 placeholder="AI, product strategy, hiking"
                 className={inputCls}
                 style={inputStyle}
               />
-            </div>
+            </Field>
           </div>
 
           <div className="pz-card p-5 space-y-4">
@@ -107,18 +106,15 @@ export default async function ProfileEditPage({ params }: Props) {
               <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Profile photo</label>
               <AvatarUpload currentUrl={p.avatar_url ?? ''} />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>LinkedIn URL</label>
-              <input name="linkedin_url" type="url" defaultValue={p.linkedin_url ?? ''} placeholder="https://linkedin.com/in/…" className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Twitter / X URL</label>
-              <input name="twitter_url" type="url" defaultValue={p.twitter_url ?? ''} placeholder="https://x.com/…" className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Website</label>
-              <input name="website_url" type="url" defaultValue={p.website_url ?? ''} placeholder="https://…" className={inputCls} style={inputStyle} />
-            </div>
+            <Field label="LinkedIn URL" htmlFor="profile-linkedin">
+              <input id="profile-linkedin" name="linkedin_url" type="url" defaultValue={p.linkedin_url ?? ''} placeholder="https://linkedin.com/in/…" className={inputCls} style={inputStyle} />
+            </Field>
+            <Field label="Twitter / X URL" htmlFor="profile-twitter">
+              <input id="profile-twitter" name="twitter_url" type="url" defaultValue={p.twitter_url ?? ''} placeholder="https://x.com/…" className={inputCls} style={inputStyle} />
+            </Field>
+            <Field label="Website" htmlFor="profile-website">
+              <input id="profile-website" name="website_url" type="url" defaultValue={p.website_url ?? ''} placeholder="https://…" className={inputCls} style={inputStyle} />
+            </Field>
           </div>
 
           {icebreakers.length > 0 && (
@@ -126,23 +122,23 @@ export default async function ProfileEditPage({ params }: Props) {
               <h2 className="text-sm font-semibold" style={{ color: 'var(--pz-label)' }}>Icebreaker questions</h2>
               <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>Answer a few to help others connect with you.</p>
               {icebreakers.map((q: any) => (
-                <div key={q.id}>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>{q.question}</label>
+                <Field key={q.id} label={q.question} htmlFor={`ib-${q.id}`}>
                   <input
+                    id={`ib-${q.id}`}
                     name={`icebreaker_${q.id}`}
                     defaultValue={(p.icebreaker_answers ?? {})[q.id] ?? ''}
                     placeholder="Your answer…"
                     className={inputCls}
                     style={inputStyle}
                   />
-                </div>
+                </Field>
               ))}
             </div>
           )}
 
           <div className="pz-card p-5">
             <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--pz-muted)' }}>
-              <input type="checkbox" name="is_visible" defaultChecked={p.is_visible !== false} className="accent-[#00BFA6]" />
+              <input type="checkbox" name="is_visible" defaultChecked={p.is_visible !== false} className="accent-[var(--pz-teal)]" />
               Show my profile in the attendee directory
             </label>
           </div>
@@ -150,7 +146,7 @@ export default async function ProfileEditPage({ params }: Props) {
           <button
             type="submit"
             className="w-full rounded-lg px-4 py-3 text-sm font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
           >
             Save profile
           </button>

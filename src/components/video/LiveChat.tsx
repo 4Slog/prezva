@@ -118,7 +118,7 @@ export default function LiveChat({ eventId, sessionId, userId, displayName }: Pr
             borderRadius: 6,
             border: 'none',
             background: 'var(--color-teal)',
-            color: '#fff',
+            color: 'var(--pz-chrome-text)',
             cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
             opacity: input.trim() && !sending ? 1 : 0.5,
             display: 'flex',

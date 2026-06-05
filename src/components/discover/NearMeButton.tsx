@@ -39,8 +39,8 @@ export function NearMeButton() {
           padding: '0.625rem 1.25rem',
           borderRadius: 8,
           border: isActive ? '2px solid var(--pz-teal)' : '1px solid var(--pz-border)',
-          background: isActive ? 'var(--pz-teal)22' : 'var(--pz-surface-2)',
-          color: isActive ? 'var(--pz-teal)' : 'var(--pz-muted)',
+          background: isActive ? 'var(--pz-teal-bg)' : 'var(--pz-surface-2)',
+          color: isActive ? 'var(--pz-teal-ink)' : 'var(--pz-muted)',
           fontWeight: 600,
           fontSize: 14,
           cursor: loading ? 'wait' : 'pointer',
@@ -49,7 +49,7 @@ export function NearMeButton() {
       >
         {loading ? 'Getting location...' : isActive ? 'Near me (50mi)' : 'Near me'}
       </button>
-      {error && <span style={{ fontSize: 12, color: '#EF4444' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, color: 'var(--pz-error)' }}>{error}</span>}
     </div>
   )
 }

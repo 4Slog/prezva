@@ -45,7 +45,7 @@ export function PointConfigEditor({ eventId, initialConfig }: PointConfigEditorP
 
   return (
     <div className="pz-card p-5 mt-8">
-      <h2 className="text-sm font-semibold text-[#F0F4F8] mb-4">Point values</h2>
+      <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Point values</h2>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px 16px', alignItems: 'center' }}>
         {Object.keys(ACTION_LABELS).map((action) => (
           <>
@@ -82,12 +82,12 @@ export function PointConfigEditor({ eventId, initialConfig }: PointConfigEditorP
           onClick={handleSave}
           disabled={saving}
           className="rounded-lg px-4 py-1.5 text-xs font-semibold disabled:opacity-50 transition-opacity"
-          style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
         >
           {saving ? 'Saving…' : 'Save point values'}
         </button>
-        {saved && <span style={{ fontSize: 12, color: '#22C55E' }}>Saved</span>}
-        {error && <span style={{ fontSize: 12, color: '#EF4444' }}>{error}</span>}
+        {saved && <span style={{ fontSize: 12, color: 'var(--pz-success-fill)' }}>Saved</span>}
+        {error && <span style={{ fontSize: 12, color: 'var(--pz-error)' }}>{error}</span>}
       </div>
     </div>
   )

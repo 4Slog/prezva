@@ -167,16 +167,16 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{eventName}</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
+          <h1 className="text-2xl font-bold text-[var(--pz-text)]">{eventName}</h1>
+          <p className="text-sm text-[var(--pz-muted)] mt-1">
             Check-In — {stats.total_checked_in}/{stats.total_registered} attendees checked in
           </p>
         </div>
         {/* Offline sync widget */}
         <div className="flex-shrink-0 text-right">
           <div className="flex items-center gap-2 justify-end">
-            <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-xs text-[var(--text-muted)]">{isOnline ? 'Online' : 'Offline'}</span>
+            <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-[var(--pz-success-fill)]' : 'bg-[var(--pz-error)]'}`} />
+            <span className="text-xs text-[var(--pz-muted)]">{isOnline ? 'Online' : 'Offline'}</span>
           </div>
           {pendingCount > 0 && (
             <div className="mt-1">
@@ -186,7 +186,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
                   onClick={triggerSync}
                   disabled={syncing}
                   className="ml-2 text-xs underline disabled:opacity-50"
-                  style={{ color: 'var(--color-teal)' }}
+                  style={{ color: 'var(--pz-teal-ink)' }}
                 >
                   {syncing ? 'Syncing…' : 'Sync now'}
                 </button>
@@ -205,7 +205,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
 
       {/* Tab switcher + kiosk button */}
       <div className="flex items-center gap-2">
-        <div className="flex flex-1 gap-1 bg-[var(--bg-subtle)] p-1 rounded-lg">
+        <div className="flex flex-1 gap-1 bg-[var(--pz-bg)] p-1 rounded-lg">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -213,8 +213,8 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
               className={
                 'flex-1 py-2 text-sm font-medium rounded-md transition-colors ' +
                 (tab === t.id
-                  ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]')
+                  ? 'bg-[var(--pz-surface)] text-[var(--pz-text)] shadow-sm'
+                  : 'text-[var(--pz-muted)] hover:text-[var(--pz-muted)]')
               }
             >
               {t.label}
@@ -225,7 +225,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           type="button"
           onClick={() => setKioskMode(true)}
           className="flex-shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
-          style={{ borderColor: 'var(--color-teal)', color: 'var(--color-teal)', background: 'none' }}
+          style={{ borderColor: 'var(--pz-teal)', color: 'var(--pz-teal-ink)', background: 'none' }}
           title="Enter fullscreen kiosk mode"
         >
           Kiosk mode
@@ -258,7 +258,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
       <div>
         {tab === 'qr' && (
           <div className="space-y-3">
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className="text-sm text-[var(--pz-muted)]">
               Point the camera at an attendee&apos;s QR code to check them in.
             </p>
             <QRScanner onScan={handleQRScan} active={tab === 'qr'} />
@@ -277,7 +277,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 9999,
-            background: '#0D1B2A', color: '#F0F4F8',
+            background: 'var(--pz-chrome)', color: 'var(--pz-chrome-text)',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             padding: '2rem',
             overflowY: 'auto',
@@ -286,7 +286,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>{eventName}</h1>
-            <p style={{ fontSize: '1.25rem', color: '#94A3B8' }}>
+            <p style={{ fontSize: '1.25rem', color: 'var(--pz-chrome-muted)' }}>
               <KioskClock /> &nbsp;·&nbsp; {stats.total_checked_in}/{stats.total_registered} checked in
             </p>
           </div>
@@ -300,8 +300,10 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
                 fontSize: '1.1rem', fontWeight: 600,
                 ...(lastResult.success
                   ? lastResult.registration?.already_checked_in
+                    // eslint-disable-next-line no-restricted-syntax
                     ? { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#FCD34D' }
-                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: '#00BFA6' }
+                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: 'var(--pz-teal)' }
+                  // eslint-disable-next-line no-restricted-syntax
                   : { background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#FCA5A5' }),
               }}
             >
@@ -327,7 +329,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
 
           {/* Exit hint */}
           <div style={{ position: 'absolute', bottom: '1rem', right: '1.5rem', textAlign: 'right' }}>
-            <p style={{ fontSize: '0.7rem', color: '#475569' }}>
+            <p style={{ fontSize: '0.7rem', color: 'var(--pz-chrome-muted)' }}>
               {escCount > 0
                 ? `Esc ×${escCount}/3 to exit kiosk`
                 : 'Press Esc × 3 to exit kiosk mode'}

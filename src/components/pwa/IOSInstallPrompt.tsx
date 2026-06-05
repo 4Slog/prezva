@@ -14,18 +14,18 @@ export function IOSInstallPrompt() {
   if (!show) return null
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 bg-[#1E3A5F] rounded-xl p-4 shadow-xl z-50 border border-[#00BFA6]/20">
+    <div className="fixed bottom-4 left-4 right-4 bg-[var(--pz-surface-2)] rounded-xl p-4 shadow-xl z-50 border border-[var(--pz-teal)]/20">
       <div className="flex justify-between items-start mb-2">
-        <p className="text-sm font-semibold text-[#F0F4F8]">Add Prezva to Home Screen</p>
+        <p className="text-sm font-semibold text-[var(--pz-text)]">Add Prezva to Home Screen</p>
         <button
           onClick={() => { localStorage.setItem('ios-install-dismissed', '1'); setShow(false) }}
-          className="text-[#64748B] text-lg leading-none ml-3"
+          className="text-[var(--pz-muted)] text-lg leading-none ml-3"
         >
           ×
         </button>
       </div>
-      <p className="text-xs text-[#94A3B8]">
-        Tap <strong className="text-[#F0F4F8]">Share</strong> then <strong className="text-[#F0F4F8]">Add to Home Screen</strong> for the best experience.
+      <p className="text-xs text-[var(--pz-muted)]">
+        Tap <strong className="text-[var(--pz-text)]">Share</strong> then <strong className="text-[var(--pz-text)]">Add to Home Screen</strong> for the best experience.
       </p>
     </div>
   )

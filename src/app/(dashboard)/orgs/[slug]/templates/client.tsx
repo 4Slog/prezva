@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { deleteOrgTemplate } from '@/lib/templates/actions'
 import type { OrgTemplate, TemplateSurface } from '@/lib/templates/types'
+import { TEMPLATE_SURFACE_COLORS as SURFACE_COLOR } from '@/lib/ui/category-colors'
 
 interface EventTemplate { id: string; name: string; description: string | null; created_at: string }
 
@@ -16,15 +17,6 @@ const SURFACE_LABELS: Record<TemplateSurface, string> = {
   certificate: 'Certificate',
 }
 
-const SURFACE_COLOR: Record<TemplateSurface, string> = {
-  survey: '#3b82f6',
-  badge: '#8b5cf6',
-  event: '#00BFA6',
-  announcement: '#f59e0b',
-  icebreaker: '#ec4899',
-  trivia: '#ef4444',
-  certificate: '#B8860B',
-}
 
 interface Props {
   templates: OrgTemplate[]
@@ -63,7 +55,7 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {eventTemplates.map(t => (
               <div key={t.id} style={{ border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1rem 1.25rem', background: 'var(--pz-surface)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#00BFA622', color: '#00BFA6', flexShrink: 0, textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', flexShrink: 0, textTransform: 'uppercase' }}>
                   Event
                 </span>
                 <div style={{ flex: 1 }}>
@@ -77,7 +69,7 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
                 </div>
                 <a
                   href={`/events/new?templateId=${t.id}`}
-                  style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, background: 'var(--pz-teal)', color: '#0D1B2A', fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
+                  style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
                 >
                   Use template
                 </a>
@@ -104,7 +96,7 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
                 background: filterSurface === s
                   ? (s === 'all' ? 'var(--pz-teal)' : SURFACE_COLOR[s])
                   : 'var(--pz-surface)',
-                color: filterSurface === s ? '#0D1B2A' : 'var(--pz-muted)',
+                color: filterSurface === s ? 'var(--pz-on-accent)' : 'var(--pz-muted)',
               }}
             >
               {s === 'all' ? `All (${templates.length})` : `${SURFACE_LABELS[s]} (${templates.filter(t => t.surface === s).length})`}
@@ -145,7 +137,7 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
                 <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Delete?</span>
                   <button onClick={() => handleDelete(t.id)} disabled={pending}
-                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid #ef4444', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>Yes</button>
+                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-error)', background: 'transparent', color: 'var(--pz-error)', cursor: 'pointer' }}>Yes</button>
                   <button onClick={() => setDeleteId(null)}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: 'pointer' }}>No</button>
                 </span>

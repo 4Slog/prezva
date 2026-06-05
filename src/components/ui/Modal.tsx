@@ -54,7 +54,7 @@ export function Modal({ onClose, children, title, maxWidth = 'max-w-md' }: Modal
                 type="button"
                 onClick={onClose}
                 className="rounded p-1 transition-opacity hover:opacity-70"
-                style={{ color: 'var(--pz-text-muted)' }}
+                style={{ color: 'var(--pz-muted)' }}
                 aria-label="Close"
               >
                 ✕

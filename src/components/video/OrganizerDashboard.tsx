@@ -74,61 +74,61 @@ export default function OrganizerDashboard({ sessionId, isLive }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
         {STAT_CARDS.map(card => (
           <div key={card.label} style={{
-            background: '#112240', border: '1px solid #1E3A5F', borderRadius: 8,
+            background: 'var(--pz-chrome-elevated)', border: '1px solid var(--pz-chrome-border)', borderRadius: 8,
             padding: '14px 16px',
           }}>
-            <p style={{ fontSize: 11, color: '#64748B', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <p style={{ fontSize: 11, color: 'var(--pz-chrome-muted)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               {card.label}
             </p>
-            <p style={{ fontSize: 24, fontWeight: 700, color: '#F0F4F8', margin: '0 0 2px' }}>
+            <p style={{ fontSize: 24, fontWeight: 700, color: 'var(--pz-chrome-text)', margin: '0 0 2px' }}>
               {isLive ? '—' : '0'}
             </p>
-            <p style={{ fontSize: 11, color: '#64748B', margin: 0 }}>{card.sub}</p>
+            <p style={{ fontSize: 11, color: 'var(--pz-chrome-muted)', margin: 0 }}>{card.sub}</p>
           </div>
         ))}
       </div>
 
       {!isLive && (
-        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20, textAlign: 'center' }}>
+        <p style={{ fontSize: 13, color: 'var(--pz-chrome-muted)', marginBottom: 20, textAlign: 'center' }}>
           Live data appears when stream is active
         </p>
       )}
 
       {/* Drop-off chart placeholder */}
       <div style={{
-        background: '#112240', border: '1px solid #1E3A5F', borderRadius: 8,
+        background: 'var(--pz-chrome-elevated)', border: '1px solid var(--pz-chrome-border)', borderRadius: 8,
         padding: '14px 16px', marginBottom: 20,
       }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', margin: '0 0 8px' }}>Drop-off chart</p>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-chrome-muted)', margin: '0 0 8px' }}>Drop-off chart</p>
         <div style={{
-          height: 56, borderRadius: 6, background: '#0D1B2A',
+          height: 56, borderRadius: 6, background: 'var(--pz-chrome)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <p style={{ fontSize: 12, color: '#334155', margin: 0 }}>
+          <p style={{ fontSize: 12, color: 'var(--pz-chrome-muted)', margin: 0 }}>
             Drop-off chart — available when stream ends
           </p>
         </div>
       </div>
 
       {/* Q&A queue */}
-      <div style={{ background: '#112240', border: '1px solid #1E3A5F', borderRadius: 8, padding: '14px 16px' }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <div style={{ background: 'var(--pz-chrome-elevated)', border: '1px solid var(--pz-chrome-border)', borderRadius: 8, padding: '14px 16px' }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--pz-chrome-muted)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Q&amp;A queue
         </p>
         {loadingQ ? (
-          <p style={{ fontSize: 13, color: '#64748B' }}>Loading…</p>
+          <p style={{ fontSize: 13, color: 'var(--pz-chrome-muted)' }}>Loading…</p>
         ) : questions.length === 0 ? (
-          <p style={{ fontSize: 13, color: '#64748B' }}>No questions yet</p>
+          <p style={{ fontSize: 13, color: 'var(--pz-chrome-muted)' }}>No questions yet</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {questions.map(q => (
               <div key={q.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 12,
-                background: '#0D1B2A', borderRadius: 6, padding: '10px 12px',
+                background: 'var(--pz-chrome)', borderRadius: 6, padding: '10px 12px',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, color: '#F0F4F8', margin: '0 0 4px', lineHeight: 1.4 }}>{q.body}</p>
-                  <p style={{ fontSize: 11, color: '#64748B', margin: 0 }}>
+                  <p style={{ fontSize: 13, color: 'var(--pz-chrome-text)', margin: '0 0 4px', lineHeight: 1.4 }}>{q.body}</p>
+                  <p style={{ fontSize: 11, color: 'var(--pz-chrome-muted)', margin: 0 }}>
                     {q.upvote_count} {q.upvote_count === 1 ? 'vote' : 'votes'}
                     {q.answered_at ? ' · answered' : ''}
                   </p>
@@ -138,9 +138,9 @@ export default function OrganizerDashboard({ sessionId, isLive }: Props) {
                   disabled={pushingId === q.id}
                   style={{
                     flexShrink: 0, fontSize: 11, fontWeight: 600, padding: '4px 10px',
-                    borderRadius: 5, border: '1px solid #1E3A5F',
-                    background: pushingId === q.id ? '#1E3A5F' : 'transparent',
-                    color: pushingId === q.id ? '#00BFA6' : '#94A3B8',
+                    borderRadius: 5, border: '1px solid var(--pz-chrome-border)',
+                    background: pushingId === q.id ? 'var(--pz-chrome-border)' : 'transparent',
+                    color: pushingId === q.id ? 'var(--pz-teal)' : 'var(--pz-chrome-muted)',
                     cursor: pushingId === q.id ? 'default' : 'pointer',
                     whiteSpace: 'nowrap',
                   }}

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Video } from 'lucide-react'
 import { followAttendee, unfollowAttendee, sendMeetingRequest } from '@/lib/networking/sprint8-actions'
+import { Field } from '@/components/ui/Field'
 import { createOneOnOneRoom } from '@/lib/video/actions'
 
 export function ProfileActions({
@@ -78,7 +79,7 @@ export function ProfileActions({
             className="rounded-lg px-4 py-2 text-sm font-semibold"
             style={{
               background: following ? 'var(--pz-surface-2)' : 'var(--pz-teal)',
-              color: following ? 'var(--pz-muted)' : '#0D1B2A',
+              color: following ? 'var(--pz-muted)' : 'var(--pz-on-accent)',
             }}
           >
             {following ? 'Following' : 'Follow'}
@@ -107,7 +108,7 @@ export function ProfileActions({
       </div>
 
       {videoError && (
-        <p className="text-sm" style={{ color: '#ef4444' }}>{videoError}</p>
+        <p className="text-sm" style={{ color: 'var(--pz-error)' }}>{videoError}</p>
       )}
 
       {sent && (
@@ -117,9 +118,9 @@ export function ProfileActions({
       {showMeeting && (
         <div className="rounded-lg p-4 space-y-3" style={{ background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)' }}>
           <p className="text-xs font-semibold" style={{ color: 'var(--pz-label)' }}>Request a meeting with {targetName}</p>
-          <div>
-            <label className="mb-1 block text-xs" style={{ color: 'var(--pz-muted)' }}>Message (optional)</label>
+          <Field label="Message (optional)" htmlFor="meet-message">
             <textarea
+              id="meet-message"
               value={meetingMsg}
               onChange={e => setMeetingMsg(e.target.value)}
               rows={2}
@@ -127,23 +128,23 @@ export function ProfileActions({
               className="w-full rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
               style={inputStyle}
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs" style={{ color: 'var(--pz-muted)' }}>Proposed time (optional)</label>
+          </Field>
+          <Field label="Proposed time (optional)" htmlFor="meet-time">
             <input
+              id="meet-time"
               type="datetime-local"
               value={proposedTime}
               onChange={e => setProposedTime(e.target.value)}
               className="w-full rounded-lg px-3 py-2 text-xs focus:outline-none"
               style={inputStyle}
             />
-          </div>
+          </Field>
           <div className="flex gap-2">
             <button
               onClick={handleMeetingRequest}
               disabled={sending}
               className="rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
-              style={{ background: 'var(--pz-teal)', color: '#0D1B2A' }}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
               {sending ? 'Sending…' : 'Send request'}
             </button>

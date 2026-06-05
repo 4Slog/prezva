@@ -72,12 +72,12 @@ export default function HelpPage() {
   return (
     <div className="max-w-2xl space-y-10">
       <div>
-        <h1 className="text-2xl font-bold text-[#F0F4F8]">Help Center</h1>
-        <p className="text-sm text-[#64748B] mt-1">Answers to common questions about using Prezva.</p>
+        <h1 className="text-2xl font-bold text-[var(--pz-text)]">Help Center</h1>
+        <p className="text-sm text-[var(--pz-muted)] mt-1">Answers to common questions about using Prezva.</p>
       </div>
       {SECTIONS.map((section) => (
         <div key={section.heading}>
-          <h2 className="text-xs font-semibold text-[#00BFA6] uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-[var(--pz-teal-ink)] uppercase tracking-wider mb-3">
             {section.heading}
           </h2>
           <div className="space-y-2">
@@ -85,15 +85,15 @@ export default function HelpPage() {
               <details
                 key={q}
                 className="rounded-lg overflow-hidden"
-                style={{ border: '1px solid #1E3A5F', background: '#112240' }}
+                style={{ border: '1px solid var(--pz-border)', background: 'var(--pz-surface)' }}
               >
                 <summary
-                  className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[#F0F4F8] text-left hover:bg-[#1E3A5F]/40 transition-colors list-none"
+                  className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[var(--pz-text)] text-left hover:bg-[var(--pz-surface-2)] transition-colors list-none"
                 >
                   {q}
-                  <span className="ml-4 text-[#64748B] text-lg leading-none flex-shrink-0 select-none">+</span>
+                  <span className="ml-4 text-[var(--pz-muted)] text-lg leading-none flex-shrink-0 select-none">+</span>
                 </summary>
-                <p className="px-4 pb-4 text-xs text-[#94A3B8] leading-relaxed">{a}</p>
+                <p className="px-4 pb-4 text-xs text-[var(--pz-muted)] leading-relaxed">{a}</p>
               </details>
             ))}
           </div>

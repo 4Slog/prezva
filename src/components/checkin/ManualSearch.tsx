@@ -50,7 +50,7 @@ export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
         <select
           value={deliveryFilter}
           onChange={e => setDeliveryFilter(e.target.value as DeliveryFilter)}
-          className="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] text-xs"
+          className="px-3 py-2 border border-[var(--pz-border)] rounded-lg bg-[var(--pz-bg)] text-[var(--pz-text)] text-xs"
         >
           <option value="in_person">📍 In-person</option>
           <option value="virtual">💻 Virtual</option>
@@ -63,26 +63,26 @@ export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
           placeholder="Search by name or email…"
           value={query}
           onChange={handleChange}
-          className="w-full px-4 py-2.5 border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)]"
+          className="w-full px-4 py-2.5 border border-[var(--pz-border)] rounded-lg bg-[var(--pz-bg)] text-[var(--pz-text)] text-sm placeholder:text-[var(--pz-muted)]"
           autoComplete="off"
         />
         {searching && (
-          <span className="absolute right-3 top-3 text-xs text-[var(--text-muted)] animate-pulse">
+          <span className="absolute right-3 top-3 text-xs text-[var(--pz-muted)] animate-pulse">
             searching…
           </span>
         )}
       </div>
 
       {filtered.length > 0 && (
-        <div className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] overflow-hidden">
+        <div className="divide-y divide-[var(--pz-border)] rounded-lg border border-[var(--pz-border)] overflow-hidden">
           {filtered.map(r => (
             <div
               key={r.id}
-              className="flex items-center justify-between px-4 py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors"
+              className="flex items-center justify-between px-4 py-3 bg-[var(--pz-surface)] hover:bg-[var(--pz-surface-2)] transition-colors"
             >
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">{r.attendee_name}</p>
-                <p className="text-xs text-[var(--text-muted)]">
+                <p className="text-sm font-medium text-[var(--pz-text)]">{r.attendee_name}</p>
+                <p className="text-xs text-[var(--pz-muted)]">
                   {r.attendee_email} · {r.ticket_name}
                   {r.delivery_method === 'virtual' && ' · 💻'}
                 </p>
@@ -92,7 +92,7 @@ export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
               ) : (
                 <button
                   onClick={() => onCheckIn(r.id)}
-                  className="px-3 py-1.5 text-xs bg-[var(--brand-teal)] text-white rounded-md hover:opacity-90"
+                  className="px-3 py-1.5 text-xs bg-[var(--pz-teal)] text-[var(--pz-on-accent)] rounded-md hover:opacity-90"
                 >
                   Check in
                 </button>
@@ -103,7 +103,7 @@ export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
       )}
 
       {query.length >= 2 && !searching && filtered.length === 0 && (
-        <p className="text-sm text-[var(--text-muted)] text-center py-4">
+        <p className="text-sm text-[var(--pz-muted)] text-center py-4">
           {results.length > 0 ? `No ${deliveryFilter === 'in_person' ? 'in-person' : 'virtual'} attendees found` : 'No attendees found'}
         </p>
       )}

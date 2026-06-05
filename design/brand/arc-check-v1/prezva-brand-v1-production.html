@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prezva — Arc Check v1 · Production</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #0D1B2A;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 64px 20px 100px;
+    gap: 52px;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(45,212,191,0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
+
+  /* typography */
+  .tag {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 4px; text-transform: uppercase;
+    color: #2DD4BF; opacity: .5;
+  }
+  .section-title {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: #2DD4BF; opacity: .4;
+    width: 100%; max-width: 860px;
+    padding-left: 4px;
+  }
+
+  /* tiles */
+  .trio {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%; max-width: 860px;
+  }
+  .tile {
+    border-radius: 20px;
+    padding: 56px 20px 32px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .tn { background: #0F2133; border: 1px solid rgba(45,212,191,0.09); }
+  .tt { background: #2DD4BF; }
+  .tw { background: #F0FDFA; }
+  .tlbl {
+    font-size: 8.5px; font-weight: 600;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    margin-top: 22px;
+  }
+  .tn .tlbl { color: #1E3A52; }
+  .tt .tlbl { color: rgba(13,27,42,0.4); }
+  .tw .tlbl { color: #94A3B8; }
+
+  /* scale strip */
+  .strip {
+    display: flex; align-items: flex-end;
+    justify-content: center; gap: 44px;
+    background: #0A1628;
+    border: 1px solid rgba(45,212,191,0.07);
+    border-radius: 18px;
+    padding: 40px 52px;
+    width: 100%; max-width: 860px;
+  }
+  .si { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .spx { font-size: 9px; color: #1E3A52; letter-spacing: 1px; }
+  .app-icon {
+    width: 44px; height: 44px; background: #14B8A6;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .favicon-tile {
+    width: 18px; height: 18px; background: #0D9488;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* micro favicon — simplified arch only, thick stroke */
+  .favicon-micro {
+    width: 18px; height: 18px; background: #2DD4BF;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* lockups */
+  .lockups {
+    display: flex; flex-direction: column;
+    gap: 12px; width: 100%; max-width: 860px;
+  }
+  .lockup {
+    display: flex; align-items: center; gap: 16px;
+    background: #0F2133;
+    border: 1px solid rgba(45,212,191,0.08);
+    border-radius: 14px;
+    padding: 22px 32px;
+  }
+
+  /* divider */
+  .div {
+    width: 100%; max-width: 860px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(45,212,191,0.1), transparent);
+  }
+
+  /* nav */
+  .nav {
+    width: 100%; max-width: 860px;
+    background: #060F1A;
+    border: 1px solid rgba(45,212,191,0.07);
+    border-radius: 14px;
+    padding: 0 28px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-l { display: flex; align-items: center; gap: 11px; }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-link { font-size: 12px; color: #475569; font-weight: 500; }
+  .nav-cta {
+    background: #2DD4BF; color: #0D1B2A;
+    font-size: 12px; font-weight: 700;
+    padding: 8px 18px; border-radius: 8px;
+  }
+
+  /* hero */
+  .hero {
+    width: 100%; max-width: 860px;
+    background: #060F1A;
+    border: 1px solid rgba(45,212,191,0.07);
+    border-radius: 14px;
+    padding: 80px 40px 52px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 16px;
+    text-align: center;
+    position: relative;
+  }
+  .hero-nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 56px; padding: 0 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(45,212,191,0.06);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(45,212,191,0.08);
+    border: 1px solid rgba(45,212,191,0.2);
+    border-radius: 99px; padding: 5px 14px;
+    font-size: 11px; font-weight: 600; color: #2DD4BF;
+  }
+  .hero-dot { width: 6px; height: 6px; background: #2DD4BF; border-radius: 50%; }
+  .hero-h1 {
+    font-size: 30px; font-weight: 800; color: #F8FAFC;
+    line-height: 1.25; letter-spacing: -0.5px; max-width: 460px;
+  }
+  .hero-h1 span { color: #2DD4BF; }
+  .hero-sub { font-size: 13px; color: #64748B; line-height: 1.7; max-width: 380px; }
+  .hero-cta {
+    background: #2DD4BF; color: #0D1B2A;
+    font-size: 13px; font-weight: 700;
+    padding: 12px 28px; border-radius: 10px; margin-top: 4px;
+  }
+
+  /* spec sheet */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%; max-width: 860px;
+  }
+  .spec-card {
+    background: #0F2133;
+    border: 1px solid rgba(45,212,191,0.08);
+    border-radius: 14px;
+    padding: 24px 28px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .spec-label {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    color: #2DD4BF; opacity: .5;
+  }
+  .spec-value {
+    font-size: 13px; font-weight: 600; color: #94A3B8;
+    font-family: monospace; letter-spacing: 0.5px;
+  }
+  .spec-note {
+    font-size: 11px; color: #334155; line-height: 1.6;
+  }
+
+  /* color swatch row */
+  .swatches {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%; max-width: 860px;
+  }
+  .swatch-item { display: flex; flex-direction: column; gap: 7px; }
+  .swatch {
+    width: 52px; height: 52px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .swatch.glow { box-shadow: 0 0 18px rgba(45,212,191,0.35); }
+  .swatch-hex { font-size: 10px; color: #334155; font-family: monospace; }
+  .swatch-name { font-size: 9px; color: #1E3A52; letter-spacing: 1px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;">
+  <span class="tag">Prezva Arc Check · v1 · Production Locked</span>
+  <div style="font-size:28px;font-weight:800;color:#F8FAFC;letter-spacing:-0.5px;">Brand System</div>
+  <div style="font-size:12px;color:#334155;max-width:340px;line-height:1.8;">
+    Final mark. Tightened tracking. Favicon micro-variant. Full production spec.
+  </div>
+</div>
+
+<!-- ── THE MARK — 3 colorways ── -->
+<span class="section-title">01 — Primary Mark</span>
+<div class="trio">
+  <div class="tile tn">
+    <svg width="120" height="100" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="tlbl">On Dark</span>
+  </div>
+  <div class="tile tt">
+    <svg width="120" height="100" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#0D1B2A" stroke-width="8.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="tlbl">On Teal</span>
+  </div>
+  <div class="tile tw">
+    <svg width="120" height="100" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#0D9488" stroke-width="8.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="tlbl">On White</span>
+  </div>
+</div>
+
+<!-- ── SCALE + FAVICON MICRO ── -->
+<span class="section-title">02 — Scale & Favicon</span>
+<div class="strip">
+  <div class="si">
+    <svg width="84" height="70" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="spx">84px</span>
+  </div>
+  <div class="si">
+    <svg width="56" height="47" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="spx">56px</span>
+  </div>
+  <div class="si">
+    <svg width="36" height="30" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="spx">36px</span>
+  </div>
+  <div class="si">
+    <div class="app-icon">
+      <svg width="28" height="23" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+              fill="none" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="spx">App icon</span>
+  </div>
+  <div class="si">
+    <!--
+      FAVICON MICRO VARIANT:
+      Stripped to: pillar + arch top + check kick only.
+      No descent detail. No bend. Just the essential silhouette.
+      Thicker stroke (14px) for pixel survival at 16×16.
+      Teal background so the white mark pops in browser tabs.
+    -->
+    <div class="favicon-micro">
+      <svg width="12" height="12" viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 20 100
+                 L 20 44
+                 C 20 8 100 8 100 44
+                 L 78 78
+                 L 104 50"
+              fill="none" stroke="white" stroke-width="16"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="spx">Favicon</span>
+  </div>
+  <div class="si">
+    <!-- Favicon dark bg variant -->
+    <div class="favicon-tile">
+      <svg width="12" height="12" viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 20 100 L 20 44 C 20 8 100 8 100 44 L 78 78 L 104 50"
+              fill="none" stroke="#2DD4BF" stroke-width="16"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="spx">Favicon alt</span>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<!-- ── WORDMARK LOCKUPS — tightened tracking ── -->
+<span class="section-title">03 — Wordmark Lockups</span>
+<div class="lockups">
+
+  <!-- Primary: letter-spacing 4.5px -->
+  <div class="lockup">
+    <svg width="54" height="45" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span style="font-size:24px;font-weight:800;color:#F8FAFC;letter-spacing:4.5px;">PREZVA</span>
+  </div>
+
+  <!-- Nav: letter-spacing 2.5px -->
+  <div class="lockup" style="padding:16px 28px;">
+    <svg width="32" height="27" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span style="font-size:15px;font-weight:800;color:#F8FAFC;letter-spacing:2.5px;">PREZVA</span>
+  </div>
+
+  <!-- Mark only — no wordmark -->
+  <div class="lockup" style="justify-content:center;">
+    <svg width="54" height="45" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span style="font-size:11px;color:#1E3A52;letter-spacing:2px;font-weight:600;">Mark only · no wordmark</span>
+  </div>
+
+</div>
+
+<div class="div"></div>
+
+<!-- ── LIVE CONTEXTS ── -->
+<span class="section-title">04 — Live Contexts</span>
+
+<div class="nav">
+  <div class="nav-l">
+    <svg width="30" height="25" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+            fill="none" stroke="#2DD4BF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span style="font-size:15px;font-weight:800;color:#F8FAFC;letter-spacing:2.5px;">PREZVA</span>
+  </div>
+  <div class="nav-links">
+    <span class="nav-link">Features</span>
+    <span class="nav-link">Pricing</span>
+    <span class="nav-link">Docs</span>
+  </div>
+  <span class="nav-cta">Get started</span>
+</div>
+
+<div class="hero">
+  <div class="hero-nav">
+    <div class="nav-l">
+      <svg width="24" height="20" viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+              fill="none" stroke="#2DD4BF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span style="font-size:13px;font-weight:800;color:#F8FAFC;letter-spacing:2.5px;">PREZVA</span>
+    </div>
+    <span class="nav-cta" style="font-size:11px;padding:6px 14px;">Get started</span>
+  </div>
+  <div class="hero-badge"><span class="hero-dot"></span>Now in Beta</div>
+  <div class="hero-h1">Event management that <span>actually works</span></div>
+  <div class="hero-sub">Registration, ticketing, check-in, and attendee management — all in one platform. Payments go directly to your bank.</div>
+  <div class="hero-cta">Start free</div>
+</div>
+
+<div class="div"></div>
+
+<!-- ── PRODUCTION SPEC ── -->
+<span class="section-title">05 — Production Spec</span>
+<div class="spec-grid">
+  <div class="spec-card">
+    <span class="spec-label">SVG Path — Primary Mark</span>
+    <span class="spec-value">M 20 88 L 20 44 C 20 8 100 8 100 44<br>C 100 58 96 66 88 72 L 76 80 L 100 54</span>
+    <span class="spec-note">stroke-width: 8.5 · stroke-linecap: round · stroke-linejoin: round · fill: none</span>
+  </div>
+  <div class="spec-card">
+    <span class="spec-label">SVG Path — Favicon Micro</span>
+    <span class="spec-value">M 20 100 L 20 44 C 20 8 100 8 100 44<br>L 78 78 L 104 50</span>
+    <span class="spec-note">stroke-width: 16 · same linecap/join · white on teal #2DD4BF bg · simplified bend removed</span>
+  </div>
+  <div class="spec-card">
+    <span class="spec-label">Wordmark — Primary</span>
+    <span class="spec-value">Plus Jakarta Sans 800<br>letter-spacing: 4.5px</span>
+    <span class="spec-note">Color: #F8FAFC on dark · #0D1B2A on teal · #0D1B2A on white</span>
+  </div>
+  <div class="spec-card">
+    <span class="spec-label">Wordmark — Nav / Small</span>
+    <span class="spec-value">Plus Jakarta Sans 800<br>letter-spacing: 2.5px</span>
+    <span class="spec-note">Use at 13–16px. Do not go below 2px letter-spacing at any size.</span>
+  </div>
+  <div class="spec-card">
+    <span class="spec-label">App Icon</span>
+    <span class="spec-value">44×44 · bg: #14B8A6<br>border-radius: 11px</span>
+    <span class="spec-note">White stroke on teal bg. For Play Store / App Store use 1024×1024 at same proportions.</span>
+  </div>
+  <div class="spec-card">
+    <span class="spec-label">Clear Space Rule</span>
+    <span class="spec-value">Minimum: 1× mark height<br>on all four sides</span>
+    <span class="spec-note">Never place the mark closer than its own height to any edge, text, or competing element.</span>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<!-- ── COLOR PALETTE ── -->
+<span class="section-title">06 — Brand Colors</span>
+<div class="swatches">
+  <div class="swatch-item">
+    <div class="swatch glow" style="background:#2DD4BF;"></div>
+    <div class="swatch-hex">#2DD4BF</div>
+    <div class="swatch-name">Brand Teal</div>
+  </div>
+  <div class="swatch-item">
+    <div class="swatch" style="background:#14B8A6;"></div>
+    <div class="swatch-hex">#14B8A6</div>
+    <div class="swatch-name">Teal Mid</div>
+  </div>
+  <div class="swatch-item">
+    <div class="swatch" style="background:#0D9488;"></div>
+    <div class="swatch-hex">#0D9488</div>
+    <div class="swatch-name">Teal Deep</div>
+  </div>
+  <div class="swatch-item">
+    <div class="swatch" style="background:#0D1B2A; border-color:#1a3348;"></div>
+    <div class="swatch-hex">#0D1B2A</div>
+    <div class="swatch-name">Navy</div>
+  </div>
+  <div class="swatch-item">
+    <div class="swatch" style="background:#0F2133; border-color:#1a3348;"></div>
+    <div class="swatch-hex">#0F2133</div>
+    <div class="swatch-name">Surface</div>
+  </div>
+  <div class="swatch-item">
+    <div class="swatch" style="background:#F8FAFC;"></div>
+    <div class="swatch-hex">#F8FAFC</div>
+    <div class="swatch-name">Off-White</div>
+  </div>
+  <div class="swatch-item">
+    <div class="swatch" style="background:#64748B;"></div>
+    <div class="swatch-hex">#64748B</div>
+    <div class="swatch-name">Muted</div>
+  </div>
+</div>
+
+</body>
+</html>

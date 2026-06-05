@@ -21,12 +21,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <div className="min-h-screen bg-[#0D1B2A] flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--pz-chrome)' }}>
       <header
         className="h-14 flex items-center justify-between px-6 border-b"
-        style={{ background: '#071629', borderColor: '#1E3A5F' }}
+        style={{ background: 'var(--pz-chrome-2)', borderColor: 'var(--pz-chrome-line)' }}
       >
-        <span className="text-xs font-bold text-[#00BFA6] uppercase tracking-widest">Prezva Admin</span>
+        <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--pz-teal)' }}>Prezva Admin</span>
         {user && (
           <UserMenu
             email={user.email ?? ''}
@@ -35,25 +35,29 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         )}
       </header>
       <div className="flex flex-1">
-        <aside className="w-52 flex-shrink-0 bg-[#071629] border-r border-[#1E3A5F] p-4 flex flex-col">
+        <aside
+          className="w-52 flex-shrink-0 p-4 flex flex-col"
+          style={{ background: 'var(--pz-chrome-2)', borderRight: '1px solid var(--pz-chrome-line)' }}
+        >
           <nav className="space-y-1 flex-1">
             {NAV.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block px-3 py-2 rounded-lg text-sm text-[#94A3B8] hover:text-[#F0F4F8] hover:bg-[#1E3A5F]/40 transition-colors"
+                className="block px-3 py-2 rounded-lg text-sm transition-colors hover:text-[var(--pz-chrome-text)] hover:bg-[var(--pz-chrome-elevated)]"
+                style={{ color: 'var(--pz-chrome-muted)' }}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
-          <div className="pt-4 border-t border-[#1E3A5F]">
-            <Link href="/dashboard" className="text-xs text-[#64748B] hover:text-[#94A3B8]">
+          <div className="pt-4" style={{ borderTop: '1px solid var(--pz-chrome-line)' }}>
+            <Link href="/dashboard" className="text-xs hover:opacity-80" style={{ color: 'var(--pz-chrome-muted)' }}>
               ← Back to dashboard
             </Link>
           </div>
         </aside>
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="flex-1 p-8 overflow-auto" style={{ background: 'var(--pz-bg)' }}>
           {children}
         </main>
       </div>

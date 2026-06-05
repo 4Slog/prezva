@@ -5,15 +5,10 @@ import { listAdapters } from '@/lib/integrations/_shared/registry'
 import { mailchimpAdapter } from '@/lib/integrations/mailchimp/adapter'
 import Link from 'next/link'
 import { IntegrationsClient } from './integrations-client'
+import { INTEGRATION_STATUS_BADGE as STATUS_BADGE } from '@/lib/ui/category-colors'
 
 type Props = { params: Promise<{ slug: string }> }
 
-const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  connected: { label: 'Connected', bg: '#00BFA6', color: '#0D1B2A' },
-  available: { label: 'Not connected', bg: '#1E3A5F', color: '#94A3B8' },
-  awaiting_credentials: { label: 'Needs setup', bg: '#F59E0B', color: '#0D1B2A' },
-  error: { label: 'Error', bg: '#EF4444', color: '#fff' },
-}
 
 const SECTION_MAP: Record<string, string> = {
   mailchimp: 'Communications',
@@ -113,15 +108,15 @@ export default async function OrgIntegrationsPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-6 flex items-center gap-3">
-        <Link href={`/orgs/${slug}/settings`} className="text-sm text-[#64748B] hover:text-[#94A3B8]">
+        <Link href={`/orgs/${slug}/settings`} className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-muted)]">
           ← {(org as any).name}
         </Link>
-        <span className="text-[#1E3A5F]">/</span>
-        <span className="text-sm text-[#F0F4F8]">Integrations</span>
+        <span className="text-[var(--pz-label)]">/</span>
+        <span className="text-sm text-[var(--pz-text)]">Integrations</span>
       </div>
 
-      <h1 className="text-xl font-bold text-[#F0F4F8] mb-2">Integrations</h1>
-      <p className="text-sm text-[#64748B] mb-6">
+      <h1 className="text-xl font-bold text-[var(--pz-text)] mb-2">Integrations</h1>
+      <p className="text-sm text-[var(--pz-muted)] mb-6">
         Connect external services to sync attendees, import events, and verify memberships.
         Credentials are managed via environment variables — contact your administrator to enable new integrations.
       </p>

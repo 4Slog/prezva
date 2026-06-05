@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60">
+  <!-- Arc Check mark -->
+  <g transform="scale(0.52) translate(0, -2)">
+    <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
+          fill="none"
+          stroke="#2DD4BF"
+          stroke-width="8.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="70" y="42"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="32"
+        font-weight="800"
+        fill="#0D1B2A"
+        letter-spacing="4.5">PREZVA</text>
+</svg>

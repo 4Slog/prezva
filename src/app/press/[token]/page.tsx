@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PortalShell } from '@/components/portal/PortalShell'
 
 type Props = { params: Promise<{ token: string }> }
 
@@ -33,17 +34,11 @@ export default async function PressPortalPage({ params }: Props) {
   const speakers = speakersRes.data ?? []
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
-      <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '1rem 1.5rem' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-teal)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Press Portal</span>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--pz-text)', margin: '2px 0 0' }}>{event?.title}</h1>
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Credentialed: {(reg as any).attendee_name}</span>
-        </div>
-      </div>
-
+    <PortalShell
+      eventName={event?.title ?? ''}
+      portalLabel="Press Portal"
+      entityName={(reg as any).attendee_name}
+    >
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
         <section style={{ marginBottom: '2rem' }}>
@@ -102,6 +97,6 @@ export default async function PressPortalPage({ params }: Props) {
           </section>
         )}
       </div>
-    </div>
+    </PortalShell>
   )
 }
