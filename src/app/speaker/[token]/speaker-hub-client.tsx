@@ -12,6 +12,7 @@ import {
   deleteHandout,
 } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/client'
+import { Field } from '@/components/ui/Field'
 
 type Props = {
   token: string
@@ -401,26 +402,27 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
             ) : (
               <div className="space-y-4">
                 {formSchema.map((field: any) => (
-                  <div key={field.key}>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--pz-label)' }}>
-                      {field.label}{field.required && ' *'}
-                    </label>
-                    {field.type === 'textarea' ? (
+                  field.type === 'textarea' ? (
+                    <Field key={field.key} label={field.label} htmlFor={`sf-${field.key}`} required={field.required}>
                       <textarea
+                        id={`sf-${field.key}`}
                         className="pz-input w-full text-sm"
                         rows={3}
                         value={formData[field.key] ?? ''}
                         onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
                       />
-                    ) : (
+                    </Field>
+                  ) : (
+                    <Field key={field.key} label={field.label} htmlFor={`sf-${field.key}`} required={field.required}>
                       <input
+                        id={`sf-${field.key}`}
                         type={field.type ?? 'text'}
                         className="pz-input w-full text-sm"
                         value={formData[field.key] ?? ''}
                         onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
                       />
-                    )}
-                  </div>
+                    </Field>
+                  )
                 ))}
                 <div className="flex items-center gap-3">
                   <button onClick={saveForm} className="pz-btn-primary text-sm px-4 py-2">

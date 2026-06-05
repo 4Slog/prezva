@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { submitSurveyResponseByToken } from '@/lib/surveys/actions'
+import { Field } from '@/components/ui/Field'
 
 interface Question {
   id: string
@@ -46,19 +47,24 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
     <form onSubmit={handleSubmit} className="space-y-6">
       {questions.map(q => (
         <div key={q.id} className="rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-5 space-y-3">
-          <label className="text-sm font-medium text-[var(--pz-text)]">
-            {q.question_text}
-            {q.is_required && <span className="text-[var(--pz-error)] ml-1">*</span>}
-          </label>
+          {q.question_type !== 'text' && (
+            <label className="text-sm font-medium text-[var(--pz-text)]">
+              {q.question_text}
+              {q.is_required && <span className="text-[var(--pz-error)] ml-1">*</span>}
+            </label>
+          )}
 
           {q.question_type === 'text' && (
-            <textarea
-              value={answers[q.id] ?? ''}
-              onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-              required={q.is_required}
-              rows={3}
-              className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)] resize-none"
-            />
+            <Field label={q.question_text} htmlFor={`sq-${q.id}`} required={q.is_required}>
+              <textarea
+                id={`sq-${q.id}`}
+                value={answers[q.id] ?? ''}
+                onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                required={q.is_required}
+                rows={3}
+                className="w-full bg-[var(--pz-bg)] border border-[var(--pz-border)] rounded-lg px-3 py-2 text-sm text-[var(--pz-text)] focus:outline-none focus:border-[var(--pz-teal)] resize-none"
+              />
+            </Field>
           )}
 
           {q.question_type === 'rating' && (

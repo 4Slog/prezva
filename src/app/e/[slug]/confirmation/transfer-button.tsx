@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { transferRegistration } from '@/lib/registration/transfer-actions'
+import { Field } from '@/components/ui/Field'
 
 interface Props {
   registrationId: string
@@ -56,21 +57,22 @@ export default function TransferButton({ registrationId, eventTitle }: Props) {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>First name</label>
-                      <input required value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
-                        style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }} />
+                      <Field label="First name" htmlFor="xfer-first-name" required>
+                        <input id="xfer-first-name" required value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
+                          style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }} />
+                      </Field>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Last name</label>
-                      <input required value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
-                        style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }} />
+                      <Field label="Last name" htmlFor="xfer-last-name" required>
+                        <input id="xfer-last-name" required value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
+                          style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }} />
+                      </Field>
                     </div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: 'var(--pz-muted)', display: 'block', marginBottom: 4 }}>Email address</label>
-                    <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  <Field label="Email address" htmlFor="xfer-email" required>
+                    <input id="xfer-email" required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                       style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13, boxSizing: 'border-box' }} />
-                  </div>
+                  </Field>
                   {err && <p style={{ color: 'var(--pz-error)', fontSize: 12 }}>{err}</p>}
                   <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                     <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, background: 'transparent', border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 8, padding: '10px 0', cursor: 'pointer', fontSize: 13 }}>

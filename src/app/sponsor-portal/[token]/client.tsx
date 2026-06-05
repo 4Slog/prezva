@@ -9,6 +9,7 @@ import {
   updateLeadNote,
   updateSponsorBooth,
 } from '@/lib/sponsors/portal-actions'
+import { Field } from '@/components/ui/Field'
 import type { SponsorLead } from '@/lib/sponsors/portal-actions'
 
 interface Props {
@@ -404,36 +405,36 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
           <div style={{ background: 'var(--pz-surface)', borderRadius: 12, padding: '1.5rem', border: '1px solid var(--pz-border)', maxWidth: 560 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 16 }}>Edit Booth Info</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--pz-muted)', marginBottom: 4 }}>Company description</label>
+              <Field label="Company description" htmlFor="sp-description">
                 <textarea
+                  id="sp-description"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   rows={4}
                   placeholder="Tell attendees about your company…"
                   style={{ ...inputStyle, resize: 'vertical' }}
                 />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--pz-muted)', marginBottom: 4 }}>Website URL</label>
+              </Field>
+              <Field label="Website URL" htmlFor="sp-website">
                 <input
+                  id="sp-website"
                   type="url"
                   value={websiteUrl}
                   onChange={e => setWebsiteUrl(e.target.value)}
                   placeholder="https://example.com"
                   style={inputStyle}
                 />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--pz-muted)', marginBottom: 4 }}>Logo URL</label>
+              </Field>
+              <Field label="Logo URL" htmlFor="sp-logo">
                 <input
+                  id="sp-logo"
                   type="url"
                   value={logoUrl}
                   onChange={e => setLogoUrl(e.target.value)}
                   placeholder="https://example.com/logo.png"
                   style={inputStyle}
                 />
-              </div>
+              </Field>
               <button
                 onClick={handleSaveInfo}
                 disabled={infoSaving}

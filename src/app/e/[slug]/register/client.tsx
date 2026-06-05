@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { startRegistration } from '@/lib/registration/actions'
+import { Field } from '@/components/ui/Field'
 
 interface TicketType {
   id: string
@@ -84,7 +85,6 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
   }
 
   const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
-  const labelCls = 'mb-1 block text-sm font-medium text-[var(--pz-muted)]'
 
   async function applyDiscount() {
     if (!selectedTicket || !discountCode.trim()) return
@@ -254,33 +254,27 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
               <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Your information</h2>
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>First name *</label>
-                    <input name="attendee_first_name" required className={inputCls} placeholder="Jane" />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Last name *</label>
-                    <input name="attendee_last_name" required className={inputCls} placeholder="Smith" />
-                  </div>
+                  <Field label="First name" htmlFor="reg-first-name" required>
+                    <input id="reg-first-name" name="attendee_first_name" required className={inputCls} placeholder="Jane" />
+                  </Field>
+                  <Field label="Last name" htmlFor="reg-last-name" required>
+                    <input id="reg-last-name" name="attendee_last_name" required className={inputCls} placeholder="Smith" />
+                  </Field>
                 </div>
-                <div>
-                  <label className={labelCls}>Email address *</label>
-                  <input name="attendee_email" type="email" required className={inputCls} placeholder="jane@example.com" />
-                </div>
+                <Field label="Email address" htmlFor="reg-email" required>
+                  <input id="reg-email" name="attendee_email" type="email" required className={inputCls} placeholder="jane@example.com" />
+                </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Phone</label>
-                    <input name="attendee_phone" type="tel" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Company</label>
-                    <input name="attendee_company" className={inputCls} />
-                  </div>
+                  <Field label="Phone" htmlFor="reg-phone">
+                    <input id="reg-phone" name="attendee_phone" type="tel" className={inputCls} />
+                  </Field>
+                  <Field label="Company" htmlFor="reg-company">
+                    <input id="reg-company" name="attendee_company" className={inputCls} />
+                  </Field>
                 </div>
-                <div>
-                  <label className={labelCls}>Job title</label>
-                  <input name="attendee_job_title" className={inputCls} />
-                </div>
+                <Field label="Job title" htmlFor="reg-job-title">
+                  <input id="reg-job-title" name="attendee_job_title" className={inputCls} />
+                </Field>
               </div>
             </div>
 
@@ -296,43 +290,58 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
                   <div className="flex flex-col gap-4">
                     {visible.map(f => (
                       <div key={f.id}>
-                        <label className={labelCls}>
-                          {f.label}{f.is_required && ' *'}
-                        </label>
                         {f.field_type === 'textarea' && (
-                          <textarea name={`cf_${f.id}`} required={f.is_required} rows={3} className={inputCls} />
+                          <Field label={f.label} htmlFor={`q-${f.id}`} required={f.is_required}>
+                            <textarea id={`q-${f.id}`} name={`cf_${f.id}`} required={f.is_required} rows={3} className={inputCls} />
+                          </Field>
                         )}
                         {(f.field_type === 'text' || f.field_type === 'email' || f.field_type === 'phone') && (
-                          <input name={`cf_${f.id}`} type={f.field_type === 'email' ? 'email' : f.field_type === 'phone' ? 'tel' : 'text'} required={f.is_required} className={inputCls} />
+                          <Field label={f.label} htmlFor={`q-${f.id}`} required={f.is_required}>
+                            <input id={`q-${f.id}`} name={`cf_${f.id}`} type={f.field_type === 'email' ? 'email' : f.field_type === 'phone' ? 'tel' : 'text'} required={f.is_required} className={inputCls} />
+                          </Field>
                         )}
                         {f.field_type === 'date' && (
-                          <input name={`cf_${f.id}`} type="date" required={f.is_required} className={inputCls} />
+                          <Field label={f.label} htmlFor={`q-${f.id}`} required={f.is_required}>
+                            <input id={`q-${f.id}`} name={`cf_${f.id}`} type="date" required={f.is_required} className={inputCls} />
+                          </Field>
                         )}
                         {f.field_type === 'select' && f.options && (
-                          <select name={`cf_${f.id}`} required={f.is_required} className={inputCls}>
-                            <option value="">Select…</option>
-                            {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-                          </select>
+                          <Field label={f.label} htmlFor={`q-${f.id}`} required={f.is_required}>
+                            <select id={`q-${f.id}`} name={`cf_${f.id}`} required={f.is_required} className={inputCls}>
+                              <option value="">Select…</option>
+                              {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </Field>
                         )}
                         {f.field_type === 'radio' && f.options && (
-                          <div className="flex flex-col gap-2 mt-1">
-                            {f.options.map(o => (
-                              <label key={o} className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
-                                <input type="radio" name={`cf_${f.id}`} value={o} required={f.is_required} />
-                                {o}
-                              </label>
-                            ))}
-                          </div>
+                          <>
+                            <label className="mb-1 block text-sm font-medium text-[var(--pz-muted)]">
+                              {f.label}{f.is_required && ' *'}
+                            </label>
+                            <div className="flex flex-col gap-2 mt-1">
+                              {f.options.map(o => (
+                                <label key={o} className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
+                                  <input type="radio" name={`cf_${f.id}`} value={o} required={f.is_required} />
+                                  {o}
+                                </label>
+                              ))}
+                            </div>
+                          </>
                         )}
                         {f.field_type === 'checkbox' && f.options && (
-                          <div className="flex flex-col gap-2 mt-1">
-                            {f.options.map(o => (
-                              <label key={o} className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
-                                <input type="checkbox" name={`cf_${f.id}`} value={o} />
-                                {o}
-                              </label>
-                            ))}
-                          </div>
+                          <>
+                            <label className="mb-1 block text-sm font-medium text-[var(--pz-muted)]">
+                              {f.label}
+                            </label>
+                            <div className="flex flex-col gap-2 mt-1">
+                              {f.options.map(o => (
+                                <label key={o} className="flex items-center gap-2 text-sm text-[var(--pz-muted)] cursor-pointer">
+                                  <input type="checkbox" name={`cf_${f.id}`} value={o} />
+                                  {o}
+                                </label>
+                              ))}
+                            </div>
+                          </>
                         )}
                       </div>
                     ))}
@@ -391,16 +400,15 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
 
             {/* Invite code field if required */}
             {event.registration_invite_code && (
-              <div>
-                <label className={labelCls}>Invite code *</label>
+              <Field label="Invite code" htmlFor="reg-invite-code" required helper="This event requires an invite code to register.">
                 <input
+                  id="reg-invite-code"
                   name="invite_code"
                   required
                   className={inputCls}
                   placeholder="Enter your invite code"
                 />
-                <p className="text-xs text-[var(--pz-muted)] mt-1">This event requires an invite code to register.</p>
-              </div>
+              </Field>
             )}
 
             {/* SMS consent */}

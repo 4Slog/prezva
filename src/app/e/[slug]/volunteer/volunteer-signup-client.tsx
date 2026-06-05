@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { signupAsVolunteer } from '@/lib/volunteers/actions'
+import { Field } from '@/components/ui/Field'
 
 const ROLE_OPTIONS = [
   { value: 'registration-desk', label: 'Registration Desk' },
@@ -38,16 +39,6 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
     color: 'var(--pz-text)',
     outline: 'none',
     boxSizing: 'border-box' as const,
-  }
-
-  const labelStyle = {
-    fontSize: 12,
-    color: 'var(--pz-muted)',
-    display: 'block',
-    marginBottom: 4,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -103,19 +94,19 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <div>
-          <label style={labelStyle}>Full name *</label>
+        <Field label="Full name" htmlFor="vol-name" required>
           <input
+            id="vol-name"
             required
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             style={inputStyle}
             placeholder="Your full name"
           />
-        </div>
-        <div>
-          <label style={labelStyle}>Email *</label>
+        </Field>
+        <Field label="Email" htmlFor="vol-email" required>
           <input
+            id="vol-email"
             required
             type="email"
             value={form.email}
@@ -123,20 +114,20 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
             style={inputStyle}
             placeholder="you@example.com"
           />
-        </div>
-        <div>
-          <label style={labelStyle}>Phone</label>
+        </Field>
+        <Field label="Phone" htmlFor="vol-phone">
           <input
+            id="vol-phone"
             type="tel"
             value={form.phone}
             onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
             style={inputStyle}
             placeholder="Optional"
           />
-        </div>
-        <div>
-          <label style={labelStyle}>Role preference</label>
+        </Field>
+        <Field label="Role preference" htmlFor="vol-role">
           <select
+            id="vol-role"
             value={form.role}
             onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
             style={{ ...inputStyle, cursor: 'pointer' }}
@@ -145,19 +136,19 @@ export function VolunteerSignupClient({ eventId, eventTitle }: Props) {
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-        </div>
+        </Field>
       </div>
 
-      <div>
-        <label style={labelStyle}>Availability notes</label>
+      <Field label="Availability notes" htmlFor="vol-notes">
         <textarea
+          id="vol-notes"
           value={form.notes}
           onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
           rows={3}
           style={{ ...inputStyle, resize: 'vertical' }}
           placeholder="e.g. Available all day Saturday only"
         />
-      </div>
+      </Field>
 
       <div>
         <button
