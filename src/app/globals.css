@@ -68,6 +68,21 @@
   --input:              213 28% 92%;
   --ring:               172 66% 50%;   /* teal ring */
   --radius:             0.5rem;
+
+  /* ── legacy token aliases — pre-redesign refs pending full migration ──────── */
+  --brand-teal:         var(--pz-teal);
+  --text-primary:       var(--pz-text);
+  --text-secondary:     var(--pz-muted);
+  --text-muted:         var(--pz-muted);
+  --color-text:         var(--pz-text);
+  --color-text-muted:   var(--pz-muted);
+  --color-bg:           var(--pz-bg);
+  --color-navy:         var(--pz-chrome);
+  --surface:            var(--pz-surface);
+  --surface-hover:      var(--pz-surface-2);
+  --bg-page:            var(--pz-bg);
+  --bg-card:            var(--pz-surface);
+  --bg-subtle:          var(--pz-surface-2);
 }
 
 /* ── @theme (Tailwind v4 token registration) ──────────────────────────────── */

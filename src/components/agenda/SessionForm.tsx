@@ -197,7 +197,7 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
                 className={
                   'px-3 py-1 rounded-full text-xs font-medium border transition-colors ' +
                   (s.id in speakerRoles
-                    ? 'bg-[var(--pz-teal)] text-white border-[var(--pz-teal)]'
+                    ? 'bg-[var(--pz-teal)] text-[var(--pz-on-accent)] border-[var(--pz-teal)]'
                     : 'bg-[var(--pz-bg)] text-[var(--pz-muted)] border-[var(--pz-border)]')
                 }
               >
@@ -235,7 +235,7 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
         <button
           onClick={handleSubmit}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-[var(--pz-teal)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-[var(--pz-teal)] text-[var(--pz-on-accent)] rounded-lg hover:opacity-90 disabled:opacity-50"
         >
           {saving ? 'Saving…' : session ? 'Update' : 'Create'}
         </button>

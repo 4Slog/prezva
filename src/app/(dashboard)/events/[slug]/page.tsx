@@ -163,7 +163,7 @@ export default async function EventDetailPage({ params }: Props) {
         {[
           { label: 'Confirmed',   value: counts.confirmed,  color: 'text-[var(--pz-text)]' },
           { label: 'Checked In',  value: counts.checkedIn,  color: 'text-[var(--pz-teal-ink)]' },
-          { label: 'Not Arrived', value: notArrived,        color: 'text-[var(--pz-warning-fill)]' },
+          { label: 'Not Arrived', value: notArrived,        color: 'text-[var(--pz-warning)]' },
           { label: 'Total Regs',  value: counts.total,      color: 'text-[var(--pz-text)]' },
         ].map((s) => (
           <div key={s.label} className="pz-card p-4">

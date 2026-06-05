@@ -92,7 +92,7 @@ export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
               ) : (
                 <button
                   onClick={() => onCheckIn(r.id)}
-                  className="px-3 py-1.5 text-xs bg-[var(--pz-teal)] text-white rounded-md hover:opacity-90"
+                  className="px-3 py-1.5 text-xs bg-[var(--pz-teal)] text-[var(--pz-on-accent)] rounded-md hover:opacity-90"
                 >
                   Check in
                 </button>

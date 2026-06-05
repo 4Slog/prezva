@@ -52,7 +52,7 @@ export function AttendeeTable({
           </select>
           <button
             onClick={apply}
-            className="px-3 py-1.5 text-sm bg-[var(--brand-teal)] text-white rounded-md hover:opacity-90"
+            className="px-3 py-1.5 text-sm bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-md hover:opacity-90"
           >
             Search
           </button>

@@ -454,7 +454,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
             </button>
             <button
               onClick={() => setShowForm(true)}
-              className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-white rounded-lg hover:opacity-90"
+              className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-lg hover:opacity-90"
             >
               + Add Session
             </button>
