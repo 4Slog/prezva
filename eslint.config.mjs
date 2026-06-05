@@ -63,14 +63,11 @@ const eslintConfig = defineConfig([
       "no-restricted-syntax": "off",
     },
   },
-  // Bucket B — Phase 5 defer: marketing landing, video components, theater live/meet pages
-  // TODO(phase-5): tokenize remaining hex here
+  // Bucket B — Phase 5b defer: marketing landing
+  // TODO(phase-5b): tokenize remaining hex here
   {
     files: [
       "src/app/page.tsx",
-      "src/components/video/**",
-      "src/app/e/**/sessions/**/live/**",
-      "src/app/e/**/meet/**",
     ],
     rules: {
       "no-restricted-syntax": "off",

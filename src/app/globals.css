@@ -15,6 +15,7 @@
   --pz-chrome:          #0D1B2A;
   --pz-chrome-2:        #0A1521;
   --pz-chrome-elevated: #112240;
+  --pz-chrome-border:   #1E3A5F;   /* dark panel border — distinct from elevated bg */
   --pz-chrome-text:     #E6EDF5;
   --pz-chrome-muted:    #8DA2BC;
   --pz-chrome-line:     rgba(255,255,255,0.08);

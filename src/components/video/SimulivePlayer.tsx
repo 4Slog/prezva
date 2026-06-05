@@ -72,13 +72,16 @@ export default function SimulivePlayer({
   if (!started) {
     return (
       <div style={{
-        width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 8,
+        width: '100%', aspectRatio: '16/9',
+        // eslint-disable-next-line no-restricted-syntax -- pre-stream video-area bg — pure black matches the player color at broadcast start (seamless handoff)
+        background: '#000',
+        borderRadius: 8,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12,
       }}>
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1, textTransform: 'uppercase', margin: 0 }}>
           Broadcast starts in
         </p>
-        <p style={{ fontSize: '2.5rem', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
+        <p style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--pz-chrome-text)', fontVariantNumeric: 'tabular-nums', margin: 0 }}>
           {formatCountdown(scheduledMs - now)}
         </p>
         <div style={{
@@ -93,7 +96,12 @@ export default function SimulivePlayer({
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{
+      position: 'relative', width: '100%', aspectRatio: '16/9',
+      // eslint-disable-next-line no-restricted-syntax -- video player letterbox bg — behind <MuxPlayer> / <video> element
+      background: '#000',
+      borderRadius: 8, overflow: 'hidden',
+    }}>
       <MuxPlayer
         playbackId={playbackId}
         streamType="on-demand"
@@ -118,7 +126,7 @@ export default function SimulivePlayer({
           width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)',
           animation: 'livePulse 1.4s ease-in-out infinite',
         }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>LIVE</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-chrome-text)', letterSpacing: 1 }}>LIVE</span>
       </div>
       <style>{`
         @keyframes livePulse {

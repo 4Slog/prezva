@@ -103,7 +103,7 @@ export default async function LiveSessionPage({ params }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div className="live-page-header" style={{ background: 'var(--color-navy)', color: '#fff', padding: '1rem 1.5rem' }}>
+      <div className="live-page-header" style={{ background: 'var(--color-navy)', color: 'var(--pz-chrome-text)', padding: '1rem 1.5rem' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <Link href={`/e/${slug}`} style={{ color: 'var(--color-teal)', fontSize: 12, textDecoration: 'none' }}>
             ← {event.title}

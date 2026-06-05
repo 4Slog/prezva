@@ -215,7 +215,7 @@ export default function QuestionQueue({ sessionId, eventId, isOrganizer, userId 
               disabled={!input.trim() || submitting}
               style={{
                 fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 6,
-                border: 'none', background: 'var(--color-teal)', color: '#0D1B2A',
+                border: 'none', background: 'var(--color-teal)', color: 'var(--pz-on-accent)',
                 cursor: input.trim() && !submitting ? 'pointer' : 'not-allowed',
                 opacity: input.trim() && !submitting ? 1 : 0.5,
               }}

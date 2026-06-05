@@ -39,7 +39,7 @@ export default function CEProgressBar({ ceCredits, sessionDurationSeconds, onPro
     <div style={{ padding: '12px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         {earned ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#2DD4BF' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--pz-teal)' }}>
             <CheckCircle size={15} /> CE credit earned — {ceCredits} credit{ceCredits !== 1 ? 's' : ''}
           </span>
         ) : (
@@ -54,7 +54,7 @@ export default function CEProgressBar({ ceCredits, sessionDurationSeconds, onPro
             height: '100%',
             width: `${barPct}%`,
             borderRadius: 3,
-            background: earned ? '#2DD4BF' : 'var(--color-text-muted)',
+            background: earned ? 'var(--pz-teal)' : 'var(--color-text-muted)',
             transition: 'width 0.4s ease, background 0.3s ease',
           }}
         />

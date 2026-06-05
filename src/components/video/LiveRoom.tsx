@@ -64,10 +64,10 @@ export default function LiveRoom({
     return (
       <div style={{ ...placeholderStyle, gap: 10 }}>
         <div style={{
-          width: 8, height: 8, borderRadius: '50%', background: '#2DD4BF',
+          width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-teal)',
           animation: 'lkPulse 1.2s ease-in-out infinite',
         }} />
-        <p style={{ color: '#888', fontSize: 14 }}>Connecting...</p>
+        <p style={{ color: 'var(--pz-chrome-muted)', fontSize: 14 }}>Connecting...</p>
         <style>{`@keyframes lkPulse{0%,100%{opacity:1}50%{opacity:.2}}`}</style>
       </div>
     )
@@ -78,7 +78,7 @@ export default function LiveRoom({
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
       token={token}
       connect={true}
-      style={{ width: '100%', height: '100%', borderRadius: 8, overflow: 'hidden', background: '#0a0a0a' }}
+      style={{ width: '100%', height: '100%', borderRadius: 8, overflow: 'hidden', background: 'var(--pz-chrome-2)' }}
     >
       {isOrganizer ? (
         <>
@@ -107,7 +107,7 @@ const placeholderStyle: React.CSSProperties = {
   height: '100%',
   minHeight: '56.25%', // 16:9 fallback
   aspectRatio: '16/9',
-  background: '#0a0a0a',
+  background: 'var(--pz-chrome-2)',
   borderRadius: 8,
   display: 'flex',
   alignItems: 'center',
@@ -142,8 +142,8 @@ function AudienceLayout({
 
   if (tracks.length === 0) {
     return (
-      <div style={{ ...placeholderStyle, background: '#111' }}>
-        <p style={{ color: '#666', fontSize: 14 }}>Waiting for presenter...</p>
+      <div style={{ ...placeholderStyle, background: 'var(--pz-chrome-2)' }}>
+        <p style={{ color: 'var(--pz-chrome-muted)', fontSize: 14 }}>Waiting for presenter...</p>
       </div>
     )
   }

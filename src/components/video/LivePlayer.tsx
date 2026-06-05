@@ -41,7 +41,12 @@ export default function LivePlayer({
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{
+      position: 'relative', width: '100%', aspectRatio: '16/9',
+      // eslint-disable-next-line no-restricted-syntax -- video player letterbox bg — behind <MuxPlayer> / <video> element
+      background: '#000',
+      borderRadius: 8, overflow: 'hidden',
+    }}>
       <MuxPlayer
         playbackId={playbackId}
         streamType={isLive ? 'll-live' : 'on-demand'}
@@ -70,7 +75,7 @@ export default function LivePlayer({
             width: 8, height: 8, borderRadius: '50%', background: 'var(--pz-error)',
             animation: 'livePulse 1.4s ease-in-out infinite',
           }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>LIVE</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pz-chrome-text)', letterSpacing: 1 }}>LIVE</span>
         </div>
       )}
 
@@ -78,7 +83,7 @@ export default function LivePlayer({
         <div style={{
           position: 'absolute', top: 10, right: 10,
           background: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: '3px 8px',
-          fontSize: 11, color: '#fff', pointerEvents: 'none',
+          fontSize: 11, color: 'var(--pz-chrome-text)', pointerEvents: 'none',
         }}>
           {viewerCount} watching
         </div>
