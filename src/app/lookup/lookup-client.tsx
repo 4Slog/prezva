@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 
 export function LookupClient() {
@@ -24,9 +25,7 @@ export function LookupClient() {
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', padding: '2rem' }}>
       <div style={{ maxWidth: 420, width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ background: 'var(--pz-teal)', width: 40, height: 40, borderRadius: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <span style={{ color: 'var(--pz-on-accent)', fontWeight: 900, fontSize: 20 }}>P</span>
-          </div>
+          <Image src="/logo-mark.svg" width={40} height={40} alt="Prezva" style={{ marginBottom: 16 }} />
           <h1 style={{ color: 'var(--pz-text)', fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>Lost your registration?</h1>
           <p style={{ color: 'var(--pz-muted)', fontSize: 14 }}>Enter the email you used to register and we&apos;ll resend your confirmation links.</p>
         </div>

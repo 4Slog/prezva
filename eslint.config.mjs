@@ -63,16 +63,6 @@ const eslintConfig = defineConfig([
       "no-restricted-syntax": "off",
     },
   },
-  // Bucket B — Phase 5b defer: marketing landing
-  // TODO(phase-5b): tokenize remaining hex here
-  {
-    files: [
-      "src/app/page.tsx",
-    ],
-    rules: {
-      "no-restricted-syntax": "off",
-    },
-  },
   // category-colors.ts is the single-source-of-truth for semantic color palettes;
   // hex literals are intentional here and managed as a unit
   {

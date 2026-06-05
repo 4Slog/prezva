@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { selfCheckInByToken } from '@/lib/checkin/self-checkin-actions'
 
@@ -40,10 +41,7 @@ export default function SelfCheckInClient({ token }: Props) {
       }}>
         {/* Logo mark */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <svg viewBox="0 0 120 96" width={48} height={48} style={{ margin: '0 auto' }}>
-            <path d="M 20 88 L 20 44 C 20 8 100 8 100 44 C 100 58 96 66 88 72 L 76 80 L 100 54"
-              stroke="var(--pz-teal)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          </svg>
+          <Image src="/logo-mark.svg" width={48} height={48} alt="Prezva" style={{ margin: '0 auto', display: 'block' }} />
         </div>
 
         {state === 'idle' && (
