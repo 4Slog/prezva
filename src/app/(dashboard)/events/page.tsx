@@ -2,6 +2,8 @@ import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { EventCard } from '@/components/events/EventCard'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
 
 export const metadata = { title: 'Events' }
 
@@ -15,17 +17,43 @@ export default async function EventsPage() {
     .select('org_id, role, organizations(id, name, slug)')
     .eq('user_id', user.id)
 
-  // Get all events across all orgs
-  const orgIds = (memberships ?? []).map((m) => m.org_id)
-  const { data: events } = orgIds.length
+  const hasOrgs = (memberships ?? []).length > 0
+
+  // Resolve active org — mirror dashboard priority order:
+  // 1. pz_impersonate_org (super-admin override)
+  // 2. pz_active_org cookie via resolveActiveOrgSlug
+  // 3. memberships[0] fallback
+  const cookieStore = await cookies()
+  const impersonateCookie = cookieStore.get('pz_impersonate_org')?.value
+  let impersonateOrg: { id: string; name: string; slug: string } | null = null
+  if (impersonateCookie) {
+    try { impersonateOrg = JSON.parse(impersonateCookie) } catch { /* ignore */ }
+  }
+
+  let activeOrgId: string | undefined
+  let activeOrgName: string | undefined
+
+  if (impersonateOrg) {
+    activeOrgId = impersonateOrg.id
+    activeOrgName = impersonateOrg.name
+  } else if (hasOrgs) {
+    const activeSlug = await resolveActiveOrgSlug(user.id, memberships ?? [])
+    const activeOrg = (memberships ?? []).find(
+      (o) => (o as any).organizations?.slug === activeSlug,
+    ) as any ?? (memberships ?? [])[0] as any
+    const orgData = activeOrg?.organizations
+    activeOrgId = orgData?.id
+    activeOrgName = orgData?.name
+  }
+
+  // Fetch events scoped to the active org only
+  const { data: events } = activeOrgId
     ? await supabase
         .from('events')
         .select('id, title, slug, status, event_type, start_at, end_at, registration_count, checked_in_count, venue_city, venue_state, org_id')
-        .in('org_id', orgIds)
+        .eq('org_id', activeOrgId)
         .order('start_at', { ascending: false })
     : { data: [] }
-
-  const hasOrgs = (memberships ?? []).length > 0
 
   return (
     <div>
@@ -33,7 +61,7 @@ export default async function EventsPage() {
         <div>
           <h1 className="text-2xl font-bold text-[var(--pz-text)]">Events</h1>
           <p className="text-sm text-[var(--pz-muted)] mt-1">
-            {events?.length ?? 0} event{events?.length !== 1 ? 's' : ''} across your organizations
+            {events?.length ?? 0} event{events?.length !== 1 ? 's' : ''}{activeOrgName ? ` in ${activeOrgName}` : ''}
           </p>
         </div>
         {hasOrgs && (
