@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getPlatformStats, getRecentOrgs, getRecentEvents } from '@/lib/admin/platform-actions'
 import type { PlatformStats } from '@/lib/admin/platform-actions'
+import { ADMIN_STAT_COLORS } from '@/lib/ui/category-colors'
 
 export default async function AdminDashboard() {
   let stats: PlatformStats | null = null
@@ -40,8 +41,8 @@ export default async function AdminDashboard() {
 
   const statCards = [
     { label: 'Organizations', value: stats.totalOrgs, sub: `+${stats.newOrgsLast30d} last 30d`, color: 'var(--pz-teal)' },
-    { label: 'Total Events', value: stats.totalEvents, sub: `${stats.activeEvents} live now`, color: '#3B82F6' },
-    { label: 'Registrations', value: stats.totalRegistrations.toLocaleString(), sub: `+${stats.newRegsLast30d} last 30d`, color: '#8B5CF6' },
+    { label: 'Total Events', value: stats.totalEvents, sub: `${stats.activeEvents} live now`, color: ADMIN_STAT_COLORS.totalEvents },
+    { label: 'Registrations', value: stats.totalRegistrations.toLocaleString(), sub: `+${stats.newRegsLast30d} last 30d`, color: ADMIN_STAT_COLORS.registrations },
     { label: 'Platform Revenue', value: `$${(stats.totalRevenueCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sub: 'all time', color: 'var(--pz-success-fill)' },
     { label: 'Published Events', value: stats.publishedEvents, sub: 'awaiting go-live', color: 'var(--pz-warning-fill)' },
     { label: 'Avg Regs / Event', value: stats.avgRegsPerEvent, sub: 'across all events', color: 'var(--pz-muted)' },

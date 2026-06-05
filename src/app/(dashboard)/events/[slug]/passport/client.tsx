@@ -71,7 +71,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
               <input id="passport-points" type="number" min="1" max="100" className={inputCls} value={points} onChange={e => setPoints(e.target.value)} />
             </Field>
           </div>
-          <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.55rem 1rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.55rem 1rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Plus size={14} /> Add
           </button>
         </form>

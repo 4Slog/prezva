@@ -5,10 +5,9 @@ import NextLink from 'next/link'
 import { createSurvey, createSurveyFromTemplate, publishSurvey, closeSurvey, sendSurveyToAllAttendees } from '@/lib/surveys/actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { SurveyTemplate } from '@/lib/templates/types'
+import { SURVEY_STATUS_COLORS as STATUS_COLOR } from '@/lib/ui/category-colors'
 
 interface Survey { id: string; title: string; description: string | null; status: string; created_at: string }
-
-const STATUS_COLOR: Record<string, string> = { draft: '#6b7280', active: 'var(--pz-success)', closed: '#7c3aed' }
 
 function extractGFormId(input: string): string {
   const match = input.match(/\/forms\/d\/([a-zA-Z0-9_-]+)/)
@@ -143,7 +142,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
       {importMsg && <p style={{ color: 'var(--pz-success)', fontSize: 14, marginBottom: '1rem' }}>{importMsg}</p>}
       {!showCreate && (
         <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
-          <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
             <Plus size={16} /> New Survey
           </button>
           {googleFormsConnected && (
@@ -166,7 +165,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
             <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>Accepts full URL or bare Form ID</p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: '1rem' }}>
               <button onClick={() => setShowGFImport(false)} style={{ padding: '0.5rem 1rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'none', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleGFImport} disabled={importing} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', cursor: 'pointer', opacity: importing ? 0.5 : 1 }}>
+              <button onClick={handleGFImport} disabled={importing} style={{ padding: '0.5rem 1rem', borderRadius: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', cursor: 'pointer', opacity: importing ? 0.5 : 1 }}>
                 {importing ? 'Importing...' : 'Import'}
               </button>
             </div>
@@ -186,7 +185,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
             <input name="title" required defaultValue={titleDefault} placeholder="Survey title..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
             <textarea name="description" rows={2} defaultValue={descDefault} placeholder="Optional description..." style={{ padding: '0.6rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, resize: 'vertical' }} />
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Create</button>
+              <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Create</button>
               <button type="button" onClick={() => { setShowCreate(false); setTemplateQuestions(null) }} style={{ background: 'var(--color-border)', color: 'var(--color-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
@@ -216,7 +215,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                   >
                     <Pencil size={12} /> Edit Questions
                   </NextLink>
-                  {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-success)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
+                  {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-success)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
                   {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
                   {isPublished && (
                     <button
@@ -238,7 +237,7 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                     <button
                       onClick={() => handleSendToAll(s.id)}
                       disabled={sendingId === s.id || isPending}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: sendingId === s.id ? 0.6 : 1 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: sendingId === s.id ? 0.6 : 1 }}
                     >
                       <Mail size={12} /> {sendingId === s.id ? 'Sending…' : 'Send to Attendees'}
                     </button>

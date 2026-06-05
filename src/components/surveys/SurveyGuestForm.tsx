@@ -119,6 +119,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
       <button
         type="submit"
         disabled={submitting}
+        // eslint-disable-next-line no-restricted-syntax
         className="w-full rounded-lg px-4 py-3 bg-[var(--pz-teal)] text-[var(--pz-on-accent)] text-sm font-semibold hover:bg-[#00D4B8] transition-colors disabled:opacity-50"
       >
         {submitting ? 'Submitting…' : 'Submit Response'}

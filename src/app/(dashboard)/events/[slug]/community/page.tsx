@@ -70,7 +70,7 @@ export default async function DashboardCommunityPage({ params }: Props) {
                     <button
                       type="submit"
                       className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-                      style={{ background: 'var(--pz-success)', color: '#fff' }}
+                      style={{ background: 'var(--pz-success)', color: 'var(--pz-surface)' }}
                     >
                       Resolve
                     </button>

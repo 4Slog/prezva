@@ -114,7 +114,7 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
           <button
             onClick={() => setShowBulk(v => !v)}
             className="w-full rounded-lg py-2 text-xs font-semibold"
-            style={{ background: 'var(--pz-teal)', color: '#fff' }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)' }}
           >
             Bulk message
           </button>

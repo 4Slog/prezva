@@ -198,7 +198,7 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
           <span style={{
             position: 'absolute', width: 18, height: 18, top: 3,
             left: form.show_in_directory ? 21 : 3,
-            background: '#fff', borderRadius: '50%', transition: 'left 0.2s',
+            background: 'var(--pz-surface)', borderRadius: '50%', transition: 'left 0.2s',
           }} />
         </label>
       </div>

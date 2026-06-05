@@ -1,5 +1,7 @@
 'use client'
 
+import { SOCIAL_BRAND_COLORS } from '@/lib/ui/category-colors'
+
 type Props = {
   eventTitle: string
   eventUrl: string
@@ -20,13 +22,13 @@ export function SocialShareButtons({ eventTitle, eventUrl }: Props) {
         <a href={linkedInUrl} target="_blank" rel="noreferrer"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
                    padding: '0.5rem 1rem', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                   background: '#0077B5', color: '#fff', textDecoration: 'none' }}>
+                   background: SOCIAL_BRAND_COLORS.linkedin, color: 'var(--pz-surface)', textDecoration: 'none' }}>
           Share on LinkedIn
         </a>
         <a href={twitterUrl} target="_blank" rel="noreferrer"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
                    padding: '0.5rem 1rem', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                   background: '#000', color: '#fff', textDecoration: 'none' }}>
+                   background: SOCIAL_BRAND_COLORS.x, color: 'var(--pz-surface)', textDecoration: 'none' }}>
           Share on X
         </a>
         <button

@@ -5,15 +5,10 @@ import { listAdapters } from '@/lib/integrations/_shared/registry'
 import { mailchimpAdapter } from '@/lib/integrations/mailchimp/adapter'
 import Link from 'next/link'
 import { IntegrationsClient } from './integrations-client'
+import { INTEGRATION_STATUS_BADGE as STATUS_BADGE } from '@/lib/ui/category-colors'
 
 type Props = { params: Promise<{ slug: string }> }
 
-const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  connected: { label: 'Connected', bg: 'var(--pz-teal)', color: 'var(--pz-on-accent)' },
-  available: { label: 'Not connected', bg: 'var(--pz-border)', color: 'var(--pz-muted)' },
-  awaiting_credentials: { label: 'Needs setup', bg: 'var(--pz-warning-fill)', color: 'var(--pz-on-accent)' },
-  error: { label: 'Error', bg: 'var(--pz-error)', color: '#fff' },
-}
 
 const SECTION_MAP: Record<string, string> = {
   mailchimp: 'Communications',

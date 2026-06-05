@@ -160,6 +160,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
                     <button
                       onClick={handleCompleteInStripe}
                       disabled={linkPending}
+                      // eslint-disable-next-line no-restricted-syntax
                       className="mt-2 text-xs font-medium text-[var(--pz-teal-ink)] hover:text-[#00DDB8] transition-colors disabled:opacity-50"
                     >
                       {linkPending ? 'Redirecting…' : 'Complete in Stripe →'}

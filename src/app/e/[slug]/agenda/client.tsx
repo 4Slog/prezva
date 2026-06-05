@@ -7,6 +7,7 @@ import { submitVote } from '@/lib/engagement/poll-actions'
 import { createCommunityPost, getCommunityPosts } from '@/lib/networking/sprint8-actions'
 import { createClient } from '@/lib/supabase/client'
 import SessionCheckInButton from '@/components/sessions/SessionCheckInButton'
+import { SESSION_TYPE_COLORS as COLORS } from '@/lib/ui/category-colors'
 
 interface Session {
   id: string; title: string; session_type: string
@@ -105,10 +106,6 @@ function LivePollCard({ poll, userId, registrationId }: { poll: LivePoll; userId
       {voted && <p style={{ fontSize: 11, color: 'var(--pz-muted)', marginTop: 6 }}>{poll.show_results ? `${total} vote${total !== 1 ? 's' : ''}` : 'Vote recorded'}</p>}
     </div>
   )
-}
-const COLORS: Record<string,string> = {
-  keynote:'#7c3aed', talk:'#0891b2', workshop:'#d97706',
-  panel:'var(--pz-success)', break:'#6b7280', networking:'#db2777', other:'#64748b'
 }
 
 function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: string; eventId: string; userId: string }) {

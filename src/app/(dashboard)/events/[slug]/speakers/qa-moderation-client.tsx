@@ -94,7 +94,7 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
               onClick={() => act(q.id, 'answer')}
               disabled={!answerDraft[q.id]?.trim() || pending !== null}
               style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5,
-                       background: 'var(--pz-teal)', color: '#fff', cursor: 'pointer',
+                       background: 'var(--pz-teal)', color: 'var(--pz-surface)', cursor: 'pointer',
                        border: 'none', opacity: !answerDraft[q.id]?.trim() ? 0.5 : 1 }}
             >
               Answer

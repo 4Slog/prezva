@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { PortalShell } from '@/components/portal/PortalShell'
 import { respondToVolunteerShift, sendVolunteerAlert } from '@/lib/volunteers/actions'
 import type { AssignedSession } from './page'
+import { VOLUNTEER_PORTAL_ALERT_TYPES as ALERT_TYPES } from '@/lib/ui/category-colors'
 
 interface Volunteer {
   id: string
@@ -56,12 +57,6 @@ const ROLE_LABELS: Record<string, string> = {
   'general': 'General Volunteer',
 }
 
-const ALERT_TYPES = [
-  { value: 'urgent', label: 'Urgent', color: 'var(--pz-error)' },
-  { value: 'issue',  label: 'Issue',  color: 'var(--pz-warning-fill)' },
-  { value: 'question', label: 'Question', color: '#3B82F6' },
-  { value: 'info',   label: 'Info',   color: '#64748B' },
-] as const
 
 export function VolunteerPortalClient({ volunteer: initial, event, token, assignedSessions, isLinkedUser }: Props) {
   const [volunteer, setVolunteer] = useState<Volunteer>(initial)
@@ -298,7 +293,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
               </button>
             )}
             {volunteer.clocked_in_at && !volunteer.clocked_out_at && (
-              <button onClick={clockOut} disabled={loading} style={{ background: 'var(--pz-error)', color: '#fff', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+              <button onClick={clockOut} disabled={loading} style={{ background: 'var(--pz-error)', color: 'var(--pz-surface)', padding: '10px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
                 {loading ? 'Clocking out…' : 'Clock Out'}
               </button>
             )}

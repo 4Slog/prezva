@@ -11,6 +11,7 @@ import {
 } from '@/lib/sponsors/portal-actions'
 import { Field } from '@/components/ui/Field'
 import type { SponsorLead } from '@/lib/sponsors/portal-actions'
+import { SPONSOR_TIER_COLORS, SPONSOR_QUALITY_STYLE } from '@/lib/ui/category-colors'
 
 interface Props {
   event: { id: string; title: string; starts_at: string; ends_at: string; registration_count: number | null }
@@ -20,12 +21,8 @@ interface Props {
   token: string
 }
 
-const TIER_COLOR: Record<string, string> = { title: '#7c3aed', gold: '#D97706', silver: '#6B7280', bronze: '#92400E' }
-const QUALITY_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  hot:  { bg: 'var(--pz-error-bg)', color: 'var(--pz-error)', label: 'Hot' },
-  warm: { bg: 'var(--pz-warning-bg)', color: 'var(--pz-warning-fill)', label: 'Warm' },
-  cold: { bg: '#3b82f622', color: '#3b82f6', label: 'Cold' },
-}
+const TIER_COLOR = SPONSOR_TIER_COLORS
+const QUALITY_STYLE = SPONSOR_QUALITY_STYLE
 const QUALITY_CYCLE: Record<string, 'hot' | 'warm' | 'cold'> = { hot: 'warm', warm: 'cold', cold: 'hot' }
 
 export default function SponsorPortalClient({ event, sponsor, leads: initLeads, eventSlug, token }: Props) {
@@ -219,7 +216,7 @@ export default function SponsorPortalClient({ event, sponsor, leads: initLeads, 
               {[
                 { label: 'Hot', count: hotCount, color: 'var(--pz-error)' },
                 { label: 'Warm', count: warmCount, color: 'var(--pz-warning-fill)' },
-                { label: 'Cold', count: coldCount, color: '#3B82F6' },
+                { label: 'Cold', count: coldCount, color: QUALITY_STYLE.cold.color },
                 { label: 'Total', count: leads.length, color: 'var(--pz-teal-ink)' },
               ].map(({ label, count, color }) => (
                 <div key={label} style={{ flex: 1, textAlign: 'center', padding: '0.75rem 0.5rem',

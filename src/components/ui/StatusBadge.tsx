@@ -20,7 +20,7 @@ interface ToneConfig {
 }
 
 const TONE_CONFIG: Record<StatusTone, ToneConfig> = {
-  live:    { icon: Radio,         bg: 'var(--pz-live)',                                           fg: '#FFFFFF' },
+  live:    { icon: Radio,         bg: 'var(--pz-live)',                                           fg: 'var(--pz-surface)' },
   success: { icon: CheckCircle2,  bg: 'var(--pz-success-bg)',                                     fg: 'var(--pz-success)' },
   warning: { icon: AlertTriangle, bg: 'color-mix(in srgb, var(--pz-amber) 12%, transparent)',     fg: 'var(--pz-warning)' },
   error:   { icon: XCircle,       bg: 'var(--pz-error-bg)',                                       fg: 'var(--pz-error)' },

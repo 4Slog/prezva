@@ -74,7 +74,7 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
       >
         <span style={{ fontSize: 18 }}>🔔</span>
         {unread > 0 && (
-          <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--pz-error)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
+          <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--pz-error)', color: 'var(--pz-surface)', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
             {unread > 9 ? '9+' : unread}
           </span>
         )}

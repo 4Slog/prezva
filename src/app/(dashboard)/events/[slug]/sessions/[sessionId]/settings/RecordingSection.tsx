@@ -57,7 +57,7 @@ function Toggle({
         }} />
         <div style={{
           position: 'absolute', top: 3, left: checked ? 21 : 3,
-          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+          width: 16, height: 16, borderRadius: '50%', background: 'var(--pz-surface)',
           transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
         }} />
       </div>
@@ -252,6 +252,7 @@ export default function RecordingSection({
               onClick={() => handleToggleRecording(true)}
               style={{
                 fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                // eslint-disable-next-line no-restricted-syntax
                 background: 'var(--pz-warning-fill)', color: '#000', border: 'none', cursor: 'pointer',
               }}
             >

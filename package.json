@@ -6,7 +6,7 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src/ --ext .ts,.tsx",
+    "lint": "eslint src/ --ext .ts,.tsx --max-warnings 0",
     "dev:staging": "next dev -p 3101",
     "test": "vitest run",
     "test:watch": "vitest",

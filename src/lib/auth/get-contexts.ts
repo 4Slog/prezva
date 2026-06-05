@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ORG_ROLE_COLORS_CONTEXT } from '@/lib/ui/category-colors'
 
 export type SwitcherContextItem = {
   type: 'personal' | 'org'
@@ -11,11 +12,7 @@ export type SwitcherContextItem = {
   id: string
 }
 
-const ORG_ROLE_COLOR: Record<string, string> = {
-  owner: '#2DD4BF',
-  admin: '#60A5FA',
-  staff: '#94A3B8',
-}
+const ORG_ROLE_COLOR = ORG_ROLE_COLORS_CONTEXT
 
 const ORG_ROLE_LABEL: Record<string, string> = {
   owner: 'Owner',
@@ -63,6 +60,7 @@ export async function getUserContexts(userId: string): Promise<SwitcherContextIt
     label: 'Personal Hub',
     sublabel: 'All events and roles',
     href: '/me',
+    // eslint-disable-next-line no-restricted-syntax
     color: '#94A3B8',
   })
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { removeMember, revokeInvite, resendInvite } from '@/lib/orgs/actions'
+import { ORG_ROLE_BADGE_STYLES as ROLE_STYLE } from '@/lib/ui/category-colors'
 
 function getTimestampMs() { return Date.now() }
 
@@ -35,11 +36,6 @@ interface MemberListProps {
   currentUserRole: string
 }
 
-const ROLE_STYLE: Record<string, { bg: string; text: string }> = {
-  owner:  { bg: 'rgba(139,92,246,0.15)', text: '#a78bfa' },
-  admin:  { bg: 'rgba(59,130,246,0.15)',  text: '#60a5fa' },
-  staff:  { bg: 'rgba(100,116,139,0.15)', text: '#94a3b8' },
-}
 
 export function MemberList({ members, pendingInvites = [], orgId, currentUserId, currentUserRole }: MemberListProps) {
   const [removing, setRemoving]   = useState<string | null>(null)

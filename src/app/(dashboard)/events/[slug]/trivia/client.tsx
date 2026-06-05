@@ -3,11 +3,11 @@
 import { useState, useTransition } from 'react'
 import { seedTriviaQuestions, setTriviaActive } from '@/lib/engagement/sprint10-actions'
 import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
+import { TRIVIA_DIFF_COLORS as DIFF_COLOR } from '@/lib/ui/category-colors'
 
 interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
 interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
 
-const DIFF_COLOR: Record<string, string> = { easy: 'var(--pz-success)', medium: '#d97706', hard: 'var(--pz-error)' }
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none'
 
 const getQuestionText = (q: TriviaQuestion) => q.body || q.question_text || ''

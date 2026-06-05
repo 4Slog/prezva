@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { resolveVolunteerAlert, exportVolunteerHours } from '@/lib/volunteers/actions'
 import { Field } from '@/components/ui/Field'
+import { VOLUNTEER_STATUS_COLORS as STATUS_COLORS, VOLUNTEER_ALERT_TYPE_COLORS as ALERT_TYPE_COLORS } from '@/lib/ui/category-colors'
 
 interface Volunteer {
   id: string
@@ -47,14 +48,6 @@ interface Props {
 const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'team-lead', 'general']
 const STATUSES = ['All', 'invited', 'confirmed', 'checked_in', 'no_show']
 
-const STATUS_COLORS: Record<string, string> = {
-  invited:    'var(--pz-muted)',
-  confirmed:  '#0ea5e9',
-  checked_in: 'var(--pz-success)',
-  no_show:    'var(--pz-error)',
-  declined:   'var(--pz-warning-fill)',
-}
-
 function fmtShift(start?: string | null, end?: string | null) {
   if (!start) return '—'
   const s = new Date(start).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -63,12 +56,6 @@ function fmtShift(start?: string | null, end?: string | null) {
   return `${s} – ${e}`
 }
 
-const ALERT_TYPE_COLORS: Record<string, string> = {
-  urgent:   'var(--pz-error)',
-  issue:    'var(--pz-warning-fill)',
-  question: '#3B82F6',
-  info:     'var(--pz-muted)',
-}
 
 const SHIFT_RESPONSE_COLORS: Record<string, string> = {
   confirmed: 'var(--pz-success)',
@@ -159,7 +146,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
         <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '1rem', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-error)', margin: 0 }}>Volunteer Alerts</h2>
-            <span style={{ fontSize: 11, background: 'var(--pz-error)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
+            <span style={{ fontSize: 11, background: 'var(--pz-error)', color: 'var(--pz-surface)', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
               {alerts.length}
             </span>
           </div>

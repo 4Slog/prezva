@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import { ORG_ROLE_BADGE_CONFIGS } from '@/lib/ui/category-colors'
 
 type EventRef = {
   id: string
@@ -220,7 +221,6 @@ export default async function MePage() {
                 >
                   <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--pz-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                     {org.logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={org.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--pz-teal)' }}>
@@ -472,12 +472,8 @@ function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
 type OrgRoleKind = 'org_owner' | 'org_admin' | 'org_staff'
 
 function RoleBadge({ kind }: { kind: OrgRoleKind }) {
-  const map: Record<OrgRoleKind, { label: string; color: string }> = {
-    org_owner: { label: 'Owner', color: '#A78BFA' },
-    org_admin: { label: 'Admin', color: '#60A5FA' },
-    org_staff: { label: 'Staff', color: '#94A3B8' },
-  }
-  const cfg = map[kind] ?? { label: 'Member', color: '#94A3B8' }
+  // eslint-disable-next-line no-restricted-syntax
+  const cfg = ORG_ROLE_BADGE_CONFIGS[kind] ?? { label: 'Member', color: '#94A3B8' }
   return (
     <span
       style={{

@@ -134,7 +134,7 @@ export default function NetworkingClient({ attendees, eventId, currentUserId }: 
           </div>
           <form onSubmit={handleSend} style={{ padding: '0.75rem', borderTop: '1px solid var(--color-border)', display: 'flex', gap: 8 }}>
             <input value={newMsg} onChange={e => setNewMsg(e.target.value)} placeholder="Type a message..." style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14 }} />
-            <button type="submit" disabled={isPending || !newMsg.trim()} style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>Send</button>
+            <button type="submit" disabled={isPending || !newMsg.trim()} style={{ background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.5rem 1rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>Send</button>
           </form>
         </div>
       )}

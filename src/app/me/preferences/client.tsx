@@ -126,7 +126,7 @@ function ToggleRow({ label, sub, checked, onChange }: { label: string; sub: stri
       <label style={{ position: 'relative', display: 'inline-block', width: 42, height: 24, cursor: 'pointer', flexShrink: 0 }}>
         <input type="checkbox" checked={checked} onChange={onChange} style={{ opacity: 0, width: 0, height: 0 }} />
         <span style={{ position: 'absolute', inset: 0, background: checked ? 'var(--pz-teal)' : 'var(--pz-border)', borderRadius: 24, transition: 'background 0.2s' }} />
-        <span style={{ position: 'absolute', width: 18, height: 18, top: 3, left: checked ? 21 : 3, background: '#fff', borderRadius: '50%', transition: 'left 0.2s' }} />
+        <span style={{ position: 'absolute', width: 18, height: 18, top: 3, left: checked ? 21 : 3, background: 'var(--pz-surface)', borderRadius: '50%', transition: 'left 0.2s' }} />
       </label>
     </div>
   )

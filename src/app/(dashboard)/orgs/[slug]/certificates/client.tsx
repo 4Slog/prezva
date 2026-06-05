@@ -33,6 +33,7 @@ export function CertificatesClient({ orgId, templates }: { orgId: string; templa
       name: 'New Template',
       is_default: list.length === 0,
       payload: {
+        // eslint-disable-next-line no-restricted-syntax
         accent_color: '#2DD4BF',
         title: 'Certificate of Attendance',
         body: 'This certifies that {attendee_name} attended {event_title} on {event_date} for {ce_credit_hours} CE credit hours.',

@@ -281,7 +281,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
                             <button
                               onClick={() => answerQuestion(q.id)}
                               className="rounded text-xs font-medium shrink-0"
-                              style={{ background: 'var(--pz-success)', color: '#fff', minWidth: 44, minHeight: 44 }}
+                              style={{ background: 'var(--pz-success)', color: 'var(--pz-surface)', minWidth: 44, minHeight: 44 }}
                             >
                               Mark answered
                             </button>

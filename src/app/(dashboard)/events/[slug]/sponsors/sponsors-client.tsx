@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { createSponsor, updateSponsor, deleteSponsor } from '@/lib/sponsors/actions'
 import { addSponsorContact, getSponsorContacts, sendSponsorPortalInvite } from '@/lib/sponsors/portal-actions'
 import { Field } from '@/components/ui/Field'
+import { SPONSOR_TIERS as TIERS } from '@/lib/ui/category-colors'
 
 type Sponsor = {
   id: string
@@ -24,13 +25,6 @@ type SponsorContact = {
   portal_token: string
   created_at: string
 }
-
-const TIERS = [
-  { value: 'title',  label: 'Title Sponsor',  color: '#7c3aed' },
-  { value: 'gold',   label: 'Gold Sponsor',   color: '#d97706' },
-  { value: 'silver', label: 'Silver Sponsor', color: '#6b7280' },
-  { value: 'bronze', label: 'Bronze Sponsor', color: '#92400e' },
-] as const
 
 type TierValue = typeof TIERS[number]['value']
 
@@ -162,7 +156,7 @@ function SponsorForm({
         <button
           type="submit"
           disabled={pending}
-          style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
           {pending ? 'Saving…' : initial ? 'Save changes' : 'Add sponsor'}
         </button>
@@ -258,7 +252,7 @@ function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: strin
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
         <input style={inp} placeholder="Name *" value={newName} onChange={e => setNewName(e.target.value)} required />
         <input style={inp} placeholder="Email (optional)" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
-        <button type="submit" disabled={adding || !newName.trim()} style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: adding ? 0.6 : 1 }}>
+        <button type="submit" disabled={adding || !newName.trim()} style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: adding ? 0.6 : 1 }}>
           {adding ? '…' : '+ Add'}
         </button>
       </form>
@@ -304,7 +298,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
         <button
           onClick={() => { setShowAdd(true); setEditing(null) }}
-          style={{ background: 'var(--pz-teal)', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
         >
           + Add sponsor
         </button>

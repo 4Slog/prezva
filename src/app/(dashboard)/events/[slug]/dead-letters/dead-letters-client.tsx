@@ -92,6 +92,7 @@ export function DeadLettersClient({ items: initial, eventSlug }: Props) {
                     <button
                       onClick={() => handleReplay(item.id)}
                       disabled={loading === item.id}
+                      // eslint-disable-next-line no-restricted-syntax
                       style={{ fontSize: 12, color: '#0ea5e9', background: 'none', border: '1px solid #0ea5e9', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
                     >
                       Replay

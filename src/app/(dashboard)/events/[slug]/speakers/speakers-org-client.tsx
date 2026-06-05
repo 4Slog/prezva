@@ -93,7 +93,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
         <button
           onClick={() => { setShowAdd(s => !s); setAddError('') }}
           className="rounded-lg px-4 py-2 text-sm font-medium"
-          style={{ background: 'var(--pz-teal)', color: '#fff' }}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)' }}
         >
           {showAdd ? 'Cancel' : '+ Add Speaker'}
         </button>
@@ -134,7 +134,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                         onClick={() => addFromLib(sp.id)}
                         disabled={libAdding === sp.id}
                         style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6,
-                                 background: 'var(--pz-teal)', color: '#fff', border: 'none',
+                                 background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none',
                                  cursor: 'pointer', opacity: libAdding === sp.id ? 0.6 : 1 }}
                       >
                         {libAdding === sp.id ? 'Adding…' : 'Add to event'}
@@ -195,7 +195,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
           <div className="flex gap-2 justify-end">
             <button type="submit" disabled={adding}
               className="rounded-lg px-4 py-2 text-sm font-medium"
-              style={{ background: 'var(--pz-teal)', color: '#fff', opacity: adding ? 0.6 : 1 }}>
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: adding ? 0.6 : 1 }}>
               {adding ? 'Adding…' : 'Add Speaker'}
             </button>
           </div>
@@ -221,7 +221,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="font-medium text-sm" style={{ color: 'var(--pz-text)' }}>{sp.name}</p>
                   <span className="rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: badge.bg, color: '#fff' }}>{badge.label}</span>
+                    style={{ background: badge.bg, color: 'var(--pz-surface)' }}>{badge.label}</span>
                 </div>
                 <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
                   {sp.email ?? 'No email'}
@@ -247,7 +247,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
               <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                 <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
                   className="rounded-lg px-3 py-1.5 text-xs font-medium"
-                  style={{ background: 'var(--pz-teal)', color: '#fff', opacity: !sp.email ? 0.5 : 1 }}>
+                  style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: !sp.email ? 0.5 : 1 }}>
                   {inviting === sp.id ? 'Sending…' : 'Send invite'}
                 </button>
                 <button

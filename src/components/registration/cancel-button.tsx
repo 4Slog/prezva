@@ -69,7 +69,7 @@ export default function CancelRegistrationButton({ registrationId, eventTitle, i
               <button
                 onClick={handleConfirm}
                 disabled={loading}
-                style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--pz-error)', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+                style={{ fontSize: 13, padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--pz-error)', color: 'var(--pz-surface)', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
               >
                 {loading ? 'Cancelling…' : 'Yes, cancel'}
               </button>

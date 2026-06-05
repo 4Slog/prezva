@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { deleteOrgTemplate } from '@/lib/templates/actions'
 import type { OrgTemplate, TemplateSurface } from '@/lib/templates/types'
+import { TEMPLATE_SURFACE_COLORS as SURFACE_COLOR } from '@/lib/ui/category-colors'
 
 interface EventTemplate { id: string; name: string; description: string | null; created_at: string }
 
@@ -16,15 +17,6 @@ const SURFACE_LABELS: Record<TemplateSurface, string> = {
   certificate: 'Certificate',
 }
 
-const SURFACE_COLOR: Record<TemplateSurface, string> = {
-  survey: '#3b82f6',
-  badge: '#8b5cf6',
-  event: 'var(--pz-teal)',
-  announcement: 'var(--pz-warning-fill)',
-  icebreaker: '#ec4899',
-  trivia: 'var(--pz-error)',
-  certificate: '#B8860B',
-}
 
 interface Props {
   templates: OrgTemplate[]

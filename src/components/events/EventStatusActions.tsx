@@ -57,7 +57,7 @@ export function EventStatusActions({ eventId, currentStatus }: EventStatusAction
             onClick={() => handle(confirming.status)}
             disabled={pending !== null}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
-            style={{ background: 'var(--pz-error)', color: '#fff' }}
+            style={{ background: 'var(--pz-error)', color: 'var(--pz-surface)' }}
           >
             {pending ? 'Updating…' : 'Confirm'}
           </button>

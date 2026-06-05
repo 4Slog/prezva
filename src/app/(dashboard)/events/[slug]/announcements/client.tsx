@@ -8,13 +8,13 @@ import { draftAnnouncement } from '@/lib/announcements/ai-draft-actions'
 import { sendSMSAnnouncement, getSMSEligibleCount } from '@/lib/announcements/sms-actions'
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { AnnouncementTemplate } from '@/lib/templates/types'
+import { CHANNEL_COLORS as CHANNEL_COLOR } from '@/lib/ui/category-colors'
 
 interface Announcement {
   id: string; title: string; body: string; channel: string
   sent_at: string | null; recipient_count: number; segment: string | null
 }
 const CHANNEL_ICON = { email: Mail, push: Bell, both: BellRing }
-const CHANNEL_COLOR: Record<string, string> = { email: '#0891b2', push: '#7c3aed', both: 'var(--pz-success)' }
 
 export default function AnnouncementsClient({ announcements: init, eventId, slug, orgId }: {
   announcements: Announcement[]; eventId: string; slug: string; orgId: string
@@ -122,7 +122,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
         />
       )}
       {!showForm && (
-        <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
+        <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
           <Send size={16} /> New Announcement
         </button>
       )}
@@ -174,7 +174,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                       type="button"
                       disabled={aiDrafting || !aiContext.trim()}
                       onClick={() => handleAiDraft(titleDefault || 'general')}
-                      style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 6, padding: '0.5rem 1rem', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: aiDrafting || !aiContext.trim() ? 0.6 : 1 }}
+                      style={{ background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '0.5rem 1rem', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: aiDrafting || !aiContext.trim() ? 0.6 : 1 }}
                     >
                       {aiDrafting ? 'Generating…' : 'Generate'}
                     </button>
@@ -192,7 +192,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
               </select>
             </Field>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: '#fff', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
+              <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
                 {isPending ? 'Sending...' : 'Send Now'}
               </button>
               <button type="button" onClick={() => setShowForm(false)} style={{ background: 'var(--color-border)', color: 'var(--pz-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
@@ -266,7 +266,7 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                 onClick={handleSendSMS}
                 disabled={smsSending || !smsMessage.trim()}
                 style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
-                         background: 'var(--color-teal)', color: '#fff',
+                         background: 'var(--color-teal)', color: 'var(--pz-surface)',
                          fontWeight: 700, fontSize: 13, cursor: 'pointer',
                          opacity: smsSending || !smsMessage.trim() ? 0.5 : 1 }}>
                 {smsSending ? 'Sending…' : `Send SMS to ${smsEligible} attendees`}

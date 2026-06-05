@@ -253,7 +253,7 @@ export function CommunityClient({
                     type="button"
                     onClick={() => setImageUrl('')}
                     className="absolute top-1 right-1 rounded-full w-5 h-5 text-xs flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                    style={{ background: 'rgba(0,0,0,0.6)', color: 'var(--pz-surface)' }}
                   >×</button>
                 </div>
               ) : (

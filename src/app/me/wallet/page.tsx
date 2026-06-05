@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getMyIssuedCertificates } from '@/lib/certificates/actions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { SOCIAL_BRAND_COLORS } from '@/lib/ui/category-colors'
 
 const GOOGLE_WALLET_ENABLED = !!(
   process.env.GOOGLE_WALLET_ISSUER_ID &&
@@ -148,7 +149,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
           <Link
             href={`/api/passes/google/${reg.id}`}
             target="_blank"
-            style={{ padding: '8px 14px', background: '#1a73e8', color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ padding: '8px 14px', background: SOCIAL_BRAND_COLORS.googleWallet, color: 'var(--pz-surface)', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <GoogleWalletIcon />
             Add to Google Wallet

@@ -300,8 +300,10 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
                 fontSize: '1.1rem', fontWeight: 600,
                 ...(lastResult.success
                   ? lastResult.registration?.already_checked_in
+                    // eslint-disable-next-line no-restricted-syntax
                     ? { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#FCD34D' }
-                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: '#2DD4BF' }
+                    : { background: 'rgba(0,191,166,0.15)', border: '1px solid rgba(0,191,166,0.4)', color: 'var(--pz-teal)' }
+                  // eslint-disable-next-line no-restricted-syntax
                   : { background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#FCA5A5' }),
               }}
             >
