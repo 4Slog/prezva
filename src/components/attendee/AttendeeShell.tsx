@@ -199,32 +199,13 @@ export function AttendeeShell({ event, hasRegistration, children }: AttendeeShel
           </button>
         </nav>
 
-        {/* Right — QR quick-link + Me menu */}
+        {/* Right — registered: QR + Me menu | anonymous: Discover + Sign in */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          <Link
-            href={`${base}/my-qr`}
-            aria-label="My QR code"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              color: 'var(--pz-muted)',
-              textDecoration: 'none',
-            }}
-          >
-            <QrCode size={18} />
-          </Link>
-
-          {hasRegistration && (
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                onClick={() => setMeOpen(v => !v)}
-                aria-label="Me menu"
-                aria-expanded={meOpen}
+          {hasRegistration ? (
+            <>
+              <Link
+                href={`${base}/my-qr`}
+                aria-label="My QR code"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -232,59 +213,85 @@ export function AttendeeShell({ event, hasRegistration, children }: AttendeeShel
                   width: 36,
                   height: 36,
                   borderRadius: 8,
-                  background: 'var(--pz-surface-2)',
-                  border: '1px solid var(--pz-border)',
-                  color: 'var(--pz-text)',
-                  cursor: 'pointer',
+                  color: 'var(--pz-muted)',
+                  textDecoration: 'none',
                 }}
               >
-                <User size={16} />
-              </button>
+                <QrCode size={18} />
+              </Link>
 
-              {meOpen && (
-                <>
-                  {/* backdrop — click to close */}
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 49 }}
-                    onClick={() => setMeOpen(false)}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      zIndex: 50,
-                      background: 'var(--pz-surface)',
-                      border: '1px solid var(--pz-border)',
-                      borderRadius: 10,
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                      minWidth: 180,
-                      padding: '6px 0',
-                    }}
-                  >
-                    {ME_ITEMS.map(item => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMeOpen(false)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          padding: '9px 16px',
-                          fontSize: 13,
-                          color: 'var(--pz-text)',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <item.icon size={15} style={{ color: 'var(--pz-muted)', flexShrink: 0 }} />
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setMeOpen(v => !v)}
+                  aria-label="Me menu"
+                  aria-expanded={meOpen}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'var(--pz-surface-2)',
+                    border: '1px solid var(--pz-border)',
+                    color: 'var(--pz-text)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <User size={16} />
+                </button>
+
+                {meOpen && (
+                  <>
+                    {/* backdrop — click to close */}
+                    <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 49 }}
+                      onClick={() => setMeOpen(false)}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 8px)',
+                        right: 0,
+                        zIndex: 50,
+                        background: 'var(--pz-surface)',
+                        border: '1px solid var(--pz-border)',
+                        borderRadius: 10,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                        minWidth: 180,
+                        padding: '6px 0',
+                      }}
+                    >
+                      {ME_ITEMS.map(item => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMeOpen(false)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '9px 16px',
+                            fontSize: 13,
+                            color: 'var(--pz-text)',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <item.icon size={15} style={{ color: 'var(--pz-muted)', flexShrink: 0 }} />
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Link href="/discover" style={{ fontSize: 13, color: 'var(--pz-muted)', textDecoration: 'none' }}>Discover events</Link>
+              <Link href="/login" style={{ fontSize: 13, color: 'var(--pz-muted)', textDecoration: 'none' }}>Sign in</Link>
+            </>
           )}
         </div>
       </header>

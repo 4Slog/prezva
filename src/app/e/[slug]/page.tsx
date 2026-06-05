@@ -77,9 +77,6 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
 
   // Fetch org name for display
   const orgName = (event as any).organizations?.name ?? null
-  const orgLogo = (event as any).organizations?.logo_url ?? null
-  const orgWebsite = (event as any).organizations?.website ?? null
-  const orgSlug = (event as any).organizations?.slug ?? null
 
   // Context detection
   const jar = await cookies()
@@ -213,22 +210,6 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
           ⚠ Draft preview — this event is not yet published. Only org members can see this page.
         </div>
       )}
-      <header style={{ background:'var(--pz-surface)', borderBottom:'1px solid var(--pz-border)', padding:'0.75rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        {orgLogo ? (
-          <a href={orgSlug ? `/o/${orgSlug}` : '/'} style={{ textDecoration:'none', display:'flex', alignItems:'center' }}>
-            <img src={orgLogo} alt={orgName ?? 'Organizer'} style={{ height:36, maxWidth:140, objectFit:'contain' }} />
-          </a>
-        ) : orgName ? (
-          <a href={orgSlug ? `/o/${orgSlug}` : '/'} style={{ fontWeight:800, fontSize:16, color:'var(--pz-text)', textDecoration:'none', letterSpacing:-0.3 }}>{orgName}</a>
-        ) : (
-          <Link href="/" style={{ fontWeight:800, fontSize:18, color:'var(--pz-teal-ink)', textDecoration:'none', letterSpacing:-0.5 }}>P Prezva</Link>
-        )}
-        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <a href="/discover" style={{ fontSize:12, color:'var(--pz-muted)', textDecoration:'none' }}>Discover events</a>
-          <Link href="/login" style={{ fontSize:13, color:'var(--pz-muted)', textDecoration:'none' }}>Sign in</Link>
-        </div>
-      </header>
-
       {/* ── HERO ───────────────────────────────────────────────────────────── */}
 
       {/* State: post-event */}
