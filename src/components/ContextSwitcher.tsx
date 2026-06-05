@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { SwitcherContextItem } from '@/lib/auth/get-contexts'
+import { setActiveOrg } from '@/lib/orgs/actions'
 
 interface ContextSwitcherProps {
   currentContext: string // 'personal' or org slug
@@ -116,7 +117,7 @@ export function ContextSwitcher({ currentContext, contexts, isSuperAdmin = false
                 Organizations
               </div>
               {orgs.map((c) => (
-                <ContextRow key={c.id} item={c} active={c.id === active.id} onSelect={() => setOpen(false)} />
+                <OrgContextRow key={c.id} item={c} active={c.id === active.id} />
               ))}
             </div>
           )}
@@ -277,5 +278,82 @@ function ContextRow({
         </span>
       )}
     </Link>
+  )
+}
+
+function OrgContextRow({ item, active }: { item: SwitcherContextItem; active: boolean }) {
+  return (
+    <form action={setActiveOrg.bind(null, item.id)} style={{ display: 'contents' }}>
+      <button
+        type="submit"
+        role="menuitem"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 14px',
+          width: '100%',
+          textAlign: 'left',
+          background: active ? 'var(--pz-surface-2)' : 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--pz-text)',
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-block',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: item.color,
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.label}
+          </span>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 11,
+              color: 'var(--pz-muted)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.sublabel}
+          </span>
+        </span>
+        {item.role && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: 0.8,
+              color: item.color,
+              background: item.color + '22',
+              padding: '2px 6px',
+              borderRadius: 4,
+            }}
+          >
+            {item.sublabel}
+          </span>
+        )}
+      </button>
+    </form>
   )
 }

@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
 
@@ -369,6 +370,28 @@ export async function acceptInvite(token: string) {
 
   revalidatePath('/dashboard')
   return { success: true, orgId: invite.org_id }
+}
+
+// ── Switch active org (normal user) ─────────────────────────────────────────
+
+export async function setActiveOrg(slug: string): Promise<void> {
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: membership } = await admin
+    .from('org_members')
+    .select('organizations!inner(slug)')
+    .eq('user_id', user.id)
+    .eq('organizations.slug', slug)
+    .maybeSingle()
+  if (!membership) return
+  const cookieStore = await cookies()
+  cookieStore.set('pz_active_org', slug, {
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30,
+    path: '/',
+  })
+  redirect('/dashboard')
 }
 
 // ── Get org with membership check ────────────────────────────────────────────

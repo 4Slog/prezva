@@ -6,6 +6,7 @@ import { SetupChecklist } from '@/components/dashboard/SetupChecklist'
 import { StaffOnboardingModal } from '@/components/staff/StaffOnboardingModal'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
 
 type Props = { searchParams: Promise<{ error?: string; joined?: string; role?: string }> }
 
@@ -42,13 +43,15 @@ export default async function DashboardPage({ searchParams }: Props) {
     orgName = impersonateOrg.name
     myRole = 'owner'
   } else {
-    // Auto-select: use first org (single-org owners get stats immediately)
-    const firstOrg = orgs[0] as any
-    const orgData = firstOrg.organizations
+    const activeSlug = await resolveActiveOrgSlug(user.id, orgs)
+    const activeOrg = orgs.find(
+      (o) => (o as any).organizations?.slug === activeSlug,
+    ) as any ?? orgs[0] as any
+    const orgData = activeOrg.organizations
     orgId = orgData?.id
     orgSlug = orgData?.slug
     orgName = orgData?.name
-    myRole = firstOrg.role as string
+    myRole = activeOrg.role as string
   }
 
   // Fetch profile for greeting

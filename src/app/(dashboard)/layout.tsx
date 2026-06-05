@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
 import { isSuperAdmin } from '@/lib/admin/gate'
+import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
 import { OrgShell } from '@/components/layout/OrgShell'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -21,10 +22,8 @@ export default async function DashboardLayout({
   ])
   const superAdmin = isSuperAdmin(user.id)
 
-  const defaultOrgSlug =
-    (orgs[0] as { organizations?: { slug?: string } } | undefined)?.organizations?.slug ?? null
+  const defaultOrgSlug = await resolveActiveOrgSlug(user.id, orgs)
 
-  // The dashboard layout currently auto-selects the first org for the user.
   const currentContext = defaultOrgSlug ?? 'personal'
 
   return (
