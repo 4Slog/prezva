@@ -7,6 +7,7 @@ import { StaffOnboardingModal } from '@/components/staff/StaffOnboardingModal'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
+import { isSuperAdmin } from '@/lib/admin/gate'
 
 type Props = { searchParams: Promise<{ error?: string; joined?: string; role?: string }> }
 
@@ -19,7 +20,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const cookieStore = await cookies()
   const impersonateCookie = cookieStore.get('pz_impersonate_org')?.value
   let impersonateOrg: { id: string; name: string; slug: string } | null = null
-  if (impersonateCookie) {
+  if (impersonateCookie && isSuperAdmin(user.id)) {
     try { impersonateOrg = JSON.parse(impersonateCookie) } catch { /* ignore */ }
   }
 

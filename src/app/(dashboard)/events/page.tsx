@@ -4,6 +4,7 @@ import { EventCard } from '@/components/events/EventCard'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
+import { isSuperAdmin } from '@/lib/admin/gate'
 
 export const metadata = { title: 'Events' }
 
@@ -26,7 +27,7 @@ export default async function EventsPage() {
   const cookieStore = await cookies()
   const impersonateCookie = cookieStore.get('pz_impersonate_org')?.value
   let impersonateOrg: { id: string; name: string; slug: string } | null = null
-  if (impersonateCookie) {
+  if (impersonateCookie && isSuperAdmin(user.id)) {
     try { impersonateOrg = JSON.parse(impersonateCookie) } catch { /* ignore */ }
   }
 
