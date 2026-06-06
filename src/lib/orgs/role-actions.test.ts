@@ -190,6 +190,43 @@ describe('renameRole — G2 (owner cannot be renamed)', () => {
   })
 })
 
+// ── G1 via role assignment: can't assign a role whose perms exceed actor's ────
+
+describe('assignMemberRole — G1 escalation (new role perms exceed actor perms)', () => {
+  it('rejects assigning owner role to a non-owner actor (owner has org.billing which admin lacks)', async () => {
+    let orgMembersCall = 0
+    vi.mocked(createAdminClient).mockReturnValue({
+      from: (table: string) => {
+        if (table === 'org_members') {
+          orgMembersCall++
+          if (orgMembersCall === 1) {
+            // Target member currently has staff role (not owner, so G4 skipped)
+            return makeChain({ data: { role_id: 'staff-role-id', roles: { slug: 'staff' } }, error: null })
+          }
+          return makeChain({ data: null, error: null })
+        }
+        if (table === 'roles') {
+          // New role is 'owner' (belongs to the org)
+          return makeChain({ data: { slug: 'owner', org_id: ORG_ID }, error: null })
+        }
+        if (table === 'role_permissions') {
+          // Owner role has org.billing and org.delete — actor (admin) doesn't hold these
+          return makeChain({ data: [{ permission_key: 'org.billing' }, { permission_key: 'org.delete' }], error: null })
+        }
+        return makeChain({ data: null, error: null })
+      },
+    } as unknown as ReturnType<typeof createAdminClient>)
+    // Actor is admin — holds org.roles.manage but NOT org.billing / org.delete
+    vi.mocked(getOrgPermissions).mockResolvedValue(
+      new Set(['agenda.manage', 'org.roles.manage', 'org.members.invite']),
+    )
+
+    const result = await assignMemberRole(ORG_ID, 'target-user-id', 'owner-role-id')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain("can't assign a role")
+  })
+})
+
 // ── Happy path: createRole ───────────────────────────────────────────────────
 
 describe('createRole — happy path', () => {

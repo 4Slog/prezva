@@ -252,6 +252,24 @@ export async function assignMemberRole(
 
   if (!newRole || newRole.org_id !== orgId) return { error: 'Role not found in this organization.' }
 
+  // G1-equivalent: actor must hold every permission granted by the new role.
+  // Prevents assigning owner (has org.billing/org.delete) or any custom role
+  // whose permission set exceeds the actor's — closing privilege escalation via role assignment.
+  const { data: newRolePerms } = await admin
+    .from('role_permissions')
+    .select('permission_key')
+    .eq('role_id', newRoleId)
+
+  if (newRolePerms && newRolePerms.length > 0) {
+    const actorPerms = await getOrgPermissions(orgId, user.id)
+    const forbidden = newRolePerms.map(p => p.permission_key).filter(k => !permits(actorPerms, k))
+    if (forbidden.length > 0) {
+      return {
+        error: `You can't assign a role that grants permissions you don't have: ${forbidden[0]}`,
+      }
+    }
+  }
+
   // Dual-write: role_id always; role enum only for built-in slug values
   const updatePayload: Record<string, unknown> = { role_id: newRoleId }
   if (ENUM_ROLES.includes(newRole.slug as OrgRole)) {
