@@ -2,19 +2,17 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
-import { createClient } from '@/lib/supabase/server'
+import { assertPermission } from '@/lib/auth/assert-permission'
 import { issueOrGetCertificate } from './actions'
 
 export async function bulkIssueCertificates(eventId: string): Promise<{ issued: number; skipped: number; failed: number }> {
   const user = await requireUser()
-  const supabase = await createClient()
   const admin = createAdminClient()
 
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { issued: 0, skipped: 0, failed: 0 }
 
-  await assertOrgRole(supabase, event.org_id, user.id, ['owner', 'admin'])
+  await assertPermission(event.org_id, user.id, 'certificates.manage')
 
   const { data: regs } = await admin
     .from('registrations')

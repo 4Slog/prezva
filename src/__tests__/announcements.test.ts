@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/auth/get-user', () => ({ requireUser: vi.fn().mockResolvedValue({ id: 'user-a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }) }))
+vi.mock('@/lib/auth/assert-permission', () => ({ assertPermission: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/orgs/actions', () => ({ assertOrgRole: vi.fn().mockResolvedValue('owner') }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
@@ -60,7 +61,6 @@ describe('Announcements', () => {
     insertChain.single.mockResolvedValue({ data: ann, error: null })
     const fromMock = vi.fn()
       .mockReturnValueOnce(evtChain)   // from('events')
-      .mockReturnValueOnce(evtChain)   // from('org_members') inside assertOrgRole
       .mockReturnValueOnce(countChain) // count query
       .mockReturnValueOnce(insertChain)
     ;(createClient as any).mockResolvedValue({ from: fromMock })
@@ -77,7 +77,6 @@ describe('Announcements', () => {
     const delChain = makeChain(null)
     const fromMock = vi.fn()
       .mockReturnValueOnce(evtChain)   // from('events')
-      .mockReturnValueOnce(evtChain)   // from('org_members') inside assertOrgRole
       .mockReturnValueOnce(delChain)   // delete query
     ;(createClient as any).mockResolvedValue({ from: fromMock })
     const res = await deleteAnnouncement(ANN_ID, EVT_ID)

@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -252,7 +252,7 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
     .maybeSingle()
   if (!event) return { error: 'Event not found' }
   const orgId = (event.organizations as any)?.id
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(orgId, user.id, 'surveys.manage')
 
   const { data: regs } = await supabase
     .from('registrations')

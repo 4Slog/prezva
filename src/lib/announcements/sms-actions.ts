@@ -3,7 +3,7 @@ import Telnyx from 'telnyx'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 export async function sendSMSAnnouncement(eventId: string, message: string) {
   const supabase = await createClient()
@@ -16,7 +16,7 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
     .single()
   if (!event) return { error: 'Event not found' }
 
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin'])
+  await assertPermission((event as any).org_id, user.id, 'announcements.send')
 
   const apiKey = process.env.TELNYX_API_KEY
   const fromNumber = process.env.TELNYX_PHONE_NUMBER

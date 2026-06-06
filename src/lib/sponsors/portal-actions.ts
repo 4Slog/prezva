@@ -1,8 +1,7 @@
 'use server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 async function validateToken(token: string) {
   const admin = createAdminClient()
@@ -304,7 +303,6 @@ export async function getSponsorByContactToken(contactToken: string) {
 }
 
 export async function sendSponsorPortalInvite(sponsorId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
 
@@ -317,7 +315,7 @@ export async function sendSponsorPortalInvite(sponsorId: string) {
   if (!sponsor) return { error: 'Sponsor not found' }
 
   const orgId = (sponsor as any).events?.org_id
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(orgId, user.id, 'sponsors.manage')
 
   const email = (sponsor as any).contact_email
   if (!email) return { error: 'No contact email set for this sponsor. Add one in sponsor settings first.' }

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -39,7 +39,7 @@ export async function createDiscountCode(eventId: string, input: unknown) {
   const supabase = await createClient()
   const orgId = await getEventOrgId(eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.tickets')
   const { data, error } = await supabase
     .from('discount_codes')
     .insert({ event_id: eventId, ...parsed.data })
@@ -55,7 +55,7 @@ export async function toggleDiscountCode(eventId: string, codeId: string, isActi
   const supabase = await createClient()
   const orgId = await getEventOrgId(eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.tickets')
   const { error } = await supabase
     .from('discount_codes')
     .update({ is_active: isActive })
@@ -71,7 +71,7 @@ export async function deleteDiscountCode(eventId: string, codeId: string) {
   const supabase = await createClient()
   const orgId = await getEventOrgId(eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.tickets')
   const { error } = await supabase
     .from('discount_codes')
     .delete()

@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 async function getOrgId(supabase: any, eventId: string) {
   const { data: event } = await supabase.from('events').select('org_id').eq('id', eventId).maybeSingle()
@@ -20,7 +20,7 @@ export async function getPassportAdmin(eventId: string) {
   const supabase = await createClient()
   const orgId = await getOrgId(supabase, eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(orgId, user.id, 'passport.manage')
 
   const admin = createAdminClient()
   const [locRes, visitRes, topRes] = await Promise.all([
@@ -57,7 +57,7 @@ export async function createPassportLocation(eventId: string, name: string, poin
   const supabase = await createClient()
   const orgId = await getOrgId(supabase, eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'passport.manage')
 
   const admin = createAdminClient()
   const code = randomCode(6)
@@ -76,7 +76,7 @@ export async function deletePassportLocation(locationId: string, eventId: string
   const supabase = await createClient()
   const orgId = await getOrgId(supabase, eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'passport.manage')
 
   const admin = createAdminClient()
   const { error } = await admin

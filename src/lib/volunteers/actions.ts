@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 export async function respondToVolunteerShift(
   token: string,
@@ -194,7 +194,7 @@ export async function exportVolunteerHours(eventId: string) {
 
   if (!event) return { error: 'Event not found' }
 
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((event as any).org_id, user.id, 'volunteers.manage')
 
   const admin = createAdminClient()
   const { data: volunteers } = await admin

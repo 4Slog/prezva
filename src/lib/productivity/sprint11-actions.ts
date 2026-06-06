@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -136,7 +136,7 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
   if (!event) return { error: 'Event not found' }
 
   // event_templates is service-role only; require org membership before writing.
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin'])
+  await assertPermission((event as any).org_id, user.id, 'org.templates.manage')
 
   const { data: sessions } = await supabase.from('sessions').select('*').eq('event_id', eventId)
   const { data: tickets } = await supabase.from('ticket_types').select('*').eq('event_id', eventId)
@@ -190,9 +190,8 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
 }
 
 export async function getEventTemplates(orgId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(orgId, user.id, 'org.templates.view')
 
   const admin = createAdminClient()
   const { data } = await admin
@@ -213,7 +212,7 @@ export async function createEventFromTemplate(
 ) {
   const supabase = await createClient()
   const user = await requireUser()
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.manage')
 
   const admin = createAdminClient()
   const { data: tpl } = await admin.from('event_templates').select('*').eq('id', templateId).single()

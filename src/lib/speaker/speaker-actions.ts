@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { enqueueSpeakerInviteEmail } from '@/lib/trigger'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
 
@@ -17,13 +18,11 @@ export async function createSpeaker(eventId: string, input: {
   bio?: string
   event_role?: string
 }) {
-  const supabase = await createClient()
   const admin = createAdminClient()
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
   const user = await requireUser()
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((event as any).org_id, user.id, 'speakers.manage')
   const { data, error } = await admin
     .from('speakers')
     .insert({
@@ -509,25 +508,21 @@ export async function getSpeakersWithMissingInfo(eventId: string, missingField: 
 }
 
 export async function markSpeakerArrived(speakerId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
   const { data: sp } = await admin.from('speakers').select('event_id, events(org_id)').eq('id', speakerId).single()
   if (!sp) return { error: 'Not found' }
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, (sp as any).events?.org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage')
   await admin.from('speakers').update({ checked_in_at: new Date().toISOString() }).eq('id', speakerId)
   return { ok: true }
 }
 
 export async function updateSpeakerDayOfInfo(eventId: string, text: string) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((event as any).org_id, user.id, 'speakers.manage')
   await admin.from('events').update({ speaker_day_of_info: text || null }).eq('id', eventId)
   return { ok: true }
 }
@@ -535,7 +530,6 @@ export async function updateSpeakerDayOfInfo(eventId: string, text: string) {
 // ── B11-34: token renewal ─────────────────────────────────────────────────────
 
 export async function renewSpeakerToken(speakerId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
 
@@ -547,8 +541,7 @@ export async function renewSpeakerToken(speakerId: string) {
 
   if (!sp) return { error: 'Speaker not found' }
 
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, (sp as any).events?.org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage')
 
   const { nanoid } = await import('nanoid')
   const newToken = nanoid(32)
@@ -586,12 +579,10 @@ export async function renewSpeakerToken(speakerId: string) {
 // ── B11-35: handout delete (admin-auth version) ───────────────────────────────
 
 export async function deleteHandoutAsOrg(handoutId: string, orgId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
 
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(orgId, user.id, 'speakers.manage')
 
   const { data: handout } = await admin
     .from('session_handouts')
@@ -617,7 +608,6 @@ export async function moderateQAQuestion(
   action: 'hide' | 'pin' | 'unpin' | 'answer',
   answerText?: string,
 ) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
 
@@ -629,8 +619,7 @@ export async function moderateQAQuestion(
 
   if (!q) return { error: 'Question not found' }
 
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, (q as any).events?.org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((q as any).events?.org_id, user.id, 'speakers.manage')
 
   const updates: Record<string, unknown> = {}
   if (action === 'hide')   updates.is_hidden = true
@@ -657,10 +646,8 @@ export async function getQAQuestionsForEvent(eventId: string) {
 // ── B11-37: org speaker library ───────────────────────────────────────────────
 
 export async function getOrgSpeakerLibrary(orgId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(orgId, user.id, 'org.speaker_library.view')
   const admin = createAdminClient()
   const { data } = await admin
     .from('org_speakers')
@@ -671,15 +658,13 @@ export async function getOrgSpeakerLibrary(orgId: string) {
 }
 
 export async function addSpeakerFromLibrary(eventId: string, orgSpeakerId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
   const admin = createAdminClient()
 
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
 
-  const { assertOrgRole } = await import('@/lib/orgs/actions')
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((event as any).org_id, user.id, 'speakers.manage')
 
   const { data: libSpeaker } = await admin
     .from('org_speakers').select('*').eq('id', orgSpeakerId).single()

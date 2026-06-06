@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -53,7 +53,7 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
   const user = await requireUser()
   const { data: ev } = await supabase.from('events').select('org_id').eq('id', eventId).single()
   if (!ev) return { error: 'Event not found' }
-  await assertOrgRole(supabase, ev.org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(ev.org_id, user.id, 'announcements.send')
   const raw = {
     title: formData.get('title'),
     body: formData.get('body'),
@@ -120,7 +120,7 @@ export async function deleteAnnouncement(announcementId: string, eventId: string
   const user = await requireUser()
   const { data: ev } = await supabase.from('events').select('org_id').eq('id', eventId).single()
   if (!ev) return { error: 'Event not found' }
-  await assertOrgRole(supabase, ev.org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission(ev.org_id, user.id, 'announcements.send')
   const { error } = await supabase
     .from('announcements')
     .delete()

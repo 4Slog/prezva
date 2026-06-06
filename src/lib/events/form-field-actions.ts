@@ -1,9 +1,8 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -36,12 +35,11 @@ export async function getFormFields(eventId: string) {
 
 export async function createFormField(eventId: string, input: unknown) {
   const user = await requireUser()
-  const supabase = await createClient()
   const parsed = FieldSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const orgId = await getEventOrgId(eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.manage')
   const admin = createAdminClient()
   const fieldKey = `cf_${Date.now()}`
   const options = ['select', 'radio', 'checkbox'].includes(parsed.data.field_type)
@@ -59,7 +57,6 @@ export async function createFormField(eventId: string, input: unknown) {
 
 export async function updateFormField(fieldId: string, input: unknown) {
   const user = await requireUser()
-  const supabase = await createClient()
   const parsed = FieldSchema.partial().safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const admin = createAdminClient()
@@ -67,7 +64,7 @@ export async function updateFormField(fieldId: string, input: unknown) {
   if (!field) return { error: 'Field not found' }
   const orgId = await getEventOrgId(field.event_id)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.manage')
   const { error } = await admin.from('form_fields').update(parsed.data).eq('id', fieldId)
   if (error) return { error: error.message }
   revalidatePath('/events')
@@ -76,13 +73,12 @@ export async function updateFormField(fieldId: string, input: unknown) {
 
 export async function deleteFormField(fieldId: string) {
   const user = await requireUser()
-  const supabase = await createClient()
   const admin = createAdminClient()
   const { data: field } = await admin.from('form_fields').select('event_id').eq('id', fieldId).single()
   if (!field) return { error: 'Field not found' }
   const orgId = await getEventOrgId(field.event_id)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.manage')
   const { error } = await admin.from('form_fields').delete().eq('id', fieldId)
   if (error) return { error: error.message }
   revalidatePath('/events')
@@ -91,14 +87,13 @@ export async function deleteFormField(fieldId: string) {
 
 export async function reorderFormFields(fieldIds: string[]) {
   const user = await requireUser()
-  const supabase = await createClient()
   const admin = createAdminClient()
   if (fieldIds.length === 0) return { ok: true }
   const { data: first } = await admin.from('form_fields').select('event_id').eq('id', fieldIds[0]).single()
   if (!first) return { error: 'Field not found' }
   const orgId = await getEventOrgId(first.event_id)
   if (!orgId) return { error: 'Event not found' }
-  await assertOrgRole(supabase, orgId, user.id, ['owner', 'admin'])
+  await assertPermission(orgId, user.id, 'event.manage')
   await Promise.all(
     fieldIds.map((id, idx) => admin.from('form_fields').update({ sort_order: idx }).eq('id', id))
   )

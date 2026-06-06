@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 export interface AttendeeEngagement {
   registration_id: string
@@ -27,7 +27,7 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
   const { data: event } = await supabase.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return []
 
-  await assertOrgRole(supabase, (event as any).org_id, user.id, ['owner', 'admin', 'staff'])
+  await assertPermission((event as any).org_id, user.id, 'analytics.view')
 
   const admin = createAdminClient()
 

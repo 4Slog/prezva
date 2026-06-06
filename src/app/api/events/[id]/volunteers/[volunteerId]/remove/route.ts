@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { assertOrgRole } from '@/lib/orgs/actions'
+import { assertPermission } from '@/lib/auth/assert-permission'
 
 export async function POST(
   _req: Request,
@@ -32,9 +31,8 @@ export async function POST(
     .maybeSingle()
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const supabase = await createClient()
   try {
-    await assertOrgRole(supabase, event.org_id as string, user.id, ['owner', 'admin', 'staff'])
+    await assertPermission(event.org_id as string, user.id, 'volunteers.manage')
   } catch {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
