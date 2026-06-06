@@ -356,10 +356,20 @@ export async function acceptInvite(token: string) {
     return { error: `This invitation was sent to ${invite.email} — please sign in with that account` }
   }
 
+  // Look up the built-in role_id for this org + slug so new members always have role_id set
+  const { data: builtinRole } = await service
+    .from('roles')
+    .select('id')
+    .eq('org_id', invite.org_id)
+    .eq('slug', invite.role)
+    .eq('is_builtin', true)
+    .maybeSingle()
+
   const { error: memberError } = await service.from('org_members').insert({
     org_id: invite.org_id,
     user_id: user.id,
     role: invite.role,
+    role_id: builtinRole?.id ?? null,
     invited_by: invite.invited_by,
   })
 
