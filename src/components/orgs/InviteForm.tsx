@@ -23,7 +23,7 @@ export function InviteForm({ orgId }: InviteFormProps) {
     const result = await inviteMember(orgId, fd)
 
     setPending(false)
-    if (result?.error) {
+    if ('error' in result) {
       setError(result.error)
     } else {
       setSuccess(true)

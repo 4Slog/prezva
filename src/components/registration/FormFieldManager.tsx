@@ -74,8 +74,8 @@ export function FormFieldManager({ eventId, initial, tickets }: Props) {
       ticket_type_id: ticketTypeId || null,
     })
     setPending(false)
-    if (result.error) { setError(result.error); return }
-    if (result.data) {
+    if ('error' in result) { setError(result.error ?? null); return }
+    if ('data' in result) {
       setFields(prev => [...prev, result.data as FormField])
       resetForm()
     }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 
 export async function refundRegistration(registrationId: string, force?: boolean) {
@@ -36,7 +37,7 @@ export async function refundRegistration(registrationId: string, force?: boolean
   const stripeAccountId = ev?.organizations?.stripe_account_id as string | null
   if (!stripeAccountId) return { error: 'Organization is not connected to Stripe' }
 
-  await assertPermission(orgId, user.id, 'attendees.refund')
+  try { await assertPermission(orgId, user.id, 'attendees.refund') } catch (e) { return catchPermission(e) }
 
   const { stripe } = await import('@/lib/stripe/client')
   try {
@@ -96,7 +97,7 @@ export async function resendConfirmation(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'attendees.edit')
+  try { await assertPermission(orgId, user.id, 'attendees.edit') } catch (e) { return catchPermission(e) }
 
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
@@ -136,7 +137,7 @@ export async function cancelRegistration(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'attendees.edit')
+  try { await assertPermission(orgId, user.id, 'attendees.edit') } catch (e) { return catchPermission(e) }
 
   const priorStatus = reg.status
   const admin = createAdminClient()
@@ -177,7 +178,7 @@ export async function undoCheckIn(registrationId: string) {
   const orgId = (reg.events as any)?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'checkin.undo')
+  try { await assertPermission(orgId, user.id, 'checkin.undo') } catch (e) { return catchPermission(e) }
 
   const admin = createAdminClient()
 
@@ -216,7 +217,7 @@ export async function approveRegistration(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'attendees.edit')
+  try { await assertPermission(orgId, user.id, 'attendees.edit') } catch (e) { return catchPermission(e) }
 
   const admin = createAdminClient()
   await admin
@@ -263,7 +264,7 @@ export async function rejectRegistration(registrationId: string, reason?: string
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'attendees.edit')
+  try { await assertPermission(orgId, user.id, 'attendees.edit') } catch (e) { return catchPermission(e) }
 
   const admin = createAdminClient()
   await admin
@@ -324,7 +325,7 @@ export async function promoteFromWaitlist(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'attendees.edit')
+  try { await assertPermission(orgId, user.id, 'attendees.edit') } catch (e) { return catchPermission(e) }
 
   await admin
     .from('registrations')
@@ -463,7 +464,7 @@ export async function manualCheckIn(registrationId: string) {
   const orgId = ev?.organizations?.id
   if (!orgId) return { error: 'Could not determine organization' }
 
-  await assertPermission(orgId, user.id, 'checkin.manage')
+  try { await assertPermission(orgId, user.id, 'checkin.manage') } catch (e) { return catchPermission(e) }
 
   const { data: existing } = await supabase
     .from('check_ins')

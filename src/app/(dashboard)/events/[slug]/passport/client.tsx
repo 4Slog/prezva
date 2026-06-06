@@ -29,7 +29,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
     setError('')
     startTransition(async () => {
       const result = await createPassportLocation(eventId, name.trim(), parseInt(points) || 5)
-      if (result.error) { setError(result.error); return }
+      if ('error' in result) { setError(result.error); return }
       setLocations(prev => [...prev, result.data as Location])
       setName('')
       setPoints('5')
@@ -39,7 +39,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
   function handleDelete(locationId: string) {
     startTransition(async () => {
       const result = await deletePassportLocation(locationId, eventId)
-      if (!result.error) setLocations(prev => prev.filter(l => l.id !== locationId))
+      if (!('error' in result)) setLocations(prev => prev.filter(l => l.id !== locationId))
     })
   }
 

@@ -63,7 +63,7 @@ describe('assertPermission', () => {
     await expect(assertPermission(ORG, USER, 'checkin.manage')).resolves.toBeUndefined()
   })
 
-  it('throws when member lacks the permission key', async () => {
+  it('throws PermissionError with friendly message when member lacks the permission key', async () => {
     vi.mocked(createAdminClient).mockReturnValue(
       makeClient({
         memberRow: { role_id: 'role-staff', role: 'staff' },
@@ -71,23 +71,23 @@ describe('assertPermission', () => {
       }) as unknown as ReturnType<typeof createAdminClient>,
     )
     await expect(assertPermission(ORG, USER, 'announcements.send')).rejects.toThrow(
-      'Insufficient permissions: announcements.send',
+      "You don't have permission to send announcements.",
     )
   })
 
-  it('throws when user is not a member', async () => {
+  it('throws OrgAccessError when user is not a member', async () => {
     vi.mocked(createAdminClient).mockReturnValue(
       makeClient({ memberRow: null }) as unknown as ReturnType<typeof createAdminClient>,
     )
     await expect(assertPermission(ORG, USER, 'checkin.manage')).rejects.toThrow(
-      'Not a member of this organization',
+      "You don't have access to this organization.",
     )
   })
 
-  it('throws when orgId is undefined (optional-chain call site)', async () => {
+  it('throws OrgAccessError when orgId is undefined (optional-chain call site)', async () => {
     await expect(
       assertPermission(undefined as unknown as string, USER, 'checkin.manage'),
-    ).rejects.toThrow('Insufficient permissions: missing org or user')
+    ).rejects.toThrow("You don't have access to this organization.")
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 })

@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { enqueueSpeakerInviteEmail } from '@/lib/trigger'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
 
@@ -22,7 +23,7 @@ export async function createSpeaker(eventId: string, input: {
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
   const user = await requireUser()
-  await assertPermission((event as any).org_id, user.id, 'speakers.manage')
+  try { await assertPermission((event as any).org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
   const { data, error } = await admin
     .from('speakers')
     .insert({
@@ -512,7 +513,7 @@ export async function markSpeakerArrived(speakerId: string) {
   const admin = createAdminClient()
   const { data: sp } = await admin.from('speakers').select('event_id, events(org_id)').eq('id', speakerId).single()
   if (!sp) return { error: 'Not found' }
-  await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage')
+  try { await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
   await admin.from('speakers').update({ checked_in_at: new Date().toISOString() }).eq('id', speakerId)
   return { ok: true }
 }
@@ -522,7 +523,7 @@ export async function updateSpeakerDayOfInfo(eventId: string, text: string) {
   const admin = createAdminClient()
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
-  await assertPermission((event as any).org_id, user.id, 'speakers.manage')
+  try { await assertPermission((event as any).org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
   await admin.from('events').update({ speaker_day_of_info: text || null }).eq('id', eventId)
   return { ok: true }
 }
@@ -541,7 +542,7 @@ export async function renewSpeakerToken(speakerId: string) {
 
   if (!sp) return { error: 'Speaker not found' }
 
-  await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage')
+  try { await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
 
   const { nanoid } = await import('nanoid')
   const newToken = nanoid(32)
@@ -582,7 +583,7 @@ export async function deleteHandoutAsOrg(handoutId: string, orgId: string) {
   const user = await requireUser()
   const admin = createAdminClient()
 
-  await assertPermission(orgId, user.id, 'speakers.manage')
+  try { await assertPermission(orgId, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
 
   const { data: handout } = await admin
     .from('session_handouts')
@@ -619,7 +620,7 @@ export async function moderateQAQuestion(
 
   if (!q) return { error: 'Question not found' }
 
-  await assertPermission((q as any).events?.org_id, user.id, 'speakers.manage')
+  try { await assertPermission((q as any).events?.org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
 
   const updates: Record<string, unknown> = {}
   if (action === 'hide')   updates.is_hidden = true
@@ -664,7 +665,7 @@ export async function addSpeakerFromLibrary(eventId: string, orgSpeakerId: strin
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
 
-  await assertPermission((event as any).org_id, user.id, 'speakers.manage')
+  try { await assertPermission((event as any).org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
 
   const { data: libSpeaker } = await admin
     .from('org_speakers').select('*').eq('id', orgSpeakerId).single()

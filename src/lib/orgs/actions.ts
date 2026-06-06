@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -126,7 +127,7 @@ export async function updateOrg(orgId: string, formData: FormData) {
   const user = await requireUser()
   const supabase = await createClient()
 
-  await assertPermission(orgId, user.id, 'org.settings')
+  try { await assertPermission(orgId, user.id, 'org.settings') } catch (e) { return catchPermission(e) }
 
   const parsed = UpdateOrgSchema.safeParse({
     name: formData.get('name') || undefined,
@@ -162,7 +163,7 @@ export async function inviteMember(orgId: string, formData: FormData) {
   const user = await requireUser()
   const supabase = await createClient()
 
-  await assertPermission(orgId, user.id, 'org.members.invite')
+  try { await assertPermission(orgId, user.id, 'org.members.invite') } catch (e) { return catchPermission(e) }
 
   const parsed = InviteSchema.safeParse({
     email: formData.get('email'),
@@ -256,7 +257,7 @@ export async function revokeInvite(inviteId: string) {
   const admin = createAdminClient()
   const { data: invite } = await admin.from('org_invites').select('org_id').eq('id', inviteId).single()
   if (!invite) return { error: 'Not found' }
-  await assertPermission((invite as any).org_id, user.id, 'org.members.invite')
+  try { await assertPermission((invite as any).org_id, user.id, 'org.members.invite') } catch (e) { return catchPermission(e) }
   await admin.from('org_invites').delete().eq('id', inviteId)
   return { ok: true }
 }
@@ -271,7 +272,7 @@ export async function resendInvite(inviteId: string) {
     .eq('id', inviteId)
     .single()
   if (!invite) return { error: 'Not found' }
-  await assertPermission((invite as any).org_id, user.id, 'org.members.invite')
+  try { await assertPermission((invite as any).org_id, user.id, 'org.members.invite') } catch (e) { return catchPermission(e) }
 
   const orgName = (invite as any).organizations?.name ?? 'An organization'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
@@ -301,7 +302,7 @@ export async function removeMember(orgId: string, memberId: string) {
   const user = await requireUser()
   const supabase = await createClient()
 
-  await assertPermission(orgId, user.id, 'org.members.invite')
+  try { await assertPermission(orgId, user.id, 'org.members.invite') } catch (e) { return catchPermission(e) }
 
   // Cannot remove yourself if owner
   const { data: self } = await supabase

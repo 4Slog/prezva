@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -252,7 +253,7 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
     .maybeSingle()
   if (!event) return { error: 'Event not found' }
   const orgId = (event.organizations as any)?.id
-  await assertPermission(orgId, user.id, 'surveys.manage')
+  try { await assertPermission(orgId, user.id, 'surveys.manage') } catch (e) { return catchPermission(e) }
 
   const { data: regs } = await supabase
     .from('registrations')

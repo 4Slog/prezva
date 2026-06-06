@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 
 export async function sendSMSAnnouncement(eventId: string, message: string) {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
     .single()
   if (!event) return { error: 'Event not found' }
 
-  await assertPermission((event as any).org_id, user.id, 'announcements.send')
+  try { await assertPermission((event as any).org_id, user.id, 'announcements.send') } catch (e) { return catchPermission(e) }
 
   const apiKey = process.env.TELNYX_API_KEY
   const fromNumber = process.env.TELNYX_PHONE_NUMBER

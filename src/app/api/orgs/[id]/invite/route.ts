@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const result = await inviteMember(orgId, fd)
 
-    if (result?.error) {
+    if ('error' in result) {
       if (result.error.includes('Already')) return NextResponse.json({ error: result.error }, { status: 409 })
       return NextResponse.json({ error: result.error }, { status: 400 })
     }

@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSuperAdmin } from '@/lib/admin/gate'
+import { PermissionError, OrgAccessError } from './permission-error'
 
 // Phase 4 removable: minimal fallback for the edge case where role_id IS NULL.
 // Phase 1 verified 0 NULL role_ids exist; this only fires on a data anomaly.
@@ -21,7 +22,7 @@ export async function assertPermission(
 ): Promise<void> {
   if (isSuperAdmin(userId)) return
 
-  if (!orgId || !userId) throw new Error('Insufficient permissions: missing org or user')
+  if (!orgId || !userId) throw new OrgAccessError()
 
   const supabase = createAdminClient()
 
@@ -32,7 +33,7 @@ export async function assertPermission(
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (memberError || !member) throw new Error('Not a member of this organization')
+  if (memberError || !member) throw new OrgAccessError()
 
   if (member.role_id) {
     const { data: perm } = await supabase
@@ -43,12 +44,12 @@ export async function assertPermission(
       .maybeSingle()
 
     if (perm) return
-    throw new Error(`Insufficient permissions: ${permissionKey}`)
+    throw new PermissionError(permissionKey)
   }
 
   // Phase 4 removable: NULL role_id fallback
   if (!nullRoleIdFallback(member.role as string, permissionKey)) {
-    throw new Error(`Insufficient permissions: ${permissionKey}`)
+    throw new PermissionError(permissionKey)
   }
 }
 

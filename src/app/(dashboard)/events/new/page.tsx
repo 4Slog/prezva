@@ -64,7 +64,7 @@ export default function NewEventPage() {
       if (!startAt || !endAt) { setError('Start and end date/time are required'); setPending(false); return }
       const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug, startAt, endAt)
       setPending(false)
-      if (result.error) setError(result.error)
+      if ('error' in result) setError(result.error)
       else window.location.href = `/events/${result.slug}`
       return
     }

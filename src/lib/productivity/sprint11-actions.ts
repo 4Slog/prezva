@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
   if (!event) return { error: 'Event not found' }
 
   // event_templates is service-role only; require org membership before writing.
-  await assertPermission((event as any).org_id, user.id, 'org.templates.manage')
+  try { await assertPermission((event as any).org_id, user.id, 'org.templates.manage') } catch (e) { return catchPermission(e) }
 
   const { data: sessions } = await supabase.from('sessions').select('*').eq('event_id', eventId)
   const { data: tickets } = await supabase.from('ticket_types').select('*').eq('event_id', eventId)
@@ -212,7 +213,7 @@ export async function createEventFromTemplate(
 ) {
   const supabase = await createClient()
   const user = await requireUser()
-  await assertPermission(orgId, user.id, 'event.manage')
+  try { await assertPermission(orgId, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
 
   const admin = createAdminClient()
   const { data: tpl } = await admin.from('event_templates').select('*').eq('id', templateId).single()

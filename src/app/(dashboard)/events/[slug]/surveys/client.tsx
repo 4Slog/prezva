@@ -120,8 +120,8 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
     setSendingId(surveyId)
     startTransition(async () => {
       const result = await sendSurveyToAllAttendees(surveyId, eventId)
-      if (result.error) {
-        setSendMsg(prev => ({ ...prev, [surveyId]: result.error! }))
+      if ('error' in result) {
+        setSendMsg(prev => ({ ...prev, [surveyId]: result.error }))
       } else {
         setSendMsg(prev => ({ ...prev, [surveyId]: `Sent to ${result.sent}/${result.total} attendees` }))
       }

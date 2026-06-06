@@ -41,8 +41,8 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
       is_active: true,
     })
     setPending(false)
-    if (result.error) { setError(result.error); return }
-    if (result.data) {
+    if ('error' in result) { setError(result.error ?? null); return }
+    if ('data' in result) {
       setCodes(prev => [result.data as DiscountCode, ...prev])
       setShowForm(false)
       setCode(''); setValue(''); setMaxUses(''); setValidUntil('')

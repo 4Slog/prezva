@@ -50,7 +50,7 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
     setRemoving(profileId); setError(null)
     const result = await removeMember(orgId, profileId)
     setRemoving(null)
-    if (result?.error) setError(result.error)
+    if ('error' in result) setError(result.error)
   }
 
   async function handleRevoke(invite: PendingInvite) {

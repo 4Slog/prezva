@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -39,7 +40,7 @@ export async function createFormField(eventId: string, input: unknown) {
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const orgId = await getEventOrgId(eventId)
   if (!orgId) return { error: 'Event not found' }
-  await assertPermission(orgId, user.id, 'event.manage')
+  try { await assertPermission(orgId, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
   const admin = createAdminClient()
   const fieldKey = `cf_${Date.now()}`
   const options = ['select', 'radio', 'checkbox'].includes(parsed.data.field_type)
@@ -64,7 +65,7 @@ export async function updateFormField(fieldId: string, input: unknown) {
   if (!field) return { error: 'Field not found' }
   const orgId = await getEventOrgId(field.event_id)
   if (!orgId) return { error: 'Event not found' }
-  await assertPermission(orgId, user.id, 'event.manage')
+  try { await assertPermission(orgId, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
   const { error } = await admin.from('form_fields').update(parsed.data).eq('id', fieldId)
   if (error) return { error: error.message }
   revalidatePath('/events')
@@ -78,7 +79,7 @@ export async function deleteFormField(fieldId: string) {
   if (!field) return { error: 'Field not found' }
   const orgId = await getEventOrgId(field.event_id)
   if (!orgId) return { error: 'Event not found' }
-  await assertPermission(orgId, user.id, 'event.manage')
+  try { await assertPermission(orgId, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
   const { error } = await admin.from('form_fields').delete().eq('id', fieldId)
   if (error) return { error: error.message }
   revalidatePath('/events')
@@ -93,7 +94,7 @@ export async function reorderFormFields(fieldIds: string[]) {
   if (!first) return { error: 'Field not found' }
   const orgId = await getEventOrgId(first.event_id)
   if (!orgId) return { error: 'Event not found' }
-  await assertPermission(orgId, user.id, 'event.manage')
+  try { await assertPermission(orgId, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
   await Promise.all(
     fieldIds.map((id, idx) => admin.from('form_fields').update({ sort_order: idx }).eq('id', id))
   )

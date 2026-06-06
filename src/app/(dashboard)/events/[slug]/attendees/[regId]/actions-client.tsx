@@ -126,9 +126,9 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
                 setMessage(null)
                 startTransition(async () => {
                   const result = await refundRegistration(registrationId)
-                  if (result.error) {
+                  if ('error' in result) {
                     setMessage({ text: result.error, ok: false })
-                  } else if (result.warning === 'checked_in') {
+                  } else if ('warning' in result && result.warning === 'checked_in') {
                     setConfirming('refund_checked_in')
                   } else {
                     setMessage({ text: 'Refund processed.', ok: true })

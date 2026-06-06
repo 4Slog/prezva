@@ -167,7 +167,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
   async function handlePromote(regId: string) {
     setWaitlistMsg('')
     const result = await promoteFromWaitlist(regId)
-    if (result?.error) { setWaitlistMsg(result.error); return }
+    if ('error' in result) { setWaitlistMsg(result.error); return }
     setWaitlistRegs(r => r.filter(x => x.id !== regId))
     setWaitlistMsg('Attendee promoted — confirmation email sent.')
   }
@@ -175,14 +175,14 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
   async function handleWaitlistRemove(regId: string) {
     setWaitlistMsg('')
     const result = await cancelRegistration(regId)
-    if (result?.error) { setWaitlistMsg(result.error); return }
+    if ('error' in result) { setWaitlistMsg(result.error); return }
     setWaitlistRegs(r => r.filter(x => x.id !== regId))
   }
 
   async function handleApprove(regId: string) {
     setPendingMsg('')
     const result = await approveRegistration(regId)
-    if (result?.error) { setPendingMsg(result.error); return }
+    if ('error' in result) { setPendingMsg(result.error); return }
     setPendingRegs(r => r.filter(x => x.id !== regId))
     setPendingMsg('Registration approved — confirmation email sent.')
   }
@@ -190,7 +190,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
   async function handleReject(regId: string, reason?: string) {
     setPendingMsg('')
     const result = await rejectRegistration(regId, reason)
-    if (result?.error) { setPendingMsg(result.error); return }
+    if ('error' in result) { setPendingMsg(result.error); return }
     setPendingRegs(r => r.filter(x => x.id !== regId))
     setPendingMsg('Registration rejected.')
   }

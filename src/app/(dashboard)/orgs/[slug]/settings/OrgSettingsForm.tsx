@@ -55,7 +55,7 @@ export function OrgSettingsForm({ org }: Props) {
     const fd = new FormData(e.currentTarget)
     fd.set('logo_url', logoUrl)
     const result = await updateOrg(org.id, fd)
-    if (result?.error) setError(result.error)
+    if ('error' in result) setError(result.error)
     else setSuccess(true)
     setSaving(false)
   }
