@@ -9,6 +9,7 @@ import { getEventCounts } from '@/lib/registrations/counts'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { StaffDashboard } from './staff-dashboard'
 import Link from 'next/link'
 
@@ -96,6 +97,9 @@ export default async function EventDetailPage({ params }: Props) {
     )
   }
 
+  const permSet = await getOrgPermissions((event as any).org_id, user.id)
+  const permissions = Array.from(permSet)
+
   const notArrived = counts.confirmed - counts.checkedIn
 
   return (
@@ -175,7 +179,7 @@ export default async function EventDetailPage({ params }: Props) {
       </div>
 
       {/* Module tile grid */}
-      <AdminTileGrid eventSlug={slug} orgSlug={orgSlug ?? undefined} badges={badges} userRole={userRole} />
+      <AdminTileGrid eventSlug={slug} orgSlug={orgSlug ?? undefined} badges={badges} permissions={permissions} />
     </div>
   )
 }

@@ -8,6 +8,43 @@ import { MemberList } from '@/components/orgs/MemberList'
 import { ConnectBankButton } from '@/components/connect/ConnectBankButton'
 import { getConnectStatus } from '@/lib/connect/actions'
 import { OrgSettingsForm } from './OrgSettingsForm'
+import { PERMISSION_LABELS } from '@/lib/auth/permission-labels'
+
+const PERMISSION_CATEGORIES: { label: string; keys: string[] }[] = [
+  { label: 'Organization', keys: [
+    'org.settings', 'org.branding', 'org.billing',
+    'org.members.view', 'org.members.manage', 'org.members.invite',
+    'org.roles.view', 'org.roles.manage', 'org.delete',
+    'org.templates.view', 'org.templates.manage',
+    'org.speaker_library.view', 'org.speaker_library.manage',
+    'org.integrations', 'org.certificate_templates', 'org.audit_log',
+  ]},
+  { label: 'Event Core', keys: [
+    'event.manage', 'event.tickets',
+    'attendees.view', 'attendees.edit', 'attendees.refund',
+    'checkin.manage', 'checkin.undo',
+    'agenda.view', 'agenda.manage',
+    'speakers.view', 'speakers.manage',
+    'volunteers.manage', 'badges.manage',
+  ]},
+  { label: 'Engagement', keys: [
+    'announcements.manage', 'announcements.send',
+    'surveys.view', 'surveys.manage',
+    'networking.view', 'networking.manage',
+    'community.manage', 'photos.manage',
+    'leaderboard.view', 'leaderboard.manage',
+    'icebreakers.manage', 'trivia.manage', 'passport.manage',
+    'qa.view', 'qa.moderate',
+  ]},
+  { label: 'Advanced', keys: [
+    'sponsors.view', 'sponsors.manage',
+    'certificates.manage',
+    'analytics.view', 'analytics.manage',
+    'event.audit_log', 'failed_jobs.manage',
+    'run_of_show.view', 'run_of_show.manage',
+    'event.integrations', 'video.view', 'video.manage',
+  ]},
+]
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -62,6 +99,27 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
 
   // Fetch Connect status server-side for initial render
   const connectStatus = isOwner ? await getConnectStatus(org.id) : null
+
+  // Fetch builtin roles + their permissions for the live Role Permissions table
+  const { data: orgRolesRaw } = await admin
+    .from('roles')
+    .select('id, name, slug, role_permissions(permission_key)')
+    .eq('org_id', org.id)
+    .eq('is_builtin', true)
+    .order('name')
+
+  // Sort columns: owner, admin, staff
+  const ROLE_ORDER = ['owner', 'admin', 'staff']
+  const orgRoles = (orgRolesRaw ?? []).sort(
+    (a, b) => ROLE_ORDER.indexOf(a.slug) - ROLE_ORDER.indexOf(b.slug)
+  )
+  // Build a quick lookup: role slug → Set of permission keys
+  const rolePermSets: Record<string, Set<string>> = {}
+  for (const r of orgRoles) {
+    rolePermSets[r.slug] = new Set(
+      (r.role_permissions as { permission_key: string }[]).map(p => p.permission_key)
+    )
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -122,45 +180,47 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
 
       {canManage && <InviteForm orgId={org.id} />}
 
-      {/* Role permission matrix */}
+      {/* Role permission matrix — live data from role_permissions */}
       <section className="mb-8 rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-6 mt-6">
         <h2 className="text-base font-semibold text-[var(--pz-text)] mb-4">Role Permissions</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--pz-muted)', fontWeight: 600 }}>Action</th>
-              {['Owner', 'Admin', 'Staff'].map(role => (
-                <th key={role} style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--pz-muted)', fontWeight: 600 }}>{role}</th>
+              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--pz-muted)', fontWeight: 600 }}>Permission</th>
+              {orgRoles.map(r => (
+                <th key={r.slug} style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--pz-muted)', fontWeight: 600, textTransform: 'capitalize' }}>
+                  {r.name}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {[
-              { action: 'Create / edit events',      owner: true,  admin: true,  staff: false },
-              { action: 'Manage tickets & pricing',  owner: true,  admin: true,  staff: false },
-              { action: 'View analytics & revenue',  owner: true,  admin: true,  staff: false },
-              { action: 'Issue refunds',             owner: true,  admin: true,  staff: false },
-              { action: 'Check-in attendees',        owner: true,  admin: true,  staff: true  },
-              { action: 'Add / edit attendees',      owner: true,  admin: true,  staff: true  },
-              { action: 'Send announcements',        owner: true,  admin: true,  staff: false },
-              { action: 'Manage speakers',           owner: true,  admin: true,  staff: true  },
-              { action: 'Manage volunteers',         owner: true,  admin: true,  staff: true  },
-              { action: 'Manage integrations',       owner: true,  admin: true,  staff: false },
-              { action: 'Invite team members',       owner: true,  admin: true,  staff: false },
-              { action: 'Organization settings',     owner: true,  admin: false, staff: false },
-              { action: 'Delete organization',       owner: true,  admin: false, staff: false },
-            ].map(({ action, owner, admin, staff }) => (
-              <tr key={action} style={{ borderTop: '1px solid var(--pz-border)' }}>
-                <td style={{ padding: '8px 12px', color: 'var(--pz-text)' }}>{action}</td>
-                {[owner, admin, staff].map((allowed, i) => (
-                  <td key={i} style={{ textAlign: 'center', padding: '8px 12px' }}>
-                    {allowed
-                      ? <span style={{ color: 'var(--pz-teal-ink)', fontSize: 16 }}>✓</span>
-                      : <span style={{ color: 'var(--pz-muted)', fontSize: 16 }}>—</span>
-                    }
+            {PERMISSION_CATEGORIES.map(cat => (
+              <>
+                <tr key={`cat-${cat.label}`}>
+                  <td
+                    colSpan={1 + orgRoles.length}
+                    style={{ padding: '10px 12px 4px', fontSize: 11, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 0.8, borderTop: '1px solid var(--pz-border)' }}
+                  >
+                    {cat.label}
                   </td>
+                </tr>
+                {cat.keys.map(key => (
+                  <tr key={key} style={{ borderTop: '1px solid var(--pz-border)' }}>
+                    <td style={{ padding: '6px 12px', color: 'var(--pz-text)' }}>
+                      {PERMISSION_LABELS[key] ?? key}
+                    </td>
+                    {orgRoles.map(r => (
+                      <td key={r.slug} style={{ textAlign: 'center', padding: '6px 12px' }}>
+                        {rolePermSets[r.slug]?.has(key)
+                          ? <span style={{ color: 'var(--pz-teal-ink)', fontSize: 16 }}>✓</span>
+                          : <span style={{ color: 'var(--pz-muted)', fontSize: 16 }}>—</span>
+                        }
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
+              </>
             ))}
           </tbody>
         </table>

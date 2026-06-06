@@ -1,27 +1,24 @@
 import Link from 'next/link'
-import { ADMIN_TILES, TILE_CATEGORIES, type TileCategory } from '@/lib/events/admin-tiles'
+import { ADMIN_TILES, TILE_CATEGORIES } from '@/lib/events/admin-tiles'
 import type { TileBadge } from '@/lib/events/admin-tile-counts'
-
-const ROLE_LEVEL: Record<string, number> = { staff: 1, admin: 2, owner: 3 }
 
 interface Props {
   eventSlug: string
   orgSlug?: string
   badges?: Record<string, TileBadge>
   expandAll?: boolean
-  userRole?: string | null
+  permissions: string[]
 }
 
-export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = false, userRole }: Props) {
-  const userLevel = ROLE_LEVEL[userRole ?? ''] ?? 0
+export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = false, permissions }: Props) {
+  const permSet = new Set(permissions)
+  const allowed = (key: string) => permSet.has('*') || permSet.has(key)
+
   return (
     <div>
       {TILE_CATEGORIES.map(({ key: cat, label: catLabel }) => {
-        const tiles = ADMIN_TILES.filter(t => {
-          if (t.category !== cat) return false
-          if (!t.min_role) return true
-          return userLevel >= (ROLE_LEVEL[t.min_role] ?? 0)
-        })
+        const tiles = ADMIN_TILES.filter(t => t.category === cat && allowed(t.permission))
+        if (tiles.length === 0) return null
         const isCore = cat === 'core'
 
         return (
