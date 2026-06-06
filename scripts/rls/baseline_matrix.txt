@@ -1,0 +1,158 @@
+RBAC Phase 4 — RLS Regression Baseline Matrix
+Generated: 2026-06-06 (BEFORE any policy swaps)
+Harness: scripts/rls/phase4_matrix.sql
+DB: jmhxyyrleipcorvkmxfk
+
+Migration state at capture:
+  permissions count  : 57  (55 original + 2 qa.* keys)
+  role_permissions   : Owner=285, Admin=270, Staff=140
+  has_permission()   : EXISTS, SECURITY DEFINER
+
+Legend:
+  hor_*       = has_org_role() result (current RLS function, being replaced)
+  p_*         = has_permission() result (Phase 4 replacement function)
+  T = true, F = false
+  DELTA       = hor vs has_permission disagree → intended policy tightening for staff
+
+Permission key columns:
+  p_ann_view  = announcements.manage
+  p_ann_send  = announcements.send
+  p_evt_mgr   = event.manage
+  p_tickets   = event.tickets
+  p_agenda_v  = agenda.view
+  p_agenda_m  = agenda.manage
+  p_checkin   = checkin.manage
+  p_spk_v     = speakers.view
+  p_spk_m     = speakers.manage
+  p_surv_v    = surveys.view
+  p_surv_m    = surveys.manage
+  p_video     = video.manage
+  p_att_v     = attendees.view
+  p_att_e     = attendees.edit
+  p_refund    = attendees.refund
+  p_mbr       = org.members.invite
+  p_org_set   = org.settings
+  p_org_del   = org.delete
+  p_audit_o   = org.audit_log
+  p_audit_e   = event.audit_log
+  p_jobs      = failed_jobs.manage
+  p_vol       = volunteers.manage
+  p_trivia    = trivia.manage
+  p_qa_v      = qa.view
+  p_qa_m      = qa.moderate
+
+════════════════════════════════════════════════════════════════════════════════
+PERMISSION MATRIX (has_org_role vs has_permission by user-org)
+════════════════════════════════════════════════════════════════════════════════
+
+USER             ORG       ROLE   hor_s hor_a hor_o | ann_v ann_s evt_m tick  agv   agm   chk   spkv  spkm  surv  surm  vid   attv  atte  refd  mbr   orgS  orgD  audO  audE  jobs  vol   triv  qa_v  qa_m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+james            saup      Admin  T     T     F     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     F     T     T     T     T     T     T     T
+james            oss-atl   Staff  T     F     F     | T     F     F     F     T     T     T     T     F     T     F     F     T     T     F     F     F     F     F     F     F     T     T     T     T
+paul             meridian  Owner  T     T     T     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T
+paul             saup      Staff  T     F     F     | T     F     F     F     T     T     T     T     F     T     F     F     T     T     F     F     F     F     F     F     F     T     T     T     T
+saup-director    saup      Owner  T     T     T     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T
+meridian-admin   meridian  Admin  T     T     F     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     F     T     T     T     T     T     T     T
+chamber-admin    chamber   Admin  T     T     F     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     F     T     T     T     T     T     T     T
+chamber-owner    chamber   Owner  T     T     T     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T
+oss-director     oss-atl   Owner  T     T     T     | T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T     T
+
+════════════════════════════════════════════════════════════════════════════════
+INTENDED DELTAS — Staff loses these has_permission keys vs hor_staff=T
+(Current has_org_role('staff') = T but has_permission = F → policy will tighten)
+════════════════════════════════════════════════════════════════════════════════
+
+For Staff role (james@oss-atl, paul@saup):
+  hor_staff = TRUE  →  current RLS allows staff for ALL has_org_role('staff') policies
+  Policies being TIGHTENED to admin-only after Phase 4 (hor=T, perm=F):
+    announcements.send   → announcements INSERT/UPDATE/DELETE   (3 policies)
+    event.manage         → events INSERT/UPDATE, sessions/tracks DELETE (5 policies)
+    event.tickets        → discount_codes SELECT/INS/UPD/DEL, ticket_types INS/UPD/DEL (7 policies)
+    speakers.manage      → speakers INS/UPD/DEL, session_speakers INS/DEL (5 policies)
+    surveys.manage       → surveys INS/UPD/DEL, survey_questions INS/UPD/DEL (6 policies)
+    video.manage         → rooms INS/UPD/DEL (3 policies)
+    attendees.refund     → registrations DELETE (1 policy)
+    org.members.invite   → org_members INS/UPD/DEL (3 policies)
+    org.settings         → organizations UPDATE (1 policy)
+    org.audit_log        → audit_logs SELECT org-branch (partial 1 policy)
+    event.audit_log      → audit_logs SELECT event-branch (partial 1 policy)
+    failed_jobs.manage   → dead_letter_items ALL (1 policy)
+  TOTAL: 37 policy-branch changes where staff access is revoked
+
+  Policies UNCHANGED for staff (hor=T, perm=T — staff keeps):
+    announcements.manage → announcements SELECT
+    agenda.view          → sessions SELECT
+    agenda.manage        → sessions INS/UPD, tracks INS/UPD
+    checkin.manage       → check_ins INS/SEL, offline_queue INS/SEL/UPD
+    speakers.view        → speakers SELECT, session_handouts SELECT
+    surveys.view         → surveys/questions/answers/responses/feedback SELECT
+    attendees.view       → registrations SELECT
+    attendees.edit       → registrations UPDATE
+    volunteers.manage    → volunteers ALL
+    trivia.manage        → trivia_questions SELECT
+    qa.view              → session_questions SEL/INS (NEW key)
+    qa.moderate          → session_questions UPD/DEL (NEW key)
+
+For Admin role (james@saup, meridian-admin, chamber-admin):
+  ALL admin-level permissions = TRUE (no delta expected)
+  org.delete = FALSE (correct — owner-only)
+
+For Owner role (paul@meridian, saup-director, chamber-owner, oss-director):
+  ALL permissions including org.delete = TRUE ✓
+
+════════════════════════════════════════════════════════════════════════════════
+CROSS-TENANT PROBE — oss-director accessing orgs NOT a member of
+════════════════════════════════════════════════════════════════════════════════
+
+Probe user: oss-director (3bff4a53), Owner@oss-atl only
+
+  has_org_role vs non-member orgs:
+    saup_staff    = F ✓
+    meridian_staff = F ✓
+    chamber_staff  = F ✓
+
+  Sensitive data counts (MUST be 0):
+    saup_regs     = 0 ✓  (registrations — has_org_role SELECT)
+    saup_members  = 0 ✓  (org_members — has_org_role SELECT)
+    saup_audit    = 0 ✓  (audit_logs — has_org_role('admin') SELECT)
+    saup_surveys  = 0 ✓  (surveys — has_org_role SELECT)
+    saup_ann      = 0 ✓  (announcements — has_org_role SELECT)
+    meridian_regs = 0 ✓
+    meridian_mbrs = 0 ✓
+
+  Public data (expected nonzero — by design):
+    saup_sessions = 8     ← published sessions publicly visible (non-RLS branch preserved)
+
+════════════════════════════════════════════════════════════════════════════════
+CROSS-TENANT NOTE ON EVENTS TABLE
+════════════════════════════════════════════════════════════════════════════════
+
+events table SELECT policy is NOT in the Phase 4 mapping (no has_org_role to replace).
+Cross-org event counts visible to non-members are expected (public event discovery):
+  james@saup  → cross_oss_events   = 2  (OSS ATL events, published/archived)
+  paul@meridian → cross_oss_events = 1  (OSS ATL, discoverable)
+  paul@saup   → cross_chamber_events = 1 (Chamber event)
+  saup-dir    → cross_chamber_events = 1 (Chamber event)
+  meridian-admin → cross_oss       = 1
+  chamber-admin  → cross_saup      = 1
+  chamber-owner  → cross_meridian  = 0  (Meridian event not discoverable)
+  oss-director   → cross_meridian  = 0  (Meridian event not discoverable)
+These counts must NOT change after Phase 4 (events SELECT policy untouched).
+
+════════════════════════════════════════════════════════════════════════════════
+INSTRUCTIONS FOR BATCH DIFF
+════════════════════════════════════════════════════════════════════════════════
+
+After each batch, re-run all blocks in phase4_matrix.sql.
+Acceptable changes (expected deltas for Staff rows):
+  p_ann_send, p_evt_mgr, p_tickets, p_spk_m, p_surv_m, p_video,
+  p_refund, p_mbr, p_org_set, p_audit_o, p_audit_e, p_jobs
+  → Change from T to F for Staff role ONLY (james@oss-atl, paul@saup)
+
+Unacceptable changes (STOP immediately):
+  ANY change from T to F for Admin or Owner rows
+  ANY change in cross-tenant sensitive counts (saup_regs, saup_members, etc.)
+  ANY change from F to T for non-member cross-tenant probes
+  ANY change in events table cross-org counts (events SELECT policy untouched)
+  ANY change in staff-keeps columns (ann_view, agenda_v, agenda_m, checkin,
+    spk_v, surv_v, att_v, att_e, vol, trivia, qa_v, qa_m)
