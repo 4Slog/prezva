@@ -58,7 +58,7 @@ describe('assertPermission', () => {
       makeClient({
         memberRow: { role_id: 'role-staff', role: 'staff' },
         permRow: { permission_key: 'checkin.manage' },
-      }) as ReturnType<typeof createAdminClient>,
+      }) as unknown as ReturnType<typeof createAdminClient>,
     )
     await expect(assertPermission(ORG, USER, 'checkin.manage')).resolves.toBeUndefined()
   })
@@ -68,7 +68,7 @@ describe('assertPermission', () => {
       makeClient({
         memberRow: { role_id: 'role-staff', role: 'staff' },
         permRow: null,
-      }) as ReturnType<typeof createAdminClient>,
+      }) as unknown as ReturnType<typeof createAdminClient>,
     )
     await expect(assertPermission(ORG, USER, 'announcements.send')).rejects.toThrow(
       'Insufficient permissions: announcements.send',
@@ -77,7 +77,7 @@ describe('assertPermission', () => {
 
   it('throws when user is not a member', async () => {
     vi.mocked(createAdminClient).mockReturnValue(
-      makeClient({ memberRow: null }) as ReturnType<typeof createAdminClient>,
+      makeClient({ memberRow: null }) as unknown as ReturnType<typeof createAdminClient>,
     )
     await expect(assertPermission(ORG, USER, 'checkin.manage')).rejects.toThrow(
       'Not a member of this organization',
