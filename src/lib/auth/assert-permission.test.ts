@@ -90,4 +90,15 @@ describe('assertPermission', () => {
     ).rejects.toThrow("You don't have access to this organization.")
     expect(createAdminClient).not.toHaveBeenCalled()
   })
+
+  it('fails closed when member has null role_id — denies permission, does not grant', async () => {
+    // A member row exists but role_id is null (org created before fix, or seeding failed).
+    // Must throw PermissionError (deny), never resolve (grant).
+    vi.mocked(createAdminClient).mockReturnValue(
+      makeClient({ memberRow: { role_id: null } }) as unknown as ReturnType<typeof createAdminClient>,
+    )
+    await expect(assertPermission(ORG, USER, 'org.billing')).rejects.toThrow(
+      "You don't have permission",
+    )
+  })
 })

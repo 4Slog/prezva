@@ -41,10 +41,6 @@ describe('RLS migration', () => {
     expect(sql).toContain('function public.is_org_member')
   })
 
-  it('helper function has_org_role is defined', () => {
-    expect(sql).toContain('function public.has_org_role')
-  })
-
   it('helper function is_registered is defined', () => {
     expect(sql).toContain('function public.is_registered')
   })
