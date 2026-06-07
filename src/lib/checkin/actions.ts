@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -36,17 +38,25 @@ export interface RecentCheckIn {
   method: string
 }
 
-async function assertOrgMember(
+async function getEventOrg(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
   eventId: string,
 ) {
   const { data: event } = await supabase
     .from('events').select('org_id, id').eq('id', eventId).single()
   if (!event) throw new Error('Event not found')
+  return event as { org_id: string; id: string }
+}
+
+async function assertOrgMember(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  eventId: string,
+) {
+  const event = await getEventOrg(supabase, eventId)
   const { data: member } = await supabase
     .from('org_members').select('role')
-    .eq('org_id', (event as any).org_id).eq('user_id', userId).single()
+    .eq('org_id', event.org_id).eq('user_id', userId).single()
   if (!member) throw new Error('Not authorised')
   return event
 }
@@ -58,7 +68,8 @@ export async function checkInByQR(
 ): Promise<CheckInResult> {
   const user = await requireUser()
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await getEventOrg(supabase, eventId)
+  try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
 
   const { data: reg, error: regErr } = await supabase
     .from('registrations')
@@ -129,7 +140,8 @@ export async function checkInBySearch(
 ): Promise<CheckInResult> {
   const user = await requireUser()
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await getEventOrg(supabase, eventId)
+  try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
 
   const { data: reg } = await supabase
     .from('registrations')
@@ -196,7 +208,8 @@ export async function checkInBySearch(
 export async function undoCheckIn(eventId: string, registrationId: string) {
   const user = await requireUser()
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await getEventOrg(supabase, eventId)
+  try { await assertPermission(event.org_id, user.id, 'checkin.undo') } catch (e) { return catchPermission(e) }
 
   const { error } = await supabase
     .from('check_ins')
@@ -271,7 +284,8 @@ export async function processOfflineQueue(raw: unknown) {
 
   const { eventId, deviceId, entries } = parsed.data
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await getEventOrg(supabase, eventId)
+  try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return catchPermission(e) }
 
   const results = await Promise.all(
     entries.map(entry => checkInByQR(eventId, entry.qr_code.toLowerCase(), deviceId))

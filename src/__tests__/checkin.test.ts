@@ -4,11 +4,17 @@ vi.mock('@/lib/auth/get-user', () => ({
   requireUser: vi.fn().mockResolvedValue({ id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', email: 'staff@test.com' }),
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+// Make the test user a super-admin so assertPermission short-circuits; permission
+// logic is unit-tested separately in auth.test.ts.
+vi.mock('@/lib/admin/gate', () => ({ isSuperAdmin: vi.fn().mockReturnValue(true) }))
 
 let mockFromImpl: (table: string) => any
 const mockFrom = vi.fn((t: string) => mockFromImpl(t))
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve({ from: mockFrom })),
+}))
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
 import {

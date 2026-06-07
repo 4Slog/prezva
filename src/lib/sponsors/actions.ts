@@ -2,6 +2,8 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -28,26 +30,17 @@ export async function getSponsors(eventId: string) {
   return data ?? []
 }
 
-async function assertOrgAdmin(eventId: string) {
+async function getSponsorContext(eventId: string) {
   const user = await requireUser()
-  // Admin client: verify org membership before write
   const admin = createAdminClient()
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
   if (!event) throw new Error('Event not found')
-  const { data: member } = await admin
-    .from('org_members')
-    .select('role')
-    .eq('org_id', event.org_id)
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (!member || !['owner', 'admin'].includes(member.role)) {
-    throw new Error('Unauthorized')
-  }
   return { admin, event, userId: user.id }
 }
 
 export async function createSponsor(eventId: string, formData: FormData) {
-  const { admin, userId } = await assertOrgAdmin(eventId)
+  const { admin, event, userId } = await getSponsorContext(eventId)
+  try { await assertPermission(event.org_id, userId, 'sponsors.manage') } catch (e) { return catchPermission(e) }
   const parsed = SponsorSchema.safeParse({
     name: formData.get('name'),
     website_url: formData.get('website_url') || undefined,
@@ -75,7 +68,8 @@ export async function updateSponsor(
   eventId: string,
   formData: FormData,
 ) {
-  const { admin, userId } = await assertOrgAdmin(eventId)
+  const { admin, event, userId } = await getSponsorContext(eventId)
+  try { await assertPermission(event.org_id, userId, 'sponsors.manage') } catch (e) { return catchPermission(e) }
   const parsed = SponsorSchema.safeParse({
     name: formData.get('name'),
     website_url: formData.get('website_url') || undefined,
@@ -98,7 +92,8 @@ export async function updateSponsor(
 }
 
 export async function deleteSponsor(sponsorId: string, eventId: string) {
-  const { admin, userId } = await assertOrgAdmin(eventId)
+  const { admin, event, userId } = await getSponsorContext(eventId)
+  try { await assertPermission(event.org_id, userId, 'sponsors.manage') } catch (e) { return catchPermission(e) }
   const { error } = await admin
     .from('event_sponsors')
     .delete()
