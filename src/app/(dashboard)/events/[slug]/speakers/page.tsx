@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { SpeakersOrgClient } from './speakers-org-client'
 import { DayOfInfoSection } from './day-of-info-section'
 import { QAModerationClient } from './qa-moderation-client'
@@ -30,7 +31,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
 
   const admin = createAdminClient()
 
-  const [{ data: speakers }, { data: qaQuestions }] = await Promise.all([
+  const [{ data: speakers }, { data: qaQuestions }, permSet] = await Promise.all([
     supabase
       .from('speakers')
       .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at')
@@ -43,7 +44,9 @@ export default async function SpeakersDashboardPage({ params }: Props) {
       .eq('is_poll', false)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false }),
+    getOrgPermissions((event as any).org_id, user.id),
   ])
+  const permissions = Array.from(permSet)
 
   return (
     <div className="p-6">
@@ -63,6 +66,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
       <SpeakersOrgClient
         event={event as any}
         speakers={(speakers ?? []) as any[]}
+        permissions={permissions}
       />
       <DayOfInfoSection
         eventId={(event as any).id}

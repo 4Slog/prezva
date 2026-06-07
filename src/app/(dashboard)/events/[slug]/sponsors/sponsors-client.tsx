@@ -5,6 +5,7 @@ import { createSponsor, updateSponsor, deleteSponsor } from '@/lib/sponsors/acti
 import { addSponsorContact, getSponsorContacts, sendSponsorPortalInvite } from '@/lib/sponsors/portal-actions'
 import { Field } from '@/components/ui/Field'
 import { SPONSOR_TIERS as TIERS } from '@/lib/ui/category-colors'
+import { Gated } from '@/components/auth/Gated'
 
 type Sponsor = {
   id: string
@@ -32,6 +33,7 @@ type Props = {
   eventId: string
   eventSlug: string
   sponsors: Sponsor[]
+  permissions: string[]
 }
 
 function SponsorForm({
@@ -260,7 +262,7 @@ function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: strin
   )
 }
 
-export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
+export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Props) {
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -296,12 +298,14 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
     <div>
       {/* Add button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <button
-          onClick={() => { setShowAdd(true); setEditing(null) }}
-          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-        >
-          + Add sponsor
-        </button>
+        <Gated permission="sponsors.manage" perms={permissions} mode="disable">
+          <button
+            onClick={() => { setShowAdd(true); setEditing(null) }}
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          >
+            + Add sponsor
+          </button>
+        </Gated>
       </div>
 
       {/* Add form */}
@@ -404,19 +408,23 @@ export function SponsorsClient({ eventId, eventSlug, sponsors }: Props) {
                         >
                           Contacts
                         </button>
-                        <button
-                          onClick={() => { setEditing(sp.id); setShowAdd(false) }}
-                          style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(sp.id)}
-                          disabled={deletingId === sp.id || pending}
-                          style={{ background: 'transparent', color: 'var(--pz-error, var(--pz-error))', border: '1px solid var(--pz-error, var(--pz-error))', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', opacity: deletingId === sp.id ? 0.5 : 1 }}
-                        >
-                          {deletingId === sp.id ? '…' : 'Delete'}
-                        </button>
+                        <Gated permission="sponsors.manage" perms={permissions} mode="disable">
+                          <button
+                            onClick={() => { setEditing(sp.id); setShowAdd(false) }}
+                            style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
+                          >
+                            Edit
+                          </button>
+                        </Gated>
+                        <Gated permission="sponsors.manage" perms={permissions} mode="hide">
+                          <button
+                            onClick={() => handleDelete(sp.id)}
+                            disabled={deletingId === sp.id || pending}
+                            style={{ background: 'transparent', color: 'var(--pz-error, var(--pz-error))', border: '1px solid var(--pz-error, var(--pz-error))', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', opacity: deletingId === sp.id ? 0.5 : 1 }}
+                          >
+                            {deletingId === sp.id ? '…' : 'Delete'}
+                          </button>
+                        </Gated>
                       </div>
                     </div>
                     {expandedContacts === sp.id && (

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createTicketType, deleteTicketType } from '@/lib/registration/ticket-actions'
 import { Field } from '@/components/ui/Field'
+import { Gated } from '@/components/auth/Gated'
 
 interface Ticket {
   id: string
@@ -31,6 +32,7 @@ interface TicketManagerProps {
   eventId: string
   tickets: Ticket[]
   connectedAssociations?: string[]
+  permissions?: string[]
 }
 
 function fmtPrice(cents: number, currency: string) {
@@ -38,7 +40,7 @@ function fmtPrice(cents: number, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
 }
 
-export function TicketManager({ eventId, tickets: initial, connectedAssociations = [] }: TicketManagerProps) {
+export function TicketManager({ eventId, tickets: initial, connectedAssociations = [], permissions = [] }: TicketManagerProps) {
   const [tickets, setTickets] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [type, setType]         = useState('free')
@@ -99,13 +101,15 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                   <span>{(t as any).delivery_method === 'virtual' ? '💻 Virtual' : (t as any).delivery_method === 'both' ? '📍💻 Hybrid' : '📍 In-person'}</span>
                 </div>
               </div>
-              <button
-                onClick={() => handleDelete(t.id)}
-                disabled={deleting === t.id}
-                className="text-xs text-[var(--pz-error)] hover:text-red-400 disabled:opacity-50"
-              >
-                {deleting === t.id ? 'Removing…' : 'Remove'}
-              </button>
+              <Gated permission="tickets.manage" perms={permissions} mode="hide">
+                <button
+                  onClick={() => handleDelete(t.id)}
+                  disabled={deleting === t.id}
+                  className="text-xs text-[var(--pz-error)] hover:text-red-400 disabled:opacity-50"
+                >
+                  {deleting === t.id ? 'Removing…' : 'Remove'}
+                </button>
+              </Gated>
             </div>
           ))}
         </div>
@@ -229,13 +233,15 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
           </div>
         </form>
       ) : (
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)] hover:border-[var(--pz-teal)]/40 hover:text-[var(--pz-muted)] transition-colors w-full"
-        >
-          <span className="text-lg">+</span>
-          Add ticket type
-        </button>
+        <Gated permission="tickets.manage" perms={permissions} mode="disable">
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)] hover:border-[var(--pz-teal)]/40 hover:text-[var(--pz-muted)] transition-colors w-full"
+          >
+            <span className="text-lg">+</span>
+            Add ticket type
+          </button>
+        </Gated>
       )}
 
       {tickets.length === 0 && !showForm && (

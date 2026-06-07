@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken, getOrgSpeakerLibrary, addSpeakerFromLibrary } from '@/lib/speaker/speaker-actions'
 import { Field } from '@/components/ui/Field'
+import { Gated } from '@/components/auth/Gated'
 
 type Props = {
   event: any
   speakers: any[]
+  permissions: string[]
 }
 
 const statusBadge: Record<string, { bg: string; label: string }> = {
@@ -15,7 +17,7 @@ const statusBadge: Record<string, { bg: string; label: string }> = {
   declined:  { bg: 'var(--pz-error, var(--pz-error))',     label: 'Declined' },
 }
 
-export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
+export function SpeakersOrgClient({ event, speakers: initialSpeakers, permissions }: Props) {
   const [speakers, setSpeakers] = useState<any[]>(initialSpeakers)
   const [inviting, setInviting] = useState<string | null>(null)
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({})
@@ -83,20 +85,24 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers }: Props) {
     <div className="space-y-4">
       {/* Header with Add buttons */}
       <div className="flex justify-end gap-2">
-        <button
-          onClick={openLibrary}
-          className="rounded-lg px-4 py-2 text-sm font-medium"
-          style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-text)', background: 'transparent' }}
-        >
-          + From library
-        </button>
-        <button
-          onClick={() => { setShowAdd(s => !s); setAddError('') }}
-          className="rounded-lg px-4 py-2 text-sm font-medium"
-          style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)' }}
-        >
-          {showAdd ? 'Cancel' : '+ Add Speaker'}
-        </button>
+        <Gated permission="speakers.manage" perms={permissions} mode="disable">
+          <button
+            onClick={openLibrary}
+            className="rounded-lg px-4 py-2 text-sm font-medium"
+            style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-text)', background: 'transparent' }}
+          >
+            + From library
+          </button>
+        </Gated>
+        <Gated permission="speakers.manage" perms={permissions} mode="disable">
+          <button
+            onClick={() => { setShowAdd(s => !s); setAddError('') }}
+            className="rounded-lg px-4 py-2 text-sm font-medium"
+            style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)' }}
+          >
+            {showAdd ? 'Cancel' : '+ Add Speaker'}
+          </button>
+        </Gated>
       </div>
 
       {/* Library modal */}

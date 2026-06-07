@@ -7,6 +7,7 @@ import { CheckInDashboard } from '@/components/checkin/CheckInDashboard'
 import { checkInByQR, checkInBySearch, getCheckInStats } from '@/lib/checkin/actions'
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
 import { queueCheckIn, getPendingCount, syncPending } from '@/lib/checkin/offline-db'
+import { Gated } from '@/components/auth/Gated'
 
 function KioskClock() {
   const [time, setTime] = useState(() => new Date().toLocaleTimeString())
@@ -28,6 +29,7 @@ interface CheckInClientProps {
   eventName: string
   initialStats: CheckInStats
   volunteerStatus?: VolunteerStatus | null
+  permissions: string[]
 }
 
 type Tab = 'qr' | 'search' | 'stats'
@@ -43,7 +45,8 @@ function getDeviceId(): string {
   return id
 }
 
-export function CheckInClient({ eventId, eventName, initialStats, volunteerStatus }: CheckInClientProps) {
+export function CheckInClient({ eventId, eventName, initialStats, volunteerStatus, permissions }: CheckInClientProps) {
+  const canCheckIn = permissions.includes('*') || permissions.includes('checkin.manage')
   const [tab, setTab] = useState<Tab>('qr')
   const [stats, setStats] = useState<CheckInStats>(initialStats)
   const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
@@ -221,15 +224,17 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setKioskMode(true)}
-          className="flex-shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
-          style={{ borderColor: 'var(--pz-teal)', color: 'var(--pz-teal-ink)', background: 'none' }}
-          title="Enter fullscreen kiosk mode"
-        >
-          Kiosk mode
-        </button>
+        <Gated permission="checkin.manage" perms={permissions} mode="disable">
+          <button
+            type="button"
+            onClick={() => setKioskMode(true)}
+            className="flex-shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
+            style={{ borderColor: 'var(--pz-teal)', color: 'var(--pz-teal-ink)', background: 'none' }}
+            title="Enter fullscreen kiosk mode"
+          >
+            Kiosk mode
+          </button>
+        </Gated>
       </div>
 
       {/* Scan result toast */}
@@ -261,11 +266,23 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
             <p className="text-sm text-[var(--pz-muted)]">
               Point the camera at an attendee&apos;s QR code to check them in.
             </p>
-            <QRScanner onScan={handleQRScan} active={tab === 'qr'} />
+            {canCheckIn ? (
+              <QRScanner onScan={handleQRScan} active={tab === 'qr'} />
+            ) : (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pz-muted)', fontSize: 13, border: '1px solid var(--pz-border)', borderRadius: 8 }}>
+                You don&apos;t have permission to check in attendees.
+              </div>
+            )}
           </div>
         )}
         {tab === 'search' && (
-          <ManualSearch eventId={eventId} onCheckIn={handleManualCheckIn} />
+          canCheckIn ? (
+            <ManualSearch eventId={eventId} onCheckIn={handleManualCheckIn} />
+          ) : (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pz-muted)', fontSize: 13, border: '1px solid var(--pz-border)', borderRadius: 8 }}>
+              You don&apos;t have permission to check in attendees.
+            </div>
+          )
         )}
         {tab === 'stats' && (
           <CheckInDashboard stats={stats} onRefresh={refreshStats} volunteerStatus={volunteerStatus} />

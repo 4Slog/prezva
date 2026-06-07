@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { getPendingInvites } from '@/lib/orgs/actions'
 import { InviteForm } from '@/components/orgs/InviteForm'
 import { MemberList } from '@/components/orgs/MemberList'
@@ -30,8 +31,15 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
   if (!org) redirect('/dashboard')
 
   const myRole = (org.org_members as { role: string }[])[0]?.role ?? 'staff'
-  const canManage = ['owner', 'admin'].includes(myRole)
   const isOwner = myRole === 'owner'
+
+  // Derive access from the actual permission set, not the role enum.
+  const permSet = await getOrgPermissions(org.id, user.id)
+  const canRolesManage = permSet.has('*') || permSet.has('org.roles.manage')
+  const canOrgSettings = permSet.has('*') || permSet.has('org.settings')
+  const canInvite      = permSet.has('*') || permSet.has('org.members.invite')
+  const canViewMembers = permSet.has('*') || permSet.has('org.members.view')
+  const permissions    = Array.from(permSet)
 
   // Admin client: fetch members bypassing RLS so owner always sees the full list
   const admin = createAdminClient()
@@ -50,7 +58,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
       .is("accepted_at", null)
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false }),
-    canManage ? getPendingInvites(org.id).catch(() => []) : Promise.resolve([]),
+    canInvite ? getPendingInvites(org.id).catch(() => []) : Promise.resolve([]),
   ])
   const legacyInvites = legacyInvitesResult.data ?? []
   // Merge: org_invites (with token/resend support) take priority; skip legacy dupes
@@ -61,7 +69,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
   ]
 
   // Fetch all roles (builtin + custom) for the member role dropdown
-  const { data: allRolesRaw } = canManage
+  const { data: allRolesRaw } = canRolesManage
     ? await admin
         .from('roles')
         .select('id, name, slug, is_builtin')
@@ -89,7 +97,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
         <p className="text-sm text-[var(--pz-muted)]">Organization settings</p>
         <div className="flex gap-4 mt-3">
           <span className="text-sm font-semibold text-[var(--pz-text)] border-b-2 border-[var(--pz-teal)] pb-1">Settings</span>
-          {canManage && (
+          {canRolesManage && (
             <a href={`/orgs/${org.slug}/settings/roles`} className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] pb-1 transition-colors">Roles</a>
           )}
           <a href={`/orgs/${org.slug}/billing`} className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] pb-1 transition-colors">Billing</a>
@@ -125,26 +133,28 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
       )}
 
       {/* General settings */}
-      {canManage && (
+      {canOrgSettings && (
         <section className="mb-8 rounded-xl border border-[var(--pz-border)] bg-[var(--pz-surface)] p-6">
           <h2 className="text-base font-semibold text-[var(--pz-text)] mb-4">General</h2>
           <OrgSettingsForm org={org as Parameters<typeof OrgSettingsForm>[0]['org']} />
         </section>
       )}
 
-      {/* Member list */}
-      <section className="mb-6">
-        <MemberList
-          members={(members ?? []) as unknown as Parameters<typeof MemberList>[0]['members']}
-          pendingInvites={pendingInvites as unknown as Parameters<typeof MemberList>[0]['pendingInvites']}
-          allRoles={allRoles as Parameters<typeof MemberList>[0]['allRoles']}
-          orgId={org.id}
-          currentUserId={user.id}
-          currentUserRole={myRole}
-        />
-      </section>
+      {/* Member list — visible to members with org.members.view */}
+      {canViewMembers && (
+        <section className="mb-6">
+          <MemberList
+            members={(members ?? []) as unknown as Parameters<typeof MemberList>[0]['members']}
+            pendingInvites={pendingInvites as unknown as Parameters<typeof MemberList>[0]['pendingInvites']}
+            allRoles={allRoles as Parameters<typeof MemberList>[0]['allRoles']}
+            orgId={org.id}
+            currentUserId={user.id}
+            currentUserRole={myRole}
+          />
+        </section>
+      )}
 
-      {canManage && <InviteForm orgId={org.id} />}
+      {canInvite && <InviteForm orgId={org.id} />}
 
       {/* Danger zone — owners only */}
       {isOwner && (

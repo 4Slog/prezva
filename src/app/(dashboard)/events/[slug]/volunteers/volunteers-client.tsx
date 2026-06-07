@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { resolveVolunteerAlert, exportVolunteerHours } from '@/lib/volunteers/actions'
 import { Field } from '@/components/ui/Field'
+import { Gated } from '@/components/auth/Gated'
 import { VOLUNTEER_STATUS_COLORS as STATUS_COLORS, VOLUNTEER_ALERT_TYPE_COLORS as ALERT_TYPE_COLORS } from '@/lib/ui/category-colors'
 
 interface Volunteer {
@@ -43,6 +44,7 @@ interface Props {
   volunteers: Volunteer[]
   sessions: Session[]
   alerts: VolunteerAlert[]
+  permissions: string[]
 }
 
 const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'team-lead', 'general']
@@ -63,7 +65,7 @@ const SHIFT_RESPONSE_COLORS: Record<string, string> = {
   pending:   'var(--pz-muted)',
 }
 
-export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts }: Props) {
+export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts, permissions }: Props) {
   const [volunteers, setVolunteers] = useState<Volunteer[]>(initial)
   const [alerts, setAlerts] = useState<VolunteerAlert[]>(initialAlerts)
   const [filterStatus, setFilterStatus] = useState('All')
@@ -193,12 +195,14 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
           >
             {exporting ? 'Exporting…' : 'Export hours CSV'}
           </button>
-          <button
-            onClick={() => setShowAdd(true)}
-            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
-          >
-            + Add Volunteer
-          </button>
+          <Gated permission="volunteers.manage" perms={permissions} mode="disable">
+            <button
+              onClick={() => setShowAdd(true)}
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '8px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
+            >
+              + Add Volunteer
+            </button>
+          </Gated>
         </div>
       </div>
 
@@ -323,8 +327,10 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
                       )}
                       <button onClick={() => handleAction(v.id, 'resend')}
                         style={{ fontSize: 12, color: 'var(--pz-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resend</button>
-                      <button onClick={() => handleAction(v.id, 'remove')}
-                        style={{ fontSize: 12, color: 'var(--pz-error)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
+                      <Gated permission="volunteers.manage" perms={permissions} mode="hide">
+                        <button onClick={() => handleAction(v.id, 'remove')}
+                          style={{ fontSize: 12, color: 'var(--pz-error)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
+                      </Gated>
                     </div>
                   </td>
                 </tr>

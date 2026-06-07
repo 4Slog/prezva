@@ -1,15 +1,19 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { refundRegistration, resendConfirmation, cancelRegistration, manualCheckIn, undoCheckIn } from '@/lib/registrations/actions'
+import { Gated } from '@/components/auth/Gated'
 
 interface Props {
   registrationId: string
   status: string
   amountPaidCents: number | null
   stripeChargeId: string | null
+  permissions: string[]
 }
 
-export function AttendeeActions({ registrationId, status, amountPaidCents, stripeChargeId }: Props) {
+export function AttendeeActions({ registrationId, status, amountPaidCents, stripeChargeId, permissions }: Props) {
+  const canCheckInUndo = permissions.includes('*') || permissions.includes('checkin.undo')
+  const canRefundPerm = permissions.includes('*') || permissions.includes('registrations.refund')
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null)
   const [confirming, setConfirming] = useState<string | null>(null)
   const [checkedIn, setCheckedIn] = useState(status === 'checked_in')
@@ -50,7 +54,7 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
             <button className={btnSuccess} disabled>
               ✓ Checked In
             </button>
-            {confirming === 'undo-checkin' ? (
+            {canCheckInUndo && (confirming === 'undo-checkin' ? (
               <>
                 <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Undo check-in?</span>
                 <button className={btnDanger} onClick={() => run(
@@ -67,26 +71,28 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
               >
                 Undo
               </button>
-            )}
+            ))}
           </span>
         ) : (
-          <button
-            className={btnTeal}
-            onClick={() => run(
-              () => manualCheckIn(registrationId),
-              (result) => {
-                if (result.ok) {
-                  setCheckedIn(true)
-                  if (result.alreadyCheckedIn) {
-                    setMessage({ text: 'Already checked in.', ok: true })
+          <Gated permission="checkin.manage" perms={permissions} mode="disable">
+            <button
+              className={btnTeal}
+              onClick={() => run(
+                () => manualCheckIn(registrationId),
+                (result) => {
+                  if (result.ok) {
+                    setCheckedIn(true)
+                    if (result.alreadyCheckedIn) {
+                      setMessage({ text: 'Already checked in.', ok: true })
+                    }
                   }
                 }
-              }
-            )}
-            disabled={isInactive}
-          >
-            Manual Check-In
-          </button>
+              )}
+              disabled={isInactive}
+            >
+              Manual Check-In
+            </button>
+          </Gated>
         )}
 
         {/* Resend confirmation */}
@@ -118,7 +124,7 @@ export function AttendeeActions({ registrationId, status, amountPaidCents, strip
         )}
 
         {/* Refund */}
-        {canRefund && (
+        {canRefundPerm && canRefund && (
           confirming === 'refund' ? (
             <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 12 }}>Refund ${((amountPaidCents ?? 0) / 100).toFixed(2)}?</span>

@@ -1,4 +1,5 @@
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { VolunteersClient } from './volunteers-client'
@@ -7,7 +8,9 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function VolunteersPage({ params }: Props) {
   const { slug } = await params
-  const { event } = await requireEventOrgAccess(slug)
+  const { user, event } = await requireEventOrgAccess(slug)
+  const permSet = await getOrgPermissions(event.org_id, user.id)
+  const permissions = Array.from(permSet)
   const admin = createAdminClient()
 
   const { data: volunteers } = await admin
@@ -46,6 +49,7 @@ export default async function VolunteersPage({ params }: Props) {
         volunteers={(volunteers ?? []) as any[]}
         sessions={(sessions ?? []) as any[]}
         alerts={(alerts ?? []) as any[]}
+        permissions={permissions}
       />
     </div>
   )

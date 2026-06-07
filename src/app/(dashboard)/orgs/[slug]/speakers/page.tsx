@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { SpeakerLibraryClient } from './speaker-library-client'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -25,6 +26,9 @@ export default async function OrgSpeakerLibraryPage({ params }: Props) {
   if (!org) redirect('/dashboard')
 
   const admin = createAdminClient()
+
+  const permSet = await getOrgPermissions((org as any).id, user.id)
+  const permissions = Array.from(permSet)
 
   const [{ data: libSpeakers }, { data: events }] = await Promise.all([
     admin
@@ -52,6 +56,7 @@ export default async function OrgSpeakerLibraryPage({ params }: Props) {
       <SpeakerLibraryClient
         speakers={(libSpeakers ?? []) as any[]}
         events={(events ?? []) as any[]}
+        permissions={permissions}
       />
     </div>
   )

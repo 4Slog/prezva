@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createFormField, deleteFormField, reorderFormFields } from '@/lib/events/form-field-actions'
 import { Field } from '@/components/ui/Field'
+import { Gated } from '@/components/auth/Gated'
 
 interface FormField {
   id: string
@@ -34,9 +35,10 @@ interface Props {
   eventId: string
   initial: FormField[]
   tickets: { id: string; name: string }[]
+  permissions?: string[]
 }
 
-export function FormFieldManager({ eventId, initial, tickets }: Props) {
+export function FormFieldManager({ eventId, initial, tickets, permissions = [] }: Props) {
   const [fields, setFields] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [fieldType, setFieldType] = useState('text')
@@ -102,13 +104,15 @@ export function FormFieldManager({ eventId, initial, tickets }: Props) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-[var(--pz-text)]">Registration questions</h2>
         {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="text-sm px-3 py-1.5 rounded-lg font-medium"
-            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
-          >
-            + Add question
-          </button>
+          <Gated permission="tickets.manage" perms={permissions} mode="disable">
+            <button
+              onClick={() => setShowForm(true)}
+              className="text-sm px-3 py-1.5 rounded-lg font-medium"
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
+            >
+              + Add question
+            </button>
+          </Gated>
         )}
       </div>
 
@@ -141,13 +145,15 @@ export function FormFieldManager({ eventId, initial, tickets }: Props) {
                   </td>
                   <td className="px-3 py-2 text-xs text-[var(--pz-muted)]">{f.is_required ? 'Yes' : 'No'}</td>
                   <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => handleDelete(f.id)}
-                      disabled={deleting === f.id}
-                      className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
-                    >
-                      {deleting === f.id ? '…' : 'Delete'}
-                    </button>
+                    <Gated permission="tickets.manage" perms={permissions} mode="hide">
+                      <button
+                        onClick={() => handleDelete(f.id)}
+                        disabled={deleting === f.id}
+                        className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                      >
+                        {deleting === f.id ? '…' : 'Delete'}
+                      </button>
+                    </Gated>
                   </td>
                 </tr>
               ))}

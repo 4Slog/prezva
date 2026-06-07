@@ -5,6 +5,7 @@ import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { Field } from '@/components/ui/Field'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -25,7 +26,8 @@ export default async function EventSettingsPage({ params }: Props) {
     .eq('user_id', user.id)
     .maybeSingle()
   if (!memberRow) notFound()
-  const isStaff = memberRow.role === 'staff'
+  const permSet = await getOrgPermissions((event as any).org_id, user.id)
+  const isStaff = !permSet.has('*') && !permSet.has('event.manage')
 
   const { data: integrationRows } = await supabase
     .from('org_integrations')

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createDiscountCode, toggleDiscountCode, deleteDiscountCode } from '@/lib/events/discount-actions'
 import { Field } from '@/components/ui/Field'
+import { Gated } from '@/components/auth/Gated'
 
 interface DiscountCode {
   id: string
@@ -17,7 +18,7 @@ interface DiscountCode {
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
 
-export function DiscountCodeManager({ eventId, initial }: { eventId: string; initial: DiscountCode[] }) {
+export function DiscountCodeManager({ eventId, initial, permissions = [] }: { eventId: string; initial: DiscountCode[]; permissions?: string[] }) {
   const [codes, setCodes] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent')
@@ -69,13 +70,15 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-[var(--pz-text)]">Discount codes</h2>
         {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="text-sm px-3 py-1.5 rounded-lg font-medium"
-            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
-          >
-            + Create code
-          </button>
+          <Gated permission="tickets.manage" perms={permissions} mode="disable">
+            <button
+              onClick={() => setShowForm(true)}
+              className="text-sm px-3 py-1.5 rounded-lg font-medium"
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
+            >
+              + Create code
+            </button>
+          </Gated>
         )}
       </div>
 
@@ -108,7 +111,9 @@ export function DiscountCodeManager({ eventId, initial }: { eventId: string; ini
                     </button>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-300">Delete</button>
+                    <Gated permission="tickets.manage" perms={permissions} mode="hide">
+                      <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-300">Delete</button>
+                    </Gated>
                   </td>
                 </tr>
               ))}

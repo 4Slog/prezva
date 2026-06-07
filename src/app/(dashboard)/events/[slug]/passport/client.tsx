@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { Trash2, Plus } from 'lucide-react'
 import { createPassportLocation, deletePassportLocation } from '@/lib/engagement/passport-admin-actions'
 import { Field } from '@/components/ui/Field'
+import { Gated } from '@/components/auth/Gated'
 
 interface Location { id: string; name: string; code: string; points: number; created_at: string }
 interface LeaderEntry { userId?: string; registrationId?: string; name: string; count: number; totalPoints: number }
@@ -12,9 +13,10 @@ interface Props {
   initialLocations: Location[]
   totalStamps: number
   leaderboard: LeaderEntry[]
+  permissions: string[]
 }
 
-export default function PassportAdminClient({ eventId, initialLocations, totalStamps, leaderboard }: Props) {
+export default function PassportAdminClient({ eventId, initialLocations, totalStamps, leaderboard, permissions }: Props) {
   const [locations, setLocations] = useState(initialLocations)
   const [name, setName] = useState('')
   const [points, setPoints] = useState('5')
@@ -71,9 +73,11 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
               <input id="passport-points" type="number" min="1" max="100" className={inputCls} value={points} onChange={e => setPoints(e.target.value)} />
             </Field>
           </div>
-          <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.55rem 1rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <Plus size={14} /> Add
-          </button>
+          <Gated permission="passport.manage" perms={permissions} mode="disable">
+            <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.55rem 1rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <Plus size={14} /> Add
+            </button>
+          </Gated>
         </form>
         {error && <p style={{ color: 'var(--pz-error)', fontSize: 12, marginTop: 8 }}>{error}</p>}
       </div>
@@ -94,9 +98,11 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
                     <span style={{ marginLeft: 12 }}>{loc.points} pt{loc.points !== 1 ? 's' : ''}</span>
                   </p>
                 </div>
-                <button onClick={() => handleDelete(loc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-error)', padding: 4 }}>
-                  <Trash2 size={15} />
-                </button>
+                <Gated permission="passport.manage" perms={permissions} mode="hide">
+                  <button onClick={() => handleDelete(loc.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-error)', padding: 4 }}>
+                    <Trash2 size={15} />
+                  </button>
+                </Gated>
               </div>
             ))}
           </div>

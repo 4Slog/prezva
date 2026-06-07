@@ -60,9 +60,12 @@ export default async function RolesPage({ params }: Props) {
 
   if (!org) redirect('/dashboard')
 
-  const myRole = (org.org_members as { role: string }[])[0]?.role ?? 'staff'
-  const canManage = ['owner', 'admin'].includes(myRole)
-  if (!canManage) redirect(`/orgs/${slug}/settings`)
+  // Gate on the actual permission, not the role enum, so custom roles with
+  // org.roles.manage can reach this page and built-in admins without it cannot.
+  const actorPermSet = await getOrgPermissions(org.id, user.id)
+  if (!actorPermSet.has('*') && !actorPermSet.has('org.roles.manage')) {
+    redirect(`/orgs/${slug}/settings`)
+  }
 
   const admin = createAdminClient()
 
@@ -91,8 +94,6 @@ export default async function RolesPage({ params }: Props) {
       return a.name.localeCompare(b.name)
     })
 
-  // Actor's held permission keys
-  const actorPermSet = await getOrgPermissions(org.id, user.id)
   const actorHeldKeys = [...actorPermSet]
 
   return (

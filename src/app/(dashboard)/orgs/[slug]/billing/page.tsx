@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import Link from 'next/link'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -19,8 +20,8 @@ export default async function BillingPage({ params }: Props) {
 
   if (!org) redirect('/dashboard')
 
-  const myRole = (org.org_members as { role: string }[])[0]?.role ?? 'staff'
-  if (myRole !== 'owner') redirect(`/orgs/${slug}/settings`)
+  const permSet = await getOrgPermissions(org.id, user.id)
+  if (!permSet.has('*') && !permSet.has('org.billing')) redirect(`/orgs/${slug}/settings`)
 
   const hasStripe = !!org.stripe_account_id
   const fullyEnabled = org.charges_enabled && org.payouts_enabled

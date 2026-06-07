@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { deleteOrgTemplate } from '@/lib/templates/actions'
 import type { OrgTemplate, TemplateSurface } from '@/lib/templates/types'
 import { TEMPLATE_SURFACE_COLORS as SURFACE_COLOR } from '@/lib/ui/category-colors'
+import { Gated } from '@/components/auth/Gated'
 
 interface EventTemplate { id: string; name: string; description: string | null; created_at: string }
 
@@ -22,9 +23,10 @@ interface Props {
   templates: OrgTemplate[]
   eventTemplates?: EventTemplate[]
   orgSlug: string
+  permissions?: string[]
 }
 
-export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSlug }: Props) {
+export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSlug, permissions = [] }: Props) {
   const [templates, setTemplates] = useState(init)
   const [filterSurface, setFilterSurface] = useState<TemplateSurface | 'all'>('all')
   const [pending, startTransition] = useTransition()
@@ -134,22 +136,26 @@ export function OrgTemplatesClient({ templates: init, eventTemplates = [], orgSl
                 Used {t.usage_count}×
               </span>
               {deleteId === t.id ? (
-                <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Delete?</span>
-                  <button onClick={() => handleDelete(t.id)} disabled={pending}
-                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-error)', background: 'transparent', color: 'var(--pz-error)', cursor: 'pointer' }}>Yes</button>
-                  <button onClick={() => setDeleteId(null)}
-                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: 'pointer' }}>No</button>
-                </span>
+                <Gated permission="org.templates.manage" perms={permissions} mode="hide">
+                  <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'var(--pz-muted)' }}>Delete?</span>
+                    <button onClick={() => handleDelete(t.id)} disabled={pending}
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-error)', background: 'transparent', color: 'var(--pz-error)', cursor: 'pointer' }}>Yes</button>
+                    <button onClick={() => setDeleteId(null)}
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--pz-border)', background: 'transparent', color: 'var(--pz-muted)', cursor: 'pointer' }}>No</button>
+                  </span>
+                </Gated>
               ) : (
-                <button
-                  onClick={() => setDeleteId(t.id)}
-                  disabled={pending}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-muted)', fontSize: 18, lineHeight: 1, padding: 4 }}
-                  aria-label="Delete template"
-                >
-                  ×
-                </button>
+                <Gated permission="org.templates.manage" perms={permissions} mode="hide">
+                  <button
+                    onClick={() => setDeleteId(t.id)}
+                    disabled={pending}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pz-muted)', fontSize: 18, lineHeight: 1, padding: 4 }}
+                    aria-label="Delete template"
+                  >
+                    ×
+                  </button>
+                </Gated>
               )}
             </div>
           ))}

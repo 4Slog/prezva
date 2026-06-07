@@ -1,4 +1,5 @@
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { getSponsors } from '@/lib/sponsors/actions'
 import Link from 'next/link'
 import { SponsorsClient } from './sponsors-client'
@@ -7,9 +8,12 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function EventSponsorsAdminPage({ params }: Props) {
   const { slug } = await params
-  const { event } = await requireEventOrgAccess(slug)
-
-  const sponsors = await getSponsors(event.id)
+  const { user, event } = await requireEventOrgAccess(slug)
+  const [sponsors, permSet] = await Promise.all([
+    getSponsors(event.id),
+    getOrgPermissions(event.org_id, user.id),
+  ])
+  const permissions = Array.from(permSet)
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
@@ -39,6 +43,7 @@ export default async function EventSponsorsAdminPage({ params }: Props) {
         eventId={event.id}
         eventSlug={slug}
         sponsors={sponsors as any}
+        permissions={permissions}
       />
     </div>
   )

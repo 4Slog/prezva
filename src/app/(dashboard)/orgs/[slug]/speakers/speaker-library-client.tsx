@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import { addSpeakerFromLibrary } from '@/lib/speaker/speaker-actions'
+import { Gated } from '@/components/auth/Gated'
 
 type Props = {
   speakers: any[]
   events: any[]
+  permissions?: string[]
 }
 
-export function SpeakerLibraryClient({ speakers, events }: Props) {
+export function SpeakerLibraryClient({ speakers, events, permissions = [] }: Props) {
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState<string | null>(null)
   const [addResult, setAddResult] = useState<Record<string, string>>({})
@@ -98,15 +100,17 @@ export function SpeakerLibraryClient({ speakers, events }: Props) {
                         <option key={ev.id} value={ev.id}>{ev.title}</option>
                       ))}
                     </select>
-                    <button
-                      onClick={() => handleAdd(sp.id)}
-                      disabled={adding === sp.id}
-                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5,
-                               background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none',
-                               cursor: 'pointer', opacity: adding === sp.id ? 0.6 : 1 }}
-                    >
-                      {adding === sp.id ? 'Adding…' : 'Add'}
-                    </button>
+                    <Gated permission="org.speaker_library.manage" perms={permissions} mode="disable">
+                      <button
+                        onClick={() => handleAdd(sp.id)}
+                        disabled={adding === sp.id}
+                        style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5,
+                                 background: 'var(--pz-teal)', color: 'var(--pz-surface)', border: 'none',
+                                 cursor: 'pointer', opacity: adding === sp.id ? 0.6 : 1 }}
+                      >
+                        {adding === sp.id ? 'Adding…' : 'Add'}
+                      </button>
+                    </Gated>
                   </div>
                   {addResult[sp.id] && (
                     <p style={{ fontSize: 11, marginTop: 3, color: addResult[sp.id] === 'Added to event!' ? 'var(--pz-success)' : 'var(--pz-error, var(--pz-error))' }}>

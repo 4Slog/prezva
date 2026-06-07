@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { bulkIssueCertificates } from '@/lib/certificates/bulk-issue'
+import { Gated } from '@/components/auth/Gated'
 
-export default function BulkIssueButton({ eventId, eligibleCount }: { eventId: string; eligibleCount: number }) {
+export default function BulkIssueButton({ eventId, eligibleCount, permissions }: { eventId: string; eligibleCount: number; permissions: string[] }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ issued: number; skipped: number; failed: number } | null>(null)
@@ -18,12 +19,14 @@ export default function BulkIssueButton({ eventId, eligibleCount }: { eventId: s
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-      >
-        Issue to eligible attendees
-      </button>
+      <Gated permission="certificates.manage" perms={permissions} mode="disable">
+        <button
+          onClick={() => setOpen(true)}
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+        >
+          Issue to eligible attendees
+        </button>
+      </Gated>
 
       {result && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', borderRadius: 8, fontSize: 13, color: 'var(--pz-text)' }}>

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { AttendeeActions } from './actions-client'
@@ -18,7 +19,9 @@ function Field({ label, value }: { label: string; value: string | null | undefin
 
 export default async function AttendeeDetailPage({ params }: Props) {
   const { slug, regId } = await params
-  const { event } = await requireEventOrgAccess(slug)
+  const { user, event } = await requireEventOrgAccess(slug)
+  const [permSet] = await Promise.all([getOrgPermissions(event.org_id, user.id)])
+  const permissions = Array.from(permSet)
   const admin = createAdminClient()
 
   const { data: eventExtra } = await admin
@@ -88,6 +91,7 @@ export default async function AttendeeDetailPage({ params }: Props) {
           status={(reg as any).status}
           amountPaidCents={(reg as any).amount_paid_cents ?? null}
           stripeChargeId={(reg as any).stripe_charge_id ?? null}
+          permissions={permissions}
         />
       </div>
 

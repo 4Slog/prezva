@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import BulkIssueButton from './bulk-issue-button'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -25,6 +26,9 @@ export default async function CertificatesPage({ params }: Props) {
     .eq('user_id', user.id)
     .single()
   if (!member) redirect('/dashboard')
+
+  const permSet = await getOrgPermissions((event as any).org_id, user.id)
+  const permissions = Array.from(permSet)
 
   const { data: templates } = await supabase
     .from('certificate_templates')
@@ -62,7 +66,7 @@ export default async function CertificatesPage({ params }: Props) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <BulkIssueButton eventId={(event as any).id} eligibleCount={0} />
+          <BulkIssueButton eventId={(event as any).id} eligibleCount={0} permissions={permissions} />
           <button
             style={{
               background: 'var(--pz-teal)',

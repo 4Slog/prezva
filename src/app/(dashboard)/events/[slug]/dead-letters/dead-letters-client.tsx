@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Gated } from '@/components/auth/Gated'
 
 interface DeadLetterItem {
   id: string
@@ -16,9 +17,10 @@ interface DeadLetterItem {
 interface Props {
   items: DeadLetterItem[]
   eventSlug: string
+  permissions: string[]
 }
 
-export function DeadLettersClient({ items: initial, eventSlug }: Props) {
+export function DeadLettersClient({ items: initial, eventSlug, permissions }: Props) {
   const [items, setItems] = useState<DeadLetterItem[]>(initial)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
@@ -89,21 +91,25 @@ export function DeadLettersClient({ items: initial, eventSlug }: Props) {
                 </button>
                 {!showResolved && (
                   <>
-                    <button
-                      onClick={() => handleReplay(item.id)}
-                      disabled={loading === item.id}
-                      // eslint-disable-next-line no-restricted-syntax
-                      style={{ fontSize: 12, color: '#0ea5e9', background: 'none', border: '1px solid #0ea5e9', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
-                    >
-                      Replay
-                    </button>
-                    <button
-                      onClick={() => handleResolve(item.id)}
-                      disabled={loading === item.id}
-                      style={{ fontSize: 12, color: 'var(--pz-success)', background: 'none', border: '1px solid var(--pz-success)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
-                    >
-                      Resolve
-                    </button>
+                    <Gated permission="failed_jobs.manage" perms={permissions} mode="hide">
+                      <button
+                        onClick={() => handleReplay(item.id)}
+                        disabled={loading === item.id}
+                        // eslint-disable-next-line no-restricted-syntax
+                        style={{ fontSize: 12, color: '#0ea5e9', background: 'none', border: '1px solid #0ea5e9', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
+                      >
+                        Replay
+                      </button>
+                    </Gated>
+                    <Gated permission="failed_jobs.manage" perms={permissions} mode="hide">
+                      <button
+                        onClick={() => handleResolve(item.id)}
+                        disabled={loading === item.id}
+                        style={{ fontSize: 12, color: 'var(--pz-success)', background: 'none', border: '1px solid var(--pz-success)', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', opacity: loading === item.id ? 0.5 : 1 }}
+                      >
+                        Resolve
+                      </button>
+                    </Gated>
                   </>
                 )}
               </div>

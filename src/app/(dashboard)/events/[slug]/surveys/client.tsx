@@ -6,6 +6,7 @@ import { createSurvey, createSurveyFromTemplate, publishSurvey, closeSurvey, sen
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { SurveyTemplate } from '@/lib/templates/types'
 import { SURVEY_STATUS_COLORS as STATUS_COLOR } from '@/lib/ui/category-colors'
+import { Gated } from '@/components/auth/Gated'
 
 interface Survey { id: string; title: string; description: string | null; status: string; created_at: string }
 
@@ -14,8 +15,8 @@ function extractGFormId(input: string): string {
   return match ? match[1] : input.trim()
 }
 
-export default function SurveysClient({ surveys: init, eventId, slug, orgId, googleFormsConnected }: {
-  surveys: Survey[]; eventId: string; slug: string; orgId: string; googleFormsConnected: boolean
+export default function SurveysClient({ surveys: init, eventId, slug, orgId, googleFormsConnected, permissions }: {
+  surveys: Survey[]; eventId: string; slug: string; orgId: string; googleFormsConnected: boolean; permissions: string[]
 }) {
   const [surveys, setSurveys] = useState(init)
   const [showPicker, setShowPicker] = useState(false)
@@ -142,13 +143,17 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
       {importMsg && <p style={{ color: 'var(--pz-success)', fontSize: 14, marginBottom: '1rem' }}>{importMsg}</p>}
       {!showCreate && (
         <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem' }}>
-          <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
-            <Plus size={16} /> New Survey
-          </button>
-          {googleFormsConnected && (
-            <button onClick={() => setShowGFImport(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>
-              Import from Google Forms
+          <Gated permission="surveys.manage" perms={permissions} mode="disable">
+            <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>
+              <Plus size={16} /> New Survey
             </button>
+          </Gated>
+          {googleFormsConnected && (
+            <Gated permission="surveys.manage" perms={permissions} mode="disable">
+              <button onClick={() => setShowGFImport(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>
+                Import from Google Forms
+              </button>
+            </Gated>
           )}
         </div>
       )}
@@ -215,8 +220,8 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                   >
                     <Pencil size={12} /> Edit Questions
                   </NextLink>
-                  {s.status === 'draft' && <button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-success)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button>}
-                  {s.status === 'active' && <button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button>}
+                  {s.status === 'draft' && <Gated permission="surveys.manage" perms={permissions} mode="disable"><button onClick={() => handlePublish(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-success)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Send size={12} /> Publish</button></Gated>}
+                  {s.status === 'active' && <Gated permission="surveys.manage" perms={permissions} mode="disable"><button onClick={() => handleClose(s.id)} disabled={isPending} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Lock size={12} /> Close</button></Gated>}
                   {isPublished && (
                     <button
                       onClick={() => handleCopyLink(s.id)}
@@ -234,13 +239,15 @@ export default function SurveysClient({ surveys: init, eventId, slug, orgId, goo
                     Preview ↗
                   </a>
                   {isPublished && (
-                    <button
-                      onClick={() => handleSendToAll(s.id)}
-                      disabled={sendingId === s.id || isPending}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: sendingId === s.id ? 0.6 : 1 }}
-                    >
-                      <Mail size={12} /> {sendingId === s.id ? 'Sending…' : 'Send to Attendees'}
-                    </button>
+                    <Gated permission="surveys.manage" perms={permissions} mode="disable">
+                      <button
+                        onClick={() => handleSendToAll(s.id)}
+                        disabled={sendingId === s.id || isPending}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: sendingId === s.id ? 0.6 : 1 }}
+                      >
+                        <Mail size={12} /> {sendingId === s.id ? 'Sending…' : 'Send to Attendees'}
+                      </button>
+                    </Gated>
                   )}
                   <button onClick={() => setExpanded(isOpen ? null : s.id)} style={{ background: 'var(--color-border)', color: 'var(--color-text)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}>
                     {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { createClient } from '@/lib/supabase/server'
 import { getEventAnalytics } from '@/lib/analytics/actions'
 
@@ -30,10 +31,10 @@ function MiniBar({ label, count, max, revenue }: { label: string; count: number;
 
 export default async function AnalyticsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const { event, role } = await requireEventOrgAccess(slug)
+  const { user, event } = await requireEventOrgAccess(slug)
 
-  // Staff cannot view analytics / revenue — owner and admin only
-  if (role === 'staff') redirect(`/events/${slug}`)
+  const permSet = await getOrgPermissions(event.org_id, user.id)
+  if (!permSet.has('*') && !permSet.has('analytics.view')) redirect(`/events/${slug}`)
 
   const supabase = await createClient()
   const { data: evtRow } = await supabase.from('events').select('status').eq('id', event.id).single()

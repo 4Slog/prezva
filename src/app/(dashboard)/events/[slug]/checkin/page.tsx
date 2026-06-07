@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { getCheckInStats } from '@/lib/checkin/actions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CheckInClient } from './client'
@@ -21,14 +22,16 @@ export default async function CheckInPage({ params }: Props) {
     .eq('org_id', (event as any).org_id).eq('user_id', user.id).single()
   if (!member) notFound()
 
-  const [initialStats, volunteersResult] = await Promise.all([
+  const [initialStats, volunteersResult, permSet] = await Promise.all([
     getCheckInStats((event as any).id),
     // Admin client: read volunteer status for this event
     createAdminClient()
       .from('volunteers')
       .select('name, status, clocked_in_at, clocked_out_at')
       .eq('event_id', (event as any).id),
+    getOrgPermissions((event as any).org_id, user.id),
   ])
+  const permissions = Array.from(permSet)
 
   const volunteers = (volunteersResult.data ?? []) as {
     name: string
@@ -52,6 +55,7 @@ export default async function CheckInPage({ params }: Props) {
         eventName={(event as any).title}
         initialStats={initialStats}
         volunteerStatus={volunteerStatus}
+        permissions={permissions}
       />
     </div>
   )

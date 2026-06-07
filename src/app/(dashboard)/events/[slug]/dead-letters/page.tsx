@@ -1,4 +1,5 @@
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { DeadLettersClient } from './dead-letters-client'
@@ -7,7 +8,9 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function DeadLettersPage({ params }: Props) {
   const { slug } = await params
-  const { event } = await requireEventOrgAccess(slug)
+  const { user, event } = await requireEventOrgAccess(slug)
+  const permSet = await getOrgPermissions(event.org_id, user.id)
+  const permissions = Array.from(permSet)
   const admin = createAdminClient()
 
   const { data: items } = await admin
@@ -27,7 +30,7 @@ export default async function DeadLettersPage({ params }: Props) {
         <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Failed Jobs</span>
       </div>
 
-      <DeadLettersClient items={(items ?? []) as any[]} eventSlug={slug} />
+      <DeadLettersClient items={(items ?? []) as any[]} eventSlug={slug} permissions={permissions} />
     </div>
   )
 }

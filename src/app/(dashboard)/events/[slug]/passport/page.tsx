@@ -1,14 +1,18 @@
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import PassportAdminClient from './client'
 
 type Props = { params: Promise<{ slug: string }> }
 
 export default async function PassportAdminPage({ params }: Props) {
   const { slug } = await params
-  const { event } = await requireEventOrgAccess(slug)
-
+  const { user, event } = await requireEventOrgAccess(slug)
   const { getPassportAdmin } = await import('@/lib/engagement/passport-admin-actions')
-  const result = await getPassportAdmin(event.id)
+  const [result, permSet] = await Promise.all([
+    getPassportAdmin(event.id),
+    getOrgPermissions(event.org_id, user.id),
+  ])
+  const permissions = Array.from(permSet)
 
   if ('error' in result) return <div style={{ padding: '2rem', color: 'var(--pz-error)' }}>{result.error}</div>
 
@@ -23,6 +27,7 @@ export default async function PassportAdminPage({ params }: Props) {
         initialLocations={result.locations}
         totalStamps={result.totalStamps}
         leaderboard={result.leaderboard}
+        permissions={permissions}
       />
     </div>
   )

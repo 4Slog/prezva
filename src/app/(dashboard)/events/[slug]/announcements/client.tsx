@@ -9,6 +9,7 @@ import { sendSMSAnnouncement, getSMSEligibleCount } from '@/lib/announcements/sm
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { AnnouncementTemplate } from '@/lib/templates/types'
 import { CHANNEL_COLORS as CHANNEL_COLOR } from '@/lib/ui/category-colors'
+import { Gated } from '@/components/auth/Gated'
 
 interface Announcement {
   id: string; title: string; body: string; channel: string
@@ -16,8 +17,8 @@ interface Announcement {
 }
 const CHANNEL_ICON = { email: Mail, push: Bell, both: BellRing }
 
-export default function AnnouncementsClient({ announcements: init, eventId, slug, orgId }: {
-  announcements: Announcement[]; eventId: string; slug: string; orgId: string
+export default function AnnouncementsClient({ announcements: init, eventId, slug, orgId, permissions }: {
+  announcements: Announcement[]; eventId: string; slug: string; orgId: string; permissions: string[]
 }) {
   const [announcements, setAnnouncements] = useState(init)
   const [showPicker, setShowPicker] = useState(false)
@@ -122,9 +123,11 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
         />
       )}
       {!showForm && (
-        <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
-          <Send size={16} /> New Announcement
-        </button>
+        <Gated permission="announcements.manage" perms={permissions} mode="disable">
+          <button onClick={() => setShowPicker(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', marginBottom: '1.5rem' }}>
+            <Send size={16} /> New Announcement
+          </button>
+        </Gated>
       )}
       {showForm && (
         <form onSubmit={handleSubmit} style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
@@ -192,9 +195,11 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
               </select>
             </Field>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
-                {isPending ? 'Sending...' : 'Send Now'}
-              </button>
+              <Gated permission="announcements.manage" perms={permissions} mode="disable">
+                <button type="submit" disabled={isPending} style={{ background: 'var(--color-teal)', color: 'var(--pz-surface)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer', opacity: isPending ? 0.6 : 1 }}>
+                  {isPending ? 'Sending...' : 'Send Now'}
+                </button>
+              </Gated>
               <button type="button" onClick={() => setShowForm(false)} style={{ background: 'var(--color-border)', color: 'var(--pz-text)', border: 'none', borderRadius: 8, padding: '0.6rem 1.25rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
@@ -262,15 +267,17 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
               <span style={{ fontSize: 11, color: smsMessage.length > 140 ? 'var(--pz-warning-fill)' : 'var(--pz-muted)' }}>
                 {smsMessage.length}/160 characters
               </span>
-              <button
-                onClick={handleSendSMS}
-                disabled={smsSending || !smsMessage.trim()}
-                style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
-                         background: 'var(--color-teal)', color: 'var(--pz-surface)',
-                         fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                         opacity: smsSending || !smsMessage.trim() ? 0.5 : 1 }}>
-                {smsSending ? 'Sending…' : `Send SMS to ${smsEligible} attendees`}
-              </button>
+              <Gated permission="announcements.manage" perms={permissions} mode="disable">
+                <button
+                  onClick={handleSendSMS}
+                  disabled={smsSending || !smsMessage.trim()}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: 8, border: 'none',
+                           background: 'var(--color-teal)', color: 'var(--pz-surface)',
+                           fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                           opacity: smsSending || !smsMessage.trim() ? 0.5 : 1 }}>
+                  {smsSending ? 'Sending…' : `Send SMS to ${smsEligible} attendees`}
+                </button>
+              </Gated>
             </div>
             {smsResult && (
               <p style={{ fontSize: 12, marginTop: 8,
