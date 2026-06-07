@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { removeMember, revokeInvite, resendInvite } from '@/lib/orgs/actions'
+import { assignMemberRole } from '@/lib/orgs/role-actions'
 import { ORG_ROLE_BADGE_STYLES as ROLE_STYLE } from '@/lib/ui/category-colors'
 
 function getTimestampMs() { return Date.now() }
@@ -9,6 +10,7 @@ function getTimestampMs() { return Date.now() }
 interface Member {
   id: string
   role: string
+  role_id?: string | null
   created_at: string
   profiles: {
     id: string
@@ -28,21 +30,39 @@ interface PendingInvite {
   token?: string | null
 }
 
+interface OrgRole {
+  id: string
+  name: string
+  slug: string
+  is_builtin?: boolean
+}
+
 interface MemberListProps {
   members: Member[]
   pendingInvites?: PendingInvite[]
+  allRoles?: OrgRole[]
   orgId: string
   currentUserId: string
   currentUserRole: string
 }
 
-
-export function MemberList({ members, pendingInvites = [], orgId, currentUserId, currentUserRole }: MemberListProps) {
+export function MemberList({
+  members,
+  pendingInvites = [],
+  allRoles = [],
+  orgId,
+  currentUserId,
+  currentUserRole,
+}: MemberListProps) {
   const [removing, setRemoving]   = useState<string | null>(null)
   const [revoking, setRevoking]   = useState<string | null>(null)
   const [resending, setResending] = useState<string | null>(null)
   const [resent, setResent]       = useState<string | null>(null)
   const [error,    setError]      = useState<string | null>(null)
+  // Per-member role-change state
+  const [roleChanging, setRoleChanging] = useState<string | null>(null)
+  const [roleError, setRoleError] = useState<string | null>(null)
+
   const canManage  = ['owner', 'admin'].includes(currentUserRole)
   const totalCount = members.length + pendingInvites.length
 
@@ -55,7 +75,6 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
 
   async function handleRevoke(invite: PendingInvite) {
     setRevoking(invite.id); setError(null)
-    // Use server action if the invite is in org_invites (has no expires_at), else API route
     if (!invite.expires_at) {
       const result = await revokeInvite(invite.id)
       setRevoking(null)
@@ -76,6 +95,19 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
     setTimeout(() => setResent(null), 3000)
   }
 
+  async function handleRoleChange(profileId: string, newRoleId: string) {
+    setRoleChanging(profileId)
+    setRoleError(null)
+    const result = await assignMemberRole(orgId, profileId, newRoleId)
+    setRoleChanging(null)
+    if ('error' in result) {
+      setRoleError(result.error)
+    } else {
+      // Reload to reflect the authoritative server state
+      window.location.reload()
+    }
+  }
+
   const now = getTimestampMs()
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--pz-border)' }}>
@@ -93,6 +125,15 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
       </div>
 
       {error && <p className="px-5 py-2 text-sm" style={{ color: 'var(--pz-error)', background: 'var(--pz-error-bg)' }}>{error}</p>}
+      {roleError && (
+        <div className="px-5 py-2 flex items-center justify-between"
+          style={{ color: 'var(--pz-error)', background: 'var(--pz-error-bg)' }}>
+          <p className="text-sm">{roleError}</p>
+          <button onClick={() => setRoleError(null)} className="text-xs ml-4 underline" style={{ color: 'var(--pz-error)' }}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {totalCount === 0 ? (
         <div className="px-5 py-6 text-sm text-center" style={{ color: 'var(--pz-muted)', background: 'var(--pz-surface)' }}>
@@ -104,7 +145,11 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
             const p = m.profiles
             const displayName = p?.full_name ?? p?.email ?? 'Unknown'
             const initial = displayName.trim().charAt(0).toUpperCase()
-            const role = ROLE_STYLE[m.role] ?? ROLE_STYLE.staff
+            const roleBadge = ROLE_STYLE[m.role] ?? ROLE_STYLE.staff
+            const isCurrentUser = p?.id === currentUserId
+            const isOwnerMember = m.role === 'owner'
+            const canChangeRole = canManage && !isCurrentUser && allRoles.length > 0
+
             return (
               <li key={m.id} className="flex items-center justify-between px-5 py-4"
                 style={{ borderTop: '1px solid var(--pz-border)' }}>
@@ -114,16 +159,48 @@ export function MemberList({ members, pendingInvites = [], orgId, currentUserId,
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--pz-text)' }}>
                       {displayName}
-                      {p?.id === currentUserId && <span className="ml-2 text-xs" style={{ color: 'var(--pz-muted)' }}>(you)</span>}
+                      {isCurrentUser && <span className="ml-2 text-xs" style={{ color: 'var(--pz-muted)' }}>(you)</span>}
                     </p>
                     {p?.email && <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>{p.email}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: role.bg, color: role.text }}>{m.role}</span>
-                  {canManage && p?.id !== currentUserId && m.role !== 'owner' && (
+                  {/* Role selector for managers on non-self members */}
+                  {canChangeRole ? (
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        disabled={roleChanging === p?.id}
+                        defaultValue={m.role_id ?? ''}
+                        onChange={e => {
+                          if (p?.id) void handleRoleChange(p.id, e.target.value)
+                        }}
+                        className="rounded border px-2 py-0.5 text-xs focus:outline-none focus:ring-1 disabled:opacity-50"
+                        style={{
+                          borderColor: 'var(--pz-border)',
+                          background: 'var(--pz-surface-2)',
+                          color: 'var(--pz-text)',
+                        }}
+                        title="Change member role"
+                      >
+                        {allRoles.map(r => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </select>
+                      {roleChanging === p?.id && (
+                        <span className="text-xs" style={{ color: 'var(--pz-muted)' }}>Saving…</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{ background: roleBadge.bg, color: roleBadge.text }}>
+                      {m.role}
+                    </span>
+                  )}
+
+                  {canManage && !isCurrentUser && !isOwnerMember && (
                     <button onClick={() => handleRemove(p?.id ?? '')} disabled={removing === p?.id}
-                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity" style={{ color: 'var(--pz-error)' }}>
+                      className="text-xs hover:opacity-70 disabled:opacity-40 transition-opacity"
+                      style={{ color: 'var(--pz-error)' }}>
                       {removing === p?.id ? 'Removing…' : 'Remove'}
                     </button>
                   )}
