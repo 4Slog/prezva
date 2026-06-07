@@ -18,6 +18,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensurePersona, type PersonaMode } from '../lib/personas'
 import { log } from '../lib/logger'
 import type { StageSummary } from '../lib/logger'
+import { seedBuiltinRoles } from '../../../src/lib/orgs/seed-builtin-roles'
 
 interface OrgMember {
   id?: string
@@ -127,14 +128,36 @@ export async function runOrgs(
     if (orgErr) throw new Error(`upsert org "${org.name}" (${org.slug}): ${orgErr.message}`)
     log.ok(`Org upserted — ${org.name} (/${org.slug})`)
 
-    // Step 3: Upsert org_members (keyed by (org_id, user_id))
-    // Mirror app pattern (actions.ts:108-113): invited_by = owner's profiles.id.
+    // Step 3: Seed built-in roles (idempotent — mirrors createOrg prod path).
+    // Ensures dev seed matches production: owner(57)/admin(55)/staff(28) roles seeded.
+    try {
+      await seedBuiltinRoles(org.id, supabase)
+      log.ok(`  built-in roles seeded (owner/admin/staff)`)
+    } catch (e) {
+      log.warn(`  seedBuiltinRoles failed for ${org.slug}: ${e}`)
+    }
+
+    // Resolve all 3 built-in role IDs so each member gets role_id set.
+    const { data: builtinRoles } = await supabase
+      .from('roles')
+      .select('id, slug')
+      .eq('org_id', org.id)
+      .in('slug', ['owner', 'admin', 'staff'])
+      .eq('is_builtin', true)
+    const roleIdBySlug: Record<string, string> = Object.fromEntries(
+      (builtinRoles ?? []).map(r => [r.slug as string, r.id as string]),
+    )
+
+    // Step 4: Upsert org_members (keyed by (org_id, user_id))
+    // Mirror app pattern (actions.ts): invited_by = owner's profiles.id.
+    // Dual-write: role enum + role_id FK so RBAC works from day one.
     for (const m of resolvedMembers) {
       const { error: memberErr } = await supabase.from('org_members').upsert(
         {
           org_id:     org.id,
           user_id:    m.profileId,
           role:       m.role,
+          role_id:    roleIdBySlug[m.role] ?? null,
           invited_by: ownerMember?.profileId ?? m.profileId,
         },
         { onConflict: 'org_id,user_id' },

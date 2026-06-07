@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { seedBuiltinRoles } from '@/lib/orgs/seed-builtin-roles'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -42,10 +43,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: orgErr?.message ?? 'Failed' }, { status: 500 })
     }
 
+    // Seed built-in roles and get owner role_id before inserting the member row.
+    // No DB transaction available — if seeding fails, the org exists but has no
+    // roles (same as the pre-fix bug). Return a clear error instead of silently
+    // redirecting to a broken org.
+    let ownerRoleId: string
+    try {
+      ownerRoleId = await seedBuiltinRoles(org.id, admin)
+    } catch (e) {
+      console.error('[POST /api/orgs] seedBuiltinRoles failed:', e)
+      return NextResponse.json({ error: 'Organization created but role setup failed. Please contact support.' }, { status: 500 })
+    }
+
     const { error: memberErr } = await admin.from('org_members').insert({
       org_id: org.id,
       user_id: user.id,
       role: 'owner',
+      role_id: ownerRoleId,
       invited_by: user.id,
     })
     if (memberErr) {

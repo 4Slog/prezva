@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
+import { seedBuiltinRoles } from '../src/lib/orgs/seed-builtin-roles'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -44,8 +45,15 @@ async function seed() {
   const orgId = (org as any)?.id
   console.log(`✓ Org: Acme Events (${orgId})`)
 
-  // 3. Add org member (owner)
-  await supabase.from('org_members').upsert({ org_id: orgId, user_id: userId, role: 'owner', invited_by: userId }, { onConflict: 'org_id,user_id' })
+  // 3. Seed built-in roles + add org member (owner with role_id)
+  let ownerRoleId: string | undefined
+  try {
+    ownerRoleId = await seedBuiltinRoles(orgId, supabase)
+    console.log('✓ Built-in roles seeded (owner/admin/staff)')
+  } catch (e) {
+    console.warn('⚠ seedBuiltinRoles failed (org has no RBAC roles):', e)
+  }
+  await supabase.from('org_members').upsert({ org_id: orgId, user_id: userId, role: 'owner', role_id: ownerRoleId ?? null, invited_by: userId }, { onConflict: 'org_id,user_id' })
   console.log('✓ Org member: owner')
 
   // 4. Create event

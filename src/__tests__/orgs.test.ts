@@ -11,6 +11,11 @@ vi.mock('@/lib/orgs/actions', async () => {
   return { ...actual, inviteMember: mockInviteMember }
 })
 
+// ── Mock seedBuiltinRoles (tested separately; here we just need it to succeed) ─
+vi.mock('@/lib/orgs/seed-builtin-roles', () => ({
+  seedBuiltinRoles: vi.fn().mockResolvedValue('owner-role-uuid'),
+}))
+
 // ── Supabase mock factory ────────────────────────────────────────────────────
 const mockSingle = vi.fn()
 const mockMaybeSingle = vi.fn()

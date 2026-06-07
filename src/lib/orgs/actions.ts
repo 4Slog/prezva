@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
+import { seedBuiltinRoles } from './seed-builtin-roles'
 
 // ── Validation schemas ───────────────────────────────────────────────────────
 
@@ -107,11 +108,25 @@ export async function createOrg(formData: FormData) {
     return { error: orgErr?.message ?? 'Failed to create organization' }
   }
 
-  // Add creator as owner
+  // Seed built-in roles for the new org and get the owner role_id.
+  // Must happen before the org_members insert so role_id is set from day one.
+  // No DB transaction available here — if seeding fails, the org row exists
+  // but has no roles (same as the pre-fix bug). We return a clear error so the
+  // user knows to retry rather than silently entering a broken state.
+  let ownerRoleId: string
+  try {
+    ownerRoleId = await seedBuiltinRoles(org.id, admin)
+  } catch (e) {
+    console.error('[createOrg] seedBuiltinRoles failed — org created without roles:', e)
+    return { error: 'Organization created but role setup failed. Please contact support.' }
+  }
+
+  // Add creator as owner (dual-write: role enum + role_id FK)
   const { error: memberErr } = await admin.from('org_members').insert({
     org_id: org.id,
     user_id: user.id,
     role: 'owner',
+    role_id: ownerRoleId,
     invited_by: user.id,
   })
   if (memberErr) return { error: memberErr.message }
