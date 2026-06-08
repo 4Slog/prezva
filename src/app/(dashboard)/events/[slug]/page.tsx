@@ -3,15 +3,23 @@ import { getEventBySlug } from '@/lib/events/actions'
 import { EventStatusBadge } from '@/components/events/EventStatusBadge'
 import { EventStatusActions } from '@/components/events/EventStatusActions'
 import { AdminTileGrid } from '@/components/events/AdminTileGrid'
+import { EventGroupCard } from '@/components/events/EventGroupCard'
 import { SaveAsTemplateButton } from '@/components/events/SaveAsTemplateButton'
 import { getAdminTileBadges } from '@/lib/events/admin-tile-counts'
 import { getEventCounts } from '@/lib/registrations/counts'
+import { getGroupSummaryStats } from '@/lib/events/group-summary-stats'
+import { ADMIN_TILES } from '@/lib/events/admin-tiles'
+import type { TileCategory } from '@/lib/events/admin-tiles'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { StaffDashboard } from './staff-dashboard'
 import Link from 'next/link'
+import {
+  Users, CalendarDays, MessageCircle, Megaphone, Building, BarChart2, AlertTriangle,
+  type LucideIcon,
+} from 'lucide-react'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -52,10 +60,11 @@ export default async function EventDetailPage({ params }: Props) {
 
   // Admin client: fetch org slug for integration tile link + tile badges + live counts
   const admin = createAdminClient()
-  const [orgRes, badges, counts] = await Promise.all([
+  const [orgRes, badges, counts, groupStats] = await Promise.all([
     admin.from('organizations').select('slug').eq('id', (event as any).org_id).maybeSingle(),
     getAdminTileBadges((event as any).id),
     getEventCounts((event as any).id),
+    getGroupSummaryStats((event as any).id),
   ])
   const orgSlug = orgRes.data?.slug
 
@@ -173,10 +182,80 @@ export default async function EventDetailPage({ params }: Props) {
           <div key={s.label} className="pz-card p-4">
             <p className="text-xs font-medium text-[var(--pz-muted)] mb-2">{s.label}</p>
             <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-            <div className="pz-stat-bar" />
+            {s.value > 0 && <div className="pz-stat-bar" />}
           </div>
         ))}
       </div>
+
+      {/* Group summary cards — one per nav group, hero stat, taps to primary destination */}
+      {(() => {
+        const allowed = (key: string) => permSet.has('*') || permSet.has(key)
+        const GROUP_CARDS: {
+          key: TileCategory; label: string; icon: LucideIcon
+          stat: string; statLabel: string; href: string; isAlert?: boolean
+        }[] = [
+          {
+            key: 'people',
+            label: 'People',
+            icon: Users,
+            stat: `${counts.checkedIn} / ${counts.total}`,
+            statLabel: 'checked in',
+            href: `/events/${slug}/attendees`,
+          },
+          {
+            key: 'program',
+            label: 'Program',
+            icon: CalendarDays,
+            stat: `${groupStats.sessions}`,
+            statLabel: groupStats.sessions === 1 ? 'session' : 'sessions',
+            href: `/events/${slug}/agenda`,
+          },
+          {
+            key: 'community',
+            label: 'Community',
+            icon: MessageCircle,
+            stat: `${groupStats.communityPosts}`,
+            statLabel: groupStats.communityPosts === 1 ? 'post' : 'posts',
+            href: `/events/${slug}/community`,
+          },
+          {
+            key: 'communications',
+            label: 'Communications',
+            icon: Megaphone,
+            stat: `${groupStats.announcementsSent}`,
+            statLabel: 'sent',
+            href: `/events/${slug}/announcements`,
+          },
+          {
+            key: 'sponsors',
+            label: 'Sponsors',
+            icon: Building,
+            stat: `${groupStats.sponsors}`,
+            statLabel: groupStats.sponsors === 1 ? 'sponsor' : 'sponsors',
+            href: `/events/${slug}/sponsors`,
+          },
+          {
+            key: 'admin',
+            label: 'Admin',
+            icon: groupStats.failedJobs > 0 ? AlertTriangle : BarChart2,
+            stat: groupStats.failedJobs > 0 ? `${groupStats.failedJobs}` : '—',
+            statLabel: groupStats.failedJobs > 0 ? 'need attention' : 'All systems normal',
+            href: `/events/${slug}/analytics`,
+            isAlert: groupStats.failedJobs > 0,
+          },
+        ]
+        const visible = GROUP_CARDS.filter(g =>
+          ADMIN_TILES.some(t => t.category === g.key && allowed(t.permission))
+        )
+        if (visible.length === 0) return null
+        return (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 mb-8">
+            {visible.map(({ key: gk, ...cardProps }) => (
+              <EventGroupCard key={gk} {...cardProps} />
+            ))}
+          </div>
+        )
+      })()}
 
       {/* Module tile grid */}
       <AdminTileGrid eventSlug={slug} orgSlug={orgSlug ?? undefined} badges={badges} permissions={permissions} />

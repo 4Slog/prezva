@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ADMIN_TILES, TILE_CATEGORIES } from '@/lib/events/admin-tiles'
 import type { TileBadge } from '@/lib/events/admin-tile-counts'
+import type { LucideIcon } from 'lucide-react'
 
 interface Props {
   eventSlug: string
@@ -46,6 +47,7 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
                   ? `/orgs/${orgSlug}/integrations`
                   : tile.href(eventSlug)
 
+                const TileIcon = tile.icon as LucideIcon
                 return (
                   <Link
                     key={tile.key}
@@ -77,7 +79,9 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
                         {badge.label}
                       </span>
                     )}
-                    <div style={{ fontSize: 22, marginBottom: 8 }}>{tile.icon}</div>
+                    <div style={{ marginBottom: 8 }}>
+                      <TileIcon size={20} style={{ color: 'var(--pz-muted)' }} />
+                    </div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 3 }}>{tile.label}</p>
                     <p style={{ fontSize: 11, color: 'var(--pz-muted)', lineHeight: 1.4 }}>{tile.description}</p>
                   </Link>
