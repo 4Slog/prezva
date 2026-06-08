@@ -93,6 +93,13 @@ export default async function AttendeeDetailPage({ params }: Props) {
           stripeChargeId={(reg as any).stripe_charge_id ?? null}
           permissions={permissions}
         />
+        {(permissions.includes('*') || permissions.includes('certificates.manage')) && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--pz-border)' }}>
+            <Link href={`/events/${slug}/certificates`} style={{ fontSize: 13, color: 'var(--pz-teal)', textDecoration: 'none' }}>
+              View certificates →
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Details grid */}

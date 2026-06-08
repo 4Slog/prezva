@@ -1,5 +1,6 @@
 import type { SideNavGroup, SideNavItem } from '@/components/ui/SideNav'
 import {
+  AlertTriangle,
   ArrowLeft,
   Award,
   BarChart2,
@@ -27,7 +28,6 @@ import {
   Trophy,
   UserCheck,
   Users,
-  Zap,
 } from 'lucide-react'
 
 export function buildEventNav(slug: string): {
@@ -44,14 +44,15 @@ export function buildEventNav(slug: string): {
   const groups: SideNavGroup[] = [
     {
       id: 'people',
-      label: 'People & registration',
+      label: 'People',
       icon: Users,
       items: [
-        { label: 'Attendees',  href: `${base}/attendees`,  icon: Users },
-        { label: 'Check-in',   href: `${base}/checkin`,    icon: ScanLine },
-        { label: 'Tickets',    href: `${base}/tickets`,    icon: Ticket },
-        { label: 'Badges',     href: `${base}/badges`,     icon: Tag },
-        { label: 'Volunteers', href: `${base}/volunteers`, icon: UserCheck },
+        { label: 'Attendees',    href: `${base}/attendees`,    icon: Users },
+        { label: 'Check-in',     href: `${base}/checkin`,      icon: ScanLine },
+        { label: 'Tickets',      href: `${base}/tickets`,      icon: Ticket },
+        { label: 'Badges',       href: `${base}/badges`,       icon: Tag },
+        { label: 'Certificates', href: `${base}/certificates`, icon: Award },
+        { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck },
       ],
     },
     {
@@ -65,9 +66,9 @@ export function buildEventNav(slug: string): {
       ],
     },
     {
-      id: 'engagement',
-      label: 'Engagement',
-      icon: Zap,
+      id: 'community',
+      label: 'Community',
+      icon: MessageCircle,
       items: [
         { label: 'Community feed', href: `${base}/community`,   icon: MessageCircle },
         { label: 'Networking',     href: `${base}/networking`,  icon: Network },
@@ -79,7 +80,7 @@ export function buildEventNav(slug: string): {
       ],
     },
     {
-      id: 'comms',
+      id: 'communications',
       label: 'Communications',
       icon: Megaphone,
       items: [
@@ -88,6 +89,7 @@ export function buildEventNav(slug: string): {
       ],
     },
     {
+      // Becomes "Exhibitors & Sponsors" when the exhibitor feature ships
       id: 'sponsors',
       label: 'Sponsors',
       icon: Building,
@@ -96,20 +98,13 @@ export function buildEventNav(slug: string): {
       ],
     },
     {
-      id: 'certificates',
-      label: 'Certificates',
-      icon: Award,
-      items: [
-        { label: 'Certificates', href: `${base}/certificates`, icon: Award },
-      ],
-    },
-    {
-      id: 'reports',
-      label: 'Reports',
+      id: 'admin',
+      label: 'Admin',
       icon: BarChart2,
       items: [
-        { label: 'Analytics', href: `${base}/analytics`, icon: BarChart2 },
-        { label: 'Audit log', href: `${base}/audit-log`, icon: ScrollText },
+        { label: 'Analytics',  href: `${base}/analytics`,    icon: BarChart2 },
+        { label: 'Audit log',  href: `${base}/audit-log`,    icon: ScrollText },
+        { label: 'Failed jobs', href: `${base}/dead-letters`, icon: AlertTriangle },
       ],
     },
   ]

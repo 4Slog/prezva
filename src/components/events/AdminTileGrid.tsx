@@ -19,12 +19,12 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
       {TILE_CATEGORIES.map(({ key: cat, label: catLabel }) => {
         const tiles = ADMIN_TILES.filter(t => t.category === cat && allowed(t.permission))
         if (tiles.length === 0) return null
-        const isCore = cat === 'core'
+        const isPrimary = cat === 'people'
 
         return (
-          <details key={cat} open={isCore || cat === 'engagement' || cat === 'advanced' || cat === 'integration' || expandAll} style={{ marginBottom: 24 }}>
+          <details key={cat} open={isPrimary || cat === 'program' || cat === 'community' || cat === 'communications' || cat === 'sponsors' || cat === 'admin' || expandAll} style={{ marginBottom: 24 }}>
             <summary style={{
-              cursor: isCore ? 'default' : 'pointer',
+              cursor: isPrimary ? 'default' : 'pointer',
               listStyle: 'none',
               display: 'flex',
               alignItems: 'center',
@@ -32,14 +32,14 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
               marginBottom: 12,
               userSelect: 'none',
             }}>
-              {!isCore && <span style={{ fontSize: 11, color: 'var(--pz-muted)' }}>▶</span>}
+              {!isPrimary && <span style={{ fontSize: 11, color: 'var(--pz-muted)' }}>▶</span>}
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                 {catLabel}
               </span>
               <span style={{ fontSize: 11, color: 'var(--pz-muted)' }}>{tiles.length}</span>
             </summary>
 
-            <div style={{ display: 'grid', gridTemplateColumns: isCore ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isPrimary ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
               {tiles.map(tile => {
                 const badge = badges[tile.key]
                 const href = tile.key === 'integrations' && orgSlug

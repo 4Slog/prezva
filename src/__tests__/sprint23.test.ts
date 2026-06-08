@@ -11,34 +11,47 @@ describe('Sprint 23 — Module Tile Gap Closure', () => {
     expect(ADMIN_TILES.length).toBeGreaterThanOrEqual(19)
   })
 
-  it('all four categories are represented', () => {
+  it('all six categories are represented', () => {
     const cats = new Set(ADMIN_TILES.map(t => t.category))
-    expect(cats.has('core')).toBe(true)
-    expect(cats.has('engagement')).toBe(true)
-    expect(cats.has('advanced')).toBe(true)
-    expect(cats.has('integration')).toBe(true)
+    expect(cats.has('people')).toBe(true)
+    expect(cats.has('program')).toBe(true)
+    expect(cats.has('community')).toBe(true)
+    expect(cats.has('communications')).toBe(true)
+    expect(cats.has('sponsors')).toBe(true)
+    expect(cats.has('admin')).toBe(true)
   })
 
-  it('core tiles include attendees, tickets, agenda, speakers, checkin, badges', () => {
-    const coreKeys = getTilesByCategory('core').map(t => t.key)
-    expect(coreKeys).toContain('attendees')
-    expect(coreKeys).toContain('tickets')
-    expect(coreKeys).toContain('agenda')
-    expect(coreKeys).toContain('speakers')
-    expect(coreKeys).toContain('checkin')
-    expect(coreKeys).toContain('badges')
-  })
-
-  it('engagement tiles include announcements, surveys, networking, community, photos, leaderboard, icebreakers, trivia', () => {
-    const keys = getTilesByCategory('engagement').map(t => t.key)
-    ;['announcements', 'surveys', 'networking', 'community', 'photos', 'leaderboard', 'icebreakers', 'trivia'].forEach(k => {
+  it('people tiles include attendees, checkin, tickets, badges, certificates, volunteers', () => {
+    const keys = getTilesByCategory('people').map(t => t.key)
+    ;['attendees', 'checkin', 'tickets', 'badges', 'certificates', 'volunteers'].forEach(k => {
       expect(keys).toContain(k)
     })
   })
 
-  it('advanced tiles include sponsors, certificates, analytics, audit-log', () => {
-    const keys = getTilesByCategory('advanced').map(t => t.key)
-    ;['sponsors', 'certificates', 'analytics', 'audit-log'].forEach(k => {
+  it('program tiles include agenda, speakers, run-of-show', () => {
+    const keys = getTilesByCategory('program').map(t => t.key)
+    ;['agenda', 'speakers', 'run-of-show'].forEach(k => {
+      expect(keys).toContain(k)
+    })
+  })
+
+  it('community tiles include networking, community, photos, leaderboard, icebreakers, trivia, passport', () => {
+    const keys = getTilesByCategory('community').map(t => t.key)
+    ;['networking', 'community', 'photos', 'leaderboard', 'icebreakers', 'trivia', 'passport'].forEach(k => {
+      expect(keys).toContain(k)
+    })
+  })
+
+  it('communications tiles include announcements, surveys', () => {
+    const keys = getTilesByCategory('communications').map(t => t.key)
+    ;['announcements', 'surveys'].forEach(k => {
+      expect(keys).toContain(k)
+    })
+  })
+
+  it('admin tiles include analytics, audit-log, dead-letters, integrations', () => {
+    const keys = getTilesByCategory('admin').map(t => t.key)
+    ;['analytics', 'audit-log', 'dead-letters', 'integrations'].forEach(k => {
       expect(keys).toContain(k)
     })
   })
@@ -57,8 +70,8 @@ describe('Sprint 23 — Module Tile Gap Closure', () => {
     })
   })
 
-  it('TILE_CATEGORIES has 4 entries', () => {
-    expect(TILE_CATEGORIES.length).toBe(4)
+  it('TILE_CATEGORIES has 6 entries', () => {
+    expect(TILE_CATEGORIES.length).toBe(6)
   })
 
   // AdminTileGrid component
