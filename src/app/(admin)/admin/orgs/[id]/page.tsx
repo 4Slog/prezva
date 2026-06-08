@@ -10,7 +10,7 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
 
   const [orgResult, membersResult, eventsResult, revenueResult] = await Promise.all([
     admin.from('organizations').select('*').eq('id', id).single(),
-    admin.from('org_members').select('id, role, joined_at, profiles(email, full_name)').eq('org_id', id).order('joined_at'),
+    admin.from('org_members').select('id, role, joined_at, profiles!org_members_user_id_fkey(email, full_name)').eq('org_id', id).order('joined_at'),
     admin.from('events').select('id, title, status, start_at, registration_count').eq('org_id', id).order('start_at', { ascending: false }).limit(10),
     admin.from('registrations').select('amount_paid_cents').eq('status', 'confirmed')
       .in('event_id', (await admin.from('events').select('id').eq('org_id', id).then(r => (r.data ?? []).map(e => e.id)))),

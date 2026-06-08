@@ -25,6 +25,12 @@ import { buildEventNav } from '@/lib/events/event-nav'
 interface OrgShellProps {
   defaultOrgSlug: string | null
   canRolesManage?: boolean
+  canBilling?: boolean
+  canTemplates?: boolean
+  canIntegrations?: boolean
+  canAuditLog?: boolean
+  canSpeakerLibrary?: boolean
+  canOrgSettingsPage?: boolean
 }
 
 /** Returns the event slug when the current path is an event page, null otherwise. */
@@ -36,7 +42,16 @@ function parseEventSlug(pathname: string): string | null {
   return slug
 }
 
-export function OrgShell({ defaultOrgSlug, canRolesManage = false }: OrgShellProps) {
+export function OrgShell({
+  defaultOrgSlug,
+  canRolesManage = false,
+  canBilling = false,
+  canTemplates = false,
+  canIntegrations = false,
+  canAuditLog = false,
+  canSpeakerLibrary = false,
+  canOrgSettingsPage = false,
+}: OrgShellProps) {
   const orgSlug = defaultOrgSlug ?? ''
   const pathname = usePathname()
   const eventSlug = parseEventSlug(pathname)
@@ -64,13 +79,13 @@ export function OrgShell({ defaultOrgSlug, canRolesManage = false }: OrgShellPro
       label: 'Organization',
       icon: Building2,
       items: [
-        { label: 'Settings',        href: `/orgs/${orgSlug}/settings`,       icon: Settings, exact: true },
-        ...(canRolesManage ? [{ label: 'Team & Roles', href: `/orgs/${orgSlug}/settings/roles`, icon: Users }] : []),
-        { label: 'Billing',         href: `/orgs/${orgSlug}/billing`,        icon: CreditCard },
-        { label: 'Templates',       href: `/orgs/${orgSlug}/templates`,      icon: LayoutTemplate },
-        { label: 'Integrations',    href: `/orgs/${orgSlug}/integrations`,   icon: Plug },
-        { label: 'Audit Log',       href: `/orgs/${orgSlug}/audit-log`,      icon: ScrollText },
-        { label: 'Speaker Library', href: `/orgs/${orgSlug}/speakers`,       icon: Mic },
+        ...(canOrgSettingsPage ? [{ label: 'Settings',        href: `/orgs/${orgSlug}/settings`,       icon: Settings, exact: true }] : []),
+        ...(canRolesManage     ? [{ label: 'Team & Roles',    href: `/orgs/${orgSlug}/settings/roles`, icon: Users }] : []),
+        ...(canBilling         ? [{ label: 'Billing',         href: `/orgs/${orgSlug}/billing`,        icon: CreditCard }] : []),
+        ...(canTemplates       ? [{ label: 'Templates',       href: `/orgs/${orgSlug}/templates`,      icon: LayoutTemplate }] : []),
+        ...(canIntegrations    ? [{ label: 'Integrations',    href: `/orgs/${orgSlug}/integrations`,   icon: Plug }] : []),
+        ...(canAuditLog        ? [{ label: 'Audit Log',       href: `/orgs/${orgSlug}/audit-log`,      icon: ScrollText }] : []),
+        ...(canSpeakerLibrary  ? [{ label: 'Speaker Library', href: `/orgs/${orgSlug}/speakers`,       icon: Mic }] : []),
       ],
     },
   ]

@@ -11,7 +11,7 @@ interface Member {
   id: string
   role: string
   role_id?: string | null
-  created_at: string
+  joined_at?: string | null
   profiles: {
     id: string
     full_name: string | null
@@ -43,7 +43,8 @@ interface MemberListProps {
   allRoles?: OrgRole[]
   orgId: string
   currentUserId: string
-  currentUserRole: string
+  currentUserRole?: string
+  canManage?: boolean
 }
 
 export function MemberList({
@@ -52,7 +53,8 @@ export function MemberList({
   allRoles = [],
   orgId,
   currentUserId,
-  currentUserRole,
+  currentUserRole: _currentUserRole,
+  canManage = false,
 }: MemberListProps) {
   const [removing, setRemoving]   = useState<string | null>(null)
   const [revoking, setRevoking]   = useState<string | null>(null)
@@ -62,8 +64,6 @@ export function MemberList({
   // Per-member role-change state
   const [roleChanging, setRoleChanging] = useState<string | null>(null)
   const [roleError, setRoleError] = useState<string | null>(null)
-
-  const canManage  = ['owner', 'admin'].includes(currentUserRole)
   const totalCount = members.length + pendingInvites.length
 
   async function handleRemove(profileId: string) {

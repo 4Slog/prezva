@@ -45,9 +45,9 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
   const admin = createAdminClient()
   const { data: members } = await admin
     .from('org_members')
-    .select('id, role, role_id, created_at, profiles(id, full_name, email, avatar_url, job_title)')
+    .select('id, role, role_id, joined_at, profiles!org_members_user_id_fkey(id, full_name, email, avatar_url, job_title)')
     .eq('org_id', org.id)
-    .order('created_at', { ascending: true })
+    .order('joined_at', { ascending: true })
 
   // Fetch pending invites from legacy table and new org_invites table
   const [legacyInvitesResult, newPendingInvites] = await Promise.all([
@@ -142,7 +142,7 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
             allRoles={allRoles as Parameters<typeof MemberList>[0]['allRoles']}
             orgId={org.id}
             currentUserId={user.id}
-            currentUserRole={myRole}
+            canManage={canInvite}
           />
         </section>
       )}

@@ -1,3 +1,4 @@
+import { headers, cookies } from 'next/headers'
 import { requireUser } from '@/lib/auth/get-user'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
@@ -23,19 +24,60 @@ export default async function DashboardLayout({
   ])
   const superAdmin = isSuperAdmin(user.id)
 
-  const defaultOrgSlug = await resolveActiveOrgSlug(user.id, orgs)
+  // ── Effective org resolution (priority: impersonate > URL slug > cookie/fallback) ──
+  const pathname = (await headers()).get('x-pathname') ?? ''
+  const urlSlug = pathname.match(/^\/orgs\/([^/]+)/)?.[1] ?? null
 
-  const activeOrg = orgs.find(o => (o.organizations as unknown as { slug: string } | null)?.slug === defaultOrgSlug)
-  const activeOrgId = activeOrg?.org_id ?? ''
-  const permSet = activeOrgId ? await getOrgPermissions(activeOrgId, user.id) : new Set<string>()
-  const canRolesManage = permSet.has('*') || permSet.has('org.roles.manage')
+  // 1. Impersonation (super-admin override — closes pre-existing gap in this layout)
+  const cookieStore = await cookies()
+  const impersonateCookie = cookieStore.get('pz_impersonate_org')?.value
+  let impersonateOrg: { id: string; name: string; slug: string } | null = null
+  if (impersonateCookie && isSuperAdmin(user.id)) {
+    try { impersonateOrg = JSON.parse(impersonateCookie) } catch { /* ignore */ }
+  }
 
-  const currentContext = defaultOrgSlug ?? 'personal'
+  let effectiveOrgSlug: string | null
+  let effectiveOrgId: string
+  if (impersonateOrg) {
+    // Impersonation wins over everything — getOrgPermissions short-circuits to '*' for super-admins
+    effectiveOrgSlug = impersonateOrg.slug
+    effectiveOrgId = impersonateOrg.id
+  } else if (urlSlug && orgs.some(o => (o.organizations as unknown as { slug: string } | null)?.slug === urlSlug)) {
+    // 2. URL slug (user is viewing an org-scoped route they're a member of)
+    effectiveOrgSlug = urlSlug
+    const urlOrg = orgs.find(o => (o.organizations as unknown as { slug: string } | null)?.slug === urlSlug)
+    effectiveOrgId = urlOrg?.org_id ?? ''
+  } else {
+    // 3. Cookie / orgs[0] fallback
+    effectiveOrgSlug = await resolveActiveOrgSlug(user.id, orgs)
+    const activeOrg = orgs.find(o => (o.organizations as unknown as { slug: string } | null)?.slug === effectiveOrgSlug)
+    effectiveOrgId = activeOrg?.org_id ?? ''
+  }
+
+  const permSet = effectiveOrgId ? await getOrgPermissions(effectiveOrgId, user.id) : new Set<string>()
+  const canRolesManage    = permSet.has('*') || permSet.has('org.roles.manage')
+  const canBilling        = permSet.has('*') || permSet.has('org.billing')
+  const canTemplates      = permSet.has('*') || permSet.has('org.templates.view')
+  const canIntegrations   = permSet.has('*') || permSet.has('org.integrations')
+  const canAuditLog       = permSet.has('*') || permSet.has('org.audit_log')
+  const canSpeakerLibrary = permSet.has('*') || permSet.has('org.speaker_library.view')
+  const canOrgSettingsPage = permSet.has('*') || permSet.has('org.settings') || permSet.has('org.members.view') || permSet.has('org.members.invite')
+
+  const currentContext = effectiveOrgSlug ?? 'personal'
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--pz-bg)' }}>
 
-      <OrgShell defaultOrgSlug={defaultOrgSlug} canRolesManage={canRolesManage} />
+      <OrgShell
+          defaultOrgSlug={effectiveOrgSlug}
+          canRolesManage={canRolesManage}
+          canBilling={canBilling}
+          canTemplates={canTemplates}
+          canIntegrations={canIntegrations}
+          canAuditLog={canAuditLog}
+          canSpeakerLibrary={canSpeakerLibrary}
+          canOrgSettingsPage={canOrgSettingsPage}
+        />
 
       {/* ── Main content ────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">
