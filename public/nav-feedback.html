@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prezva — quick feedback on the event menu</title>
+<style>
+  :root{
+    --navy:#0D1B2A; --teal:#2DD4BF; --ink:#0D1B2A; --muted:#5b6b7a;
+    --line:#e3e8ee; --bg:#f4f6f9; --card:#ffffff; --soft:#eef7f5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px 90px}
+  header{background:var(--navy);color:#fff;padding:26px 18px;text-align:center}
+  header .logo{font-weight:700;letter-spacing:.5px;font-size:18px}
+  header .logo span{color:var(--teal)}
+  header h1{font-size:20px;margin:14px 0 6px;font-weight:600}
+  header p{margin:0 auto;max-width:540px;color:#c5d0db;font-size:14px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 16px;margin:18px 0;box-shadow:0 1px 2px rgba(13,27,42,.04)}
+  .pill{display:inline-block;background:var(--soft);color:#0f6e56;font-size:12px;
+    font-weight:600;padding:3px 10px;border-radius:999px;margin-bottom:8px}
+  .step h2{font-size:17px;margin:6px 0 4px;font-weight:600}
+  .step .how{color:var(--muted);font-size:14px;margin:0 0 14px}
+  label.q{display:block;font-weight:600;font-size:14px;margin:16px 0 6px}
+  textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;font:inherit;font-size:15px;background:#fff;resize:vertical;-webkit-appearance:none}
+  textarea:focus,input:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+  .hint{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+  .sortwrap{margin-top:6px}
+  .tray{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;padding:10px;
+    background:#f7f9fc;border:1px dashed #c9d4df;border-radius:12px}
+  .tray.empty::before{content:"All sorted!";color:var(--muted);font-size:13px;padding:6px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;font-size:14px;color:#26323f;cursor:grab;user-select:none;
+    box-shadow:0 1px 1px rgba(13,27,42,.05);touch-action:manipulation}
+  .card.sel{outline:2px solid var(--teal);background:var(--soft)}
+  .card.dragging{opacity:.4}
+  .buckets{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+  .bucket{border:1px solid var(--line);border-radius:12px;background:#fbfcfe;padding:12px}
+  .bucket.over{border-color:var(--teal);background:var(--soft)}
+  .bucket-head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .bucket-head input{flex:1;font-weight:600;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;background:#fff}
+  .bucket-head button{border:none;background:#f0f3f7;color:#8a98a6;border-radius:8px;
+    padding:6px 10px;font-size:13px;cursor:pointer}
+  .drop{display:flex;flex-wrap:wrap;gap:8px;min-height:44px}
+  .drop:empty::before{content:"drag cards here — or tap a card above, then tap this box";
+    color:#aab6c2;font-size:12.5px;font-style:italic}
+  .addbucket{border:1px dashed #b9c6d2;background:#fff;color:#0f6e56;border-radius:12px;
+    padding:11px;width:100%;font:inherit;font-weight:600;font-size:14px;cursor:pointer;margin-top:6px}
+  .tapnote{background:#fff7ed;border:1px solid #fde2c0;color:#8a5a16;border-radius:10px;
+    padding:9px 12px;font-size:12.5px;margin:10px 0}
+  .label-row{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:#fbfcfe}
+  .label-row .name{font-weight:600;font-size:14px;color:var(--navy);margin-bottom:6px}
+  .task{border-left:3px solid var(--teal);padding:4px 0 4px 12px;margin:14px 0 6px;font-weight:600;font-size:14px}
+  .btn{display:inline-block;background:var(--teal);color:#06281f;border:none;border-radius:10px;
+    padding:13px 20px;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+  .btn:active{transform:scale(.99)}
+  .out{white-space:pre-wrap;background:#0d1b2a;color:#d8f3ec;border-radius:12px;
+    padding:16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;margin-top:14px;display:none;
+    -webkit-user-select:all;user-select:all}
+  .copy-note{font-size:13px;color:var(--muted);margin-top:10px;display:none}
+  .scale{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .scale label{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer;background:#fff}
+  .scale input{margin-right:5px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">PREZ<span>VA</span></div>
+  <h1>Quick gut-check on the event menu</h1>
+  <p>No right answers — I just want to see how you'd naturally expect this to work. About 20 minutes, nothing technical. When you're done, tap the button at the bottom and send me what it gives you.</p>
+</header>
+<div class="wrap">
+
+  <div class="step">
+    <span class="pill">First, about you</span>
+    <h2>Set the scene</h2>
+    <label class="q">Your name</label>
+    <input type="text" id="name">
+    <label class="q">Ever helped run or organize an event (work, community, conference, fundraiser — anything)?</label>
+    <textarea id="background" rows="2" placeholder="A sentence is plenty"></textarea>
+  </div>
+
+  <div class="step">
+    <span class="pill">Exercise 1 · grouping</span>
+    <h2>Sort these into groups that make sense to YOU</h2>
+    <p class="how">These are all the things the event tool can do. Move each card into a group — rename the groups, add your own, whatever feels natural. I left the group names blank on purpose: name them however <em>you'd</em> say it.</p>
+    <div class="tapnote">📱 On a phone? <strong>Tap a card</strong> to pick it up, then <strong>tap the group box</strong> to drop it in. On a computer you can also just drag.</div>
+    <div class="sortwrap">
+      <div class="tray" id="tray"></div>
+      <div class="buckets" id="buckets"></div>
+      <button class="addbucket" id="addBucket">+ add another group</button>
+    </div>
+    <label class="q">Were any of these confusing — you weren't sure what it is, or which group it belonged in?</label>
+    <textarea id="cardsort_confusing" rows="3"></textarea>
+  </div>
+
+  <div class="step">
+    <span class="pill">Exercise 2 · names</span>
+    <h2>Do these names make sense?</h2>
+    <p class="how">For each: when you read the word, what do you expect to find — and is that what you'd call it? If it feels off, tell me your word for it.</p>
+    <div class="label-row"><div class="name">"Run of show"</div><textarea id="lbl_runofshow" rows="2" placeholder="What is it? Would you call it something else?"></textarea></div>
+    <div class="label-row"><div class="name">"Passport"</div><textarea id="lbl_passport" rows="2"></textarea></div>
+    <div class="label-row"><div class="name">"Engagement" (as a menu heading)</div><textarea id="lbl_engagement" rows="2" placeholder="If you saw this heading, what would you expect inside?"></textarea></div>
+    <div class="label-row"><div class="name">"Community feed"</div><textarea id="lbl_community" rows="2"></textarea></div>
+    <div class="label-row"><div class="name">"Certificates"</div><textarea id="lbl_certs" rows="2"></textarea></div>
+  </div>
+
+  <div class="step">
+    <span class="pill">Exercise 3 · find it</span>
+    <h2>Where would you click first?</h2>
+    <p class="how">Just your instinct — which menu section you'd go look in. First guess is what matters.</p>
+    <div class="task">1. Someone's at the door and you need to check them in.</div>
+    <textarea id="task_checkin" rows="2"></textarea>
+    <div class="task">2. An attendee asks for their CE certificate.</div>
+    <textarea id="task_cert" rows="2"></textarea>
+    <div class="task">3. You want to email everyone attending.</div>
+    <textarea id="task_announce" rows="2"></textarea>
+    <div class="task">4. You want to see how many registered vs. actually showed up.</div>
+    <textarea id="task_numbers" rows="2"></textarea>
+    <div class="task">5. A speaker needs to upload their slides / handout.</div>
+    <textarea id="task_speaker" rows="2"></textarea>
+  </div>
+
+  <div class="step">
+    <span class="pill">Last bit · overall</span>
+    <h2>Big picture</h2>
+    <label class="q">If you opened this cold to run an event, how easy to find your way around?</label>
+    <div class="scale">
+      <label><input type="radio" name="ease" value="1">1 · lost</label>
+      <label><input type="radio" name="ease" value="2">2</label>
+      <label><input type="radio" name="ease" value="3">3 · okay</label>
+      <label><input type="radio" name="ease" value="4">4</label>
+      <label><input type="radio" name="ease" value="5">5 · easy</label>
+    </div>
+    <label class="q">Anything that would've made you nervous, or anything you wish was front-and-center?</label>
+    <textarea id="overall" rows="3" placeholder="Totally open"></textarea>
+  </div>
+
+  <div class="step" style="text-align:center">
+    <h2 style="margin-top:0">Done! One last step</h2>
+    <p class="how" style="margin-bottom:16px">Tap the button, then copy everything in the black box and send it to Paul.</p>
+    <button class="btn" id="gen">Build my answers to send</button>
+    <p class="copy-note" id="note">👆 Tap inside the box, select all, copy, and send it over. Thank you!</p>
+    <div class="out" id="out"></div>
+  </div>
+
+  <footer>Prezva · informal feedback — your honest first reactions are exactly what's useful.</footer>
+</div>
+
+<script>
+  var FEATURES=["Attendees","Check-in","Tickets","Name badges","Volunteers","Agenda / schedule",
+    "Speakers","Run of show (day-of timeline)","Announcements","Surveys / feedback","Community feed",
+    "Networking","Icebreakers","Trivia","Leaderboard","Passport (visit booths)","Photos","Sponsors",
+    "Certificates (CE credit)","Analytics / reports"];
+  var tray=document.getElementById('tray');
+  var bucketsEl=document.getElementById('buckets');
+  var selected=null;
+  function mkCard(text){
+    var c=document.createElement('div');
+    c.className='card'; c.textContent=text; c.draggable=true;
+    c.addEventListener('dragstart',function(e){c.classList.add('dragging');e.dataTransfer.setData('text/plain',text);});
+    c.addEventListener('dragend',function(){c.classList.remove('dragging');});
+    c.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(selected===c){c.classList.remove('sel');selected=null;return;}
+      if(selected)selected.classList.remove('sel');
+      selected=c;c.classList.add('sel');
+    });
+    return c;
+  }
+  FEATURES.forEach(function(f){tray.appendChild(mkCard(f));});
+  function refreshTrayEmpty(){tray.classList.toggle('empty',tray.children.length===0);}
+  refreshTrayEmpty();
+  function makeDroppable(zone){
+    zone.addEventListener('dragover',function(e){e.preventDefault();var h=zone.closest('.bucket,.tray');if(h)h.classList.add('over');});
+    zone.addEventListener('dragleave',function(){var h=zone.closest('.bucket,.tray');if(h)h.classList.remove('over');});
+    zone.addEventListener('drop',function(e){
+      e.preventDefault();
+      var h=zone.closest('.bucket,.tray'); if(h)h.classList.remove('over');
+      var dragging=document.querySelector('.card.dragging');
+      if(dragging){zone.appendChild(dragging);refreshTrayEmpty();}
+    });
+    zone.addEventListener('click',function(){
+      if(selected){zone.appendChild(selected);selected.classList.remove('sel');selected=null;refreshTrayEmpty();}
+    });
+  }
+  makeDroppable(tray);
+  function addBucket(name){
+    var b=document.createElement('div'); b.className='bucket';
+    var head=document.createElement('div'); head.className='bucket-head';
+    var inp=document.createElement('input'); inp.type='text'; inp.placeholder='Name this group…'; inp.value=name||''; inp.className='bk-name';
+    var del=document.createElement('button'); del.textContent='remove'; del.type='button';
+    var drop=document.createElement('div'); drop.className='drop';
+    del.addEventListener('click',function(){
+      Array.prototype.slice.call(drop.children).forEach(function(c){tray.appendChild(c);});
+      b.remove();refreshTrayEmpty();
+    });
+    head.appendChild(inp); head.appendChild(del);
+    b.appendChild(head); b.appendChild(drop);
+    bucketsEl.appendChild(b);
+    makeDroppable(drop);
+    return b;
+  }
+  addBucket(''); addBucket(''); addBucket('');
+  document.getElementById('addBucket').addEventListener('click',function(){addBucket('');});
+  function val(id){var el=document.getElementById(id);return el?el.value.trim():''}
+  function radio(name){var el=document.querySelector('input[name="'+name+'"]:checked');return el?el.value:'(not answered)'}
+  function block(label,v){return label+":\n"+(v?v:"(left blank)")+"\n\n"}
+  document.getElementById('gen').addEventListener('click',function(){
+    var L='';
+    L+="PREZVA NAV FEEDBACK — from "+(val('name')||'(no name)')+"\n====================================\n\n";
+    L+=block("Organizing background", val('background'));
+    L+="--- EXERCISE 1: their groupings ---\n\n";
+    var buckets=document.querySelectorAll('#buckets .bucket'); var any=false;
+    buckets.forEach(function(b){
+      var nm=b.querySelector('.bk-name').value.trim()||'(unnamed group)';
+      var items=Array.prototype.slice.call(b.querySelectorAll('.drop .card')).map(function(c){return c.textContent;});
+      if(items.length){any=true; L+="["+nm+"]\n  "+items.join("\n  ")+"\n\n";}
+    });
+    var left=Array.prototype.slice.call(tray.querySelectorAll('.card')).map(function(c){return c.textContent;});
+    if(left.length){L+="[Not sorted / left out]\n  "+left.join("\n  ")+"\n\n";}
+    if(!any && !left.length){L+="(no grouping captured)\n\n";}
+    L+=block("Confusing items", val('cardsort_confusing'));
+    L+="--- EXERCISE 2: label reactions ---\n\n";
+    L+=block('"Run of show"', val('lbl_runofshow'));
+    L+=block('"Passport"', val('lbl_passport'));
+    L+=block('"Engagement" (heading)', val('lbl_engagement'));
+    L+=block('"Community feed"', val('lbl_community'));
+    L+=block('"Certificates"', val('lbl_certs'));
+    L+="--- EXERCISE 3: where would you click ---\n\n";
+    L+=block("1. Check someone in at door", val('task_checkin'));
+    L+=block("2. Attendee wants CE certificate", val('task_cert'));
+    L+=block("3. Email everyone attending", val('task_announce'));
+    L+=block("4. Registered vs showed up", val('task_numbers'));
+    L+=block("5. Speaker uploads slides", val('task_speaker'));
+    L+="--- OVERALL ---\n\n";
+    L+=block("Ease finding way around (1-5)", radio('ease'));
+    L+=block("Nervous about / wish front-and-center", val('overall'));
+    L+="==== end ====";
+    var out=document.getElementById('out');
+    out.textContent=L; out.style.display='block';
+    document.getElementById('note').style.display='block';
+    out.scrollIntoView({behavior:'smooth',block:'center'});
+    try{var r=document.createRange();r.selectNodeContents(out);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}catch(e){}
+  });
+</script>
+</body>
+</html>
