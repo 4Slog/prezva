@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import { MapPin, Monitor } from 'lucide-react'
 import { createTicketType, deleteTicketType } from '@/lib/registration/ticket-actions'
 import { Field } from '@/components/ui/Field'
 import { Gated } from '@/components/auth/Gated'
@@ -98,7 +99,13 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                     <span>{t.quantity_sold} / {t.quantity} sold</span>
                   )}
                   {t.quantity === null && <span>{t.quantity_sold} sold · unlimited</span>}
-                  <span>{(t as any).delivery_method === 'virtual' ? '💻 Virtual' : (t as any).delivery_method === 'both' ? '📍💻 Hybrid' : '📍 In-person'}</span>
+                  <span className="inline-flex items-center gap-1">
+                    {(t as any).delivery_method === 'virtual'
+                      ? <><Monitor size={12} /> Virtual</>
+                      : (t as any).delivery_method === 'both'
+                      ? <><MapPin size={12} /><Monitor size={12} /> Hybrid</>
+                      : <><MapPin size={12} /> In-person</>}
+                  </span>
                 </div>
               </div>
               <Gated permission="tickets.manage" perms={permissions} mode="hide">
@@ -189,11 +196,11 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
               <div className="flex gap-4 mt-1">
                 <label className="flex items-center gap-1.5 text-sm text-[var(--pz-muted)] cursor-pointer">
                   <input type="radio" name="delivery_method" value="in_person" checked={deliveryMethod === 'in_person'} onChange={e => setDeliveryMethod(e.target.value)} />
-                  📍 In-person
+                  <MapPin size={14} /> In-person
                 </label>
                 <label className="flex items-center gap-1.5 text-sm text-[var(--pz-muted)] cursor-pointer">
                   <input type="radio" name="delivery_method" value="virtual" checked={deliveryMethod === 'virtual'} onChange={e => setDeliveryMethod(e.target.value)} />
-                  💻 Virtual
+                  <Monitor size={14} /> Virtual
                 </label>
                 <label className="flex items-center gap-1.5 text-sm text-[var(--pz-muted)] cursor-pointer">
                   <input type="radio" name="delivery_method" value="both" checked={deliveryMethod === 'both'} onChange={e => setDeliveryMethod(e.target.value)} />

@@ -1,8 +1,8 @@
 import {
   Users, ScanLine, Ticket, Tag, Award, UserCheck,
   CalendarDays, Mic, Clock,
-  MessageCircle, Network, Handshake, Brain, Trophy, MapPin, Image,
-  Bell, ClipboardList,
+  MessageCircle, Network, MessagesSquare, Brain, Trophy, MapPin, Image,
+  Megaphone, ClipboardList,
   Building,
   BarChart2, ScrollText, AlertTriangle, Plug,
   type LucideIcon,
@@ -37,14 +37,14 @@ export const ADMIN_TILES: AdminTile[] = [
   // Community
   { key: 'community',    label: 'Community Feed', icon: MessageCircle, category: 'community',      permission: 'community.manage',      description: 'Event social feed, posts, likes, moderation',          href: s => `/events/${s}/community` },
   { key: 'networking',   label: 'Networking',     icon: Network,       category: 'community',      permission: 'networking.view',       description: 'AI matchmaking, connection requests, speed networking', href: s => `/events/${s}/networking` },
-  { key: 'icebreakers',  label: 'Icebreakers',    icon: Handshake,     category: 'community',      permission: 'icebreakers.manage',    description: 'Conversation starters and group activities',           href: s => `/events/${s}/icebreakers` },
+  { key: 'icebreakers',  label: 'Icebreakers',    icon: MessagesSquare, category: 'community',      permission: 'icebreakers.manage',    description: 'Conversation starters and group activities',           href: s => `/events/${s}/icebreakers` },
   { key: 'trivia',       label: 'Trivia',         icon: Brain,         category: 'community',      permission: 'trivia.manage',         description: 'Live trivia game with scoring and leaderboard',         href: s => `/events/${s}/trivia` },
   { key: 'leaderboard',  label: 'Leaderboard',    icon: Trophy,        category: 'community',      permission: 'leaderboard.view',      description: 'Gamification points, badges, and rankings',             href: s => `/events/${s}/leaderboard` },
   { key: 'passport',     label: 'Passport',       icon: MapPin,        category: 'community',      permission: 'passport.manage',       description: 'Booth visits & stamps — attendees scan booth codes to collect check-ins', href: s => `/events/${s}/passport` },
   { key: 'photos',       label: 'Photos',         icon: Image,         category: 'community',      permission: 'photos.manage',         description: 'Attendee photo gallery and media uploads',              href: s => `/events/${s}/photos` },
 
   // Communications
-  { key: 'announcements', label: 'Announcements', icon: Bell,          category: 'communications', permission: 'announcements.manage',  description: 'Send email and push notifications to attendees',       href: s => `/events/${s}/announcements` },
+  { key: 'announcements', label: 'Announcements', icon: Megaphone,     category: 'communications', permission: 'announcements.manage',  description: 'Send email and push notifications to attendees',       href: s => `/events/${s}/announcements` },
   { key: 'surveys',       label: 'Surveys',        icon: ClipboardList, category: 'communications', permission: 'surveys.view',          description: 'Post-event feedback, session ratings, NPS surveys',    href: s => `/events/${s}/surveys` },
 
   // Sponsors — becomes "Exhibitors & Sponsors" when the exhibitor feature ships

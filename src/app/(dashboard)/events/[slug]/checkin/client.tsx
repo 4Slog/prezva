@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { AlertTriangle, Check, X } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
 import { ManualSearch } from '@/components/checkin/ManualSearch'
 import { CheckInDashboard } from '@/components/checkin/CheckInDashboard'
@@ -249,12 +250,12 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
         }>
           {lastResult.success && lastResult.registration ? (
             lastResult.registration.already_checked_in ? (
-              <span>⚠️ {lastResult.registration.attendee_name} already checked in</span>
+              <span className="flex items-center gap-1"><AlertTriangle size={14} /> {lastResult.registration.attendee_name} already checked in</span>
             ) : (
-              <span>✓ {lastResult.registration.attendee_name} checked in — {lastResult.registration.ticket_name}</span>
+              <span className="flex items-center gap-1"><Check size={14} /> {lastResult.registration.attendee_name} checked in — {lastResult.registration.ticket_name}</span>
             )
           ) : (
-            <span>✗ {lastResult.error}</span>
+            <span className="flex items-center gap-1"><X size={14} /> {lastResult.error}</span>
           )}
         </div>
       )}

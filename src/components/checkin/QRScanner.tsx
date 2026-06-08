@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { Camera } from 'lucide-react'
 
 type ScanState = 'prompt' | 'scanning' | 'denied' | 'manual'
 
@@ -102,7 +103,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
         background: 'var(--pz-surface)', borderRadius: 12,
         border: '1px solid var(--pz-border)'
       }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>📷</div>
+        <div style={{ marginBottom: 12 }}><Camera size={48} /></div>
         <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--pz-text)', margin: '0 0 8px' }}>
           Camera access needed
         </p>

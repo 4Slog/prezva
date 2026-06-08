@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { UserRound } from 'lucide-react'
 
 export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
   const [avatarUrl, setAvatarUrl] = useState(currentUrl ?? '')
@@ -28,7 +29,7 @@ export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
       >
         {avatarUrl
           ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--pz-muted)' }}>👤</div>
+          : <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--pz-muted)' }}><UserRound size={24} /></div>
         }
       </div>
       <div>

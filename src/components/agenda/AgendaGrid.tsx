@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Pencil, X } from 'lucide-react'
 import type { Session, Track, Room } from '@/lib/agenda/actions'
 
 interface AgendaGridProps {
@@ -145,14 +146,14 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
                     className="p-1 rounded hover:bg-black/10 text-xs"
                     title="Edit"
                   >
-                    ✎
+                    <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => onDelete(s.id)}
                     className="p-1 rounded hover:bg-black/10 text-xs"
                     title="Delete"
                   >
-                    ✕
+                    <X size={14} />
                   </button>
                 </div>
               </div>

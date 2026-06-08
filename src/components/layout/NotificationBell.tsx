@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import {
+  Bell, Megaphone, Handshake, GraduationCap, FileText, Sparkles, UserRound,
+  type LucideIcon,
+} from 'lucide-react'
 import { getNotifications, markAllRead, markRead } from '@/lib/notifications/notification-actions'
 
 interface Notification {
@@ -55,14 +59,14 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
     setOpen(false)
   }
 
-  const typeEmoji: Record<string, string> = {
-    announcement: '📢',
-    meeting_request: '🤝',
-    certificate: '🎓',
-    handout: '📄',
-    match: '✨',
-    follow: '👤',
-    system: '🔔',
+  const typeIcon: Record<string, LucideIcon> = {
+    announcement: Megaphone,
+    meeting_request: Handshake,
+    certificate: GraduationCap,
+    handout: FileText,
+    match: Sparkles,
+    follow: UserRound,
+    system: Bell,
   }
 
   return (
@@ -72,7 +76,7 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
         aria-label="Notifications"
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', padding: '4px 6px', borderRadius: 8, color: 'var(--pz-chrome-muted)' }}
       >
-        <span style={{ fontSize: 18 }}>🔔</span>
+        <Bell size={18} />
         {unread > 0 && (
           <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--pz-error)', color: 'var(--pz-surface)', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', lineHeight: 1 }}>
             {unread > 9 ? '9+' : unread}
@@ -96,9 +100,11 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
             ) : notifications.length === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pz-muted)', fontSize: 13 }}>No notifications yet.</div>
             ) : (
-              notifications.map(n => (
+              notifications.map(n => {
+                const TypeIcon = typeIcon[n.type] ?? Bell
+                return (
                 <div key={n.id} onClick={() => handleClick(n)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--pz-border)', cursor: n.url ? 'pointer' : 'default', background: n.is_read ? 'transparent' : 'var(--pz-teal-bg)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{typeEmoji[n.type] ?? '🔔'}</span>
+                  <TypeIcon size={16} style={{ flexShrink: 0, marginTop: 1 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: n.is_read ? 400 : 600, color: 'var(--pz-text)', marginBottom: 2 }}>{n.title}</p>
                     {n.body && <p style={{ fontSize: 12, color: 'var(--pz-muted)', lineHeight: 1.4 }}>{n.body}</p>}
@@ -110,7 +116,8 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
                   </div>
                   {!n.is_read && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--pz-teal)', flexShrink: 0, marginTop: 6 }} />}
                 </div>
-              ))
+              )
+              })
             )}
           </div>
           <div style={{ padding: '10px 16px', borderTop: '1px solid var(--pz-border)', textAlign: 'center' }}>

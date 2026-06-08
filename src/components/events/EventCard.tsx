@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MapPin, Monitor, Shuffle, Calendar, type LucideIcon } from 'lucide-react'
 import { EventStatusBadge } from './EventStatusBadge'
 
 interface EventCardProps {
@@ -23,13 +24,14 @@ function formatDate(iso: string) {
   })
 }
 
-const TYPE_ICON: Record<string, string> = {
-  in_person: '📍',
-  virtual:   '💻',
-  hybrid:    '🔀',
+const TYPE_ICON: Record<string, LucideIcon> = {
+  in_person: MapPin,
+  virtual:   Monitor,
+  hybrid:    Shuffle,
 }
 
 export function EventCard({ event }: EventCardProps) {
+  const TypeIcon = TYPE_ICON[event.event_type] ?? Calendar
   return (
     <Link href={`/events/${event.slug}`} className="block">
       <div className="pz-card p-5 hover:border-[var(--pz-teal)]/40 transition-colors cursor-pointer">
@@ -41,7 +43,7 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         <div className="flex items-center gap-3 text-xs text-[var(--pz-muted)] mb-4">
-          <span>{TYPE_ICON[event.event_type] ?? '📅'}</span>
+          <TypeIcon size={14} />
           <span>{formatDate(event.start_at)}</span>
           {(event.venue_city || event.venue_state) && (
             <>

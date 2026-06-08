@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { ScanLine, Users, Check, UserCheck, type LucideIcon } from 'lucide-react'
 
 export function StaffOnboardingModal({ userId, orgName }: { userId: string; orgName: string }) {
   const key = `prezva_staff_onboarded_${userId}`
@@ -15,11 +16,11 @@ export function StaffOnboardingModal({ userId, orgName }: { userId: string; orgN
 
   if (!show) return null
 
-  const steps = [
-    { icon: '📷', title: 'Check-in Scanner', desc: "Scan attendee QR codes at the door from Check-in in the event menu." },
-    { icon: '👥', title: 'Attendee Search', desc: 'Look up any attendee by name or email in the Attendees section.' },
-    { icon: '✓', title: 'Manual Check-in', desc: "Click an attendee's name and use Manual Check-in if their QR won't scan." },
-    { icon: '🙋', title: 'Volunteers', desc: 'See volunteer assignments and respond to alerts in the Volunteers section.' },
+  const steps: Array<{ icon: LucideIcon; title: string; desc: string }> = [
+    { icon: ScanLine,  title: 'Check-in Scanner', desc: "Scan attendee QR codes at the door from Check-in in the event menu." },
+    { icon: Users,     title: 'Attendee Search',  desc: 'Look up any attendee by name or email in the Attendees section.' },
+    { icon: Check,     title: 'Manual Check-in',  desc: "Click an attendee's name and use Manual Check-in if their QR won't scan." },
+    { icon: UserCheck, title: 'Volunteers',        desc: 'See volunteer assignments and respond to alerts in the Volunteers section.' },
   ]
 
   return (
@@ -37,7 +38,7 @@ export function StaffOnboardingModal({ userId, orgName }: { userId: string; orgN
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '1.5rem' }}>
           {steps.map(s => (
             <div key={s.title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 24, flexShrink: 0 }}>{s.icon}</span>
+              <s.icon size={24} style={{ flexShrink: 0 }} />
               <div>
                 <p style={{ fontWeight: 700, fontSize: 14, margin: '0 0 2px' }}>{s.title}</p>
                 <p style={{ fontSize: 13, color: 'var(--pz-muted)', margin: 0 }}>{s.desc}</p>

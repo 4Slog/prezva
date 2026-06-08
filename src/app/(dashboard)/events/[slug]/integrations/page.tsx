@@ -1,40 +1,49 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import {
+  Leaf, ClipboardList, MousePointerClick, Building2, Users, Link2, Lightbulb,
+  Mail, Video, Briefcase, FileText, Cloud, Ticket, Folder, Inbox,
+  Smartphone, Phone,
+  type LucideIcon,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 
 type Props = { params: Promise<{ slug: string }> }
 
-const INTEGRATION_GROUPS = [
+type IntegrationItem = { key: string; name: string; Icon: LucideIcon }
+type IntegrationGroup = { label: string; integrations: IntegrationItem[] }
+
+const INTEGRATION_GROUPS: IntegrationGroup[] = [
   {
     label: 'AMS / Membership',
     integrations: [
-      { key: 'wildapricot', name: 'Wild Apricot', icon: '🌿' },
-      { key: 'imis',        name: 'iMIS',         icon: '📋' },
-      { key: 'memberclicks', name: 'MemberClicks', icon: '🖱️' },
-      { key: 'novi',        name: 'Novi AMS',      icon: '🏢' },
-      { key: 'yourmembership', name: 'YourMembership', icon: '👥' },
-      { key: 'glue-up',    name: 'Glue Up',        icon: '🔗' },
-      { key: 'neon',       name: 'Neon CRM',       icon: '💡' },
+      { key: 'wildapricot',    name: 'Wild Apricot',    Icon: Leaf },
+      { key: 'imis',           name: 'iMIS',            Icon: ClipboardList },
+      { key: 'memberclicks',   name: 'MemberClicks',    Icon: MousePointerClick },
+      { key: 'novi',           name: 'Novi AMS',        Icon: Building2 },
+      { key: 'yourmembership', name: 'YourMembership',  Icon: Users },
+      { key: 'glue-up',        name: 'Glue Up',         Icon: Link2 },
+      { key: 'neon',           name: 'Neon CRM',        Icon: Lightbulb },
     ],
   },
   {
     label: 'Communication',
     integrations: [
-      { key: 'mailchimp',       name: 'Mailchimp',       icon: '🐵' },
-      { key: 'constant-contact', name: 'Constant Contact', icon: '📧' },
-      { key: 'zoom',            name: 'Zoom',             icon: '📹' },
-      { key: 'teams',           name: 'Microsoft Teams',  icon: '💼' },
+      { key: 'mailchimp',       name: 'Mailchimp',       Icon: Mail },
+      { key: 'constant-contact', name: 'Constant Contact', Icon: Mail },
+      { key: 'zoom',            name: 'Zoom',             Icon: Video },
+      { key: 'teams',           name: 'Microsoft Teams',  Icon: Briefcase },
     ],
   },
   {
     label: 'Content & Data',
     integrations: [
-      { key: 'google-forms',  name: 'Google Forms',  icon: '📝' },
-      { key: 'google-drive',  name: 'Google Drive',  icon: '💾' },
-      { key: 'eventbrite',    name: 'Eventbrite',    icon: '🎟️' },
-      { key: 'sharepoint',    name: 'SharePoint',    icon: '📁' },
-      { key: 'outlook',       name: 'Outlook',       icon: '📬' },
+      { key: 'google-forms',  name: 'Google Forms',  Icon: FileText },
+      { key: 'google-drive',  name: 'Google Drive',  Icon: Cloud },
+      { key: 'eventbrite',    name: 'Eventbrite',    Icon: Ticket },
+      { key: 'sharepoint',    name: 'SharePoint',    Icon: Folder },
+      { key: 'outlook',       name: 'Outlook',       Icon: Inbox },
     ],
   },
 ]
@@ -55,11 +64,11 @@ export default async function EventIntegrationsPage({ params }: Props) {
   if (!event) notFound()
 
   const { data: member } = await supabase
-    .from('org_members').select('role, orgs(slug)')
+    .from('org_members').select('role, organizations!org_members_org_id_fkey(slug)')
     .eq('org_id', (event as any).org_id).eq('user_id', user.id).single()
   if (!member) notFound()
 
-  const orgSlug = (member as any).orgs?.slug ?? ''
+  const orgSlug = (member as any).organizations?.slug ?? ''
 
   const { data: integrations } = await supabase
     .from('org_integrations')
@@ -110,7 +119,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
               const connected = status === 'connected'
               return (
                 <div key={int.key} style={cardStyle}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>{int.icon}</span>
+                  <int.Icon size={22} style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)' }}>{int.name}</p>
                     <p style={{ fontSize: 11, color: connected ? 'var(--pz-success-fill)' : 'var(--pz-muted)', fontWeight: 600 }}>
@@ -143,7 +152,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
           <div style={{ ...cardStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 22 }}>📱</span>
+                <Smartphone size={22} />
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>
                     Prezva SMS <span style={{ fontSize: 11, color: 'var(--pz-muted)', fontWeight: 400 }}>(Recommended)</span>
@@ -173,7 +182,7 @@ export default async function EventIntegrationsPage({ params }: Props) {
           <div style={{ ...cardStyle, flexDirection: 'column', alignItems: 'flex-start', gap: 10, opacity: 0.5 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 22 }}>🔢</span>
+                <Phone size={22} />
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--pz-text)', margin: 0 }}>Your own number</p>
               </div>
               <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--pz-border)', color: 'var(--pz-muted)', borderRadius: 12, padding: '2px 10px', whiteSpace: 'nowrap' }}>

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Monitor } from 'lucide-react'
 import { virtualCheckIn } from '@/lib/registration/actions'
 
 interface Props {
@@ -32,7 +33,7 @@ export function VirtualJoinButton({ virtualUrl, registrationId }: Props) {
         opacity: joining ? 0.7 : 1,
       }}
     >
-      {joined ? '✓ Joined virtually' : joining ? 'Joining…' : '💻 Join virtually'}
+      {joined ? '✓ Joined virtually' : joining ? 'Joining…' : <><Monitor size={14} /> Join virtually</>}
     </button>
   )
 }
