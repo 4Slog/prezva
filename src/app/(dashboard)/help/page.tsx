@@ -7,7 +7,7 @@ const SECTIONS = [
     heading: 'Getting started',
     items: [
       { q: 'How do I create an organization?', a: 'Click "New Organization" from the dashboard. Choose a unique slug — this forms part of your event URLs and cannot be changed later.' },
-      { q: 'How do I invite team members?', a: 'Go to your organization settings → Team tab → Invite Member. They will receive an email with a join link. Roles: Admin (full access), Staff (check-in + view only).' },
+      { q: 'How do I invite team members?', a: 'Go to your organization settings → Team & Roles → Invite Member. They will receive an email with a join link. Roles: Admin (full access), Staff (check-in + view only).' },
       { q: 'How do I create my first event?', a: 'From your org dashboard, click "New Event." Fill in the title, date/time, and location. Events start in Draft status — publish when ready to accept registrations.' },
     ],
   },

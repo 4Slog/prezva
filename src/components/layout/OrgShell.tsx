@@ -8,6 +8,7 @@ import {
   Building2,
   Calendar,
   ChevronLeft,
+  CreditCard,
   HelpCircle,
   LayoutDashboard,
   LayoutTemplate,
@@ -15,6 +16,7 @@ import {
   Plug,
   ScrollText,
   Settings,
+  Users,
 } from 'lucide-react'
 import { SideNav } from '@/components/ui/SideNav'
 import type { SideNavGroup, SideNavItem } from '@/components/ui/SideNav'
@@ -22,6 +24,7 @@ import { buildEventNav } from '@/lib/events/event-nav'
 
 interface OrgShellProps {
   defaultOrgSlug: string | null
+  canRolesManage?: boolean
 }
 
 /** Returns the event slug when the current path is an event page, null otherwise. */
@@ -33,7 +36,7 @@ function parseEventSlug(pathname: string): string | null {
   return slug
 }
 
-export function OrgShell({ defaultOrgSlug }: OrgShellProps) {
+export function OrgShell({ defaultOrgSlug, canRolesManage = false }: OrgShellProps) {
   const orgSlug = defaultOrgSlug ?? ''
   const pathname = usePathname()
   const eventSlug = parseEventSlug(pathname)
@@ -61,12 +64,13 @@ export function OrgShell({ defaultOrgSlug }: OrgShellProps) {
       label: 'Organization',
       icon: Building2,
       items: [
-        { label: 'My Org',          href: `/orgs/${orgSlug}`,              icon: Building2 },
-        { label: 'Settings',        href: `/orgs/${orgSlug}/settings`,     icon: Settings },
-        { label: 'Templates',       href: `/orgs/${orgSlug}/templates`,    icon: LayoutTemplate },
-        { label: 'Integrations',    href: `/orgs/${orgSlug}/integrations`, icon: Plug },
-        { label: 'Audit Log',       href: `/orgs/${orgSlug}/audit-log`,    icon: ScrollText },
-        { label: 'Speaker Library', href: `/orgs/${orgSlug}/speakers`,     icon: Mic },
+        { label: 'Settings',        href: `/orgs/${orgSlug}/settings`,       icon: Settings, exact: true },
+        ...(canRolesManage ? [{ label: 'Team & Roles', href: `/orgs/${orgSlug}/settings/roles`, icon: Users }] : []),
+        { label: 'Billing',         href: `/orgs/${orgSlug}/billing`,        icon: CreditCard },
+        { label: 'Templates',       href: `/orgs/${orgSlug}/templates`,      icon: LayoutTemplate },
+        { label: 'Integrations',    href: `/orgs/${orgSlug}/integrations`,   icon: Plug },
+        { label: 'Audit Log',       href: `/orgs/${orgSlug}/audit-log`,      icon: ScrollText },
+        { label: 'Speaker Library', href: `/orgs/${orgSlug}/speakers`,       icon: Mic },
       ],
     },
   ]

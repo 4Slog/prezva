@@ -101,23 +101,6 @@ export default async function RolesPage({ params }: Props) {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--pz-text)]">{org.name}</h1>
         <p className="text-sm text-[var(--pz-muted)]">Organization settings</p>
-        <div className="flex gap-4 mt-3">
-          <a
-            href={`/orgs/${slug}/settings`}
-            className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] pb-1 transition-colors"
-          >
-            Settings
-          </a>
-          <span className="text-sm font-semibold text-[var(--pz-text)] border-b-2 border-[var(--pz-teal)] pb-1">
-            Roles
-          </span>
-          <a
-            href={`/orgs/${slug}/billing`}
-            className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] pb-1 transition-colors"
-          >
-            Billing
-          </a>
-        </div>
       </div>
 
       <RolesManager

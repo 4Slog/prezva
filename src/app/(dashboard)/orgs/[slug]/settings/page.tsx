@@ -95,13 +95,6 @@ export default async function OrgSettingsPage({ params, searchParams }: Props) {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--pz-text)]">{org.name}</h1>
         <p className="text-sm text-[var(--pz-muted)]">Organization settings</p>
-        <div className="flex gap-4 mt-3">
-          <span className="text-sm font-semibold text-[var(--pz-text)] border-b-2 border-[var(--pz-teal)] pb-1">Settings</span>
-          {canRolesManage && (
-            <a href={`/orgs/${org.slug}/settings/roles`} className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] pb-1 transition-colors">Roles</a>
-          )}
-          <a href={`/orgs/${org.slug}/billing`} className="text-sm text-[var(--pz-muted)] hover:text-[var(--pz-text)] pb-1 transition-colors">Billing</a>
-        </div>
       </div>
 
       {/* Connect status banner */}

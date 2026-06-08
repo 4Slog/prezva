@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { Fragment, useState, useTransition } from 'react'
 import {
   createRole,
   updateRolePermissions,
@@ -399,8 +399,8 @@ export function RolesManager({
             </thead>
             <tbody>
               {permissionCategories.map(cat => (
-                <>
-                  <tr key={`cat-${cat.label}`}>
+                <Fragment key={cat.label}>
+                  <tr>
                     <td
                       colSpan={1 + roles.length}
                       style={{
@@ -452,7 +452,7 @@ export function RolesManager({
                       })}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

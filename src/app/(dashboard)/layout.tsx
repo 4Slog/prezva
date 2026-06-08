@@ -3,6 +3,7 @@ import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
 import { isSuperAdmin } from '@/lib/admin/gate'
 import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { OrgShell } from '@/components/layout/OrgShell'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -24,12 +25,17 @@ export default async function DashboardLayout({
 
   const defaultOrgSlug = await resolveActiveOrgSlug(user.id, orgs)
 
+  const activeOrg = orgs.find(o => (o.organizations as unknown as { slug: string } | null)?.slug === defaultOrgSlug)
+  const activeOrgId = activeOrg?.org_id ?? ''
+  const permSet = activeOrgId ? await getOrgPermissions(activeOrgId, user.id) : new Set<string>()
+  const canRolesManage = permSet.has('*') || permSet.has('org.roles.manage')
+
   const currentContext = defaultOrgSlug ?? 'personal'
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--pz-bg)' }}>
 
-      <OrgShell defaultOrgSlug={defaultOrgSlug} />
+      <OrgShell defaultOrgSlug={defaultOrgSlug} canRolesManage={canRolesManage} />
 
       {/* ── Main content ────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">

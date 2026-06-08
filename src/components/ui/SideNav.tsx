@@ -26,8 +26,13 @@ interface SideNavProps {
   pinnedBottom?: SideNavItem[]
 }
 
+function isItemActive(item: SideNavItem, pathname: string): boolean {
+  if (item.exact) return pathname === item.href
+  return pathname === item.href || pathname.startsWith(item.href + '/')
+}
+
 function findActiveGroup(groups: SideNavGroup[], pathname: string): string | null {
-  return groups.find(g => g.items.some(item => pathname.startsWith(item.href)))?.id ?? null
+  return groups.find(g => g.items.some(item => isItemActive(item, pathname)))?.id ?? null
 }
 
 interface PinnedLinkProps {
@@ -89,7 +94,7 @@ export function SideNav({ groups, collapsed = false, pinnedTop, pinnedBottom }: 
       {groups.map(group => {
         const GroupIcon = group.icon
         const isOpen = !collapsed && openGroupId === group.id
-        const hasActive = group.items.some(item => pathname.startsWith(item.href))
+        const hasActive = group.items.some(item => isItemActive(item, pathname))
 
         return (
           <div key={group.id}>
@@ -120,7 +125,7 @@ export function SideNav({ groups, collapsed = false, pinnedTop, pinnedBottom }: 
             {isOpen && (
               <div>
                 {group.items.map(item => {
-                  const isActive = pathname.startsWith(item.href)
+                  const isActive = isItemActive(item, pathname)
                   const ItemIcon = item.icon
                   return (
                     <Link
