@@ -1,5 +1,6 @@
 import { headers, cookies } from 'next/headers'
 import { requireUser } from '@/lib/auth/get-user'
+import { createClient } from '@/lib/supabase/server'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
 import { isSuperAdmin } from '@/lib/admin/gate'
@@ -63,6 +64,17 @@ export default async function DashboardLayout({
   const canSpeakerLibrary = permSet.has('*') || permSet.has('org.speaker_library.view')
   const canOrgSettingsPage = permSet.has('*') || permSet.has('org.settings') || permSet.has('org.members.view') || permSet.has('org.members.invite')
 
+  const eventSlugForNav = pathname.match(/^\/events\/([^/]+)/)?.[1] ?? null
+  let eventCanTickets = true
+  if (eventSlugForNav && eventSlugForNav !== 'new') {
+    const sb = await createClient()
+    const { data: ev } = await sb.from('events').select('org_id').eq('slug', eventSlugForNav).maybeSingle()
+    if (ev?.org_id) {
+      const evPerms = await getOrgPermissions(ev.org_id, user.id)
+      eventCanTickets = evPerms.has('*') || evPerms.has('event.tickets') || evPerms.has('event.manage')
+    } else { eventCanTickets = false }
+  }
+
   const currentContext = effectiveOrgSlug ?? 'personal'
 
   return (
@@ -77,6 +89,7 @@ export default async function DashboardLayout({
           canAuditLog={canAuditLog}
           canSpeakerLibrary={canSpeakerLibrary}
           canOrgSettingsPage={canOrgSettingsPage}
+          eventCanTickets={eventCanTickets}
         />
 
       {/* ── Main content ────────────────────────────────────────────────── */}

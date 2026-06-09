@@ -30,11 +30,12 @@ import {
   Users,
 } from 'lucide-react'
 
-export function buildEventNav(slug: string): {
+export function buildEventNav(slug: string, flags: { canTickets?: boolean } = {}): {
   pinnedTop: SideNavItem[]
   groups: SideNavGroup[]
   pinnedBottom: SideNavItem[]
 } {
+  const { canTickets = true } = flags
   const base = `/events/${slug}`
 
   const pinnedTop: SideNavItem[] = [
@@ -49,7 +50,7 @@ export function buildEventNav(slug: string): {
       items: [
         { label: 'Attendees',    href: `${base}/attendees`,    icon: Users },
         { label: 'Check-in',     href: `${base}/checkin`,      icon: ScanLine },
-        { label: 'Tickets',      href: `${base}/tickets`,      icon: Ticket },
+        ...(canTickets ? [{ label: 'Tickets', href: `${base}/tickets`, icon: Ticket }] : []),
         { label: 'Badges',       href: `${base}/badges`,       icon: Tag },
         { label: 'Certificates', href: `${base}/certificates`, icon: Award },
         { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck },

@@ -61,8 +61,8 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
     const fd = new FormData(e.currentTarget)
     const result = await createTicketType(eventId, fd)
     setPending(false)
-    if (result?.error) { setError(result.error); return }
-    if (result?.data) {
+    if ('error' in result) { setError((result as { error: string }).error); return }
+    if ('data' in result) {
       setTickets((t) => [...t, result.data as Ticket])
       setShowForm(false)
       ;(e.target as HTMLFormElement).reset()
@@ -75,7 +75,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
     setDeleting(ticketId)
     const result = await deleteTicketType(ticketId, eventId)
     setDeleting(null)
-    if (result?.error) { setError(result.error); return }
+    if ('error' in result) { setError(result.error); return }
     setTickets((t) => t.filter((tk) => tk.id !== ticketId))
   }
 

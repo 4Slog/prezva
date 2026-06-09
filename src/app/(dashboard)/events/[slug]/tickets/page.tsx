@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { getEventTickets } from '@/lib/registration/ticket-actions'
@@ -29,6 +30,7 @@ export default async function TicketsPage({ params }: Props) {
       .eq('status', 'connected')
       .in('provider', ASSOCIATION_PROVIDERS),
   ])
+  if (!permSet.has('*') && !permSet.has('event.tickets') && !permSet.has('event.manage')) redirect(`/events/${slug}`)
   const permissions = Array.from(permSet)
   const connectedAssociations = (assocResult.data ?? []).map(r => r.provider)
 

@@ -31,6 +31,7 @@ interface OrgShellProps {
   canAuditLog?: boolean
   canSpeakerLibrary?: boolean
   canOrgSettingsPage?: boolean
+  eventCanTickets?: boolean
 }
 
 /** Returns the event slug when the current path is an event page, null otherwise. */
@@ -51,6 +52,7 @@ export function OrgShell({
   canAuditLog = false,
   canSpeakerLibrary = false,
   canOrgSettingsPage = false,
+  eventCanTickets = true,
 }: OrgShellProps) {
   const orgSlug = defaultOrgSlug ?? ''
   const pathname = usePathname()
@@ -96,7 +98,7 @@ export function OrgShell({
 
   // ── Route-aware nav selection ────────────────────────────────────────────
   const { pinnedTop, groups, pinnedBottom } = eventSlug
-    ? buildEventNav(eventSlug)
+    ? buildEventNav(eventSlug, { canTickets: eventCanTickets })
     : { pinnedTop: orgPinnedTop, groups: orgGroups, pinnedBottom: orgPinnedBottom }
 
   const sidebarWidth = collapsed ? 56 : 224
