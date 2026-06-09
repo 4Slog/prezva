@@ -2,10 +2,16 @@
 // jose uses Uint8Array instanceof checks that fail in jsdom's non-Node realm.
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { buildEmbeddedCsp, mintEmbeddedSession, verifyEmbeddedSession } from '@/lib/embedded/session'
+import { authorizeLaunch } from '@/lib/embedded/auth'
 
-// Provide a test secret via env so getSecret() doesn't throw
+const TEST_SECRET = 'test-embed-launch-secret-32-chars!!'
+const TEST_LOCATION = 'loc_configured_123'
+
+// Provide test env so getSecret() and authorizeLaunch don't throw/fail-closed by default
 beforeEach(() => {
   vi.stubEnv('EMBEDDED_SESSION_SECRET', 'test-secret-that-is-at-least-32-chars-long!')
+  vi.stubEnv('GHL_EMBED_LAUNCH_SECRET', TEST_SECRET)
+  vi.stubEnv('GHL_LOCATION_ID', TEST_LOCATION)
 })
 
 // ── buildEmbeddedCsp ──────────────────────────────────────────────────────────
@@ -66,8 +72,10 @@ describe('mintEmbeddedSession + verifyEmbeddedSession', () => {
 
   it('fails verification on a tampered token', async () => {
     const token = await mintEmbeddedSession('loc_abc123')
-    // Flip the last character to corrupt the signature
-    const tampered = token.slice(0, -1) + (token.at(-1) === 'a' ? 'b' : 'a')
+    // Replace the signature segment (third dot-separated part) with garbage
+    const parts = token.split('.')
+    parts[2] = parts[2].split('').reverse().join('') // reverse the signature bytes
+    const tampered = parts.join('.')
     await expect(verifyEmbeddedSession(tampered)).rejects.toThrow()
   })
 
@@ -88,5 +96,50 @@ describe('mintEmbeddedSession + verifyEmbeddedSession', () => {
       .setExpirationTime(Math.floor(Date.now() / 1000) - 5)
       .sign(secret)
     await expect(verifyEmbeddedSession(expired)).rejects.toThrow()
+  })
+})
+
+// ── authorizeLaunch ───────────────────────────────────────────────────────────
+
+describe('authorizeLaunch', () => {
+  it('accepts when secret and location_id are both correct', () => {
+    const result = authorizeLaunch({ secret: TEST_SECRET, locationId: TEST_LOCATION })
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects when secret is missing (null)', () => {
+    const result = authorizeLaunch({ secret: null, locationId: TEST_LOCATION })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects when secret is missing (undefined)', () => {
+    const result = authorizeLaunch({ secret: undefined, locationId: TEST_LOCATION })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects when secret is wrong', () => {
+    const result = authorizeLaunch({ secret: 'wrong-secret', locationId: TEST_LOCATION })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects when location_id does not match GHL_LOCATION_ID', () => {
+    const result = authorizeLaunch({ secret: TEST_SECRET, locationId: 'loc_OTHER' })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects when location_id is null', () => {
+    const result = authorizeLaunch({ secret: TEST_SECRET, locationId: null })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects (fail-closed) when GHL_EMBED_LAUNCH_SECRET is not configured', () => {
+    vi.stubEnv('GHL_EMBED_LAUNCH_SECRET', '')
+    const result = authorizeLaunch({ secret: TEST_SECRET, locationId: TEST_LOCATION })
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects when both secret and location are wrong', () => {
+    const result = authorizeLaunch({ secret: 'bad', locationId: 'loc_bad' })
+    expect(result.ok).toBe(false)
   })
 })

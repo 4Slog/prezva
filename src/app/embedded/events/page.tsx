@@ -3,7 +3,12 @@ import { redirect } from 'next/navigation'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 
 interface Props {
-  searchParams: Promise<{ location_id?: string; user_email?: string; location_name?: string }>
+  searchParams: Promise<{
+    location_id?: string
+    user_email?: string
+    location_name?: string
+    k?: string
+  }>
 }
 
 export default async function EmbeddedEventsPage({ searchParams }: Props) {
@@ -31,12 +36,14 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
     }
   }
 
-  // No session, but launch params present: send through the launch flow
+  // No session, but launch params present: send through the launch flow.
+  // k (the pre-shared secret) must be forwarded so the launch route can authorize.
   if (params.location_id) {
     const launchUrl = new URL('/api/embedded/launch', process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
     launchUrl.searchParams.set('location_id', params.location_id)
     if (params.user_email) launchUrl.searchParams.set('user_email', params.user_email)
     if (params.location_name) launchUrl.searchParams.set('location_name', params.location_name)
+    if (params.k) launchUrl.searchParams.set('k', params.k)
     redirect(launchUrl.pathname + launchUrl.search)
   }
 

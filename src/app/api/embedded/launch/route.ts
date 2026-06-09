@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { mintEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
+import { authorizeLaunch } from '@/lib/embedded/auth'
 import { isGhlEventsEnabled } from '@/lib/integrations/ghl/config'
 
-// TRUST MODEL LIMITATION (GE-2a / MVP):
-// GHL Custom Menu Link query parameters (location_id, user_email, location_name) are
-// injected by GHL's template engine but are NOT cryptographically signed by GHL.
-// Any request to this endpoint with a valid location_id can obtain an embedded session.
-// MVP trust is enforced by two layers:
-//   1. CSP frame-ancestors restricts which origins can embed /embedded/* pages.
-//   2. The minted session is bound to a single location_id (PIT context).
-// Real cryptographic SSO verification (signed JWTs from GHL's OAuth flow) is deferred
-// to GE-8 (Marketplace install + JWT verification). Until then, this endpoint must
-// NOT be treated as proof of identity — only as a framing gate.
+// TRUST MODEL (GE-2a.1 — interim gate):
+// GHL Custom Menu Link params are NOT cryptographically signed by GHL. An interim
+// pre-shared-secret gate (param k, matched against GHL_EMBED_LAUNCH_SECRET via
+// SHA-256 + timingSafeEqual) and a single-location gate (location_id must equal
+// GHL_LOCATION_ID) are enforced before any session is minted. These two controls
+// together prevent anonymous callers and cross-location access for the GE-2a
+// placeholder phase. Full GHL-signed SSO verification (Marketplace OAuth JWT) is
+// deferred to GE-8 and will replace this gate at that point.
 
 export async function GET(request: NextRequest) {
   if (!isGhlEventsEnabled()) {
@@ -20,15 +19,18 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
+  const secret = searchParams.get('k')
   const location_id = searchParams.get('location_id')
   const user_email = searchParams.get('user_email') ?? undefined
   const location_name = searchParams.get('location_name') ?? undefined
 
-  if (!location_id) {
-    return NextResponse.json({ error: 'location_id is required' }, { status: 400 })
+  const auth = authorizeLaunch({ secret, locationId: location_id })
+  if (!auth.ok) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const token = await mintEmbeddedSession(location_id, user_email)
+  // location_id is non-null here: authorizeLaunch verified it equals GHL_LOCATION_ID
+  const token = await mintEmbeddedSession(location_id!, user_email)
 
   const cookieStore = await cookies()
   cookieStore.set(COOKIE_NAME, token, {
