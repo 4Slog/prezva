@@ -70,7 +70,7 @@ export function DiscountCodeManager({ eventId, initial, permissions = [] }: { ev
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-[var(--pz-text)]">Discount codes</h2>
         {!showForm && (
-          <Gated permission="tickets.manage" perms={permissions} mode="disable">
+          <Gated permission="event.tickets" perms={permissions} mode="disable">
             <button
               onClick={() => setShowForm(true)}
               className="text-sm px-3 py-1.5 rounded-lg font-medium"
@@ -111,7 +111,7 @@ export function DiscountCodeManager({ eventId, initial, permissions = [] }: { ev
                     </button>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <Gated permission="tickets.manage" perms={permissions} mode="hide">
+                    <Gated permission="event.tickets" perms={permissions} mode="hide">
                       <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-300">Delete</button>
                     </Gated>
                   </td>

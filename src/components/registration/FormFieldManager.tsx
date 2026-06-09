@@ -104,7 +104,7 @@ export function FormFieldManager({ eventId, initial, tickets, permissions = [] }
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-[var(--pz-text)]">Registration questions</h2>
         {!showForm && (
-          <Gated permission="tickets.manage" perms={permissions} mode="disable">
+          <Gated permission="event.manage" perms={permissions} mode="disable">
             <button
               onClick={() => setShowForm(true)}
               className="text-sm px-3 py-1.5 rounded-lg font-medium"
@@ -145,7 +145,7 @@ export function FormFieldManager({ eventId, initial, tickets, permissions = [] }
                   </td>
                   <td className="px-3 py-2 text-xs text-[var(--pz-muted)]">{f.is_required ? 'Yes' : 'No'}</td>
                   <td className="px-3 py-2 text-right">
-                    <Gated permission="tickets.manage" perms={permissions} mode="hide">
+                    <Gated permission="event.manage" perms={permissions} mode="hide">
                       <button
                         onClick={() => handleDelete(f.id)}
                         disabled={deleting === f.id}

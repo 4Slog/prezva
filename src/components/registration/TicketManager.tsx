@@ -108,7 +108,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
                   </span>
                 </div>
               </div>
-              <Gated permission="tickets.manage" perms={permissions} mode="hide">
+              <Gated permission="event.tickets" perms={permissions} mode="hide">
                 <button
                   onClick={() => handleDelete(t.id)}
                   disabled={deleting === t.id}
@@ -240,7 +240,7 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
           </div>
         </form>
       ) : (
-        <Gated permission="tickets.manage" perms={permissions} mode="disable">
+        <Gated permission="event.tickets" perms={permissions} mode="disable">
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--pz-border)] px-4 py-3 text-sm text-[var(--pz-muted)] hover:border-[var(--pz-teal)]/40 hover:text-[var(--pz-muted)] transition-colors w-full"
