@@ -7,7 +7,7 @@ import {
   Home,
   Calendar,
   Users,
-  MessageSquare,
+  MessageCircle,
   Grid3x3,
   MoreHorizontal,
   QrCode,
@@ -60,7 +60,7 @@ export function AttendeeShell({ event, hasRegistration, children }: AttendeeShel
     { id: 'home',      label: 'Home',      href: base,               icon: Home },
     { id: 'agenda',    label: 'Agenda',    href: `${base}/agenda`,    icon: Calendar },
     { id: 'people',    label: 'People',    href: `${base}/people`,    icon: Users },
-    { id: 'community', label: 'Community', href: `${base}/community`, icon: MessageSquare },
+    { id: 'community', label: 'Community', href: `${base}/community`, icon: MessageCircle },
   ]
 
   const MORE_ITEMS = [

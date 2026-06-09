@@ -277,10 +277,14 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
               </div>
             )}
             {leaderboardRank && <p style={{ fontSize:13, color:'var(--pz-muted)', marginBottom:20 }}>Your leaderboard rank: <strong style={{ color:'var(--pz-teal-ink)' }}>#{leaderboardRank}</strong></p>}
-            <div style={{ display:'flex', overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', flexWrap:'wrap', gap:10 }}>
-              {[{label:'Agenda',href:`/e/${slug}/agenda`},{label:'My Agenda',href:`/e/${slug}/my-agenda`},{label:'People',href:`/e/${slug}/people`},{label:'Groups',href:`/e/${slug}/groups`},{label:'Trivia',href:`/e/${slug}/trivia`},{label:'Passport',href:`/e/${slug}/passport`},{label:'Leaderboard',href:`/e/${slug}/leaderboard`},{label:'My QR',href:`/e/${slug}/my-qr`}].map(({label,href}) => (
-                <Link key={href} href={href} style={{ background:'var(--pz-surface-2)', color:'var(--pz-text)', padding:'0.5rem 1.25rem', borderRadius:6, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid var(--pz-border)' }}>{label}</Link>
-              ))}
+            {/* TODO(featured-links): hardcoded defaults — replace with admin-curated featured links per event (pre/post). See prezva_deferred_backlog.md "Admin-customizable attendee home". */}
+            <div style={{ marginTop: '1.5rem' }}>
+              <p style={{ fontSize: 12, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 10 }}>Explore</p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[{label:'My Agenda',href:`/e/${slug}/my-agenda`},{label:'My QR',href:`/e/${slug}/my-qr`},{label:'Community',href:`/e/${slug}/community`}].map(({label,href}) => (
+                  <Link key={href} href={href} style={{ background:'var(--pz-surface-2)', color:'var(--pz-text)', padding:'0.6rem 1.25rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid var(--pz-border)' }}>{label}</Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -356,7 +360,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
               <Link href={'/e/'+slug+'/agenda'} style={{ background:'var(--pz-surface-2)', color:'var(--pz-text)', padding:'0.75rem 2rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:15, border:'1px solid var(--pz-border)' }}>View Agenda</Link>
               <a href={`/api/events/${slug}/calendar.ics`} style={{ background:'var(--pz-surface-2)', color:'var(--pz-text)', padding:'0.75rem 2rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:15, border:'1px solid var(--pz-border)' }}>Add to Calendar</a>
             </div>
-            <ShareButtons url={eventUrl} title={event.title} calendarHref={`/api/events/${slug}/calendar.ics`} />
+            <ShareButtons url={eventUrl} title={event.title} />
           </div>
         </div>
       )}
@@ -372,11 +376,17 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
             />
           </div>
         )}
-        <div style={{ borderBottom:'1px solid var(--pz-border)', marginBottom:'2rem', display:'flex', gap:'2rem', overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', msOverflowStyle:'none' }}>
-          {[{label:'Agenda',href:'/e/'+slug+'/agenda'},{label:'Speakers',href:'/e/'+slug+'/speakers'},{label:'Community',href:'/e/'+slug+'/community'},{label:'Trivia',href:'/e/'+slug+'/trivia'},{label:'Icebreakers',href:'/e/'+slug+'/icebreakers'},{label:'Passport',href:'/e/'+slug+'/passport'},{label:'Leaderboard',href:'/e/'+slug+'/leaderboard'},{label:'Volunteer',href:'/e/'+slug+'/volunteer'}].map(({label,href}) => (
-            <Link key={href} href={href} style={{ padding:'1rem 0', color:'var(--pz-muted)', textDecoration:'none', fontSize:14, fontWeight:500 }}>{label}</Link>
-          ))}
-        </div>
+        {state === 'public' && (
+          <div style={{ marginBottom: '2rem' }}>
+            {/* TODO(featured-links): hardcoded defaults — replace with admin-curated featured links per event (pre/post). See prezva_deferred_backlog.md "Admin-customizable attendee home". */}
+            <p style={{ fontSize: 12, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 10 }}>Explore</p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[{label:'Agenda',href:'/e/'+slug+'/agenda'},{label:'Speakers',href:'/e/'+slug+'/speakers'},{label:'Community',href:'/e/'+slug+'/community'}].map(({label,href}) => (
+                <Link key={href} href={href} style={{ background:'var(--pz-surface-2)', color:'var(--pz-text)', padding:'0.6rem 1.25rem', borderRadius:8, fontWeight:600, textDecoration:'none', fontSize:13, border:'1px solid var(--pz-border)' }}>{label}</Link>
+              ))}
+            </div>
+          </div>
+        )}
         {sessions.length > 0 && (
           <section style={{ marginBottom:'3rem' }}>
             <h2 style={{ fontSize:'1.25rem', fontWeight:700, marginBottom:'1.25rem' }}>Featured Sessions</h2>

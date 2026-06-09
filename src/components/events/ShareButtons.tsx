@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { Link2, ExternalLink, Share2, Check } from 'lucide-react'
 
 interface ShareButtonsProps {
   url: string
   title: string
-  calendarHref: string
 }
 
-export function ShareButtons({ url, title, calendarHref }: ShareButtonsProps) {
+export function ShareButtons({ url, title }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false)
 
   function copyLink() {
@@ -39,16 +39,13 @@ export function ShareButtons({ url, title, calendarHref }: ShareButtonsProps) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
       <button style={btnStyle} onClick={copyLink}>
-        {copied ? '✓ Copied!' : '🔗 Copy link'}
+        {copied ? <><Check size={14} /> Copied!</> : <><Link2 size={14} /> Copy link</>}
       </button>
       <a href={twitterUrl} target="_blank" rel="noopener noreferrer" style={btnStyle}>
-        𝕏 Share
+        <Share2 size={14} /> Share
       </a>
       <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" style={btnStyle}>
-        in Share
-      </a>
-      <a href={calendarHref} style={btnStyle}>
-        📅 Add to Calendar
+        <ExternalLink size={14} /> LinkedIn
       </a>
     </div>
   )

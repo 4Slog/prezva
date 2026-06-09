@@ -87,7 +87,6 @@ describe('Sprint 24 — Polish & Reconciliation', () => {
     expect(src).toContain('copyLink')
     expect(src).toContain('twitter.com')
     expect(src).toContain('linkedin.com')
-    expect(src).toContain('calendarHref')
   })
 
   it('public event calendar ICS API route exists', () => {
