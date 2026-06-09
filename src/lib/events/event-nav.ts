@@ -102,18 +102,18 @@ export function buildEventNav(slug: string): {
       label: 'Admin',
       icon: BarChart2,
       items: [
-        { label: 'Analytics',  href: `${base}/analytics`,    icon: BarChart2 },
-        { label: 'Audit log',  href: `${base}/audit-log`,    icon: ScrollText },
-        { label: 'Failed jobs', href: `${base}/dead-letters`, icon: AlertTriangle },
+        { label: 'Event settings', href: `${base}/settings`,     icon: Settings },
+        { label: 'Integrations',   href: `${base}/integrations`, icon: Plug },
+        { label: 'Analytics',      href: `${base}/analytics`,    icon: BarChart2 },
+        { label: 'Audit log',      href: `${base}/audit-log`,    icon: ScrollText },
+        { label: 'Failed jobs',    href: `${base}/dead-letters`, icon: AlertTriangle },
       ],
     },
   ]
 
   const pinnedBottom: SideNavItem[] = [
-    { label: 'Event settings', href: `${base}/settings`,     icon: Settings },
-    { label: 'Integrations',   href: `${base}/integrations`, icon: Plug },
-    { label: 'Help',           href: '/help',                icon: HelpCircle },
-    { label: 'Back to events', href: '/events',              icon: ArrowLeft },
+    { label: 'Help',           href: '/help',   icon: HelpCircle },
+    { label: 'Back to events', href: '/events', icon: ArrowLeft },
   ]
 
   return { pinnedTop, groups, pinnedBottom }

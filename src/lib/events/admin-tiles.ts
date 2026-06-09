@@ -4,7 +4,7 @@ import {
   MessageCircle, Network, MessagesSquare, Brain, Trophy, MapPin, Image,
   Megaphone, ClipboardList,
   Building,
-  BarChart2, ScrollText, AlertTriangle, Plug,
+  BarChart2, ScrollText, AlertTriangle, Plug, Settings,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -51,10 +51,11 @@ export const ADMIN_TILES: AdminTile[] = [
   { key: 'sponsors',      label: 'Sponsors',       icon: Building,      category: 'sponsors',       permission: 'sponsors.view',         description: 'Sponsor tiers, logos, exhibitor directory',            href: s => `/events/${s}/sponsors` },
 
   // Admin
+  { key: 'settings',     label: 'Event settings', icon: Settings,      category: 'admin',          permission: 'event.manage',          description: 'Name, dates, location, branding, and registration settings', href: s => `/events/${s}/settings` },
+  { key: 'integrations',  label: 'Integrations',   icon: Plug,          category: 'admin',          permission: 'event.integrations',    description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',    href: s => `/events/${s}/integrations` },
   { key: 'analytics',    label: 'Analytics',      icon: BarChart2,     category: 'admin',          permission: 'analytics.view',        description: 'Registration trends, engagement, survey results',      href: s => `/events/${s}/analytics` },
   { key: 'audit-log',    label: 'Audit Log',      icon: ScrollText,    category: 'admin',          permission: 'event.audit_log',       description: 'Track all admin actions, exports, and changes',        href: s => `/events/${s}/audit-log` },
   { key: 'dead-letters',  label: 'Failed Jobs',    icon: AlertTriangle, category: 'admin',          permission: 'failed_jobs.manage',    description: 'View and retry failed background jobs and emails',     href: s => `/events/${s}/dead-letters` },
-  { key: 'integrations',  label: 'Integrations',   icon: Plug,          category: 'admin',          permission: 'event.integrations',    description: 'Zoom, Mailchimp, Google Drive, AMS, and 12+ more',    href: s => `/events/${s}/integrations` },
 ]
 
 export const TILE_CATEGORIES: { key: TileCategory; label: string }[] = [
