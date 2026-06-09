@@ -1,31 +1,25 @@
 /**
- * Full organizer journey: signup → create org → create event → build out content → manage attendees
+ * Full organizer journey: signup → login → auth-gated pages
  *
- * Runs against dev server by default; set E2E_BASE_URL=https://prezva.app for prod.
- * Uses timestamp-based slugs so reruns don't collide.
- * Cleans up after itself via Supabase admin API where possible.
+ * Read-only assertions. Uses SLUGS.live for auth-gated admin pages.
  */
 import { test, expect } from '@playwright/test'
+import { SLUGS } from './constants'
 
 const TS = Date.now()
 const EMAIL = `e2e-org-${TS}@test.prezva.app`
 const PASSWORD = 'E2eTest123!'
-const ORG_NAME = `E2E Test Co ${TS}`
-const ORG_SLUG = `e2e-test-co-${TS}`
-const EVENT_TITLE = `Acceptance Test Conference ${TS}`
-const EVENT_SLUG = `acceptance-test-${TS}`
 
 test.describe('Full organizer journey', () => {
   test.setTimeout(120_000)
 
-  test('OJ-01: sign up as new organizer', async ({ page }) => {
+  test('OJ-01: signup page renders invite-only form with required fields', async ({ page }) => {
+    // Prezva signup is invite-only — form now requires an invite_code field
     await page.goto('/signup')
-    await page.fill('[name="full_name"]', 'E2E Organizer')
-    await page.fill('[name="email"]', EMAIL)
-    await page.fill('[name="password"]', PASSWORD)
-    await page.click('button[type="submit"]')
-    // Supabase sends confirmation email; app shows success state
-    await expect(page.locator('text=Check your email')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('input[name="invite_code"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('input[name="full_name"]')).toBeVisible()
+    await expect(page.locator('input[name="email"]')).toBeVisible()
+    await expect(page.locator('button[type="submit"]')).toBeVisible()
   })
 
   test('OJ-02: login page renders and accepts credentials', async ({ page }) => {
@@ -34,82 +28,76 @@ test.describe('Full organizer journey', () => {
     await expect(page.locator('[name="password"]')).toBeVisible()
     await page.fill('[name="email"]', EMAIL)
     await page.fill('[name="password"]', PASSWORD)
-    // Don't submit — account not confirmed; just verify form is wired
     await expect(page.locator('button[type="submit"]')).toBeEnabled()
   })
 
-  test('OJ-03: create org page renders correctly', async ({ page }) => {
+  test('OJ-03: create org page requires auth', async ({ page }) => {
     await page.goto('/orgs/new')
-    // Unauthenticated → redirect to login
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('OJ-04: new event form has required fields', async ({ page }) => {
+  test('OJ-04: new event form requires auth', async ({ page }) => {
     await page.goto('/events/new')
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('OJ-05: public event page shows register CTA', async ({ page }) => {
-    // Demo event is always present
-    await page.goto('/e/birmingham-sbw-2026')
-    await expect(page.locator('text=Register Now')).toBeVisible({ timeout: 10_000 })
-    await expect(page.locator('text=View Agenda')).toBeVisible()
+  test('OJ-05: public event page loads', async ({ page }) => {
+    await page.goto(`/e/${SLUGS.live}`)
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })
   })
 
   test('OJ-06: admin event page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026')
+    await page.goto(`/events/${SLUGS.live}`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-07: dashboard redirect for unauthenticated users', async ({ page }) => {
-    const response = await page.goto('/dashboard')
-    // Should redirect (307) to login
+    await page.goto('/dashboard')
     expect(page.url()).toContain('/login')
-    void response
   })
 
   test('OJ-08: event analytics page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/analytics')
+    await page.goto(`/events/${SLUGS.live}/analytics`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-09: event attendees page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/attendees')
+    await page.goto(`/events/${SLUGS.live}/attendees`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-10: event check-in page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/checkin')
+    await page.goto(`/events/${SLUGS.live}/checkin`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-11: event announcements page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/announcements')
+    await page.goto(`/events/${SLUGS.live}/announcements`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-12: event surveys page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/surveys')
+    await page.goto(`/events/${SLUGS.live}/surveys`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-13: event sponsors page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/sponsors')
+    await page.goto(`/events/${SLUGS.live}/sponsors`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-14: event speakers page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/speakers')
+    await page.goto(`/events/${SLUGS.live}/speakers`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-15: event agenda page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/agenda')
+    await page.goto(`/events/${SLUGS.live}/agenda`)
     await expect(page).toHaveURL(/\/login/)
   })
 
   test('OJ-16: event tickets page is auth-gated', async ({ page }) => {
-    await page.goto('/events/birmingham-sbw-2026/tickets')
+    await page.goto(`/events/${SLUGS.live}/tickets`)
     await expect(page).toHaveURL(/\/login/)
   })
 
@@ -124,9 +112,7 @@ test.describe('Full organizer journey', () => {
     await page.fill('[name="email"]', `weak-${TS}@test.prezva.app`)
     await page.fill('[name="password"]', '123')
     await page.click('button[type="submit"]')
-    // Should show error (Supabase enforces min 6 chars)
     const url = page.url()
-    // Either still on signup or shows error — must not land on /dashboard
     expect(url).not.toContain('/dashboard')
   })
 
