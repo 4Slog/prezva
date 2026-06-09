@@ -64,7 +64,12 @@ export function SideNav({ groups, collapsed = false, pinnedTop, pinnedBottom }: 
   // When on a route inside a group, that group is always open (no setState needed).
   // When off all known routes, the user's last manual toggle controls which group is open.
   const [manualOpenId, setManualOpenId] = useState<string | null>(null)
-  const openGroupId = activeGroupId ?? manualOpenId
+  const [trackedPathname, setTrackedPathname] = useState(pathname)
+  if (trackedPathname !== pathname) {
+    setTrackedPathname(pathname)
+    setManualOpenId(null)
+  }
+  const openGroupId = manualOpenId ?? activeGroupId
 
   const toggle = (id: string) => {
     if (!collapsed) setManualOpenId(prev => (prev === id ? null : id))
@@ -95,33 +100,50 @@ export function SideNav({ groups, collapsed = false, pinnedTop, pinnedBottom }: 
         const GroupIcon = group.icon
         const isOpen = !collapsed && openGroupId === group.id
         const hasActive = group.items.some(item => isItemActive(item, pathname))
+        const primaryHref = group.items[0]?.href
 
         return (
           <div key={group.id}>
-            <button
-              type="button"
-              onClick={() => toggle(group.id)}
-              aria-expanded={collapsed ? undefined : isOpen}
-              title={collapsed ? group.label : undefined}
-              className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors hover:opacity-80"
-              style={{ color: hasActive ? 'var(--pz-teal)' : 'var(--pz-chrome-muted)' }}
-            >
-              <GroupIcon size={18} style={{ flexShrink: 0 }} />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
-                  <ChevronDown
-                    size={14}
-                    style={{
-                      color: 'var(--pz-chrome-muted)',
-                      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s ease',
-                    }}
-                  />
-                </>
-              )}
-            </button>
-
+            {collapsed ? (
+              primaryHref ? (
+                <Link
+                  href={primaryHref}
+                  title={group.label}
+                  aria-label={group.label}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors hover:opacity-80"
+                  style={{ color: hasActive ? 'var(--pz-teal)' : 'var(--pz-chrome-muted)' }}
+                >
+                  <GroupIcon size={18} style={{ flexShrink: 0 }} />
+                </Link>
+              ) : (
+                <div
+                  title={group.label}
+                  className="w-full flex items-center gap-3 px-4 py-2.5"
+                  style={{ color: 'var(--pz-chrome-muted)' }}
+                >
+                  <GroupIcon size={18} style={{ flexShrink: 0 }} />
+                </div>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => toggle(group.id)}
+                aria-expanded={isOpen}
+                className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors hover:opacity-80"
+                style={{ color: hasActive ? 'var(--pz-teal)' : 'var(--pz-chrome-muted)' }}
+              >
+                <GroupIcon size={18} style={{ flexShrink: 0 }} />
+                <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
+                <ChevronDown
+                  size={14}
+                  style={{
+                    color: 'var(--pz-chrome-muted)',
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </button>
+            )}
             {isOpen && (
               <div>
                 {group.items.map(item => {
