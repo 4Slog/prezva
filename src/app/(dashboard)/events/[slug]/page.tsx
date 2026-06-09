@@ -58,15 +58,13 @@ export default async function EventDetailPage({ params }: Props) {
 
   const userRole = memberRow?.role ?? null
 
-  // Admin client: fetch org slug for integration tile link + tile badges + live counts
+  // Admin client: fetch tile badges + live counts
   const admin = createAdminClient()
-  const [orgRes, badges, counts, groupStats] = await Promise.all([
-    admin.from('organizations').select('slug').eq('id', (event as any).org_id).maybeSingle(),
+  const [badges, counts, groupStats] = await Promise.all([
     getAdminTileBadges((event as any).id),
     getEventCounts((event as any).id),
     getGroupSummaryStats((event as any).id),
   ])
-  const orgSlug = orgRes.data?.slug
 
   if (userRole === 'staff') {
     const today = new Date()
@@ -258,7 +256,7 @@ export default async function EventDetailPage({ params }: Props) {
       })()}
 
       {/* Module tile grid */}
-      <AdminTileGrid eventSlug={slug} orgSlug={orgSlug ?? undefined} badges={badges} permissions={permissions} />
+      <AdminTileGrid eventSlug={slug} badges={badges} permissions={permissions} />
     </div>
   )
 }

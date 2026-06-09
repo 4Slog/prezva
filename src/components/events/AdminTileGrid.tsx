@@ -5,13 +5,12 @@ import type { LucideIcon } from 'lucide-react'
 
 interface Props {
   eventSlug: string
-  orgSlug?: string
   badges?: Record<string, TileBadge>
   expandAll?: boolean
   permissions: string[]
 }
 
-export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = false, permissions }: Props) {
+export function AdminTileGrid({ eventSlug, badges = {}, expandAll = false, permissions }: Props) {
   const permSet = new Set(permissions)
   const allowed = (key: string) => permSet.has('*') || permSet.has(key)
 
@@ -43,9 +42,7 @@ export function AdminTileGrid({ eventSlug, orgSlug, badges = {}, expandAll = fal
             <div style={{ display: 'grid', gridTemplateColumns: isPrimary ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
               {tiles.map(tile => {
                 const badge = badges[tile.key]
-                const href = tile.key === 'integrations' && orgSlug
-                  ? `/orgs/${orgSlug}/integrations`
-                  : tile.href(eventSlug)
+                const href = tile.href(eventSlug)
 
                 const TileIcon = tile.icon as LucideIcon
                 return (
