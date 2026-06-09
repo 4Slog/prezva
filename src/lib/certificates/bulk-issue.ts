@@ -18,7 +18,7 @@ export async function bulkIssueCertificates(eventId: string): Promise<{ issued: 
     .from('registrations')
     .select('id')
     .eq('event_id', eventId)
-    .in('status', ['confirmed', 'checked_in'])
+    .in('status', ['confirmed'])
 
   let issued = 0, skipped = 0, failed = 0
   for (const reg of (regs ?? []) as any[]) {

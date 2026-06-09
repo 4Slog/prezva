@@ -132,7 +132,7 @@ async function notifyAttendeesOfHandout(
     .from('registrations')
     .select('attendee_email, attendee_name')
     .eq('event_id', eventId)
-    .in('status', ['confirmed', 'checked_in'])
+    .in('status', ['confirmed'])
     .limit(500)
 
   if (!regs || regs.length === 0) return

@@ -59,7 +59,7 @@ export default async function MyEventsPage() {
   const [regsResult, speakerResult, volunteerResult] = await Promise.all([
     supabase
       .from('registrations')
-      .select('id, event_id, status, created_at, events(id, title, slug, start_at, end_at, status, org_id, organizations(name, slug))')
+      .select('id, event_id, status, created_at, check_ins(checked_in_at), events(id, title, slug, start_at, end_at, status, org_id, organizations(name, slug))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
@@ -115,8 +115,8 @@ export default async function MyEventsPage() {
   })
 
   // Stats for attendance summary bar
-  const confirmedRegs = registrations.filter((r: any) => ['confirmed', 'checked_in'].includes(r.status))
-  const attendedCount = confirmedRegs.filter((r: any) => r.status === 'checked_in').length
+  const confirmedRegs = registrations.filter((r: any) => r.status === 'confirmed')
+  const attendedCount = confirmedRegs.filter((r: any) => (r.check_ins?.length ?? 0) > 0).length
   const upcomingCount = registrations.filter((r: any) =>
     r.status === 'confirmed' && new Date((r.events as any)?.start_at) > new Date()
   ).length

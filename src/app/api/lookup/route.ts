@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     .from('registrations')
     .select('id, events(title, slug)')
     .eq('attendee_email', email)
-    .in('status', ['confirmed', 'checked_in'])
+    .in('status', ['confirmed'])
     .limit(10)
 
   if (!regs || regs.length === 0) return OK // no disclosure

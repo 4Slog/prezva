@@ -26,7 +26,7 @@ export default async function MyProfilePage() {
       .from('registrations')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', authUser.id)
-      .in('status', ['confirmed', 'checked_in']),
+      .in('status', ['confirmed']),
   ])
 
   return (

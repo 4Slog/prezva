@@ -76,7 +76,7 @@ export default async function MePage() {
       .from('registrations')
       .select('id, status, qr_code, ticket_type_id, event_id, ticket_types(name), events(id, title, slug, start_at, end_at, venue_city, venue_state, status)')
       .eq('user_id', user.id)
-      .in('status', ['confirmed', 'checked_in']),
+      .in('status', ['confirmed']),
     admin
       .from('speakers')
       .select('id, status, confirmation_token, event_role, event_id, events(id, title, slug, start_at, end_at, venue_city, venue_state, status)')

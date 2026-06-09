@@ -6,6 +6,7 @@ import { ShareButtons } from '@/components/events/ShareButtons'
 import { Calendar, MapPin, Users, Clock } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { resolveAttendeeState } from '@/lib/attendees/resolve-state'
 import QRDisplay from './my-qr/qr-display'
 import { GuestConversionBanner } from '@/components/events/GuestConversionBanner'
 import { VirtualJoinButton } from '@/components/events/VirtualJoinButton'
@@ -87,19 +88,15 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
   let leaderboardRank: number | null = null
   let currentSessions: any[] = []
   let nextSession: any = null
+  let isCheckedIn = false
 
   if (resolvedRegId) {
     const admin = createAdminClient()
-    const { data } = await admin
-      .from('registrations')
-      .select('id, attendee_name, attendee_email, qr_code, status, user_id, amount_paid_cents')
-      .eq('id', resolvedRegId)
-      .eq('event_id', event.id)
-      .in('status', ['confirmed', 'checked_in'])
-      .maybeSingle()
-    reg = data
+    const { state: resolvedState, reg: resolvedReg } = await resolveAttendeeState(event.id, resolvedRegId, admin)
+    reg = resolvedReg
+    isCheckedIn = resolvedState === 'checked_in'
 
-    if (reg?.status === 'checked_in') {
+    if (isCheckedIn) {
       const now = new Date().toISOString()
       const admin2 = createAdminClient()
       const [{ data: curSessions }, { data: nxtSession }, { data: lbPoints }] = await Promise.all([
@@ -174,9 +171,7 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
 
   const now = new Date()
   const isPostEvent = new Date(event.end_at) < now
-  const state = reg?.status === 'checked_in' ? 'checked_in'
-    : reg ? 'registered'
-    : 'public'
+  const state = isCheckedIn ? 'checked_in' : reg ? 'registered' : 'public'
 
   const tz = (event as any).timezone || 'UTC'
   const start = new Date(event.start_at)

@@ -22,7 +22,7 @@ export async function getSessionIdentity(eventSlug?: string): Promise<SessionIde
         .from('registrations')
         .select('id, event_id, status')
         .eq('id', regId)
-        .in('status', ['confirmed', 'checked_in'])
+        .in('status', ['confirmed'])
         .maybeSingle()
       if (reg) return { type: 'registration', registrationId: reg.id, eventId: reg.event_id }
     }

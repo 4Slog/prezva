@@ -60,18 +60,12 @@ export async function selfCheckInByToken(token: string): Promise<SelfCheckInResu
     event_id: (reg as any).event_id,
     registration_id: (reg as any).id,
     checked_in_by: null,
-    method: 'self_checkin',
+    method: 'self',
     device_id: 'magic-link',
     synced_at: new Date().toISOString(),
   })
 
   if (ciErr) return { success: false, error: 'Check-in failed. Please try again or see staff.' }
-
-  // Update registration status
-  await admin
-    .from('registrations')
-    .update({ status: 'checked_in', checked_in_at: new Date().toISOString() })
-    .eq('id', (reg as any).id)
 
   // Award points if user has account
   if ((reg as any).user_id) {

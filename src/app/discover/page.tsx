@@ -75,7 +75,7 @@ export default async function DiscoverPage({ searchParams }: Props) {
         .from('registrations')
         .select('event_id, events(category, org_id, event_type)')
         .eq('user_id', user.id)
-        .in('status', ['confirmed', 'checked_in'])
+        .in('status', ['confirmed'])
         .order('created_at', { ascending: false })
         .limit(20)
 

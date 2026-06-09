@@ -32,13 +32,13 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   const [orgsRes, eventsRes, regsRes, revenueRes, activeRes, publishedRes, newOrgsRes, newRegsRes] = await Promise.all([
     admin.from('organizations').select('id', { count: 'exact', head: true }),
     admin.from('events').select('id', { count: 'exact', head: true }),
-    admin.from('registrations').select('id', { count: 'exact', head: true }).in('status', ['confirmed', 'checked_in']),
-    admin.from('registrations').select('amount_paid_cents').in('status', ['confirmed', 'checked_in']),
+    admin.from('registrations').select('id', { count: 'exact', head: true }).in('status', ['confirmed']),
+    admin.from('registrations').select('amount_paid_cents').in('status', ['confirmed']),
     admin.from('events').select('id', { count: 'exact', head: true }).eq('status', 'live'),
     admin.from('events').select('id', { count: 'exact', head: true }).eq('status', 'published'),
     admin.from('organizations').select('id', { count: 'exact', head: true }).gte('created_at', last30d),
     admin.from('registrations').select('id', { count: 'exact', head: true })
-      .in('status', ['confirmed', 'checked_in']).gte('created_at', last30d),
+      .in('status', ['confirmed']).gte('created_at', last30d),
   ])
 
   const totalRevenue = ((revenueRes.data ?? []) as any[])
