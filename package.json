@@ -38,6 +38,7 @@
     "dexie": "^4.4.2",
     "fuse.js": "^7.3.0",
     "html5-qrcode": "^2.3.8",
+    "jose": "^6.2.3",
     "livekit-client": "^2.19.1",
     "livekit-server-sdk": "^2.15.4",
     "lucide-react": "^1.14.0",
