@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -24,37 +26,19 @@ const TicketSchema = z.object({
   delivery_method:     z.enum(['in_person', 'virtual', 'both']).default('in_person'),
 })
 
-async function assertEventAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  eventId: string,
-  userId: string,
-) {
-  const { data: event } = await supabase
-    .from('events')
-    .select('org_id')
-    .eq('id', eventId)
-    .maybeSingle()
-  if (!event) throw new Error('Event not found')
-
-  const { data: member } = await supabase
-    .from('org_members')
-    .select('role')
-    .eq('org_id', event.org_id)
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (!member || !['owner', 'admin'].includes(member.role)) {
-    throw new Error('Insufficient permissions')
-  }
-  return event
+async function getEventOrgId(eventId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase.from('events').select('org_id').eq('id', eventId).single()
+  return data?.org_id as string | undefined
 }
 
 export async function createTicketType(eventId: string, formData: FormData) {
   const user = await requireUser()
   const supabase = await createClient()
 
-  try { await assertEventAccess(supabase, eventId, user.id) }
-  catch (e) { return { error: (e as Error).message } }
+  const orgId = await getEventOrgId(eventId)
+  if (!orgId) return { error: 'Event not found' }
+  try { await assertPermission(orgId, user.id, 'event.tickets') } catch (e) { return catchPermission(e) }
 
   const raw: Record<string, unknown> = {}
   for (const [k, v] of formData.entries()) {
@@ -84,8 +68,9 @@ export async function updateTicketType(ticketId: string, eventId: string, formDa
   const user = await requireUser()
   const supabase = await createClient()
 
-  try { await assertEventAccess(supabase, eventId, user.id) }
-  catch (e) { return { error: (e as Error).message } }
+  const orgId = await getEventOrgId(eventId)
+  if (!orgId) return { error: 'Event not found' }
+  try { await assertPermission(orgId, user.id, 'event.tickets') } catch (e) { return catchPermission(e) }
 
   const raw: Record<string, unknown> = {}
   for (const key of TicketSchema.keyof().options) {
@@ -114,8 +99,9 @@ export async function deleteTicketType(ticketId: string, eventId: string) {
   const user = await requireUser()
   const supabase = await createClient()
 
-  try { await assertEventAccess(supabase, eventId, user.id) }
-  catch (e) { return { error: (e as Error).message } }
+  const orgId = await getEventOrgId(eventId)
+  if (!orgId) return { error: 'Event not found' }
+  try { await assertPermission(orgId, user.id, 'event.tickets') } catch (e) { return catchPermission(e) }
 
   // Cannot delete if any confirmed registrations exist
   const { data: regCount } = await supabase
