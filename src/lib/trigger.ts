@@ -10,6 +10,7 @@ import type { sendVolunteerInviteEmail } from '@/trigger/jobs/volunteer-invite'
 import type { sendVolunteerThankYouEmail } from '@/trigger/jobs/volunteer-thank-you'
 import type { sendCertificateEmail } from '@/trigger/jobs/certificate-email'
 import type { sendSpeakerInviteEmail } from '@/trigger/jobs/speaker-invite'
+import type { ghlSyncTask } from '@/trigger/jobs/ghl-sync'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -125,6 +126,25 @@ export async function enqueueSpeakerInviteEmail(payload: SpeakerInvitePayload) {
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue speaker invite email:', err)
+    return null
+  }
+}
+
+type GhlSyncPayload = Parameters<typeof ghlSyncTask.trigger>[0]
+
+export async function enqueueGhlSync(payload: GhlSyncPayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping GHL sync job')
+    return null
+  }
+  try {
+    const handle = await tasks.trigger<typeof ghlSyncTask>(
+      'sync-ghl-registration',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue GHL sync:', err)
     return null
   }
 }

@@ -1,0 +1,88 @@
+import { schemaTask } from '@trigger.dev/sdk'
+import { z } from 'zod'
+import { createAdminClient } from '../lib/supabase-admin'
+import { ghlPost } from '@/lib/integrations/ghl/client'
+import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { GHL_EVENTS_PIPELINE_ID, GHL_STAGE_IDS, GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
+
+export const ghlSyncTask = schemaTask({
+  id: 'sync-ghl-registration',
+  schema: z.object({
+    registrationId:  z.string(),
+    ghlLocationId:   z.string(),
+    ghlContactId:    z.string(),
+    ghlOrderId:      z.string(),
+    ticketTypeTitle: z.string(),
+    eventId:         z.string(),
+    eventTitle:      z.string(),
+    attendeeName:    z.string(),
+    amountPaidCents: z.number(),
+    paymentStatus:   z.string(),
+    syncStateId:     z.string(),
+  }),
+  run: async (payload) => {
+    const admin = createAdminClient()
+    const token = getGhlToken()
+
+    const opportunityBody = {
+      pipelineId:      GHL_EVENTS_PIPELINE_ID,
+      pipelineStageId: GHL_STAGE_IDS.confirmed,
+      title:           `[Prezva] ${payload.eventTitle} — ${payload.attendeeName}`,
+      status:          'open',
+      contactId:       payload.ghlContactId,
+      monetaryValue:   payload.amountPaidCents / 100,
+      customFields: [
+        { id: GHL_FIELD_KEYS.prezvaEventId,        value: payload.eventId },
+        { id: GHL_FIELD_KEYS.prezvaRegistrationId, value: payload.registrationId },
+        { id: GHL_FIELD_KEYS.prezvaTicketType,     value: payload.ticketTypeTitle },
+        { id: GHL_FIELD_KEYS.prezvaPaymentStatus,  value: payload.paymentStatus },
+        { id: GHL_FIELD_KEYS.prezvaSource,         value: 'ghl_payment' },
+        { id: GHL_FIELD_KEYS.prezvaLastSyncTime,   value: new Date().toISOString() },
+      ],
+      locationId: payload.ghlLocationId,
+    }
+
+    try {
+      const result = await ghlPost<{ opportunity?: { id?: string }; id?: string }>(
+        token,
+        '/opportunities/',
+        opportunityBody,
+      )
+
+      const ghlOpportunityId = result.opportunity?.id ?? (result as any).id ?? null
+
+      await admin
+        .from('ghl_sync_state')
+        .update({
+          status:             'synced',
+          ghl_opportunity_id: ghlOpportunityId,
+          updated_at:         new Date().toISOString(),
+        })
+        .eq('id', payload.syncStateId)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+
+      const { data: current } = await admin
+        .from('ghl_sync_state')
+        .select('retries')
+        .eq('id', payload.syncStateId)
+        .single()
+
+      const retries = (current?.retries ?? 0) + 1
+      const deadLettered = retries >= 3
+
+      await admin
+        .from('ghl_sync_state')
+        .update({
+          retries,
+          last_error:    message,
+          status:        'failed',
+          dead_lettered: deadLettered,
+          updated_at:    new Date().toISOString(),
+        })
+        .eq('id', payload.syncStateId)
+
+      throw err
+    }
+  },
+})

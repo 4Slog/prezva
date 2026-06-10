@@ -1638,6 +1638,65 @@ export type Database = {
           },
         ]
       }
+      ghl_sync_state: {
+        Row: {
+          created_at: string
+          dead_lettered: boolean
+          event_type: string
+          external_event_id: string
+          ghl_opportunity_id: string | null
+          id: string
+          internal_registration_id: string | null
+          last_error: string | null
+          location_id: string
+          payload_hash: string
+          retries: number
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dead_lettered?: boolean
+          event_type: string
+          external_event_id: string
+          ghl_opportunity_id?: string | null
+          id?: string
+          internal_registration_id?: string | null
+          last_error?: string | null
+          location_id: string
+          payload_hash: string
+          retries?: number
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dead_lettered?: boolean
+          event_type?: string
+          external_event_id?: string
+          ghl_opportunity_id?: string | null
+          id?: string
+          internal_registration_id?: string | null
+          last_error?: string | null
+          location_id?: string
+          payload_hash?: string
+          retries?: number
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ghl_sync_state_internal_registration_id_fkey"
+            columns: ["internal_registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_conversation_members: {
         Row: {
           conversation_id: string
@@ -2954,6 +3013,7 @@ export type Database = {
           discount_amount_cents: number | null
           discount_code_id: string | null
           event_id: string
+          external_order_id: string | null
           id: string
           notes: string | null
           paid_offline_at: string | null
@@ -2996,6 +3056,7 @@ export type Database = {
           discount_amount_cents?: number | null
           discount_code_id?: string | null
           event_id: string
+          external_order_id?: string | null
           id?: string
           notes?: string | null
           paid_offline_at?: string | null
@@ -3038,6 +3099,7 @@ export type Database = {
           discount_amount_cents?: number | null
           discount_code_id?: string | null
           event_id?: string
+          external_order_id?: string | null
           id?: string
           notes?: string | null
           paid_offline_at?: string | null

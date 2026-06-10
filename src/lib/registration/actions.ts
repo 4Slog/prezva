@@ -462,6 +462,78 @@ async function createPaidRegistration(
   }
 }
 
+// ── GHL inbound registration (provider-agnostic, already-confirmed payment) ──
+
+export interface CreateRegistrationFromExternalPaymentParams {
+  eventId: string;
+  ticketTypeId: string;
+  attendeeEmail: string;
+  attendeeName: string;
+  attendeePhone?: string | null;
+  amountPaidCents: number;
+  currency?: string;
+  externalSource: string;
+  externalOrderId: string;
+  paymentGateway: string;
+}
+
+export type CreateRegistrationFromExternalPaymentResult =
+  | { success: true; registrationId: string; qrCode: string }
+  | { success: false; error: string; waitlisted?: boolean }
+
+export async function createRegistrationFromExternalPayment(
+  params: CreateRegistrationFromExternalPaymentParams,
+): Promise<CreateRegistrationFromExternalPaymentResult> {
+  const supabase = createAdminClient()
+
+  // Idempotency: if a registration for this externalOrderId already exists, return it
+  const { data: existing } = await supabase
+    .from('registrations')
+    .select('id, qr_code')
+    .eq('external_order_id', params.externalOrderId)
+    .maybeSingle()
+
+  if (existing) {
+    return { success: true, registrationId: existing.id, qrCode: existing.qr_code }
+  }
+
+  // Insert directly as confirmed/paid. DB trigger trg_enforce_capacity fires before insert.
+  // If at capacity the trigger raises — catch it and return waitlisted.
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('registrations')
+    .insert({
+      event_id:             params.eventId,
+      ticket_type_id:       params.ticketTypeId,
+      user_id:              null,
+      attendee_email:       params.attendeeEmail,
+      attendee_name:        params.attendeeName,
+      attendee_phone:       params.attendeePhone ?? null,
+      attendee_company:     null,
+      attendee_job_title:   null,
+      status:               'confirmed',
+      amount_paid_cents:    params.amountPaidCents,
+      discount_code_id:     null,
+      confirmation_sent_at: now,
+      delivery_method:      'email',
+      press_token:          null,
+      sms_opt_in:           false,
+      sms_opt_in_at:        null,
+      external_order_id:    params.externalOrderId,
+    })
+    .select('id, qr_code')
+    .single()
+
+  if (error) {
+    if (error.message?.toLowerCase().includes('capacity') || error.code === 'P0001') {
+      return { success: false, error: 'Event is at capacity', waitlisted: true }
+    }
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, registrationId: data.id, qrCode: data.qr_code }
+}
+
 // ── Virtual check-in ──────────────────────────────────────────────────────────
 export async function virtualCheckIn(registrationId: string) {
   const admin = createAdminClient()
