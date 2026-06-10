@@ -515,7 +515,7 @@ export async function createRegistrationFromExternalPayment(
       amount_paid_cents:    params.amountPaidCents,
       discount_code_id:     null,
       confirmation_sent_at: now,
-      delivery_method:      'email',
+      delivery_method:      'in_person',
       press_token:          null,
       sms_opt_in:           false,
       sms_opt_in_at:        null,
