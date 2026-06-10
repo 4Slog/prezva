@@ -109,34 +109,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'location_not_bound' }, { status: 400 })
     }
 
-    // 5. Ticket type mapping lookup (GE-5 prerequisite — table may not exist yet)
+    // 5. Ticket type mapping lookup
     let ticketTypeId: string | null = null
     let eventId: string | null = null
     let ticketTypeTitle: string | null = null
     let eventTitle: string | null = null
 
-    try {
-      const { data: mapping } = await supabase
-        .from('ticket_type_product_mappings' as any)
-        .select('ticket_type_id, event_id')
-        .eq('ghl_product_id', productId)
-        .eq('ghl_price_id', priceId)
-        .maybeSingle()
+    const { data: mapping } = await supabase
+      .from('ticket_type_product_mappings')
+      .select('ticket_type_id, event_id')
+      .eq('ghl_product_id', productId)
+      .eq('ghl_price_id', priceId)
+      .maybeSingle()
 
-      if (mapping) {
-        ticketTypeId = (mapping as any).ticket_type_id
-        eventId      = (mapping as any).event_id
+    if (mapping) {
+      ticketTypeId = mapping.ticket_type_id
+      eventId      = mapping.event_id
 
-        // Fetch ticket title + event title for the sync task
-        const [{ data: ttRow }, { data: evRow }] = await Promise.all([
-          supabase.from('ticket_types').select('name').eq('id', ticketTypeId!).maybeSingle(),
-          supabase.from('events').select('title').eq('id', eventId!).maybeSingle(),
-        ])
-        ticketTypeTitle = (ttRow as any)?.name ?? null
-        eventTitle      = (evRow as any)?.title ?? null
-      }
-    } catch {
-      // ticket_type_product_mappings doesn't exist yet (GE-5)
+      // Fetch ticket title + event title for the sync task
+      const [{ data: ttRow }, { data: evRow }] = await Promise.all([
+        supabase.from('ticket_types').select('name').eq('id', ticketTypeId!).maybeSingle(),
+        supabase.from('events').select('title').eq('id', eventId!).maybeSingle(),
+      ])
+      ticketTypeTitle = ttRow?.name ?? null
+      eventTitle      = evRow?.title ?? null
     }
 
     if (!ticketTypeId || !eventId) {

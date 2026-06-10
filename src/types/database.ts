@@ -1374,6 +1374,7 @@ export type Database = {
           description: string | null
           end_at: string
           event_type: Database["public"]["Enums"]["event_type"] | null
+          ghl_creator_email: string | null
           id: string
           is_discoverable: boolean
           leaderboard_point_config: Json | null
@@ -1426,6 +1427,7 @@ export type Database = {
           description?: string | null
           end_at: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
+          ghl_creator_email?: string | null
           id?: string
           is_discoverable?: boolean
           leaderboard_point_config?: Json | null
@@ -1478,6 +1480,7 @@ export type Database = {
           description?: string | null
           end_at?: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
+          ghl_creator_email?: string | null
           id?: string
           is_discoverable?: boolean
           leaderboard_point_config?: Json | null
@@ -4733,6 +4736,66 @@ export type Database = {
           },
         ]
       }
+      ticket_type_product_mappings: {
+        Row: {
+          created_at: string
+          currency: string | null
+          event_id: string
+          ghl_location_id: string
+          ghl_price_id: string
+          ghl_price_name: string | null
+          ghl_product_id: string
+          ghl_product_name: string | null
+          id: string
+          org_id: string
+          price_cents: number | null
+          ticket_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          event_id: string
+          ghl_location_id: string
+          ghl_price_id: string
+          ghl_price_name?: string | null
+          ghl_product_id: string
+          ghl_product_name?: string | null
+          id?: string
+          org_id: string
+          price_cents?: number | null
+          ticket_type_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          event_id?: string
+          ghl_location_id?: string
+          ghl_price_id?: string
+          ghl_price_name?: string | null
+          ghl_product_id?: string
+          ghl_product_name?: string | null
+          id?: string
+          org_id?: string
+          price_cents?: number | null
+          ticket_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_type_product_mappings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_type_product_mappings_ticket_type_id_fkey"
+            columns: ["ticket_type_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_types: {
         Row: {
           confirmation_email_body: string | null
@@ -5438,8 +5501,8 @@ export const Constants = {
   },
 } as const
 
-// Convenience row-level type aliases for use throughout the codebase
-export type Registration = Database['public']['Tables']['registrations']['Row']
+// Convenience type exports used by the codebase
+export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Organization = Database['public']['Tables']['organizations']['Row']
 export type Event = Database['public']['Tables']['events']['Row']
-export type Profile = Database['public']['Tables']['profiles']['Row']
+export type Registration = Database['public']['Tables']['registrations']['Row']

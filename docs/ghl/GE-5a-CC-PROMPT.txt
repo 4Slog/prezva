@@ -1,0 +1,99 @@
+Continuing the GHL Events build. GE-5a — close the GE-4 loop + event/ticket management in the embed. PRE-WORK already done and approved; this is the build. Migration 0105 (ticket_type_product_mappings table + events.ghl_creator_email column), three embed-scoped server functions, the embedded create-event form, and a reusable GHL product picker used in BOTH the create flow and existing event cards. After this, a GHL payment resolves product->ticket->event and the GE-4 dispatcher creates a registration.
+
+EXECUTION SETUP
+Run /clear first (new batch). Select model Claude Sonnet 4.6. Effort: xhigh (passed via --effort xhigh on invocation — intricate multi-file build, reused component, migration regen). Skill: frontend-design for the embed form + picker UI (match existing embed look). Use your task tracker — register each checklist item in TASKS as a task and work through them in order, marking each complete as you go.
+
+Repo: /Users/wu/Prezva/dev | HEAD 18fb7ff on main | pnpm only
+Supabase project: jmhxyyrleipcorvkmxfk (use Supabase MCP for migration + verification, not psql)
+Vercel project: prj_Uy9RQ2hE3XoWeYujXwPiv9eypNUw / team team_W8ZLFTOjrQamiwRDrfq8zy3z (Vercel MCP for any env/deploy checks)
+GHL location: 4KrDX2FYA2XZ68q88rFS | Events pipeline: oTf46hAR05Cnms51VGeC
+Latest applied migration: 20260610175525 (0104_ghl_sync_state). Next = 0105.
+
+Locked decisions from PRE-WORK (do NOT re-litigate):
+- Company ownership = org_id (already guaranteed by the embed location binding). User stamp = events.ghl_creator_email (new column), filled from session.user_email. created_by = the org OWNER profile (FK-satisfaction only). NO created_by nullable change. NO created_via column.
+- Ticket types are SOURCED FROM GHL PRODUCTS. Organizer builds the product in GHL (price+inventory native there); the embed picker attaches it; Prezva auto-mirrors a ticket_type and writes a mapping row. GHL inventory lives on the PRICE (availableQuantity + trackInventory), not the product.
+- Embed create-event form = 13 execution fields only. STRIP Stripe/payment, registration-capture, marketing/email, and the template picker. CE/badge/gated-session attrs are event-level today and are NOT part of the GE-5a ticket mirror (deferred).
+- Products/prices have NO GHL MCP tool — use REST via existing helpers only.
+
+Key existing code to reuse (do not reinvent):
+- src/lib/embedded/session.ts — verifyEmbeddedSession(token), COOKIE_NAME, EmbeddedSessionPayload { location_id; user_email? }
+- src/lib/supabase/admin.ts — createAdminClient()
+- src/lib/integrations/ghl/token.ts — getGhlToken() (reads GHL_API_TOKEN)
+- src/lib/integrations/ghl/client.ts — ghlGet<T>(token, path)
+- src/lib/integrations/ghl/config.ts — GHL_EVENTS_PIPELINE_ID etc.
+- src/app/embedded/events/page.tsx — the GE-3 read-only list + the exact org-resolution chain (cookie -> verifyEmbeddedSession -> ghl_location_links.org_id -> createAdminClient). The create page and event cards extend THIS.
+- src/lib/events/actions.ts — standalone createEvent (user-gated reference; mirror its column writes + slug logic, do NOT call it)
+- src/lib/registration/ticket-actions.ts — standalone createTicketType (reference for ticket_types columns)
+
+--- TASKS ---
+
+Use your task tracker for every item below.
+
+Task 1 — Migration 0105 (Supabase MCP apply_migration, name: ghl_ticket_product_mappings_and_creator_email).
+Create table ticket_type_product_mappings:
+
+CREATE TABLE public.ticket_type_product_mappings (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_type_id   uuid NOT NULL REFERENCES public.ticket_types(id) ON DELETE CASCADE,
+  event_id         uuid NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  org_id           uuid NOT NULL,
+  ghl_location_id  text NOT NULL,
+  ghl_product_id   text NOT NULL,
+  ghl_price_id     text NOT NULL,
+  ghl_product_name text,
+  ghl_price_name   text,
+  price_cents      integer,
+  currency         text,
+  created_at       timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.ticket_type_product_mappings ENABLE ROW LEVEL SECURITY;
+CREATE UNIQUE INDEX uq_ttpm_ticket_type ON public.ticket_type_product_mappings (ticket_type_id);
+CREATE UNIQUE INDEX uq_ttpm_event_price ON public.ticket_type_product_mappings (event_id, ghl_price_id);
+CREATE INDEX idx_ttpm_org ON public.ticket_type_product_mappings (org_id);
+CREATE INDEX idx_ttpm_price ON public.ticket_type_product_mappings (ghl_price_id);
+ALTER TABLE public.events ADD COLUMN ghl_creator_email text;
+
+No RLS policy = service-role-only access (matches ghl_sync_state). Confirm via Supabase MCP that the table has rowsecurity = true and zero policies.
+
+Task 2 — Regenerate types. After the migration, regenerate src/types/database.ts so ticket_type_product_mappings and events.ghl_creator_email are typed. Use the project's existing type-gen command (check package.json scripts for a "types"/"gen" script; if none, use supabase gen types typescript for project jmhxyyrleipcorvkmxfk). Because this regenerates database.ts, the tsc gate later MUST be cache-cleared (see gates).
+
+Task 3 — Org-owner resolver. Add a small helper (in src/lib/embedded/ or src/lib/orgs/, your call — name resolveOrgOwnerProfileId(db, orgId)) that returns the profile id to use as created_by for embed-created rows: select user_id from org_members where org_id = $1 order by (role = 'owner') desc, joined_at asc limit 1. Returns the owner if present, else the earliest member. Throw if the org has no members (should not happen for a bound org).
+
+Task 4 — Embed server actions (new file src/lib/embedded/event-actions.ts). All use createAdminClient(), resolve org from the verified session NOT from form input, never call requireUser/assertPermission. Three functions:
+
+createEventFromEmbed(input): reads the embed session cookie server-side (verifyEmbeddedSession), resolves org_id via ghl_location_links, resolves created_by via resolveOrgOwnerProfileId, generates slug server-side from title (reuse the same toSlug logic as standalone; enforce per-org uniqueness with a numeric suffix on collision), sets ghl_creator_email = session.user_email ?? null, inserts the events row with the 13 execution fields + org_id + created_by + ghl_creator_email, returns { id, slug } or { error }. Validate with a zod schema mirroring standalone's required fields (title 2-120, start_at, end_at, end_at > start_at; event_type default in_person; timezone default America/Chicago).
+
+createTicketTypeFromEmbedProduct(eventId, ghlProductId, ghlPriceId): server-side session+org resolution (verify the event belongs to the resolved org before writing — reject cross-org). Fetch the GHL product + price live: token = getGhlToken(); product via ghlGet(token, `/products/${ghlProductId}?locationId=${loc}`); price via ghlGet(token, `/products/${ghlProductId}/price?locationId=${loc}`) (list; select the matching ghlPriceId). Mirror into ticket_types: name = product.name, price_cents = price.amount, currency = price.currency, quantity = price.availableQuantity (null if trackInventory false), type = price.amount > 0 ? 'paid' : 'free', delivery_method = 'in_person', is_visible = true. Insert ticket_types row (event_id = eventId), then insert the ticket_type_product_mappings row (ticket_type_id, event_id, org_id, ghl_location_id = loc, ghl_product_id, ghl_price_id, ghl_product_name = product.name, ghl_price_name = price.name, price_cents, currency). Both inserts must be ordered so a failure doesn't orphan: insert ticket_type first, then mapping; if mapping insert fails (e.g. unique violation = already mapped), delete the just-created ticket_type and return { error: 'price_already_mapped' }. Idempotency: if a mapping already exists for (event_id, ghl_price_id), return it without creating a duplicate ticket_type.
+
+listGhlProductsForPicker(eventId?): server-side session resolution (only needs to prove a valid embed session; resolve org anyway for logging). token = getGhlToken(); products via ghlGet(token, `/products/?locationId=${loc}&limit=100`); for each product fetch its prices via ghlGet(token, `/products/${id}/price?locationId=${loc}`). Return a flat list of { productId, priceId, productName, priceName, amount, currency, availableQuantity, alreadyMapped } where alreadyMapped is true if a ticket_type_product_mappings row already exists for that ghl_price_id in the given eventId (when eventId passed; otherwise alreadyMapped=false). REST only — no MCP.
+
+Task 5 — GHL product picker component (new file src/app/embedded/_components/ghl-product-picker.tsx, client component). Renders the list from listGhlProductsForPicker as selectable rows showing product name, price (formatted from cents+currency), and remaining quantity. Rows already mapped show a disabled "Linked" state. Selecting a row calls createTicketTypeFromEmbedProduct(eventId, productId, priceId) via a server action and shows success/error inline. Match the existing embed visual style (read src/app/embedded/events/page.tsx and src/lib/embedded/brand.tsx for tokens). This component takes eventId as a prop so it works in both contexts.
+
+Task 6 — Embedded create-event page (new route src/app/embedded/events/new/page.tsx). Server component resolves org from session and passes orgId to a client form component (new file src/app/embedded/events/new/create-event-form.tsx). The form renders the 13 execution fields (title, description, event_type select [in_person/virtual/hybrid], timezone select, start_at, end_at, venue_name/address/city/state conditional on in_person|hybrid, virtual_url conditional on virtual|hybrid, capacity, waitlist_enabled). Slug auto-generated server-side (not shown, or shown read-only). On submit -> createEventFromEmbed -> on success, render the GHL product picker (Task 5) for the new event id so the organizer attaches a ticket immediately in the same flow. Match standalone new/page.tsx interaction patterns and embed styling.
+
+Task 7 — Wire create + link into the embed events list. In src/app/embedded/events/page.tsx: add a prominent "Create Event" button linking to /embedded/events/new (primary path). On each existing event card, add a "Link GHL Product" action that opens the same product picker (Task 5) for that event id (secondary path — required so pre-existing events get mappings). Reuse the picker component; do not duplicate.
+
+Task 8 — Confirm the GE-4 dispatcher now resolves. Read src/app/api/ghl/webhooks/payment/route.ts. Confirm its ticket-mapping lookup queries ticket_type_product_mappings by ghl_price_id (or product id) to find the Prezva ticket_type_id + event_id. If the table/column names it expects differ from what Task 1 created, reconcile the dispatcher to read the real table shape (this is the one allowed touch to the GE-4 file — it was written against a table that didn't exist yet). Do NOT change the dispatcher's security, idempotency, or registration-creation logic — only the mapping lookup. Report exactly what you changed.
+
+Gates (run in order):
+pnpm build — clean.
+pnpm test -- --run — all pass (add/adjust tests for the three new server actions; mock GHL + admin client as the existing webhook route.test does).
+Cache-cleared tsc (database.ts was regenerated in Task 2): rm -f tsconfig.tsbuildinfo .next/cache/.tsbuildinfo && pnpm tsc --noEmit — 0 errors. Do not report a tsc number without the cache clear.
+Verification (Supabase MCP): select exists(select 1 from information_schema.tables where table_schema='public' and table_name='ticket_type_product_mappings') as tbl, exists(select 1 from information_schema.columns where table_schema='public' and table_name='events' and column_name='ghl_creator_email') as col;  — both true.
+
+Commit: git add -A && git commit -m "feat(ghl): GE-5a — embed event creation + GHL product->ticket mapping, closes GE-4 loop (migration 0105)" && git push origin main
+
+- [ ] Task 1 — migration 0105 applied (table + column), RLS on, 0 policies (Supabase MCP confirmed)
+- [ ] Task 2 — database.ts regenerated, new table + column typed
+- [ ] Task 3 — resolveOrgOwnerProfileId helper
+- [ ] Task 4 — three embed server actions in src/lib/embedded/event-actions.ts
+- [ ] Task 5 — reusable GHL product picker component
+- [ ] Task 6 — embedded create-event page + client form
+- [ ] Task 7 — Create button + per-card Link GHL Product wired into embed list
+- [ ] Task 8 — GE-4 dispatcher mapping lookup reconciled to real table (report the diff)
+- [ ] Verification query returns tbl=true, col=true
+- [ ] pnpm build — clean
+- [ ] pnpm test -- --run — all pass
+- [ ] Cache-cleared pnpm tsc --noEmit — 0 errors
+- [ ] Committed: feat(ghl): GE-5a — embed event creation + GHL product->ticket mapping, closes GE-4 loop (migration 0105)
+- [ ] Pushed to main
