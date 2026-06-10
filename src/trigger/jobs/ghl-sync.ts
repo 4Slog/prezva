@@ -27,7 +27,7 @@ export const ghlSyncTask = schemaTask({
     const opportunityBody = {
       pipelineId:      GHL_EVENTS_PIPELINE_ID,
       pipelineStageId: GHL_STAGE_IDS.confirmed,
-      title:           `[Prezva] ${payload.eventTitle} — ${payload.attendeeName}`,
+      name:            `[Prezva] ${payload.eventTitle} — ${payload.attendeeName}`,
       status:          'open',
       contactId:       payload.ghlContactId,
       monetaryValue:   payload.amountPaidCents / 100,
