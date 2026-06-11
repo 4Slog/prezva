@@ -39,6 +39,55 @@ async function assertEventOwnership(
   return data
 }
 
+// ── FK ownership guard ────────────────────────────────────────────────────────
+// Admin client bypasses RLS — every supplied FK must be verified to belong to
+// the target event before it is written. Throws on first violation.
+
+async function assertSessionForeignKeys(
+  db: ReturnType<typeof createAdminClient>,
+  eventId: string,
+  fields: {
+    track_id?: string | null
+    room_id?: string | null
+    sponsored_by_id?: string | null
+    speaker_ids?: string[]
+  },
+) {
+  const checks: Promise<void>[] = []
+
+  if (fields.track_id) {
+    const id = fields.track_id
+    checks.push((async () => {
+      const { data } = await db.from('tracks').select('id').eq('id', id).eq('event_id', eventId).single()
+      if (!data) throw new Error('Track not found in this event')
+    })())
+  }
+  if (fields.room_id) {
+    const id = fields.room_id
+    checks.push((async () => {
+      const { data } = await db.from('rooms').select('id').eq('id', id).eq('event_id', eventId).single()
+      if (!data) throw new Error('Room not found in this event')
+    })())
+  }
+  if (fields.sponsored_by_id) {
+    const id = fields.sponsored_by_id
+    checks.push((async () => {
+      const { data } = await db.from('event_sponsors').select('id').eq('id', id).eq('event_id', eventId).single()
+      if (!data) throw new Error('Sponsor not found in this event')
+    })())
+  }
+  if (fields.speaker_ids?.length) {
+    const ids = fields.speaker_ids
+    checks.push((async () => {
+      const { data } = await db.from('speakers').select('id').in('id', ids).eq('event_id', eventId)
+      if ((data ?? []).length !== ids.length)
+        throw new Error('One or more speakers not found in this event')
+    })())
+  }
+
+  await Promise.all(checks)
+}
+
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
 const SessionSchema = z.object({
@@ -158,6 +207,17 @@ export async function embedCreateSession(eventId: string, input: unknown) {
       return { error: `Unknown session type: ${parsed.data.session_type}` }
   }
 
+  try {
+    await assertSessionForeignKeys(db, eventId, {
+      track_id: parsed.data.track_id,
+      room_id: parsed.data.room_id,
+      sponsored_by_id: parsed.data.sponsored_by_id,
+      speaker_ids: parsed.data.speaker_ids,
+    })
+  } catch (e: any) {
+    return { error: e.message }
+  }
+
   const { speaker_ids, speaker_roles, ...sessionData } = parsed.data
   const { data: session, error } = await db
     .from('sessions').insert({ event_id: eventId, ...sessionData }).select().single()
@@ -195,6 +255,17 @@ export async function embedUpdateSession(
     ])
     if (!validSlugs.has(parsed.data.session_type))
       return { error: `Unknown session type: ${parsed.data.session_type}` }
+  }
+
+  try {
+    await assertSessionForeignKeys(db, eventId, {
+      track_id: parsed.data.track_id,
+      room_id: parsed.data.room_id,
+      sponsored_by_id: parsed.data.sponsored_by_id,
+      speaker_ids: parsed.data.speaker_ids,
+    })
+  } catch (e: any) {
+    return { error: e.message }
   }
 
   const { speaker_ids, speaker_roles, ...sessionData } = parsed.data as any
