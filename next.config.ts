@@ -40,6 +40,17 @@ const nextConfig: NextConfig = {
       { source: '/checkin/:path*',        headers: [checkinPermissions] },
       { source: '/events/:slug/check-in', headers: [checkinPermissions] },
       { source: '/events/:slug/checkin',  headers: [checkinPermissions] },
+      {
+        source: '/embedded/events/:eventId/checkin',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            // camera=(self) alone is not enough inside a cross-origin iframe —
+            // must explicitly name the embedding origin to delegate the permission.
+            value: 'camera=(self "https://app.gohighlevel.com"), microphone=(), geolocation=()',
+          },
+        ],
+      },
     ]
   },
 }
