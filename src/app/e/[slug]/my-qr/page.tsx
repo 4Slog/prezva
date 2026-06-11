@@ -43,7 +43,7 @@ export default async function MyQRPage({ params, searchParams }: Props) {
   const { data: reg } = email
     ? await admin
         .from('registrations')
-        .select('id, attendee_name, attendee_email, qr_code, status')
+        .select('id, attendee_name, attendee_email, qr_code, pin, status')
         .eq('event_id', event.id)
         .eq('attendee_email', email.toLowerCase())
         .eq('status', 'confirmed')
@@ -94,6 +94,11 @@ export default async function MyQRPage({ params, searchParams }: Props) {
               </p>
               <QRDisplay qrCode={reg.qr_code} />
               <p className="text-xs mt-4" style={{ color: 'var(--pz-muted)', wordBreak: 'break-all' }}>{reg.qr_code}</p>
+              <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--pz-bg)', border: '1px solid var(--pz-border)' }}>
+                <p className="text-xs mb-1" style={{ color: 'var(--pz-muted)' }}>Check-in PIN</p>
+                <p className="text-2xl font-bold tracking-widest font-mono" style={{ color: 'var(--pz-text)' }}>{(reg as any).pin}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--pz-muted)' }}>Use with your email if you don&apos;t have your QR code</p>
+              </div>
               <Link href={`/e/${slug}/my-qr`} className="block text-xs mt-3" style={{ color: 'var(--pz-muted)' }}>← Different email</Link>
             </div>
           )}

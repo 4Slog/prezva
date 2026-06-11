@@ -358,6 +358,102 @@ export async function checkInToSession(
   return { ok: true, alreadyCheckedIn: false }
 }
 
+// ── Org-authed session check-in (wraps the admin checkInToSession with auth guard) ─
+export async function orgCheckInToSession(
+  eventId: string,
+  sessionId: string,
+  qrCodeOrRegId: string,
+  method: 'qr_scan' | 'manual',
+): Promise<CheckInResult> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  const event = await getEventOrg(supabase, eventId)
+  try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
+
+  let registrationId: string
+  if (method === 'qr_scan') {
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+      .eq('event_id', eventId)
+      .eq('qr_code', qrCodeOrRegId.toLowerCase())
+      .single()
+    if (!reg) return { success: false, error: 'QR code not found for this event' }
+    if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+    registrationId = (reg as any).id
+    const result = await checkInToSession(registrationId, sessionId, method)
+    if (!result.ok) return { success: false, error: result.error }
+    return {
+      success: true,
+      registration: {
+        id: (reg as any).id,
+        attendee_name: (reg as any).attendee_name,
+        attendee_email: (reg as any).attendee_email,
+        ticket_name: (reg as any).ticket_types?.name ?? '',
+        already_checked_in: !!result.alreadyCheckedIn,
+      },
+    }
+  } else {
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+      .eq('id', qrCodeOrRegId)
+      .eq('event_id', eventId)
+      .single()
+    if (!reg) return { success: false, error: 'Attendee not found' }
+    if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+    const result = await checkInToSession((reg as any).id, sessionId, method)
+    if (!result.ok) return { success: false, error: result.error }
+    return {
+      success: true,
+      registration: {
+        id: (reg as any).id,
+        attendee_name: (reg as any).attendee_name,
+        attendee_email: (reg as any).attendee_email,
+        ticket_name: (reg as any).ticket_types?.name ?? '',
+        already_checked_in: !!result.alreadyCheckedIn,
+      },
+    }
+  }
+}
+
+export interface SessionAttendeeRow {
+  registration_id: string
+  attendee_name: string
+  attendee_email: string
+  ticket_name: string
+  checked_in: boolean
+  checked_in_at?: string
+}
+
+export async function getSessionCheckInAttendees(
+  eventId: string,
+  sessionId: string,
+): Promise<SessionAttendeeRow[]> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  await assertOrgMember(supabase, user.id, eventId)
+
+  const { data } = await supabase
+    .from('registrations')
+    .select('id, attendee_name, attendee_email, ticket_types(name), check_ins!left(id, checked_in_at, session_id)')
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed')
+    .order('attendee_name')
+
+  return ((data ?? []) as any[]).map(r => {
+    const sessionCheckIn = (r.check_ins ?? []).find((c: any) => c.session_id === sessionId)
+    return {
+      registration_id: r.id,
+      attendee_name: r.attendee_name,
+      attendee_email: r.attendee_email,
+      ticket_name: r.ticket_types?.name ?? '',
+      checked_in: !!sessionCheckIn,
+      checked_in_at: sessionCheckIn?.checked_in_at,
+    }
+  })
+}
+
 export async function searchAttendeesForCheckIn(eventId: string, query: string) {
   const user = await requireUser()
   const supabase = await createClient()

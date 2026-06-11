@@ -360,6 +360,7 @@ async function confirmFreeRegistration(
     eventVenue:     [event.venue_name, event.venue_city, event.venue_state]
       .filter(Boolean).join(', ') || undefined,
     qrCode:    reg.qr_code,
+    pin:       reg.pin,
     orgName,
     orgEmail,
     virtualUrl: (event as any).virtual_url ?? undefined,

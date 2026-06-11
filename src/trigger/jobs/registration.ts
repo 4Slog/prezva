@@ -17,6 +17,7 @@ export const sendConfirmationEmail = schemaTask({
     agendaUrl:      z.string().optional(),
     eventVenue:     z.string().optional(),
     qrCode:         z.string(),
+    pin:            z.string(),
     orgName:        z.string(),
     virtualUrl:     z.string().optional(),
     eventType:      z.string().optional(),
@@ -127,6 +128,10 @@ export const sendConfirmationEmail = schemaTask({
             />
             <p style="color:#64748B;font-size:11px;margin:8px 0 0;font-family:monospace;">${payload.qrCode}</p>
           </div>
+          <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:12px 16px;margin:-12px 0 20px;text-align:center;">
+            <p style="color:#94A3B8;font-size:11px;margin:0 0 4px;">Check-in PIN (use with your email if you don&apos;t have your QR)</p>
+            <p style="color:#F0F4F8;font-size:22px;font-weight:700;margin:0;letter-spacing:6px;font-family:monospace;">${payload.pin}</p>
+          </div>
           ${['virtual','hybrid'].includes(payload.eventType ?? '') && payload.virtualUrl ? `
           <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Join link</p>
@@ -176,6 +181,7 @@ export const sendConfirmationEmail = schemaTask({
       payload.pressToken ? `Press portal: ${BASE_URL}/press/${payload.pressToken}` : '',
       ``,
       `Your check-in code: ${payload.qrCode}`,
+      `Your check-in PIN: ${payload.pin}  (use with your email if you don't have your QR code)`,
       ``,
       `Agenda:        ${agendaLink}`,
       `Add to calendar: ${icsUrl}`,

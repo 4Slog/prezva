@@ -35,6 +35,11 @@ export const speakerHandoutLimiter = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '1 h'), prefix: 'rl:handout' })
   : null
 
+// 5 email+PIN check-in attempts per IP per minute (prevents PIN brute force)
+export const pinLookupLimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 m'), prefix: 'rl:pin' })
+  : null
+
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string

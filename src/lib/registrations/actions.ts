@@ -206,7 +206,7 @@ export async function approveRegistration(registrationId: string) {
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, status, attendee_email, attendee_name, qr_code, press_token, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(id, name, email))')
+    .select('id, status, attendee_email, attendee_name, qr_code, pin, press_token, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(id, name, email))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -237,6 +237,7 @@ export async function approveRegistration(registrationId: string) {
     eventSlug: ev.slug,
     eventVenue: [ev.venue_name, ev.venue_city, ev.venue_state].filter(Boolean).join(', ') || undefined,
     qrCode: reg.qr_code,
+    pin: (reg as any).pin,
     orgName,
     orgEmail: ev?.organizations?.email || undefined,
     virtualUrl: ev.virtual_url || undefined,
@@ -314,7 +315,7 @@ export async function promoteFromWaitlist(registrationId: string) {
   const admin = createAdminClient()
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, status, attendee_email, attendee_name, qr_code, press_token, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(id, name, email))')
+    .select('id, status, attendee_email, attendee_name, qr_code, pin, press_token, event_id, events(title, slug, start_at, venue_name, venue_city, venue_state, virtual_url, event_type, organizations(id, name, email))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -343,6 +344,7 @@ export async function promoteFromWaitlist(registrationId: string) {
     eventSlug: ev.slug,
     eventVenue: [ev.venue_name, ev.venue_city, ev.venue_state].filter(Boolean).join(', ') || undefined,
     qrCode: reg.qr_code,
+    pin: (reg as any).pin,
     orgName,
     orgEmail: ev?.organizations?.email || undefined,
     virtualUrl: ev.virtual_url || undefined,

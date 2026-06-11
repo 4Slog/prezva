@@ -48,6 +48,9 @@ export default async function CheckInPage({ params }: Props) {
       .map(v => v.name.split(' ')[0]),
   } : null
 
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const eventSelfCheckInUrl = `${BASE_URL}/e/${slug}/self-checkin`
+
   return (
     <div className="p-6">
       <CheckInClient
@@ -56,6 +59,7 @@ export default async function CheckInPage({ params }: Props) {
         initialStats={initialStats}
         volunteerStatus={volunteerStatus}
         permissions={permissions}
+        eventSelfCheckInUrl={eventSelfCheckInUrl}
       />
     </div>
   )

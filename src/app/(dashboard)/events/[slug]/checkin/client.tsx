@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { AlertTriangle, Check, X } from 'lucide-react'
+import { AlertTriangle, Check, X, Copy, CheckCheck } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
 import { ManualSearch } from '@/components/checkin/ManualSearch'
 import { CheckInDashboard } from '@/components/checkin/CheckInDashboard'
@@ -9,6 +9,7 @@ import { checkInByQR, checkInBySearch, getCheckInStats } from '@/lib/checkin/act
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
 import { queueCheckIn, getPendingCount, syncPending } from '@/lib/checkin/offline-db'
 import { Gated } from '@/components/auth/Gated'
+import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
 function KioskClock() {
   const [time, setTime] = useState(() => new Date().toLocaleTimeString())
@@ -31,9 +32,10 @@ interface CheckInClientProps {
   initialStats: CheckInStats
   volunteerStatus?: VolunteerStatus | null
   permissions: string[]
+  eventSelfCheckInUrl?: string
 }
 
-type Tab = 'qr' | 'search' | 'stats'
+type Tab = 'qr' | 'search' | 'stats' | 'arrival-qr'
 
 const DEVICE_ID_KEY = 'prezva-device-id'
 
@@ -46,7 +48,7 @@ function getDeviceId(): string {
   return id
 }
 
-export function CheckInClient({ eventId, eventName, initialStats, volunteerStatus, permissions }: CheckInClientProps) {
+export function CheckInClient({ eventId, eventName, initialStats, volunteerStatus, permissions, eventSelfCheckInUrl }: CheckInClientProps) {
   const canCheckIn = permissions.includes('*') || permissions.includes('checkin.manage')
   const [tab, setTab] = useState<Tab>('qr')
   const [stats, setStats] = useState<CheckInStats>(initialStats)
@@ -59,6 +61,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
   const [kioskMode, setKioskMode] = useState(false)
   const [escCount, setEscCount] = useState(0)
   const escTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [urlCopied, setUrlCopied] = useState(false)
 
   const refreshPending = useCallback(async () => {
     const count = await getPendingCount(eventId)
@@ -164,6 +167,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
     { id: 'qr', label: 'QR Scanner' },
     { id: 'search', label: 'Name Search' },
     { id: 'stats', label: 'Dashboard' },
+    ...(eventSelfCheckInUrl ? [{ id: 'arrival-qr' as Tab, label: 'Arrival QR' }] : []),
   ]
 
   return (
@@ -287,6 +291,36 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
         )}
         {tab === 'stats' && (
           <CheckInDashboard stats={stats} onRefresh={refreshStats} volunteerStatus={volunteerStatus} />
+        )}
+        {tab === 'arrival-qr' && eventSelfCheckInUrl && (
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
+              Display this QR code at your arrival area. Attendees scan it to self-check-in using their confirmation email and PIN.
+            </p>
+            <div className="flex justify-center">
+              <QRDisplay qrCode={eventSelfCheckInUrl} />
+            </div>
+            <div
+              className="flex items-center gap-2 p-3 rounded-lg"
+              style={{ background: 'var(--pz-bg)', border: '1px solid var(--pz-border)' }}
+            >
+              <p className="flex-1 text-xs font-mono truncate" style={{ color: 'var(--pz-muted)' }}>
+                {eventSelfCheckInUrl}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(eventSelfCheckInUrl).then(() => {
+                    setUrlCopied(true)
+                    setTimeout(() => setUrlCopied(false), 2000)
+                  })
+                }}
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', cursor: 'pointer' }}
+              >
+                {urlCopied ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy URL</>}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

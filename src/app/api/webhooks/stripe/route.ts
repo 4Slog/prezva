@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
       eventVenue:     [ev?.venue_name, ev?.venue_city, ev?.venue_state]
         .filter(Boolean).join(', ') || undefined,
       qrCode:     reg.qr_code,
+      pin:        (reg as Record<string, unknown>).pin as string ?? '',
       orgName:    org?.name ?? 'Prezva',
       orgEmail:   org?.email || undefined,
       virtualUrl: (ev?.virtual_url as string) || undefined,
