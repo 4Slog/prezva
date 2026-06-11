@@ -187,9 +187,18 @@ export async function selfCheckInByEmailPin(
 ): Promise<SelfCheckInResult> {
   const GENERIC_ERROR = "Couldn't check you in — check your email and PIN, or see staff."
 
-  const ip = (await headers()).get('x-forwarded-for') ?? 'unknown'
-  const { limited } = await checkRateLimit(pinLookupLimiter, ip)
-  if (limited) return { success: false, error: GENERIC_ERROR }
+  const hdrs = await headers()
+  // x-vercel-forwarded-for is injected by the Vercel platform and cannot be
+  // spoofed by clients. x-forwarded-for is a fallback for local dev only.
+  const ip = hdrs.get('x-vercel-forwarded-for') ?? hdrs.get('x-forwarded-for') ?? 'unknown'
+
+  // Two independent rate limits: per-IP (volumetric) + per-email (account-level).
+  // Per-email ensures brute force is bounded even if an attacker rotates IPs.
+  const [ipCheck, emailCheck] = await Promise.all([
+    checkRateLimit(pinLookupLimiter, `ip:${ip}`),
+    checkRateLimit(pinLookupLimiter, `email:${email.toLowerCase()}`),
+  ])
+  if (ipCheck.limited || emailCheck.limited) return { success: false, error: GENERIC_ERROR }
 
   const admin = createAdminClient()
 
