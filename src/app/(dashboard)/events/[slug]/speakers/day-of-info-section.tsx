@@ -7,9 +7,10 @@ import { Field } from '@/components/ui/Field'
 type Props = {
   eventId: string
   initialValue: string
+  embedAction?: (eventId: string, text: string) => Promise<any>
 }
 
-export function DayOfInfoSection({ eventId, initialValue }: Props) {
+export function DayOfInfoSection({ eventId, initialValue, embedAction }: Props) {
   const [value, setValue] = useState(initialValue)
   const [saved, setSaved] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -18,7 +19,7 @@ export function DayOfInfoSection({ eventId, initialValue }: Props) {
     setValue(text)
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(async () => {
-      await updateSpeakerDayOfInfo(eventId, text)
+      await (embedAction ?? updateSpeakerDayOfInfo)(eventId, text)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     }, 800)

@@ -5,10 +5,21 @@ import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken
 import { Field } from '@/components/ui/Field'
 import { Gated } from '@/components/auth/Gated'
 
+type EmbedSpeakerActions = {
+  createSpeaker: (eventId: string, input: unknown) => Promise<any>
+  markSpeakerArrived: (eventId: string, speakerId: string) => Promise<any>
+  updateSpeaker?: (eventId: string, speakerId: string, patch: unknown) => Promise<any>
+  deleteSpeaker?: (eventId: string, speakerId: string) => Promise<any>
+  getOrgSpeakerLibrary: (eventId: string) => Promise<any[]>
+  addSpeakerFromLibrary: (eventId: string, orgSpeakerId: string) => Promise<any>
+}
+
 type Props = {
   event: any
   speakers: any[]
   permissions: string[]
+  embed?: boolean
+  embedActions?: EmbedSpeakerActions
 }
 
 const statusBadge: Record<string, { bg: string; label: string }> = {
@@ -17,7 +28,7 @@ const statusBadge: Record<string, { bg: string; label: string }> = {
   declined:  { bg: 'var(--pz-error, var(--pz-error))',     label: 'Declined' },
 }
 
-export function SpeakersOrgClient({ event, speakers: initialSpeakers, permissions }: Props) {
+export function SpeakersOrgClient({ event, speakers: initialSpeakers, permissions, embed, embedActions }: Props) {
   const [speakers, setSpeakers] = useState<any[]>(initialSpeakers)
   const [inviting, setInviting] = useState<string | null>(null)
   const [inviteResult, setInviteResult] = useState<Record<string, string>>({})
@@ -43,7 +54,11 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
   }
 
   async function markArrived(speakerId: string) {
-    await markSpeakerArrived(speakerId)
+    if (embed && embedActions) {
+      await embedActions.markSpeakerArrived(event.id, speakerId)
+    } else {
+      await markSpeakerArrived(speakerId)
+    }
     setSpeakers(prev => prev.map(sp =>
       sp.id === speakerId ? { ...sp, checked_in_at: new Date().toISOString() } : sp
     ))
@@ -54,7 +69,9 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
     if (!form.name.trim()) { setAddError('Name is required'); return }
     setAdding(true)
     setAddError('')
-    const result = await createSpeaker(event.id, form)
+    const result = embed && embedActions
+      ? await embedActions.createSpeaker(event.id, form)
+      : await createSpeaker(event.id, form)
     setAdding(false)
     if ((result as any).error) {
       setAddError((result as any).error)
@@ -69,14 +86,18 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
     setShowLibrary(true)
     if (libSpeakers.length > 0) return
     setLibLoading(true)
-    const lib = await getOrgSpeakerLibrary(event.org_id)
+    const lib = embed && embedActions
+      ? await embedActions.getOrgSpeakerLibrary(event.id)
+      : await getOrgSpeakerLibrary(event.org_id)
     setLibSpeakers(lib)
     setLibLoading(false)
   }
 
   async function addFromLib(orgSpeakerId: string) {
     setLibAdding(orgSpeakerId)
-    const result = await addSpeakerFromLibrary(event.id, orgSpeakerId)
+    const result = embed && embedActions
+      ? await embedActions.addSpeakerFromLibrary(event.id, orgSpeakerId)
+      : await addSpeakerFromLibrary(event.id, orgSpeakerId)
     setLibResult(prev => ({ ...prev, [orgSpeakerId]: (result as any).error ?? 'Added!' }))
     setLibAdding(null)
   }
@@ -251,26 +272,30 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
                 )}
               </div>
               <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-                <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium"
-                  style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: !sp.email ? 0.5 : 1 }}>
-                  {inviting === sp.id ? 'Sending…' : 'Send invite'}
-                </button>
-                <button
-                  onClick={async () => {
-                    const result = await renewSpeakerToken(sp.id)
-                    if ((result as any).ok) {
-                      await navigator.clipboard.writeText((result as any).hubUrl)
-                      setInviteResult(prev => ({ ...prev, [sp.id]: 'New link copied to clipboard!' }))
-                    }
-                  }}
-                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6,
-                           border: '1px solid var(--pz-border)', color: 'var(--pz-muted)',
-                           background: 'transparent', cursor: 'pointer' }}
-                  title="Generate a new portal link and resend invite email"
-                >
-                  ↻ Renew link
-                </button>
+                {!embed && (
+                  <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium"
+                    style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: !sp.email ? 0.5 : 1 }}>
+                    {inviting === sp.id ? 'Sending…' : 'Send invite'}
+                  </button>
+                )}
+                {!embed && (
+                  <button
+                    onClick={async () => {
+                      const result = await renewSpeakerToken(sp.id)
+                      if ((result as any).ok) {
+                        await navigator.clipboard.writeText((result as any).hubUrl)
+                        setInviteResult(prev => ({ ...prev, [sp.id]: 'New link copied to clipboard!' }))
+                      }
+                    }}
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6,
+                             border: '1px solid var(--pz-border)', color: 'var(--pz-muted)',
+                             background: 'transparent', cursor: 'pointer' }}
+                    title="Generate a new portal link and resend invite email"
+                  >
+                    ↻ Renew link
+                  </button>
+                )}
                 {!sp.checked_in_at ? (
                   <button onClick={() => markArrived(sp.id)}
                     className="rounded-lg px-3 py-1.5 text-xs font-medium"
