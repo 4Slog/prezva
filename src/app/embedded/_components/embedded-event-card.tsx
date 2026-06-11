@@ -108,6 +108,13 @@ export function EmbeddedEventCard({ event, tickets }: Props) {
             >
               Check-In
             </a>
+            <a
+              href={`/embedded/events/${event.id}/badges`}
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
+              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
+            >
+              Badges
+            </a>
             <button
               onClick={() => setPickerOpen(o => !o)}
               className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"

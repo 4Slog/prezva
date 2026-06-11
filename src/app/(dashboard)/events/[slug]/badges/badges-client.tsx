@@ -24,6 +24,15 @@ interface BadgeRule {
   templateId: string
 }
 
+interface EmbedBadgeActions {
+  saveToOrg: (templateId: string, orgId: string) => Promise<{ error?: string }>
+  copyToEvent: (templateId: string, eventId: string, orgId: string) => Promise<{ data: { id: string; name: string; paper_size: string; is_template?: boolean } | null; error: string | null }>
+  deleteTemplate: (templateId: string, eventId: string) => Promise<{ success?: boolean; error?: string }>
+  deleteOrgTemplate: (templateId: string) => Promise<{ success?: boolean; error?: string }>
+  updateRules: (eventId: string, rules: BadgeRule[]) => Promise<{ error?: string } | { ok: boolean }>
+  printUrlBase: string
+}
+
 interface Props {
   eventId: string
   orgId: string
@@ -32,9 +41,10 @@ interface Props {
   orgTemplates: BadgeTemplate[]
   badgeRules: BadgeRule[]
   ticketTypes: TicketType[]
+  embedActions?: EmbedBadgeActions
 }
 
-export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg, badgeRules: initialRules, ticketTypes }: Props) {
+export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg, badgeRules: initialRules, ticketTypes, embedActions }: Props) {
   const [eventTpls, setEventTpls] = useState(initial)
   const [saving, setSaving] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
@@ -54,7 +64,9 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   async function handleSaveToOrg(templateId: string) {
     setSaving(templateId)
     setError('')
-    const result = await saveAsOrgTemplate(templateId, orgId)
+    const result = embedActions
+      ? await embedActions.saveToOrg(templateId, orgId)
+      : await saveAsOrgTemplate(templateId, orgId)
     setSaving(null)
     if (result.error) setError(result.error)
     else setSuccess('Template saved to org library.')
@@ -63,6 +75,16 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   async function handleCopyToEvent(templateId: string) {
     setCopying(templateId)
     setError('')
+    if (embedActions) {
+      const result = await embedActions.copyToEvent(templateId, eventId, orgId)
+      setCopying(null)
+      if (result.error) { setError(result.error); return }
+      const newTpl = result.data as BadgeTemplate
+      setEventTpls(prev => [...prev, newTpl])
+      if (!defaultTemplateId) setDefaultTemplateId(newTpl.id)
+      setSuccess('Template copied to this event.')
+      return
+    }
     const supabase = createClient()
     const { data: tpl } = await supabase.from('badge_templates').select('*').eq('id', templateId).single()
     if (!tpl) { setCopying(null); setError('Template not found'); return }
@@ -85,7 +107,9 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   async function handleSaveRules() {
     setSavingRules(true)
     setError('')
-    const result = await updateBadgeRules(eventId, rules)
+    const result = embedActions
+      ? await embedActions.updateRules(eventId, rules)
+      : await updateBadgeRules(eventId, rules)
     setSavingRules(false)
     if (result && 'error' in result) setError(result.error ?? 'Failed to save rules')
     else setSuccess('Badge rules saved.')
@@ -106,11 +130,18 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   async function handleDelete(templateId: string) {
     setDeleting(templateId)
     setError('')
-    const supabase = createClient()
-    const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
-    setDeleting(null)
-    setConfirmDelete(null)
-    if (err) { setError(err.message); return }
+    if (embedActions) {
+      const result = await embedActions.deleteTemplate(templateId, eventId)
+      setDeleting(null)
+      setConfirmDelete(null)
+      if (result.error) { setError(result.error); return }
+    } else {
+      const supabase = createClient()
+      const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
+      setDeleting(null)
+      setConfirmDelete(null)
+      if (err) { setError(err.message); return }
+    }
     setEventTpls(prev => prev.filter(t => t.id !== templateId))
     if (defaultTemplateId === templateId) {
       const remaining = eventTpls.filter(t => t.id !== templateId)
@@ -122,11 +153,18 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
   async function handleDeleteOrg(templateId: string) {
     setDeletingOrg(templateId)
     setError('')
-    const supabase = createClient()
-    const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
-    setDeletingOrg(null)
-    setConfirmDeleteOrg(null)
-    if (err) { setError(err.message); return }
+    if (embedActions) {
+      const result = await embedActions.deleteOrgTemplate(templateId)
+      setDeletingOrg(null)
+      setConfirmDeleteOrg(null)
+      if (result.error) { setError(result.error); return }
+    } else {
+      const supabase = createClient()
+      const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
+      setDeletingOrg(null)
+      setConfirmDeleteOrg(null)
+      if (err) { setError(err.message); return }
+    }
     setOrgTpls(prev => prev.filter(t => t.id !== templateId))
     setSuccess('Org template deleted.')
   }
@@ -145,7 +183,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
           {defaultTemplateId && (
             <div className="flex items-center gap-2">
               <a
-                href={`/api/events/${eventId}/badges/print?templateId=${defaultTemplateId}`}
+                href={`${embedActions?.printUrlBase ?? `/api/events/${eventId}/badges/print`}?templateId=${defaultTemplateId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
@@ -196,7 +234,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                   <div className="flex items-center gap-2">
                     {/* Preview */}
                     <a
-                      href={`/api/events/${eventId}/badges/print?templateId=${t.id}&preview=1`}
+                      href={`${embedActions?.printUrlBase ?? `/api/events/${eventId}/badges/print`}?templateId=${t.id}&preview=1`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-70"
@@ -206,7 +244,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     </a>
                     {/* Print all attendees */}
                     <a
-                      href={`/api/events/${eventId}/badges/print?templateId=${t.id}`}
+                      href={`${embedActions?.printUrlBase ?? `/api/events/${eventId}/badges/print`}?templateId=${t.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
