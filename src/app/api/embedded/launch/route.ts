@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     // SameSite=None requires Secure. In local HTTP dev the cookie will be dropped
     // by the browser — test the flow using HTTPS or a tunneled URL.
     secure: process.env.NODE_ENV === 'production',
-    path: '/embedded',
+    path: '/',
     maxAge: 60 * 60, // 1 hour, matches token expiry
   })
 
