@@ -7,9 +7,9 @@ import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
-export type { CheckInResult, CheckInStats, RecentCheckIn } from '@/lib/checkin/actions'
+export type { CheckInResult, CheckInStats, RecentCheckIn, SessionAttendeeRow } from '@/lib/checkin/actions'
 
-import type { CheckInResult, CheckInStats, RecentCheckIn } from '@/lib/checkin/actions'
+import type { CheckInResult, CheckInStats, RecentCheckIn, SessionAttendeeRow } from '@/lib/checkin/actions'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -377,4 +377,182 @@ export async function searchAttendeesForCheckIn(eventId: string, query: string) 
     checked_in: (r.check_ins?.length ?? 0) > 0,
     check_in_time: r.check_ins?.[0]?.checked_in_at ?? null,
   }))
+}
+
+// ── Session-scope helpers ─────────────────────────────────────────────────────
+
+async function assertSessionOwnership(
+  db: ReturnType<typeof createAdminClient>,
+  eventId: string,
+  sessionId: string,
+) {
+  const { data } = await db
+    .from('sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .eq('event_id', eventId)
+    .maybeSingle()
+  if (!data) throw new Error('Session not found or access denied')
+}
+
+// ── Session check-in actions ──────────────────────────────────────────────────
+
+export async function embedScanIntoSession(
+  eventId: string,
+  sessionId: string,
+  qrCode: string,
+  deviceId = 'embed',
+): Promise<CheckInResult> {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+  await assertSessionOwnership(db, eventId, sessionId)
+
+  const { data: reg, error: regErr } = await db
+    .from('registrations')
+    .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+    .eq('event_id', eventId)
+    .eq('qr_code', qrCode.toLowerCase())
+    .single()
+
+  if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
+  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+
+  const { data: existing } = await db
+    .from('check_ins')
+    .select('id, checked_in_at')
+    .eq('registration_id', (reg as any).id)
+    .eq('session_id', sessionId)
+    .maybeSingle()
+
+  if (existing) {
+    return {
+      success: true,
+      registration: {
+        id: (reg as any).id,
+        attendee_name: (reg as any).attendee_name,
+        attendee_email: (reg as any).attendee_email,
+        ticket_name: (reg as any).ticket_types?.name ?? '',
+        already_checked_in: true,
+        check_in_time: (existing as any).checked_in_at,
+      },
+    }
+  }
+
+  const { error: ciErr } = await db.from('check_ins').insert({
+    event_id: eventId,
+    session_id: sessionId,
+    registration_id: (reg as any).id,
+    checked_in_by: null,
+    checked_in_source: 'embed',
+    method: 'qr_scan',
+    device_id: deviceId,
+    synced_at: new Date().toISOString(),
+  })
+
+  if (ciErr) return { success: false, error: ciErr.message }
+
+  return {
+    success: true,
+    registration: {
+      id: (reg as any).id,
+      attendee_name: (reg as any).attendee_name,
+      attendee_email: (reg as any).attendee_email,
+      ticket_name: (reg as any).ticket_types?.name ?? '',
+      already_checked_in: false,
+    },
+  }
+}
+
+export async function embedManualMarkSession(
+  eventId: string,
+  sessionId: string,
+  registrationId: string,
+  deviceId = 'embed',
+): Promise<CheckInResult> {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+  await assertSessionOwnership(db, eventId, sessionId)
+
+  const { data: reg } = await db
+    .from('registrations')
+    .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+    .eq('id', registrationId)
+    .eq('event_id', eventId)
+    .single()
+
+  if (!reg) return { success: false, error: 'Attendee not found' }
+  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+
+  const { data: existing } = await db
+    .from('check_ins')
+    .select('id, checked_in_at')
+    .eq('registration_id', registrationId)
+    .eq('session_id', sessionId)
+    .maybeSingle()
+
+  if (existing) {
+    return {
+      success: true,
+      registration: {
+        id: (reg as any).id,
+        attendee_name: (reg as any).attendee_name,
+        attendee_email: (reg as any).attendee_email,
+        ticket_name: (reg as any).ticket_types?.name ?? '',
+        already_checked_in: true,
+        check_in_time: (existing as any).checked_in_at,
+      },
+    }
+  }
+
+  const { error } = await db.from('check_ins').insert({
+    event_id: eventId,
+    session_id: sessionId,
+    registration_id: registrationId,
+    checked_in_by: null,
+    checked_in_source: 'embed',
+    method: 'manual',
+    device_id: deviceId,
+    synced_at: new Date().toISOString(),
+  })
+
+  if (error) return { success: false, error: error.message }
+
+  return {
+    success: true,
+    registration: {
+      id: (reg as any).id,
+      attendee_name: (reg as any).attendee_name,
+      attendee_email: (reg as any).attendee_email,
+      ticket_name: (reg as any).ticket_types?.name ?? '',
+      already_checked_in: false,
+    },
+  }
+}
+
+export async function embedGetSessionCheckInAttendees(
+  eventId: string,
+  sessionId: string,
+): Promise<SessionAttendeeRow[]> {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+  await assertSessionOwnership(db, eventId, sessionId)
+
+  const { data } = await db
+    .from('registrations')
+    .select('id, attendee_name, attendee_email, ticket_types(name), check_ins!left(id, checked_in_at, session_id)')
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed')
+    .order('attendee_name')
+
+  return ((data ?? []) as any[]).map(r => {
+    const sessionCheckIn = (r.check_ins ?? []).find((c: any) => c.session_id === sessionId)
+    return {
+      registration_id: r.id,
+      attendee_name: r.attendee_name,
+      attendee_email: r.attendee_email,
+      ticket_name: r.ticket_types?.name ?? '',
+      checked_in: !!sessionCheckIn,
+      checked_in_at: sessionCheckIn?.checked_in_at,
+    }
+  })
 }

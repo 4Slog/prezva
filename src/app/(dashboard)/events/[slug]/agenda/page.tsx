@@ -50,6 +50,7 @@ export default async function AgendaPage({ params }: Props) {
         zoomConnected={integrationMap['zoom'] === 'connected'}
         teamsConnected={integrationMap['teams'] === 'connected'}
         customTypes={customTypes}
+        slug={slug}
       />
     </div>
   )

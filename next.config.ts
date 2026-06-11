@@ -52,6 +52,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/embedded/events/:eventId/sessions/:sessionId/checkin',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(self "https://app.gohighlevel.com"), microphone=(), geolocation=()',
+          },
+        ],
+      },
     ]
   },
 }

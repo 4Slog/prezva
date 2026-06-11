@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, X } from 'lucide-react'
+import { Pencil, ScanLine, X } from 'lucide-react'
 import type { Session, Track, Room } from '@/lib/agenda/actions'
 
 interface AgendaGridProps {
@@ -16,6 +16,7 @@ interface AgendaGridProps {
   teamsConnected?: boolean
   onSessionUpdated?: () => void
   typeColors?: Record<string, string>
+  getCheckinHref?: (sessionId: string) => string
 }
 
 function MeetingButton({ label, sessionId, orgId, provider, onDone }: {
@@ -46,7 +47,7 @@ function MeetingButton({ label, sessionId, orgId, provider, onDone }: {
   )
 }
 
-export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete, orgId, zoomConnected, teamsConnected, onSessionUpdated, typeColors = {} }: AgendaGridProps) {
+export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete, orgId, zoomConnected, teamsConnected, onSessionUpdated, typeColors = {}, getCheckinHref }: AgendaGridProps) {
   const fmtDay = (iso: string) =>
     new Date(iso).toLocaleDateString('en-CA', { timeZone: timezone })
 
@@ -145,6 +146,15 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
 
                 {/* Actions */}
                 <div className="flex gap-1 shrink-0">
+                  {getCheckinHref && (
+                    <a
+                      href={getCheckinHref(s.id)}
+                      className="p-1 rounded hover:bg-black/10 text-xs"
+                      title="Check-in"
+                    >
+                      <ScanLine size={14} />
+                    </a>
+                  )}
                   <button
                     onClick={() => onEdit(s)}
                     className="p-1 rounded hover:bg-black/10 text-xs"

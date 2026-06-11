@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { AlertTriangle, Check, X } from 'lucide-react'
+import { AlertTriangle, Check, Copy, CheckCheck, X } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
 import { ManualSearch } from '@/components/checkin/ManualSearch'
 import { CheckInDashboard } from '@/components/checkin/CheckInDashboard'
@@ -13,8 +13,9 @@ import {
 } from '@/lib/embedded/checkin-actions'
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
 import { queueCheckIn, getPendingCount, syncPendingEmbed } from '@/lib/checkin/offline-db'
+import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
-type Tab = 'qr' | 'search' | 'stats'
+type Tab = 'qr' | 'search' | 'stats' | 'arrival-qr'
 
 const DEVICE_ID_KEY = 'prezva-device-id'
 
@@ -31,10 +32,12 @@ interface EmbedCheckInClientProps {
   eventId: string
   eventName: string
   initialStats: CheckInStats
+  arrivalUrl: string
 }
 
-export function EmbedCheckInClient({ eventId, eventName, initialStats }: EmbedCheckInClientProps) {
+export function EmbedCheckInClient({ eventId, eventName, initialStats, arrivalUrl }: EmbedCheckInClientProps) {
   const [tab, setTab] = useState<Tab>('qr')
+  const [arrivalCopied, setArrivalCopied] = useState(false)
   const [stats, setStats] = useState<CheckInStats>(initialStats)
   const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
   const [scanning, setScanning] = useState(false)
@@ -116,6 +119,7 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats }: EmbedCh
     { id: 'qr', label: 'QR Scanner' },
     { id: 'search', label: 'Name Search' },
     { id: 'stats', label: 'Dashboard' },
+    { id: 'arrival-qr', label: 'Arrival QR' },
   ]
 
   return (
@@ -216,6 +220,36 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats }: EmbedCh
         )}
         {tab === 'stats' && (
           <CheckInDashboard stats={stats} onRefresh={refreshStats} volunteerStatus={null} />
+        )}
+        {tab === 'arrival-qr' && (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--pz-muted)]">
+              Attendees can scan this QR code to self-check-in when they arrive.
+            </p>
+            <div className="flex justify-center">
+              <QRDisplay qrCode={arrivalUrl} />
+            </div>
+            <div
+              className="flex items-center gap-2 p-3 rounded-lg"
+              style={{ background: 'var(--pz-bg)', border: '1px solid var(--pz-border)' }}
+            >
+              <p className="flex-1 text-xs font-mono truncate" style={{ color: 'var(--pz-muted)' }}>
+                {arrivalUrl}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(arrivalUrl).then(() => {
+                    setArrivalCopied(true)
+                    setTimeout(() => setArrivalCopied(false), 2000)
+                  })
+                }}
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', cursor: 'pointer' }}
+              >
+                {arrivalCopied ? <><CheckCheck size={12} /> Copied</> : <><Copy size={12} /> Copy URL</>}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

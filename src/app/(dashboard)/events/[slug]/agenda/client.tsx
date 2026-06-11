@@ -44,6 +44,7 @@ interface AgendaClientProps {
   customTypes?: OrgSessionType[]
   embed?: boolean
   embedActions?: EmbedAgendaActions
+  slug?: string
 }
 
 const SESSION_FIELDS = [
@@ -385,7 +386,7 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
   )
 }
 
-export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks: initialTracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected, customTypes: initialCustomTypes = [], embed = false, embedActions }: AgendaClientProps) {
+export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks: initialTracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected, customTypes: initialCustomTypes = [], embed = false, embedActions, slug = '' }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -894,6 +895,10 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         teamsConnected={teamsConnected}
         onSessionUpdated={reload}
         typeColors={typeColors}
+        getCheckinHref={embed
+          ? (sid) => `/embedded/events/${eventId}/sessions/${sid}/checkin`
+          : (sid) => `/events/${slug}/sessions/${sid}/checkin`
+        }
       />
 
       {!embed && <LivePollsPanel eventId={eventId} sessions={sessions} />}
