@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
       { source: '/checkin/:path*',        headers: [checkinPermissions] },
       { source: '/events/:slug/check-in', headers: [checkinPermissions] },
       { source: '/events/:slug/checkin',  headers: [checkinPermissions] },
+      { source: '/events/:slug/sessions/:sessionId/checkin', headers: [checkinPermissions] },
       {
         source: '/embedded/events/:eventId/checkin',
         headers: [
