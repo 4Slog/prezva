@@ -7,12 +7,12 @@ ALTER TABLE public.registrations
   ADD COLUMN IF NOT EXISTS pin text;
 
 UPDATE public.registrations
-  SET pin = lpad((('x' || encode(gen_random_bytes(4), 'hex'))::bit(32)::int & 2147483647) % 1000000, 6, '0')
+  SET pin = lpad(((('x' || encode(gen_random_bytes(4), 'hex'))::bit(32)::int & 2147483647) % 1000000)::text, 6, '0')
   WHERE pin IS NULL;
 
 ALTER TABLE public.registrations
   ALTER COLUMN pin SET NOT NULL,
-  ALTER COLUMN pin SET DEFAULT lpad((('x' || encode(gen_random_bytes(4), 'hex'))::bit(32)::int & 2147483647) % 1000000, 6, '0');
+  ALTER COLUMN pin SET DEFAULT lpad(((('x' || encode(gen_random_bytes(4), 'hex'))::bit(32)::int & 2147483647) % 1000000)::text, 6, '0');
 
 -- ── sessions.session_qr_token ──────────────────────────────────────────────────
 -- URL-safe hex token used to key the attendee session self-scan route.
