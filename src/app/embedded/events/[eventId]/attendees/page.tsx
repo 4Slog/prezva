@@ -51,15 +51,6 @@ export default async function EmbedAttendeesPage({ params }: Props) {
 
   return (
     <div className="p-6">
-      <div className="mb-4">
-        <a
-          href="/embedded/events"
-          className="text-xs"
-          style={{ color: 'var(--pz-muted)' }}
-        >
-          ← Events
-        </a>
-      </div>
       <EmbedAttendeesClient
         eventId={eventId}
         eventName={(eventResult.data as any).title}

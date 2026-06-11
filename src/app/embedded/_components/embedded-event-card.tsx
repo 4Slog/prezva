@@ -95,25 +95,11 @@ export function EmbeddedEventCard({ event, tickets }: Props) {
           {/* Action links */}
           <div className="flex shrink-0 items-center gap-1.5">
             <a
-              href={`/embedded/events/${event.id}/attendees`}
-              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
-              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
+              href={`/embedded/events/${event.id}`}
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
             >
-              Attendees
-            </a>
-            <a
-              href={`/embedded/events/${event.id}/checkin`}
-              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
-              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
-            >
-              Check-In
-            </a>
-            <a
-              href={`/embedded/events/${event.id}/badges`}
-              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
-              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
-            >
-              Badges
+              Manage event →
             </a>
             <button
               onClick={() => setPickerOpen(o => !o)}

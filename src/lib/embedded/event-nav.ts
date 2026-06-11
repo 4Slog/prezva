@@ -1,0 +1,111 @@
+import type { ComponentType, CSSProperties } from 'react'
+import {
+  Award,
+  BarChart2,
+  Bell,
+  Brain,
+  Building,
+  CalendarDays,
+  Clock,
+  Image,
+  LayoutDashboard,
+  MapPin,
+  Mic,
+  Network,
+  RefreshCw,
+  ScanLine,
+  Settings,
+  Sparkles,
+  Tag,
+  Ticket,
+  Trophy,
+  UserCheck,
+  Users,
+} from 'lucide-react'
+
+type Icon = ComponentType<{ size?: number; style?: CSSProperties; className?: string }>
+
+export interface EmbedNavItem {
+  label: string
+  href: string
+  icon: Icon
+  external?: boolean
+  built?: boolean
+}
+
+export interface EmbedNavGroup {
+  id: string
+  label: string
+  icon: Icon
+  items: EmbedNavItem[]
+}
+
+export { LayoutDashboard as EmbedOverviewIcon }
+
+export function buildEmbedEventNav(eventId: string): {
+  overviewHref: string
+  groups: EmbedNavGroup[]
+} {
+  const base = `/embedded/events/${eventId}`
+
+  return {
+    overviewHref: base,
+    groups: [
+      {
+        id: 'people',
+        label: 'People',
+        icon: Users,
+        items: [
+          { label: 'Attendees',    href: `${base}/attendees`,    icon: Users,     built: true },
+          { label: 'Check-in',     href: `${base}/checkin`,      icon: ScanLine,  built: true },
+          { label: 'Tickets',      href: `${base}/tickets`,      icon: Ticket,    external: true },
+          { label: 'Badges',       href: `${base}/badges`,       icon: Tag,       built: true },
+          { label: 'Certificates', href: `${base}/certificates`, icon: Award,     external: true },
+          { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck },
+        ],
+      },
+      {
+        id: 'program',
+        label: 'Program',
+        icon: CalendarDays,
+        items: [
+          { label: 'Agenda',      href: `${base}/agenda`,      icon: CalendarDays },
+          { label: 'Speakers',    href: `${base}/speakers`,    icon: Mic },
+          { label: 'Run of show', href: `${base}/run-of-show`, icon: Clock },
+        ],
+      },
+      {
+        id: 'engagement',
+        label: 'Engagement',
+        icon: Sparkles,
+        items: [
+          { label: 'Networking',    href: `${base}/networking`,    icon: Network },
+          { label: 'Icebreakers',   href: `${base}/icebreakers`,   icon: Sparkles },
+          { label: 'Trivia',        href: `${base}/trivia`,        icon: Brain },
+          { label: 'Leaderboard',   href: `${base}/leaderboard`,   icon: Trophy },
+          { label: 'Passport',      href: `${base}/passport`,      icon: MapPin },
+          { label: 'Announcements', href: `${base}/announcements`, icon: Bell },
+          { label: 'Photos',        href: `${base}/photos`,        icon: Image },
+        ],
+      },
+      {
+        id: 'sponsors',
+        label: 'Sponsors',
+        icon: Building,
+        items: [
+          { label: 'Sponsors', href: `${base}/sponsors`, icon: Building },
+        ],
+      },
+      {
+        id: 'admin',
+        label: 'Admin',
+        icon: BarChart2,
+        items: [
+          { label: 'Event settings', href: `${base}/settings`,    icon: Settings },
+          { label: 'Analytics',      href: `${base}/analytics`,   icon: BarChart2 },
+          { label: 'Sync health',    href: `${base}/sync-health`, icon: RefreshCw },
+        ],
+      },
+    ],
+  }
+}

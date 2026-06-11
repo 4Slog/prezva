@@ -44,15 +44,6 @@ export default async function EmbedCheckInPage({ params }: Props) {
 
   return (
     <div className="p-6">
-      <div className="mb-4">
-        <a
-          href="/embedded/events"
-          className="text-xs"
-          style={{ color: 'var(--pz-muted)' }}
-        >
-          ← Events
-        </a>
-      </div>
       <EmbedCheckInClient
         eventId={eventId}
         eventName={(event as any).title}
