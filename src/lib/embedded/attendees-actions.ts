@@ -103,7 +103,8 @@ export async function getAttendees(
     .eq('event_id', eventId)
 
   if (filters.search) {
-    const s = filters.search
+    // Escape PostgREST filter metacharacters to prevent filter injection
+    const s = filters.search.replace(/\\/g, '\\\\').replace(/[,()]/g, m => '\\' + m)
     query = (query as any).or(`attendee_name.ilike.%${s}%,attendee_email.ilike.%${s}%`)
   }
   if (filters.status) query = query.eq('status', filters.status)
