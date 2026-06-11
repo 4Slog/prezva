@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit/log'
 import { checkRateLimit, pinLookupLimiter } from '@/lib/ratelimit'
 
@@ -93,6 +94,11 @@ export async function selfCheckInRegistration(
   registrationId: string,
   sessionId: string | null,
 ): Promise<SelfCheckInResult> {
+  // Verify caller is the registration owner before doing anything with admin client
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in.' }
+
   const admin = createAdminClient()
 
   const { data: reg } = await admin
@@ -101,7 +107,8 @@ export async function selfCheckInRegistration(
     .eq('id', registrationId)
     .maybeSingle()
 
-  if (!reg) return { success: false, error: 'Registration not found.' }
+  // Ownership guard — generic error to avoid leaking registration existence
+  if (!reg || (reg as any).user_id !== user.id) return { success: false, error: 'Registration not found.' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'This registration has been cancelled.' }
   if ((reg as any).status !== 'confirmed') return { success: false, error: 'Your registration is not confirmed.' }
 
