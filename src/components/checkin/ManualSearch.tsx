@@ -6,6 +6,7 @@ import { searchAttendeesForCheckIn } from '@/lib/checkin/actions'
 interface ManualSearchProps {
   eventId: string
   onCheckIn: (registrationId: string) => void
+  onSearch?: (eventId: string, query: string) => Promise<AttendeeRow[]>
 }
 
 interface AttendeeRow {
@@ -20,19 +21,21 @@ interface AttendeeRow {
 
 type DeliveryFilter = 'all' | 'in_person' | 'virtual'
 
-export function ManualSearch({ eventId, onCheckIn }: ManualSearchProps) {
+export function ManualSearch({ eventId, onCheckIn, onSearch }: ManualSearchProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<AttendeeRow[]>([])
   const [searching, setSearching] = useState(false)
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryFilter>('all')
 
+  const searchFn = onSearch ?? searchAttendeesForCheckIn
+
   const search = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return }
     setSearching(true)
-    const data = await searchAttendeesForCheckIn(eventId, q)
+    const data = await searchFn(eventId, q)
     setResults(data as AttendeeRow[])
     setSearching(false)
-  }, [eventId])
+  }, [eventId, searchFn])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value

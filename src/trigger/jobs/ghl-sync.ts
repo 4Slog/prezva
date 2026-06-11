@@ -1,7 +1,7 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
-import { ghlPost } from '@/lib/integrations/ghl/client'
+import { ghlPost, ghlPut } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
 import { GHL_EVENTS_PIPELINE_ID, GHL_STAGE_IDS, GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
 
@@ -59,6 +59,25 @@ export const ghlSyncTask = schemaTask({
           updated_at:         new Date().toISOString(),
         })
         .eq('id', payload.syncStateId)
+
+      // Self-heal: if a check-in arrived before the opportunity was created,
+      // apply the parked stage now that we have the opportunity id.
+      if (ghlOpportunityId) {
+        const { data: syncRow } = await admin
+          .from('ghl_sync_state')
+          .select('pending_stage_id')
+          .eq('id', payload.syncStateId)
+          .single()
+        if (syncRow?.pending_stage_id) {
+          try {
+            await ghlPut(token, `/opportunities/${ghlOpportunityId}`, {
+              pipelineStageId: syncRow.pending_stage_id,
+            })
+          } catch (e) {
+            console.error('[ghl-sync] pending_stage_id apply failed:', e)
+          }
+        }
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
 

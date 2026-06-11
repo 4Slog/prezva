@@ -72,3 +72,34 @@ export async function syncPending(eventId: string): Promise<{ processed: number;
 
   return { processed: result.processed, failed: result.errors.length }
 }
+
+// Embed variant — calls the embed-authed sync endpoint (session cookie, no user session required)
+export async function syncPendingEmbed(eventId: string): Promise<{ processed: number; failed: number }> {
+  const db = getOfflineDB()
+  const pending = await db.pending
+    .where({ eventId, synced: false })
+    .toArray()
+
+  if (pending.length === 0) return { processed: 0, failed: 0 }
+
+  const deviceId = pending[0].deviceId
+  const res = await fetch(`/api/embedded/events/${eventId}/checkin/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      deviceId,
+      entries: pending.map(p => ({ qr_code: p.qrCode, scanned_at: p.scannedAt })),
+    }),
+  })
+
+  if (!res.ok) return { processed: 0, failed: pending.length }
+
+  const result = await res.json() as { processed: number; total: number; errors: string[]; failedQrCodes?: string[] }
+  const failedSet = new Set((result.failedQrCodes ?? []).map(q => q.toLowerCase()))
+  const successfulIds = pending.filter(p => !failedSet.has(p.qrCode.toLowerCase())).map(p => p.id!)
+  if (successfulIds.length > 0) {
+    await db.pending.where('id').anyOf(successfulIds).modify({ synced: true })
+  }
+
+  return { processed: result.processed, failed: result.errors.length }
+}

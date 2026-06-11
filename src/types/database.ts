@@ -593,6 +593,7 @@ export type Database = {
         Row: {
           checked_in_at: string | null
           checked_in_by: string | null
+          checked_in_source: string
           device_id: string | null
           event_id: string
           id: string
@@ -604,6 +605,7 @@ export type Database = {
         Insert: {
           checked_in_at?: string | null
           checked_in_by?: string | null
+          checked_in_source?: string
           device_id?: string | null
           event_id: string
           id?: string
@@ -615,6 +617,7 @@ export type Database = {
         Update: {
           checked_in_at?: string | null
           checked_in_by?: string | null
+          checked_in_source?: string
           device_id?: string | null
           event_id?: string
           id?: string
@@ -1653,6 +1656,7 @@ export type Database = {
           last_error: string | null
           location_id: string
           payload_hash: string
+          pending_stage_id: string | null
           retries: number
           source: string
           status: string
@@ -1669,6 +1673,7 @@ export type Database = {
           last_error?: string | null
           location_id: string
           payload_hash: string
+          pending_stage_id?: string | null
           retries?: number
           source: string
           status?: string
@@ -1685,6 +1690,7 @@ export type Database = {
           last_error?: string | null
           location_id?: string
           payload_hash?: string
+          pending_stage_id?: string | null
           retries?: number
           source?: string
           status?: string

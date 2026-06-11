@@ -92,23 +92,39 @@ export function EmbeddedEventCard({ event, tickets }: Props) {
               </span>
             )}
           </div>
-          {/* Link GHL Product button */}
-          <button
-            onClick={() => setPickerOpen(o => !o)}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
-            style={{
-              border: '1px solid var(--pz-border)',
-              color: pickerOpen ? 'var(--pz-teal)' : 'var(--pz-muted)',
-              background: pickerOpen
-                ? 'color-mix(in srgb, var(--pz-teal) 8%, var(--pz-surface))'
-                : 'var(--pz-surface-2)',
-            }}
-          >
-            <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5z" />
-            </svg>
-            Link GHL product
-          </button>
+          {/* Action links */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <a
+              href={`/embedded/events/${event.id}/attendees`}
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
+              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
+            >
+              Attendees
+            </a>
+            <a
+              href={`/embedded/events/${event.id}/checkin`}
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
+              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
+            >
+              Check-In
+            </a>
+            <button
+              onClick={() => setPickerOpen(o => !o)}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-75"
+              style={{
+                border: '1px solid var(--pz-border)',
+                color: pickerOpen ? 'var(--pz-teal)' : 'var(--pz-muted)',
+                background: pickerOpen
+                  ? 'color-mix(in srgb, var(--pz-teal) 8%, var(--pz-surface))'
+                  : 'var(--pz-surface-2)',
+              }}
+            >
+              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5z" />
+              </svg>
+              Link GHL product
+            </button>
+          </div>
         </div>
         <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
           {formatDate(event.start_at)}

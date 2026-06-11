@@ -11,6 +11,7 @@ import type { sendVolunteerThankYouEmail } from '@/trigger/jobs/volunteer-thank-
 import type { sendCertificateEmail } from '@/trigger/jobs/certificate-email'
 import type { sendSpeakerInviteEmail } from '@/trigger/jobs/speaker-invite'
 import type { ghlSyncTask } from '@/trigger/jobs/ghl-sync'
+import type { ghlStageMoveTask } from '@/trigger/jobs/ghl-stage-move'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -145,6 +146,25 @@ export async function enqueueGhlSync(payload: GhlSyncPayload) {
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue GHL sync:', err)
+    return null
+  }
+}
+
+type GhlStageMovePayload = Parameters<typeof ghlStageMoveTask.trigger>[0]
+
+export async function enqueueGhlStageMove(payload: GhlStageMovePayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping GHL stage move')
+    return null
+  }
+  try {
+    const handle = await tasks.trigger<typeof ghlStageMoveTask>(
+      'ghl-stage-move',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue GHL stage move:', err)
     return null
   }
 }
