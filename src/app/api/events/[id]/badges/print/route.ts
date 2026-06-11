@@ -55,6 +55,30 @@ function resolve(value: string, bindings: BindingMap): string {
   )
 }
 
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function safeImgSrc(src: string): string {
+  if (!src) return ''
+  try {
+    const url = new URL(src)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+  } catch {
+    return ''
+  }
+  return escHtml(src)
+}
+
+function sanitizeZpl(s: string): string {
+  return s.replace(/[\^~]/g, '')
+}
+
 async function buildQrDataUrl(value: string): Promise<string> {
   return QRCode.toDataURL(value, { width: 120, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
 }
@@ -69,14 +93,16 @@ function fieldToHtml(field: BadgeField, bindings: BindingMap, qrDataUrl: string)
   }
 
   if (field.type === 'image') {
-    const src = field.binding ? (bindings[field.binding] ?? '') : ''
+    const raw = field.binding ? (bindings[field.binding] ?? '') : ''
+    const src = safeImgSrc(raw)
     if (!src) return ''
     const radius = field.shape === 'circle' ? 'border-radius:50%;' : ''
     return `<img src="${src}" style="${base}${radius}object-fit:contain;width:${mm(field.w)};height:${mm(field.h)};" />`
   }
 
   // text field
-  const text = field.static ?? (field.binding ? resolve(`{${field.binding}}`, bindings) : '')
+  const raw = field.static ?? (field.binding ? resolve(`{${field.binding}}`, bindings) : '')
+  const text = escHtml(raw)
   const fs = field.font_size ? `font-size:${field.font_size}pt;` : ''
   const fw = field.weight === 'bold' ? 'font-weight:700;' : 'font-weight:400;'
   const ta = field.align ? `text-align:${field.align};` : 'text-align:left;'
@@ -115,7 +141,8 @@ function fieldToZpl(field: BadgeField, bindings: BindingMap): string {
 
   if (field.type !== 'text') return ''
 
-  const text = field.static ?? (field.binding ? resolve(`{${field.binding}}`, bindings) : '')
+  const raw = field.static ?? (field.binding ? resolve(`{${field.binding}}`, bindings) : '')
+  const text = sanitizeZpl(raw)
   if (!text) return ''
   const fs = field.font_size ?? 12
   const zFont = fs >= 20 ? 'B' : 'A'
@@ -316,7 +343,7 @@ export async function GET(
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Badges — ${eventTitle}</title>
+<title>Badges — ${escHtml(eventTitle)}</title>
 <style>
   @page { size: ${width_mm}mm ${height_mm}mm; margin: 0; }
   body { margin: 0; padding: 0; background: #f0f0f0; }
