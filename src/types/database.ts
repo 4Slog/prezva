@@ -2410,6 +2410,44 @@ export type Database = {
           },
         ]
       }
+      org_session_types: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          label: string
+          org_id: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          org_id: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          org_id?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_session_types_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_speakers: {
         Row: {
           bio: string | null
@@ -3987,7 +4025,7 @@ export type Database = {
           recording_enabled: boolean
           recording_url: string | null
           room_id: string | null
-          session_type: Database["public"]["Enums"]["session_type"] | null
+          session_type: string | null
           simulive_scheduled_at: string | null
           simulive_started_at: string | null
           slides_url: string | null
@@ -4020,7 +4058,7 @@ export type Database = {
           recording_enabled?: boolean
           recording_url?: string | null
           room_id?: string | null
-          session_type?: Database["public"]["Enums"]["session_type"] | null
+          session_type?: string | null
           simulive_scheduled_at?: string | null
           simulive_started_at?: string | null
           slides_url?: string | null
@@ -4053,7 +4091,7 @@ export type Database = {
           recording_enabled?: boolean
           recording_url?: string | null
           room_id?: string | null
-          session_type?: Database["public"]["Enums"]["session_type"] | null
+          session_type?: string | null
           simulive_scheduled_at?: string | null
           simulive_started_at?: string | null
           slides_url?: string | null
@@ -5306,14 +5344,6 @@ export type Database = {
         | "cancelled"
         | "waitlisted"
         | "refunded"
-      session_type:
-        | "talk"
-        | "workshop"
-        | "panel"
-        | "keynote"
-        | "break"
-        | "networking"
-        | "other"
       survey_status: "draft" | "active" | "closed"
       ticket_type: "free" | "paid" | "donation"
     }

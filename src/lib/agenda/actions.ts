@@ -8,7 +8,20 @@ import { z } from 'zod'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export type SessionType = 'talk' | 'workshop' | 'panel' | 'keynote' | 'break' | 'networking' | 'other'
+export const BUILTIN_SESSION_TYPES = [
+  'talk', 'workshop', 'panel', 'keynote', 'break', 'networking', 'other',
+] as const
+export type SessionType = string
+
+export interface OrgSessionType {
+  id: string
+  org_id: string
+  slug: string
+  label: string
+  color: string | null
+  sort_order: number
+  created_at: string
+}
 
 export interface Track {
   id: string
@@ -80,6 +93,17 @@ async function assertOrgMember(
     .eq('org_id', (event as any).org_id).eq('user_id', userId).single()
   if (!member) throw new Error('Not authorised')
   return event
+}
+
+async function assertOrgAccess(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  orgId: string,
+) {
+  const { data } = await supabase
+    .from('org_members').select('role')
+    .eq('org_id', orgId).eq('user_id', userId).maybeSingle()
+  if (!data) throw new Error('Not authorised')
 }
 
 // ─── TRACKS ────────────────────────────────────────────────────────────────────
@@ -267,7 +291,7 @@ export async function deleteSpeaker(eventId: string, speakerId: string) {
 const SessionSchema = z.object({
   title: z.string().min(1),
   description: z.string().nullable().optional(),
-  session_type: z.enum(['talk', 'workshop', 'panel', 'keynote', 'break', 'networking', 'other']).default('talk'),
+  session_type: z.string().min(1).max(50).default('talk'),
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   track_id: z.string().uuid().nullable().optional(),
@@ -307,7 +331,18 @@ export async function createSession(eventId: string, input: unknown) {
   const parsed = SessionSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await assertOrgMember(supabase, user.id, eventId)
+  const orgId: string = (event as any).org_id
+  if (parsed.data.session_type) {
+    const { data: customTypes } = await supabase
+      .from('org_session_types').select('slug').eq('org_id', orgId)
+    const validSlugs = new Set([
+      ...(BUILTIN_SESSION_TYPES as readonly string[]),
+      ...(customTypes ?? []).map((t: any) => t.slug),
+    ])
+    if (!validSlugs.has(parsed.data.session_type))
+      return { error: `Unknown session type: ${parsed.data.session_type}` }
+  }
 
   const { speaker_ids, speaker_roles, ...sessionData } = parsed.data
   const { data: session, error } = await supabase
@@ -329,7 +364,18 @@ export async function updateSession(eventId: string, sessionId: string, input: u
   const parsed = SessionSchema.partial().safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await assertOrgMember(supabase, user.id, eventId)
+  const orgId: string = (event as any).org_id
+  if (parsed.data.session_type) {
+    const { data: customTypes } = await supabase
+      .from('org_session_types').select('slug').eq('org_id', orgId)
+    const validSlugs = new Set([
+      ...(BUILTIN_SESSION_TYPES as readonly string[]),
+      ...(customTypes ?? []).map((t: any) => t.slug),
+    ])
+    if (!validSlugs.has(parsed.data.session_type))
+      return { error: `Unknown session type: ${parsed.data.session_type}` }
+  }
 
   const { speaker_ids, speaker_roles, ...sessionData } = parsed.data as any
   const { data, error } = await supabase
@@ -373,4 +419,82 @@ export async function getAgenda(eventId: string) {
     getSpeakers(eventId),
   ])
   return { sessions, tracks, rooms, speakers }
+}
+
+// ─── ORG SESSION TYPES ─────────────────────────────────────────────────────────
+
+const OrgSessionTypeSchema = z.object({
+  label: z.string().min(1).max(50),
+  color: z.string().nullable().optional(),
+  sort_order: z.number().int().optional(),
+})
+
+function slugify(str: string): string {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+export async function getOrgSessionTypes(orgId: string): Promise<OrgSessionType[]> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  await assertOrgAccess(supabase, user.id, orgId)
+  const { data } = await supabase
+    .from('org_session_types').select('*').eq('org_id', orgId).order('sort_order')
+  return (data ?? []) as OrgSessionType[]
+}
+
+export async function createOrgSessionType(orgId: string, input: unknown) {
+  const user = await requireUser()
+  const parsed = OrgSessionTypeSchema.safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const supabase = await createClient()
+  await assertOrgAccess(supabase, user.id, orgId)
+  const slug = slugify(parsed.data.label)
+  if (!slug) return { error: 'Label produces an empty slug' }
+  if ((BUILTIN_SESSION_TYPES as readonly string[]).includes(slug))
+    return { error: `"${slug}" is a reserved built-in type` }
+  const { data, error } = await supabase
+    .from('org_session_types')
+    .insert({ org_id: orgId, slug, label: parsed.data.label, color: parsed.data.color ?? null, sort_order: parsed.data.sort_order ?? 0 })
+    .select().single()
+  if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'org_session_type.create', 'org_session_type', (data as any).id, { label: parsed.data.label })
+  revalidatePath('/events')
+  return { data: data as OrgSessionType }
+}
+
+export async function updateOrgSessionType(orgId: string, typeId: string, input: unknown) {
+  const user = await requireUser()
+  const parsed = OrgSessionTypeSchema.partial().safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const supabase = await createClient()
+  await assertOrgAccess(supabase, user.id, orgId)
+  const updates: Record<string, unknown> = {}
+  if (parsed.data.label !== undefined) {
+    const slug = slugify(parsed.data.label)
+    if (!slug) return { error: 'Label produces an empty slug' }
+    if ((BUILTIN_SESSION_TYPES as readonly string[]).includes(slug))
+      return { error: `"${slug}" is a reserved built-in type` }
+    updates.slug = slug
+    updates.label = parsed.data.label
+  }
+  if (parsed.data.color !== undefined) updates.color = parsed.data.color
+  if (parsed.data.sort_order !== undefined) updates.sort_order = parsed.data.sort_order
+  const { data, error } = await supabase
+    .from('org_session_types').update(updates).eq('id', typeId).eq('org_id', orgId).select().single()
+  if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'org_session_type.update', 'org_session_type', typeId)
+  revalidatePath('/events')
+  return { data: data as OrgSessionType }
+}
+
+export async function deleteOrgSessionType(orgId: string, typeId: string) {
+  const user = await requireUser()
+  const supabase = await createClient()
+  await assertOrgAccess(supabase, user.id, orgId)
+  const { error } = await supabase
+    .from('org_session_types').delete().eq('id', typeId).eq('org_id', orgId)
+  if (error) return { error: error.message }
+  await logAudit(supabase, null, user.id, 'org_session_type.delete', 'org_session_type', typeId)
+  revalidatePath('/events')
+  return { success: true }
 }

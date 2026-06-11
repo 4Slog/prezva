@@ -15,7 +15,8 @@
     "type-check": "tsc --noEmit",
     "validate": "bash ~/Xekin/scripts/validate/build.sh all",
     "create-buckets": "tsx --env-file=.env.local scripts/create-storage-buckets.ts",
-    "seed": "tsx --env-file=.env.local scripts/seed/run.ts"
+    "seed": "tsx --env-file=.env.local scripts/seed/run.ts",
+    "db:types": "supabase gen types typescript --project-id jmhxyyrleipcorvkmxfk --schema public > src/types/database.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

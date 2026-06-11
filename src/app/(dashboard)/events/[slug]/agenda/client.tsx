@@ -4,8 +4,14 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { Field } from '@/components/ui/Field'
 import { SessionForm } from '@/components/agenda/SessionForm'
 import { AgendaGrid } from '@/components/agenda/AgendaGrid'
-import { createSession, updateSession, deleteSession, createRoom, deleteRoom } from '@/lib/agenda/actions'
-import type { Session, Track, Room, Speaker } from '@/lib/agenda/actions'
+import {
+  createSession, updateSession, deleteSession,
+  createRoom, deleteRoom,
+  createTrack, updateTrack, deleteTrack,
+  createOrgSessionType, updateOrgSessionType, deleteOrgSessionType,
+  BUILTIN_SESSION_TYPES,
+} from '@/lib/agenda/actions'
+import type { Session, Track, Room, Speaker, OrgSessionType } from '@/lib/agenda/actions'
 import { createPoll, activatePoll, closePoll, showResults, getPollsForSession } from '@/lib/engagement/poll-actions'
 import { createClient } from '@/lib/supabase/client'
 
@@ -20,6 +26,7 @@ interface AgendaClientProps {
   sponsors?: { id: string; name: string }[]
   zoomConnected: boolean
   teamsConnected: boolean
+  customTypes?: OrgSessionType[]
 }
 
 const SESSION_FIELDS = [
@@ -361,17 +368,44 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
   )
 }
 
-export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected }: AgendaClientProps) {
+export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks: initialTracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected, customTypes: initialCustomTypes = [] }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
+
+  // ── Rooms manager ──
   const [roomsState, setRoomsState] = useState<Room[]>(initialRooms)
   const [showRooms, setShowRooms] = useState(false)
   const [newRoomName, setNewRoomName] = useState('')
   const [newRoomCap, setNewRoomCap] = useState('')
   const [newRoomHint, setNewRoomHint] = useState('')
   const [roomAdding, setRoomAdding] = useState(false)
+
+  // ── Tracks manager ──
+  const [tracksState, setTracksState] = useState<Track[]>(initialTracks)
+  const [showTracks, setShowTracks] = useState(false)
+  const [newTrackName, setNewTrackName] = useState('')
+  const [newTrackColor, setNewTrackColor] = useState('#3B82F6')
+  const [trackAdding, setTrackAdding] = useState(false)
+  const [editingTrackId, setEditingTrackId] = useState<string | null>(null)
+  const [editingTrackName, setEditingTrackName] = useState('')
+  const [editingTrackColor, setEditingTrackColor] = useState('')
+
+  // ── Session types manager ──
+  const [typesState, setTypesState] = useState<OrgSessionType[]>(initialCustomTypes)
+  const [showTypes, setShowTypes] = useState(false)
+  const [newTypeLabel, setNewTypeLabel] = useState('')
+  const [newTypeColor, setNewTypeColor] = useState('#6366f1')
+  const [typeAdding, setTypeAdding] = useState(false)
+  const [editingTypeId, setEditingTypeId] = useState<string | null>(null)
+  const [editingTypeLabel, setEditingTypeLabel] = useState('')
+  const [editingTypeColor, setEditingTypeColor] = useState('')
+
+  // ── typeColors map (slug → hex) for custom types only ──
+  const typeColors: Record<string, string> = Object.fromEntries(
+    typesState.filter(t => t.color).map(t => [t.slug, t.color as string])
+  )
 
   const reload = useCallback(async () => {
     const res = await fetch(`/api/events/${eventId}/agenda/sessions`)
@@ -426,6 +460,57 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   async function handleDeleteRoom(roomId: string) {
     await deleteRoom(eventId, roomId)
     setRoomsState(prev => prev.filter(r => r.id !== roomId))
+  }
+
+  async function handleAddTrack() {
+    if (!newTrackName.trim()) return
+    setTrackAdding(true)
+    const result = await createTrack(eventId, { name: newTrackName.trim(), color: newTrackColor })
+    setTrackAdding(false)
+    if (result && 'data' in result && result.data) {
+      setTracksState(prev => [...prev, result.data as Track])
+      setNewTrackName('')
+      setNewTrackColor('#3B82F6')
+    }
+  }
+
+  async function handleUpdateTrack(trackId: string) {
+    await updateTrack(eventId, trackId, { name: editingTrackName, color: editingTrackColor })
+    setTracksState(prev => prev.map(t =>
+      t.id === trackId ? { ...t, name: editingTrackName, color: editingTrackColor } : t
+    ))
+    setEditingTrackId(null)
+  }
+
+  async function handleDeleteTrack(trackId: string) {
+    await deleteTrack(eventId, trackId)
+    setTracksState(prev => prev.filter(t => t.id !== trackId))
+  }
+
+  async function handleAddType() {
+    if (!newTypeLabel.trim()) return
+    setTypeAdding(true)
+    const result = await createOrgSessionType(orgId, { label: newTypeLabel.trim(), color: newTypeColor })
+    setTypeAdding(false)
+    if (result && 'data' in result && result.data) {
+      setTypesState(prev => [...prev, result.data as OrgSessionType])
+      setNewTypeLabel('')
+      setNewTypeColor('#6366f1')
+    }
+  }
+
+  async function handleUpdateType(typeId: string) {
+    await updateOrgSessionType(orgId, typeId, { label: editingTypeLabel, color: editingTypeColor })
+    setTypesState(prev => prev.map(t =>
+      t.id === typeId ? { ...t, label: editingTypeLabel, color: editingTypeColor } : t
+    ))
+    setEditingTypeId(null)
+  }
+
+  async function handleDeleteType(typeId: string) {
+    if (!confirm('Delete this custom type? Sessions using it will keep the slug but it won\'t appear in the type picker.')) return
+    await deleteOrgSessionType(orgId, typeId)
+    setTypesState(prev => prev.filter(t => t.id !== typeId))
   }
 
   return (
@@ -547,17 +632,212 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         )}
       </div>
 
-      {/* Track legend */}
-      {tracks.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {tracks.map(t => (
-            <span key={t.id} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.color }} />
-              {t.name}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Manage Tracks */}
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+        <button
+          onClick={() => setShowTracks(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+        >
+          <span>Manage Tracks ({tracksState.length})</span>
+          <span className="text-[var(--text-muted)]">{showTracks ? '▲' : '▼'}</span>
+        </button>
+        {showTracks && (
+          <div className="border-t border-[var(--border)] p-4 space-y-3">
+            {tracksState.length === 0 ? (
+              <p className="text-xs text-[var(--text-muted)]">No tracks yet — add one below.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-[var(--text-muted)]">
+                    <th className="pb-2 font-medium">Name</th>
+                    <th className="pb-2 font-medium">Color</th>
+                    <th className="pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {tracksState.map(t => (
+                    <tr key={t.id} className="border-t border-[var(--border)]">
+                      {editingTrackId === t.id ? (
+                        <>
+                          <td className="py-2 pr-3">
+                            <input
+                              className="px-2 py-1 text-xs border border-[var(--border)] rounded bg-[var(--bg-page)] text-[var(--text-primary)] w-full"
+                              value={editingTrackName}
+                              onChange={e => setEditingTrackName(e.target.value)}
+                            />
+                          </td>
+                          <td className="py-2 pr-3">
+                            <input type="color" value={editingTrackColor} onChange={e => setEditingTrackColor(e.target.value)} className="h-7 w-10 rounded cursor-pointer border-0 p-0" />
+                          </td>
+                          <td className="py-2 text-right">
+                            <button onClick={() => handleUpdateTrack(t.id)} className="text-xs text-[var(--pz-teal-ink)] hover:underline mr-2">Save</button>
+                            <button onClick={() => setEditingTrackId(null)} className="text-xs text-[var(--text-muted)]">Cancel</button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-2 pr-3 font-medium flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                            {t.name}
+                          </td>
+                          <td className="py-2 pr-3 text-[var(--text-muted)] text-xs">{t.color}</td>
+                          <td className="py-2 text-right">
+                            <button
+                              onClick={() => { setEditingTrackId(t.id); setEditingTrackName(t.name); setEditingTrackColor(t.color) }}
+                              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] mr-2"
+                            >Edit</button>
+                            <button onClick={() => handleDeleteTrack(t.id)} className="text-xs text-red-400 hover:text-red-300">Delete</button>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <div className="flex gap-2 items-end pt-1">
+              <Field label="Name" htmlFor="track-name" required>
+                <input
+                  id="track-name"
+                  className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-36"
+                  placeholder="e.g. Main Stage"
+                  value={newTrackName}
+                  onChange={e => setNewTrackName(e.target.value)}
+                />
+              </Field>
+              <Field label="Color" htmlFor="track-color">
+                <input
+                  id="track-color"
+                  type="color"
+                  value={newTrackColor}
+                  onChange={e => setNewTrackColor(e.target.value)}
+                  className="h-9 w-14 rounded-lg cursor-pointer border border-[var(--border)] p-1 bg-[var(--bg-page)]"
+                />
+              </Field>
+              <button
+                onClick={handleAddTrack}
+                disabled={trackAdding || !newTrackName.trim()}
+                className="px-3 py-1.5 text-sm font-semibold rounded-lg disabled:opacity-50"
+                style={{ background: 'var(--brand-teal)', color: 'var(--pz-on-accent)' }}
+              >
+                {trackAdding ? 'Adding…' : '+ Add'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Session Types */}
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+        <button
+          onClick={() => setShowTypes(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+        >
+          <span>Session Types ({BUILTIN_SESSION_TYPES.length} built-in · {typesState.length} custom)</span>
+          <span className="text-[var(--text-muted)]">{showTypes ? '▲' : '▼'}</span>
+        </button>
+        {showTypes && (
+          <div className="border-t border-[var(--border)] p-4 space-y-4">
+            <div>
+              <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Built-in (fixed)</p>
+              <div className="flex flex-wrap gap-2">
+                {BUILTIN_SESSION_TYPES.map(slug => (
+                  <span key={slug} className="px-2 py-0.5 rounded-full text-xs bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border)]">
+                    {slug}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Custom</p>
+              {typesState.length === 0 ? (
+                <p className="text-xs text-[var(--text-muted)]">No custom types yet.</p>
+              ) : (
+                <table className="w-full text-sm mb-2">
+                  <thead>
+                    <tr className="text-left text-xs text-[var(--text-muted)]">
+                      <th className="pb-2 font-medium">Label</th>
+                      <th className="pb-2 font-medium">Slug</th>
+                      <th className="pb-2 font-medium">Color</th>
+                      <th className="pb-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {typesState.map(t => (
+                      <tr key={t.id} className="border-t border-[var(--border)]">
+                        {editingTypeId === t.id ? (
+                          <>
+                            <td className="py-2 pr-3" colSpan={2}>
+                              <input
+                                className="px-2 py-1 text-xs border border-[var(--border)] rounded bg-[var(--bg-page)] text-[var(--text-primary)] w-full"
+                                value={editingTypeLabel}
+                                onChange={e => setEditingTypeLabel(e.target.value)}
+                              />
+                            </td>
+                            <td className="py-2 pr-3">
+                              <input type="color" value={editingTypeColor || '#6366f1'} onChange={e => setEditingTypeColor(e.target.value)} className="h-7 w-10 rounded cursor-pointer border-0 p-0" />
+                            </td>
+                            <td className="py-2 text-right">
+                              <button onClick={() => handleUpdateType(t.id)} className="text-xs text-[var(--pz-teal-ink)] hover:underline mr-2">Save</button>
+                              <button onClick={() => setEditingTypeId(null)} className="text-xs text-[var(--text-muted)]">Cancel</button>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="py-2 pr-3 font-medium">
+                              <span className="flex items-center gap-1.5">
+                                {t.color && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />}
+                                {t.label}
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-[var(--text-muted)] text-xs font-mono">{t.slug}</td>
+                            <td className="py-2 pr-3 text-[var(--text-muted)] text-xs">{t.color ?? '—'}</td>
+                            <td className="py-2 text-right">
+                              <button
+                                onClick={() => { setEditingTypeId(t.id); setEditingTypeLabel(t.label); setEditingTypeColor(t.color ?? '#6366f1') }}
+                                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] mr-2"
+                              >Edit</button>
+                              <button onClick={() => handleDeleteType(t.id)} className="text-xs text-red-400 hover:text-red-300">Delete</button>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <div className="flex gap-2 items-end pt-1">
+                <Field label="Label" htmlFor="type-label" required>
+                  <input
+                    id="type-label"
+                    className="px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg bg-[var(--bg-page)] text-[var(--text-primary)] w-36"
+                    placeholder="e.g. Workshop+"
+                    value={newTypeLabel}
+                    onChange={e => setNewTypeLabel(e.target.value)}
+                  />
+                </Field>
+                <Field label="Color" htmlFor="type-color">
+                  <input
+                    id="type-color"
+                    type="color"
+                    value={newTypeColor}
+                    onChange={e => setNewTypeColor(e.target.value)}
+                    className="h-9 w-14 rounded-lg cursor-pointer border border-[var(--border)] p-1 bg-[var(--bg-page)]"
+                  />
+                </Field>
+                <button
+                  onClick={handleAddType}
+                  disabled={typeAdding || !newTypeLabel.trim()}
+                  className="px-3 py-1.5 text-sm font-semibold rounded-lg disabled:opacity-50"
+                  style={{ background: 'var(--brand-teal)', color: 'var(--pz-on-accent)' }}
+                >
+                  {typeAdding ? 'Adding…' : '+ Add'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {showForm && (
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
@@ -566,12 +846,13 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
           </h2>
           <SessionForm
             eventId={eventId}
-            tracks={tracks}
+            tracks={tracksState}
             rooms={roomsState}
             speakers={speakers}
             sponsors={sponsors}
             sessions={sessions}
             session={editing}
+            customTypes={typesState}
             onSave={handleSave}
             onCancel={handleCancel}
           />
@@ -580,7 +861,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
 
       <AgendaGrid
         sessions={sessions}
-        tracks={tracks}
+        tracks={tracksState}
         rooms={roomsState}
         timezone={timezone}
         onEdit={handleEdit}
@@ -589,6 +870,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         zoomConnected={zoomConnected}
         teamsConnected={teamsConnected}
         onSessionUpdated={reload}
+        typeColors={typeColors}
       />
 
       <LivePollsPanel eventId={eventId} sessions={sessions} />

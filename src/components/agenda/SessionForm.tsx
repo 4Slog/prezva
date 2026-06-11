@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import type { Track, Room, Speaker, Session } from '@/lib/agenda/actions'
+import type { Track, Room, Speaker, Session, OrgSessionType } from '@/lib/agenda/actions'
+import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/actions'
 import { Field } from '@/components/ui/Field'
 
 interface SessionSponsor {
@@ -17,11 +18,10 @@ interface SessionFormProps {
   sponsors?: SessionSponsor[]
   sessions?: Session[]
   session?: Session | null
+  customTypes?: OrgSessionType[]
   onSave: (data: Record<string, any>) => Promise<void>
   onCancel: () => void
 }
-
-const SESSION_TYPES = ['talk', 'workshop', 'panel', 'keynote', 'break', 'networking', 'other']
 
 const SPEAKER_ROLES = [
   { value: 'presenter', label: 'Presenter' },
@@ -35,7 +35,7 @@ const SPEAKER_ROLES = [
 function fmt(iso: string) { return iso ? iso.slice(0, 16) : '' }
 function toIso(local: string) { return local ? new Date(local).toISOString() : '' }
 
-export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions = [], session, onSave, onCancel }: SessionFormProps) {
+export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions = [], session, customTypes = [], onSave, onCancel }: SessionFormProps) {
   const [title, setTitle] = useState(session?.title ?? '')
   const [description, setDescription] = useState(session?.description ?? '')
   const [type, setType] = useState(session?.session_type ?? 'talk')
@@ -115,8 +115,25 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Type" htmlFor="sess-type">
-          <select id="sess-type" className={inputCls} value={type} onChange={e => setType(e.target.value as any)}>
-            {SESSION_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+          <select id="sess-type" className={inputCls} value={type} onChange={e => setType(e.target.value)}>
+            <optgroup label="Built-in">
+              {BUILTIN_SESSION_TYPES.map(t => (
+                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+              ))}
+            </optgroup>
+            {customTypes.length > 0 && (
+              <optgroup label="Custom">
+                {customTypes.map(t => (
+                  <option key={t.slug} value={t.slug}>{t.label}</option>
+                ))}
+              </optgroup>
+            )}
+            {/* Preserve unknown type if existing session has a deleted custom type */}
+            {type && !BUILTIN_SESSION_TYPES.includes(type as any) && !customTypes.some(t => t.slug === type) && (
+              <optgroup label="Unknown">
+                <option value={type}>{type}</option>
+              </optgroup>
+            )}
           </select>
         </Field>
         <Field label="Track" htmlFor="sess-track">

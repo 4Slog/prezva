@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { getAgenda } from '@/lib/agenda/actions'
+import { getAgenda, getOrgSessionTypes } from '@/lib/agenda/actions'
 import { getSponsors } from '@/lib/sponsors/actions'
 import { AgendaClient } from './client'
 
@@ -21,9 +21,10 @@ export default async function AgendaPage({ params }: Props) {
     .eq('org_id', (event as any).org_id).eq('user_id', user.id).single()
   if (!member) notFound()
 
-  const [{ sessions, tracks, rooms, speakers }, sponsors] = await Promise.all([
+  const [{ sessions, tracks, rooms, speakers }, sponsors, customTypes] = await Promise.all([
     getAgenda((event as any).id),
     getSponsors((event as any).id),
+    getOrgSessionTypes((event as any).org_id),
   ])
 
   const { data: integrations } = await supabase
@@ -48,6 +49,7 @@ export default async function AgendaPage({ params }: Props) {
         sponsors={sponsors as any}
         zoomConnected={integrationMap['zoom'] === 'connected'}
         teamsConnected={integrationMap['teams'] === 'connected'}
+        customTypes={customTypes}
       />
     </div>
   )

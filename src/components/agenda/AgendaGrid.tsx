@@ -15,6 +15,7 @@ interface AgendaGridProps {
   zoomConnected?: boolean
   teamsConnected?: boolean
   onSessionUpdated?: () => void
+  typeColors?: Record<string, string>
 }
 
 function MeetingButton({ label, sessionId, orgId, provider, onDone }: {
@@ -45,7 +46,7 @@ function MeetingButton({ label, sessionId, orgId, provider, onDone }: {
   )
 }
 
-export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete, orgId, zoomConnected, teamsConnected, onSessionUpdated }: AgendaGridProps) {
+export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, onDelete, orgId, zoomConnected, teamsConnected, onSessionUpdated, typeColors = {} }: AgendaGridProps) {
   const fmtDay = (iso: string) =>
     new Date(iso).toLocaleDateString('en-CA', { timeZone: timezone })
 
@@ -86,10 +87,13 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
             {new Date(day + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </h3>
           <div className="space-y-2">
-            {byDate[day].map(s => (
+            {byDate[day].map(s => {
+              const customHex = typeColors[s.session_type]
+              return (
               <div
                 key={s.id}
-                className={'flex items-start gap-3 p-3 rounded-xl border ' + (TYPE_COLORS[s.session_type] ?? TYPE_COLORS.other)}
+                className={customHex ? 'flex items-start gap-3 p-3 rounded-xl border' : 'flex items-start gap-3 p-3 rounded-xl border ' + (TYPE_COLORS[s.session_type] ?? TYPE_COLORS.other)}
+                style={customHex ? { backgroundColor: customHex + '22', borderColor: customHex, color: customHex } : undefined}
               >
                 {/* Time */}
                 <div className="text-xs font-mono shrink-0 pt-0.5 opacity-80">
@@ -157,7 +161,8 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
                   </button>
                 </div>
               </div>
-            ))}
+            )
+            })}
           </div>
         </div>
       ))}
