@@ -9,8 +9,8 @@ import {
   createRoom, deleteRoom,
   createTrack, updateTrack, deleteTrack,
   createOrgSessionType, updateOrgSessionType, deleteOrgSessionType,
-  BUILTIN_SESSION_TYPES,
 } from '@/lib/agenda/actions'
+import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/session-types'
 import type { Session, Track, Room, Speaker, OrgSessionType } from '@/lib/agenda/actions'
 import { createPoll, activatePoll, closePoll, showResults, getPollsForSession } from '@/lib/engagement/poll-actions'
 import { createClient } from '@/lib/supabase/client'

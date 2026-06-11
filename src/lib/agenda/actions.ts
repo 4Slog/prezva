@@ -5,12 +5,10 @@ import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { BUILTIN_SESSION_TYPES } from './session-types'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export const BUILTIN_SESSION_TYPES = [
-  'talk', 'workshop', 'panel', 'keynote', 'break', 'networking', 'other',
-] as const
 export type SessionType = string
 
 export interface OrgSessionType {

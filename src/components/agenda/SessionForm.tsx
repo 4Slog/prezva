@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Track, Room, Speaker, Session, OrgSessionType } from '@/lib/agenda/actions'
-import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/actions'
+import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/session-types'
 import { Field } from '@/components/ui/Field'
 
 interface SessionSponsor {
