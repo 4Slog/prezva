@@ -52,6 +52,13 @@ export default async function EmbedBadgesPage({ params }: Props) {
       </div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold" style={{ color: 'var(--pz-text)' }}>Badge templates</h1>
+        <a
+          href={`/embedded/events/${eventId}/badges/new`}
+          className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
+        >
+          + New badge template
+        </a>
       </div>
       <BadgesClient
         eventId={eventId}
