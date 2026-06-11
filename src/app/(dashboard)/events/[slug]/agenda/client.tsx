@@ -15,6 +15,21 @@ import type { Session, Track, Room, Speaker, OrgSessionType } from '@/lib/agenda
 import { createPoll, activatePoll, closePoll, showResults, getPollsForSession } from '@/lib/engagement/poll-actions'
 import { createClient } from '@/lib/supabase/client'
 
+interface EmbedAgendaActions {
+  reloadSessions: (eventId: string) => Promise<Session[]>
+  createSession: (eventId: string, input: unknown) => Promise<{ error?: string; data?: unknown } | undefined>
+  updateSession: (eventId: string, sessionId: string, input: unknown) => Promise<{ error?: string; data?: unknown } | undefined>
+  deleteSession: (eventId: string, sessionId: string) => Promise<{ error?: string; success?: boolean } | undefined>
+  createRoom: (eventId: string, input: unknown) => Promise<{ error?: string; data?: Room } | undefined>
+  deleteRoom: (eventId: string, roomId: string) => Promise<{ error?: string; success?: boolean } | undefined>
+  createTrack: (eventId: string, input: unknown) => Promise<{ error?: string; data?: Track } | undefined>
+  updateTrack: (eventId: string, trackId: string, input: unknown) => Promise<{ error?: string; data?: Track } | undefined>
+  deleteTrack: (eventId: string, trackId: string) => Promise<{ error?: string; success?: boolean } | undefined>
+  createOrgSessionType: (orgId: string, input: unknown) => Promise<{ error?: string; data?: OrgSessionType } | undefined>
+  updateOrgSessionType: (orgId: string, typeId: string, input: unknown) => Promise<{ error?: string; data?: OrgSessionType } | undefined>
+  deleteOrgSessionType: (orgId: string, typeId: string) => Promise<{ error?: string; success?: boolean } | undefined>
+}
+
 interface AgendaClientProps {
   eventId: string
   orgId: string
@@ -27,6 +42,8 @@ interface AgendaClientProps {
   zoomConnected: boolean
   teamsConnected: boolean
   customTypes?: OrgSessionType[]
+  embed?: boolean
+  embedActions?: EmbedAgendaActions
 }
 
 const SESSION_FIELDS = [
@@ -368,7 +385,7 @@ function LivePollsPanel({ eventId, sessions }: { eventId: string; sessions: Sess
   )
 }
 
-export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks: initialTracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected, customTypes: initialCustomTypes = [] }: AgendaClientProps) {
+export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks: initialTracks, rooms: initialRooms, speakers, sponsors = [], zoomConnected, teamsConnected, customTypes: initialCustomTypes = [], embed = false, embedActions }: AgendaClientProps) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -408,16 +425,20 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   )
 
   const reload = useCallback(async () => {
-    const res = await fetch(`/api/events/${eventId}/agenda/sessions`)
-    const data = await res.json()
-    setSessions(data)
-  }, [eventId])
+    if (embedActions?.reloadSessions) {
+      setSessions(await embedActions.reloadSessions(eventId))
+    } else {
+      const res = await fetch(`/api/events/${eventId}/agenda/sessions`)
+      const data = await res.json()
+      setSessions(data)
+    }
+  }, [eventId, embedActions])
 
   async function handleSave(data: Record<string, any>) {
     if (editing) {
-      await updateSession(eventId, editing.id, data)
+      await (embedActions?.updateSession ?? updateSession)(eventId, editing.id, data)
     } else {
-      await createSession(eventId, data)
+      await (embedActions?.createSession ?? createSession)(eventId, data)
     }
     await reload()
     setShowForm(false)
@@ -426,7 +447,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
 
   async function handleDelete(sessionId: string) {
     if (!confirm('Delete this session?')) return
-    await deleteSession(eventId, sessionId)
+    await (embedActions?.deleteSession ?? deleteSession)(eventId, sessionId)
     setSessions(prev => prev.filter(s => s.id !== sessionId))
   }
 
@@ -443,7 +464,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   async function handleAddRoom() {
     if (!newRoomName.trim()) return
     setRoomAdding(true)
-    const result = await createRoom(eventId, {
+    const result = await (embedActions?.createRoom ?? createRoom)(eventId, {
       name: newRoomName.trim(),
       capacity: newRoomCap ? parseInt(newRoomCap, 10) : null,
       location_hint: newRoomHint.trim() || null,
@@ -458,14 +479,14 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   }
 
   async function handleDeleteRoom(roomId: string) {
-    await deleteRoom(eventId, roomId)
+    await (embedActions?.deleteRoom ?? deleteRoom)(eventId, roomId)
     setRoomsState(prev => prev.filter(r => r.id !== roomId))
   }
 
   async function handleAddTrack() {
     if (!newTrackName.trim()) return
     setTrackAdding(true)
-    const result = await createTrack(eventId, { name: newTrackName.trim(), color: newTrackColor })
+    const result = await (embedActions?.createTrack ?? createTrack)(eventId, { name: newTrackName.trim(), color: newTrackColor })
     setTrackAdding(false)
     if (result && 'data' in result && result.data) {
       setTracksState(prev => [...prev, result.data as Track])
@@ -475,7 +496,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   }
 
   async function handleUpdateTrack(trackId: string) {
-    await updateTrack(eventId, trackId, { name: editingTrackName, color: editingTrackColor })
+    await (embedActions?.updateTrack ?? updateTrack)(eventId, trackId, { name: editingTrackName, color: editingTrackColor })
     setTracksState(prev => prev.map(t =>
       t.id === trackId ? { ...t, name: editingTrackName, color: editingTrackColor } : t
     ))
@@ -483,14 +504,14 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   }
 
   async function handleDeleteTrack(trackId: string) {
-    await deleteTrack(eventId, trackId)
+    await (embedActions?.deleteTrack ?? deleteTrack)(eventId, trackId)
     setTracksState(prev => prev.filter(t => t.id !== trackId))
   }
 
   async function handleAddType() {
     if (!newTypeLabel.trim()) return
     setTypeAdding(true)
-    const result = await createOrgSessionType(orgId, { label: newTypeLabel.trim(), color: newTypeColor })
+    const result = await (embedActions?.createOrgSessionType ?? createOrgSessionType)(orgId, { label: newTypeLabel.trim(), color: newTypeColor })
     setTypeAdding(false)
     if (result && 'data' in result && result.data) {
       setTypesState(prev => [...prev, result.data as OrgSessionType])
@@ -500,7 +521,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   }
 
   async function handleUpdateType(typeId: string) {
-    await updateOrgSessionType(orgId, typeId, { label: editingTypeLabel, color: editingTypeColor })
+    await (embedActions?.updateOrgSessionType ?? updateOrgSessionType)(orgId, typeId, { label: editingTypeLabel, color: editingTypeColor })
     setTypesState(prev => prev.map(t =>
       t.id === typeId ? { ...t, label: editingTypeLabel, color: editingTypeColor } : t
     ))
@@ -509,13 +530,13 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
 
   async function handleDeleteType(typeId: string) {
     if (!confirm('Delete this custom type? Sessions using it will keep the slug but it won\'t appear in the type picker.')) return
-    await deleteOrgSessionType(orgId, typeId)
+    await (embedActions?.deleteOrgSessionType ?? deleteOrgSessionType)(orgId, typeId)
     setTypesState(prev => prev.filter(t => t.id !== typeId))
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {showImport && (
+      {!embed && showImport && (
         <CsvImportModal
           eventId={eventId}
           onClose={() => setShowImport(false)}
@@ -531,12 +552,14 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         </div>
         {!showForm && (
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowImport(true)}
-              className="px-3 py-2 text-sm border border-[var(--pz-border)] text-[var(--pz-muted)] rounded-lg hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
-            >
-              Import CSV
-            </button>
+            {!embed && (
+              <button
+                onClick={() => setShowImport(true)}
+                className="px-3 py-2 text-sm border border-[var(--pz-border)] text-[var(--pz-muted)] rounded-lg hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
+              >
+                Import CSV
+              </button>
+            )}
             <button
               onClick={() => setShowForm(true)}
               className="px-4 py-2 text-sm bg-[var(--brand-teal)] text-[var(--pz-on-accent)] rounded-lg hover:opacity-90"
@@ -873,7 +896,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
         typeColors={typeColors}
       />
 
-      <LivePollsPanel eventId={eventId} sessions={sessions} />
+      {!embed && <LivePollsPanel eventId={eventId} sessions={sessions} />}
     </div>
   )
 }
