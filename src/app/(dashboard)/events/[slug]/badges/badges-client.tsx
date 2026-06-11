@@ -200,7 +200,7 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
             <p className="text-sm text-[var(--pz-muted)]">No badge templates for this event yet.</p>
             <div className="flex justify-center gap-3">
               <a
-                href={`/events/${eventSlug}/badges/new`}
+                href={embedActions ? `/embedded/events/${eventId}/badges/new` : `/events/${eventSlug}/badges/new`}
                 className="rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
                 style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
               >

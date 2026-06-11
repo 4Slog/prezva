@@ -7,19 +7,27 @@ import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import { createClient } from '@/lib/supabase/client'
 import type { BadgeTemplate } from '@/lib/templates/types'
 
+interface EmbedBadgeNewActions {
+  createTemplate: (eventId: string, tpl: BadgeTemplate) => Promise<{ id?: string; error?: string }>
+  backHref: string
+}
+
 interface Props {
   eventId: string
   eventTitle: string
   orgId: string
   eventSlug: string
+  embed?: EmbedBadgeNewActions
 }
 
-export function BadgeNewClient({ eventId, eventTitle, orgId, eventSlug }: Props) {
+export function BadgeNewClient({ eventId, eventTitle, orgId, eventSlug, embed }: Props) {
   const [showPicker, setShowPicker] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const router = useRouter()
+
+  const backHref = embed ? embed.backHref : `/events/${eventSlug}/badges`
 
   async function handleTemplatePick(raw: unknown) {
     setShowPicker(false)
@@ -34,6 +42,14 @@ export function BadgeNewClient({ eventId, eventTitle, orgId, eventSlug }: Props)
   async function saveTemplate(tpl: BadgeTemplate) {
     setSaving(true)
     setError('')
+    if (embed) {
+      const result = await embed.createTemplate(eventId, tpl)
+      setSaving(false)
+      if (result.error) { setError(result.error); return }
+      setSuccess(true)
+      setTimeout(() => router.push(embed.backHref), 1200)
+      return
+    }
     const supabase = createClient()
     const { error: err } = await supabase.from('badge_templates').insert({
       event_id: eventId,
@@ -69,7 +85,7 @@ export function BadgeNewClient({ eventId, eventTitle, orgId, eventSlug }: Props)
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="mb-6">
-        <Link href={`/events/${eventSlug}/badges`} className="text-sm hover:underline" style={{ color: 'var(--pz-teal)' }}>
+        <Link href={backHref} className="text-sm hover:underline" style={{ color: 'var(--pz-teal)' }}>
           ← Back to Badge templates
         </Link>
       </div>
@@ -83,7 +99,7 @@ export function BadgeNewClient({ eventId, eventTitle, orgId, eventSlug }: Props)
           surface="badge"
           orgId={orgId}
           onPick={handleTemplatePick}
-          onClose={() => router.push(`/events/${eventSlug}/badges`)}
+          onClose={() => router.push(backHref)}
         />
       ) : (
         <div style={{ textAlign: 'center', padding: '3rem' }}>

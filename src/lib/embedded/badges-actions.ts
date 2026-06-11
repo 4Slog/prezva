@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
+import type { BadgeTemplate } from '@/lib/templates/types'
 
 // ── Embed context (session → location → org) ─────────────────────────────────
 
@@ -169,4 +170,28 @@ export async function embedDeleteOrgTemplate(templateId: string) {
   const { error } = await db.from('badge_templates').delete().eq('id', templateId)
   if (error) return { error: error.message }
   return { success: true }
+}
+
+export async function embedCreateBadgeTemplate(
+  eventId: string,
+  tpl: BadgeTemplate,
+): Promise<{ id?: string; error?: string }> {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data, error } = await db
+    .from('badge_templates')
+    .insert({
+      event_id: eventId,
+      org_id: orgId,
+      name: tpl.name,
+      paper_size: `${tpl.size?.width_mm ?? 89}x${tpl.size?.height_mm ?? 102}mm`,
+      template_json: tpl,
+      is_template: false,
+    })
+    .select('id')
+    .single()
+
+  if (error) return { error: error.message }
+  return { id: (data as { id: string }).id }
 }
