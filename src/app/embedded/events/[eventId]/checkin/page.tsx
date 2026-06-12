@@ -46,13 +46,11 @@ export default async function EmbedCheckInPage({ params }: Props) {
   const arrivalUrl = `${BASE_URL}/e/${(event as any).slug}/self-checkin`
 
   return (
-    <div className="p-6">
-      <EmbedCheckInClient
+    <EmbedCheckInClient
         eventId={eventId}
         eventName={(event as any).title}
         initialStats={initialStats}
         arrivalUrl={arrivalUrl}
       />
-    </div>
   )
 }

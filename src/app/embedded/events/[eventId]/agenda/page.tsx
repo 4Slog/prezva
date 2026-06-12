@@ -45,8 +45,7 @@ export default async function EmbedAgendaPage({ params }: Props) {
   const { orgId, timezone, sessions, tracks, rooms, speakers, customTypes } = pageData
 
   return (
-    <div className="p-6">
-      <AgendaClient
+    <AgendaClient
         eventId={eventId}
         orgId={orgId}
         timezone={timezone}
@@ -74,6 +73,5 @@ export default async function EmbedAgendaPage({ params }: Props) {
           deleteOrgSessionType: embedDeleteOrgSessionType,
         }}
       />
-    </div>
   )
 }

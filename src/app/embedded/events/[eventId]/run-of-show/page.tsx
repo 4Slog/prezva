@@ -35,7 +35,7 @@ export default async function EmbedRunOfShowPage({ params }: Props) {
   }
 
   return (
-    <div className="p-6">
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--pz-text)' }}>Run of Show</h1>
@@ -65,6 +65,6 @@ export default async function EmbedRunOfShowPage({ params }: Props) {
           importSessions: embedImportSessionsToRos,
         }}
       />
-    </div>
+    </>
   )
 }

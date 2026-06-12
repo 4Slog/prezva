@@ -40,7 +40,7 @@ export default async function EmbedBadgesPage({ params }: Props) {
   const printUrlBase = `/api/embedded/events/${eventId}/badges/print`
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold" style={{ color: 'var(--pz-text)' }}>Badge templates</h1>
         <a
@@ -68,6 +68,6 @@ export default async function EmbedBadgesPage({ params }: Props) {
           printUrlBase,
         }}
       />
-    </div>
+    </>
   )
 }

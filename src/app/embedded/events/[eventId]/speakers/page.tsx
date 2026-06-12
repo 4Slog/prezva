@@ -47,7 +47,7 @@ export default async function EmbedSpeakersPage({ params }: Props) {
   }
 
   return (
-    <div className="p-6">
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--pz-text)' }}>Speakers</h1>
@@ -99,6 +99,6 @@ export default async function EmbedSpeakersPage({ params }: Props) {
           embedAction={embedModerateQAQuestion}
         />
       </div>
-    </div>
+    </>
   )
 }

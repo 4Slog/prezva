@@ -536,7 +536,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className={embed ? 'space-y-6' : 'max-w-3xl mx-auto space-y-6'}>
       {!embed && showImport && (
         <CsvImportModal
           eventId={eventId}

@@ -29,7 +29,7 @@ export default async function EmbedSpeakerFormPage({ params }: Props) {
   }
 
   return (
-    <div className="p-6">
+    <>
       <div className="mb-6">
         <a href={`/embedded/events/${eventId}/speakers`} className="text-sm" style={{ color: 'var(--pz-teal)' }}>← Speakers</a>
         <h1 className="text-xl font-bold mt-2 mb-1" style={{ color: 'var(--pz-text)' }}>Speaker Info Form</h1>
@@ -40,6 +40,6 @@ export default async function EmbedSpeakerFormPage({ params }: Props) {
         initialSchema={schema}
         saveAction={embedSaveSpeakerFormSchema}
       />
-    </div>
+    </>
   )
 }

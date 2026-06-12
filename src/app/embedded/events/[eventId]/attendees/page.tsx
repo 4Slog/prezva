@@ -50,13 +50,11 @@ export default async function EmbedAttendeesPage({ params }: Props) {
   const initialData = await getAttendees(eventId, { pageSize: 50 })
 
   return (
-    <div className="p-6">
-      <EmbedAttendeesClient
+    <EmbedAttendeesClient
         eventId={eventId}
         eventName={(eventResult.data as any).title}
         initialData={initialData}
         tickets={(ticketsResult.data ?? []) as { id: string; name: string; price_cents?: number | null }[]}
       />
-    </div>
   )
 }

@@ -59,14 +59,12 @@ export default async function EmbedSessionCheckInPage({ params }: Props) {
   const sessionUrl = `${BASE_URL}/session-checkin/${(sessionRow as any).session_qr_token}`
 
   return (
-    <div className="p-6">
-      <EmbedSessionCheckInClient
+    <EmbedSessionCheckInClient
         eventId={eventId}
         sessionId={sessionId}
         sessionTitle={(sessionRow as any).title}
         sessionUrl={sessionUrl}
         initialAttendees={attendees}
       />
-    </div>
   )
 }

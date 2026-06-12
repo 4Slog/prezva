@@ -50,7 +50,7 @@ export default async function EmbedEventLayout({ params, children }: Props) {
   return (
     <div style={{ background: 'var(--pz-surface)' }}>
       {/* Header chrome */}
-      <div className="flex flex-col gap-2 px-4 pb-2 pt-4">
+      <div className="flex flex-col gap-2 px-6 pb-2 pt-4">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--pz-muted)' }}>
           <a
@@ -84,7 +84,7 @@ export default async function EmbedEventLayout({ params, children }: Props) {
       <EmbedEventTabs eventId={eventId} />
 
       {/* Page content */}
-      {children}
+      <main className="px-6 py-6">{children}</main>
     </div>
   )
 }

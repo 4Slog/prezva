@@ -38,8 +38,7 @@ export default async function EmbedEventOverviewPage({ params }: Props) {
   const { groups } = buildEmbedEventNav(eventId)
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {groups.map(group => {
           const GroupIcon = group.icon
           const firstItem = group.items.find(i => i.built)
@@ -108,6 +107,5 @@ export default async function EmbedEventOverviewPage({ params }: Props) {
           )
         })}
       </div>
-    </div>
   )
 }

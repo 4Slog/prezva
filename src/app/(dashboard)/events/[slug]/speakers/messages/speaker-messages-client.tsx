@@ -123,7 +123,7 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
   }
 
   return (
-    <div className="flex h-screen" style={{ background: 'var(--pz-bg)' }}>
+    <div className={`flex ${embed ? 'h-[calc(100dvh-150px)]' : 'h-screen'}`} style={{ background: 'var(--pz-bg)' }}>
       {/* Sidebar */}
       <div className="w-64 shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)' }}>
         <div className="p-4 border-b" style={{ borderColor: 'var(--pz-border)' }}>

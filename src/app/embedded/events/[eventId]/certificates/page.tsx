@@ -35,17 +35,17 @@ export default async function EmbedCertificatesPage({ params }: Props) {
   const minPct = (event as any)?.certificate_min_session_attendance_pct ?? 60
 
   return (
-    <div style={{ padding: '32px', maxWidth: '900px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+    <>
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 style={{ color: 'var(--pz-text)', fontSize: '22px', fontWeight: 700, margin: 0 }}>
+          <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--pz-text)' }}>
             Certificates
           </h1>
-          <p style={{ color: 'var(--pz-muted)', fontSize: '14px', marginTop: '4px' }}>
+          <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
             Issue certificates of attendance to qualified attendees
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="flex items-center gap-3">
           {totalIssued > 0 && (
             <span style={{ fontSize: 13, color: 'var(--pz-muted)' }}>
               {totalIssued} issued
@@ -151,6 +151,6 @@ export default async function EmbedCertificatesPage({ params }: Props) {
           ))}
         </div>
       )}
-    </div>
+    </>
   )
 }
