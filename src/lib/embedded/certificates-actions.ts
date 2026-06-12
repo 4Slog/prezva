@@ -81,7 +81,7 @@ export async function embedGetCertificatesData(eventId: string) {
 export async function embedIssueOrGetCertificate(
   eventId: string,
   registrationId: string,
-): Promise<{ data?: any; error?: string }> {
+): Promise<{ data?: any; skipped?: true; error?: string }> {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
 
@@ -98,7 +98,7 @@ export async function embedIssueOrGetCertificate(
   if (existing) return { data: existing }
 
   const eligibility = await checkEligibility(registrationId)
-  if (!eligibility.eligible) return { error: eligibility.reason ?? 'Not eligible' }
+  if (!eligibility.eligible) return { skipped: true, error: eligibility.reason ?? 'Not eligible' }
 
   const templateId = await getOrCreateDefaultTemplate(orgId)
   if (!templateId) return { error: 'No certificate template configured' }
@@ -152,15 +152,12 @@ export async function embedBulkIssueCertificates(
   let issued = 0, skipped = 0, failed = 0
   for (const reg of (regs ?? []) as { id: string }[]) {
     const result = await embedIssueOrGetCertificate(eventId, reg.id)
-    if (!result.error) {
-      issued++
-    } else if (
-      result.error.toLowerCase().includes('eligible') ||
-      result.error.toLowerCase().includes('attendance')
-    ) {
+    if ('skipped' in result && result.skipped) {
       skipped++
-    } else {
+    } else if ('error' in result && result.error) {
       failed++
+    } else {
+      issued++
     }
   }
 

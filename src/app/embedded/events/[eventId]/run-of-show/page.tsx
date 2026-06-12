@@ -9,6 +9,7 @@ import {
   embedImportSessionsToRos,
 } from '@/lib/embedded/run-of-show-actions'
 import { RunOfShowClient } from '@/app/(dashboard)/events/[slug]/run-of-show/run-of-show-client'
+import { McHubLink } from './_components/McHubLink'
 
 interface Props {
   params: Promise<{ eventId: string }>
@@ -42,15 +43,9 @@ export default async function EmbedRunOfShowPage({ params }: Props) {
           <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>{data.event?.title}</p>
         </div>
         {data.event?.mc_token && (
-          <a
-            href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/mc/${data.event.mc_token}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium"
-            style={{ color: 'var(--pz-teal)' }}
-          >
-            🎙️ Open MC hub →
-          </a>
+          <McHubLink
+            url={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/mc/${data.event.mc_token}`}
+          />
         )}
       </div>
       <RunOfShowClient

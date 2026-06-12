@@ -150,7 +150,7 @@ export async function embedDeleteTemplate(templateId: string, eventId: string) {
     .maybeSingle()
   if (!tpl) return { error: 'Template not found or access denied' }
 
-  const { error } = await db.from('badge_templates').delete().eq('id', templateId)
+  const { error } = await db.from('badge_templates').delete().eq('id', templateId).eq('org_id', orgId)
   if (error) return { error: error.message }
   return { success: true }
 }
@@ -167,7 +167,7 @@ export async function embedDeleteOrgTemplate(templateId: string) {
     .maybeSingle()
   if (!tpl) return { error: 'Template not found or access denied' }
 
-  const { error } = await db.from('badge_templates').delete().eq('id', templateId)
+  const { error } = await db.from('badge_templates').delete().eq('id', templateId).eq('org_id', orgId)
   if (error) return { error: error.message }
   return { success: true }
 }

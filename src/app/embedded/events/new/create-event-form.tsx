@@ -50,17 +50,22 @@ export function CreateEventForm({ orgId: _orgId }: Props) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setPending(true)
     setError(null)
-    const fd = new FormData(e.currentTarget)
-    const result = await createEventFromEmbed(fd)
-    setPending(false)
-    if ('error' in result) {
-      setError(result.error)
-    } else {
-      setNewEventId(result.id)
-      setNewEventSlug(result.slug)
-      setStep('picker')
+    setPending(true)
+    try {
+      const fd = new FormData(e.currentTarget)
+      const result = await createEventFromEmbed(fd)
+      if ('error' in result) {
+        setError(result.error)
+      } else {
+        setNewEventId(result.id)
+        setNewEventSlug(result.slug)
+        setStep('picker')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unexpected error')
+    } finally {
+      setPending(false)
     }
   }
 

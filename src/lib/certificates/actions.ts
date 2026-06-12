@@ -46,7 +46,9 @@ export async function getIssuedCertificate(registrationId: string) {
   return data
 }
 
-export async function issueOrGetCertificate(registrationId: string) {
+export async function issueOrGetCertificate(
+  registrationId: string,
+): Promise<{ data?: any; skipped?: true; error?: string }> {
   const admin = createAdminClient()
 
   const existing = await getIssuedCertificate(registrationId)
@@ -54,7 +56,7 @@ export async function issueOrGetCertificate(registrationId: string) {
 
   const eligibility = await checkEligibility(registrationId)
   if (!eligibility.eligible) {
-    return { error: eligibility.reason ?? 'Not eligible' }
+    return { skipped: true, error: eligibility.reason ?? 'Not eligible' }
   }
 
   const { data: reg } = await admin

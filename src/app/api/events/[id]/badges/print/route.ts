@@ -109,7 +109,12 @@ function fieldToHtml(field: BadgeField, bindings: BindingMap, qrDataUrl: string)
   const color = field.color ? `color:${field.color};` : 'color:#111;'
   const ww = field.wrap ? 'white-space:normal;' : 'white-space:nowrap;'
   const rot = field.rotation ? `transform:rotate(${field.rotation}deg);transform-origin:top left;` : ''
-  return `<div style="${base}${fs}${fw}${ta}${color}${ww}${rot}display:flex;align-items:center;">${text}</div>`
+  const bg = field.shape === 'stripe-teal'
+    ? 'background:#00BFA6;'
+    : field.shape === 'stripe-amber'
+      ? 'background:#d97706;'
+      : ''
+  return `<div style="${base}${fs}${fw}${ta}${color}${ww}${rot}${bg}display:flex;align-items:center;justify-content:center;">${text}</div>`
 }
 
 function badgeToHtml(template: BadgeTemplate, bindings: BindingMap, qrDataUrl: string): string {
@@ -136,7 +141,7 @@ function fieldToZpl(field: BadgeField, bindings: BindingMap): string {
   if (field.type === 'qr') {
     const val = field.binding ? (bindings[field.binding] ?? '') : ''
     const mag = Math.max(1, Math.min(10, Math.round(field.w * D / 30)))
-    return `^FO${x},${y}^BQN,2,${mag}^FDQA,${val}^FS`
+    return `^FO${x},${y}^BQN,2,${mag}^FDQA,${sanitizeZpl(val)}^FS`
   }
 
   if (field.type !== 'text') return ''

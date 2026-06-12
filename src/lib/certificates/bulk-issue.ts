@@ -23,12 +23,12 @@ export async function bulkIssueCertificates(eventId: string): Promise<{ issued: 
   let issued = 0, skipped = 0, failed = 0
   for (const reg of (regs ?? []) as any[]) {
     const result = await issueOrGetCertificate(reg.id)
-    if (!result.error) {
-      issued++
-    } else if (result.error.toLowerCase().includes('eligible') || result.error.toLowerCase().includes('attendance')) {
+    if ('skipped' in result && result.skipped) {
       skipped++
-    } else {
+    } else if ('error' in result && result.error) {
       failed++
+    } else {
+      issued++
     }
   }
 
