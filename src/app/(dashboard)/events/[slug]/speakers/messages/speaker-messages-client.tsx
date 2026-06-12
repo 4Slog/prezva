@@ -15,9 +15,17 @@ type Props = {
   conversations: any[]
   speakers: any[]
   eventSlug: string
+  embed?: boolean
+  backHref?: string
+  embedActions?: {
+    getOrCreateConversation: (eventId: string, speakerId: string) => Promise<string | null>
+    getMessages: (eventId: string, conversationId: string) => Promise<any[]>
+    sendMessage: (eventId: string, conversationId: string, body: string) => Promise<{ ok?: boolean; error?: string }>
+    getSpeakersWithMissingInfo: (eventId: string, field: string) => Promise<any[]>
+  }
 }
 
-export function SpeakerMessagesClient({ event, conversations: initialConvs, speakers, eventSlug }: Props) {
+export function SpeakerMessagesClient({ event, conversations: initialConvs, speakers, eventSlug, embed, backHref, embedActions }: Props) {
   const [conversations, setConversations] = useState(initialConvs)
   const [activeConvId, setActiveConvId] = useState<string | null>(null)
   const [activeSpeaker, setActiveSpeaker] = useState<any | null>(null)
@@ -35,15 +43,29 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
   const supabaseRef = useRef(createClient())
 
   async function openConversation(speaker: any) {
-    const id = await getOrCreateSpeakerConversation(event.id, speaker.id)
+    let id: string | null
+    if (embed && embedActions) {
+      id = await embedActions.getOrCreateConversation(event.id, speaker.id)
+    } else {
+      id = await getOrCreateSpeakerConversation(event.id, speaker.id)
+    }
     if (!id) return
     setActiveSpeaker(speaker)
     setActiveConvId(id)
-    const msgs = await getSpeakerMessages(id)
+    let msgs: any[]
+    if (embed && embedActions) {
+      msgs = await embedActions.getMessages(event.id, id)
+    } else {
+      msgs = await getSpeakerMessages(id)
+    }
     setMessages(msgs)
   }
 
   useEffect(() => {
+    // speaker_messages is service-role-only — no authenticated SELECT policy.
+    // Realtime subscriptions deliver nothing under an embed session; skip setup
+    // and rely on optimistic append in sendMsg instead.
+    if (embed) return
     if (!activeConvId) return
     const sb = supabaseRef.current
     const channel = sb
@@ -53,12 +75,20 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
       })
       .subscribe()
     return () => { sb.removeChannel(channel) }
-  }, [activeConvId])
+  }, [activeConvId, embed])
 
   async function sendMsg() {
     if (!activeConvId || !msgBody.trim()) return
     setMsgPending(true)
-    await sendSpeakerMessage(activeConvId, 'organizer', msgBody.trim())
+    const trimmed = msgBody.trim()
+    if (embed && embedActions) {
+      const result = await embedActions.sendMessage(event.id, activeConvId, trimmed)
+      if (!result.error) {
+        setMessages(prev => [...prev, { id: crypto.randomUUID(), sender_role: 'organizer', body: trimmed, created_at: new Date().toISOString() }])
+      }
+    } else {
+      await sendSpeakerMessage(activeConvId, 'organizer', trimmed)
+    }
     setMsgBody('')
     setMsgPending(false)
   }
@@ -66,13 +96,23 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
   async function sendBulk() {
     if (!bulkBody.trim()) return
     setBulkPending(true)
-    const targets = bulkFilter === 'all'
-      ? speakers
-      : await getSpeakersWithMissingInfo(event.id, bulkFilter)
-
-    for (const sp of targets) {
-      const convId = await getOrCreateSpeakerConversation(event.id, sp.id)
-      if (convId) await sendSpeakerMessage(convId, 'organizer', bulkBody.trim())
+    let targets: any[]
+    if (embed && embedActions) {
+      targets = bulkFilter === 'all'
+        ? speakers
+        : await embedActions.getSpeakersWithMissingInfo(event.id, bulkFilter)
+      for (const sp of targets) {
+        const convId = await embedActions.getOrCreateConversation(event.id, sp.id)
+        if (convId) await embedActions.sendMessage(event.id, convId, bulkBody.trim())
+      }
+    } else {
+      targets = bulkFilter === 'all'
+        ? speakers
+        : await getSpeakersWithMissingInfo(event.id, bulkFilter)
+      for (const sp of targets) {
+        const convId = await getOrCreateSpeakerConversation(event.id, sp.id)
+        if (convId) await sendSpeakerMessage(convId, 'organizer', bulkBody.trim())
+      }
     }
 
     setBulkDone(true)
@@ -87,7 +127,7 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
       {/* Sidebar */}
       <div className="w-64 shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)' }}>
         <div className="p-4 border-b" style={{ borderColor: 'var(--pz-border)' }}>
-          <a href={`/events/${eventSlug}/speakers`} className="text-xs" style={{ color: 'var(--pz-teal)' }}>
+          <a href={backHref ?? `/events/${eventSlug}/speakers`} className="text-xs" style={{ color: 'var(--pz-teal)' }}>
             ← Speakers
           </a>
           <h2 className="text-sm font-semibold mt-1" style={{ color: 'var(--pz-text)' }}>Speaker Messages</h2>

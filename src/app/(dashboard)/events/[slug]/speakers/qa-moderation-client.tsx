@@ -6,9 +6,10 @@ import { moderateQAQuestion } from '@/lib/speaker/speaker-actions'
 type Props = {
   eventId: string
   initialQuestions: any[]
+  embedAction?: (eventId: string, questionId: string, action: 'hide' | 'pin' | 'unpin' | 'answer', answerText?: string) => Promise<{ ok?: boolean; error?: string }>
 }
 
-export function QAModerationClient({ eventId: _eventId, initialQuestions }: Props) {
+export function QAModerationClient({ eventId, initialQuestions, embedAction }: Props) {
   const [questions, setQuestions] = useState<any[]>(initialQuestions)
   const [answerDraft, setAnswerDraft] = useState<Record<string, string>>({})
   const [pending, setPending] = useState<string | null>(null)
@@ -16,7 +17,11 @@ export function QAModerationClient({ eventId: _eventId, initialQuestions }: Prop
   async function act(questionId: string, action: 'hide' | 'pin' | 'unpin' | 'answer') {
     setPending(questionId + action)
     const answerText = action === 'answer' ? answerDraft[questionId] : undefined
-    await moderateQAQuestion(questionId, action, answerText)
+    if (embedAction) {
+      await embedAction(eventId, questionId, action, answerText)
+    } else {
+      await moderateQAQuestion(questionId, action, answerText)
+    }
     setQuestions(prev => prev.map(q => {
       if (q.id !== questionId) return q
       if (action === 'hide')   return { ...q, is_hidden: true }

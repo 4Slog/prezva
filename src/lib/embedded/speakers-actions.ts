@@ -391,3 +391,195 @@ export async function embedSaveSpeakerFormSchema(eventId: string, schema: any[])
   const { error } = await db.from('events').update({ speaker_form_schema: schema }).eq('id', eventId)
   return { error: error?.message }
 }
+
+// ── Messaging ─────────────────────────────────────────────────────────────────
+
+export async function embedGetSpeakerMessagesData(eventId: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const [eventResult, conversationsResult, speakersResult] = await Promise.all([
+    db.from('events').select('id, title, org_id').eq('id', eventId).eq('org_id', orgId).single(),
+    db
+      .from('speaker_conversations')
+      .select('id, speaker_id, speakers(name, email), speaker_messages(body, created_at, sender_role)')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false }),
+    db.from('speakers').select('id, name, email, status').eq('event_id', eventId),
+  ])
+
+  return {
+    event: eventResult.data as any,
+    conversations: (conversationsResult.data ?? []) as any[],
+    speakers: (speakersResult.data ?? []) as any[],
+  }
+}
+
+export async function embedGetOrCreateSpeakerConversation(eventId: string, speakerId: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data: sp } = await db
+    .from('speakers')
+    .select('id')
+    .eq('id', speakerId)
+    .eq('event_id', eventId)
+    .maybeSingle()
+  if (!sp) return null
+
+  const { data: existing } = await db
+    .from('speaker_conversations')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('speaker_id', speakerId)
+    .maybeSingle()
+
+  if (existing) return (existing as any).id as string
+
+  const { data } = await db
+    .from('speaker_conversations')
+    .insert({ event_id: eventId, speaker_id: speakerId })
+    .select('id')
+    .single()
+  return (data as any)?.id as string | null
+}
+
+export async function embedGetSpeakerMessages(eventId: string, conversationId: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data: conv } = await db
+    .from('speaker_conversations')
+    .select('id, event_id')
+    .eq('id', conversationId)
+    .maybeSingle()
+  if (!conv || (conv as any).event_id !== eventId) return []
+
+  const { data } = await db
+    .from('speaker_messages')
+    .select('id, sender_role, body, created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true })
+  return (data ?? []) as any[]
+}
+
+export async function embedGetSpeakersWithMissingInfo(eventId: string, missingField: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  let query = db.from('speakers').select('id, name, email, status').eq('event_id', eventId)
+
+  if (missingField === 'bio') {
+    query = query.is('bio', null) as typeof query
+  } else if (missingField === 'photo') {
+    query = query.is('photo_url', null) as typeof query
+  } else if (missingField === 'form') {
+    const { data: submissions } = await db
+      .from('speaker_form_submissions')
+      .select('speaker_id')
+      .eq('event_id', eventId)
+    const submittedIds = ((submissions ?? []) as any[]).map((s: any) => s.speaker_id)
+    if (submittedIds.length > 0) {
+      query = query.not('id', 'in', `(${submittedIds.join(',')})`) as typeof query
+    }
+  }
+
+  const { data } = await query
+  return (data ?? []) as any[]
+}
+
+export async function embedSendSpeakerMessage(eventId: string, conversationId: string, body: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data: conv } = await db
+    .from('speaker_conversations')
+    .select('id, event_id, speaker_id, speakers(name, email), events(title)')
+    .eq('id', conversationId)
+    .single()
+  if (!conv || (conv as any).event_id !== eventId) return { error: 'Conversation not found' }
+
+  const { error: insErr } = await db
+    .from('speaker_messages')
+    .insert({ conversation_id: conversationId, sender_role: 'organizer', body })
+  if (insErr) return { error: insErr.message }
+
+  // 30-min cooldown: only notify the speaker if this is the first organizer
+  // message in the window (mirrors standalone sendSpeakerMessage throttle).
+  const { data: recent } = await db
+    .from('speaker_messages')
+    .select('created_at')
+    .eq('conversation_id', conversationId)
+    .eq('sender_role', 'organizer')
+    .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+    .order('created_at', { ascending: false })
+    .limit(2)
+  const shouldEmail = !recent || recent.length <= 1
+
+  if (shouldEmail) {
+    const speaker = (conv as any).speakers
+    const eventTitle = (conv as any).events?.title ?? 'the event'
+    const speakerId = (conv as any).speaker_id
+    if (speaker?.email) {
+      const html = `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:#0F2236;padding:24px 32px;border-radius:12px;color:#CBD5E1;">
+            <p style="font-size:15px;color:#F0F4F8;">New message from the organizer of ${escapeHtml(eventTitle)}:</p>
+            <blockquote style="border-left:3px solid #00BFA6;margin:16px 0;padding:8px 16px;color:#CBD5E1;font-size:15px;">${escapeHtml(body)}</blockquote>
+            <p style="color:#94A3B8;font-size:13px;">Open your speaker portal to reply.</p>
+          </div>
+        </div>`
+      await enqueueGhlSpeakerMessage({
+        speakerId,
+        eventId,
+        orgId,
+        subject: `New message re: ${eventTitle}`,
+        html,
+      })
+    }
+  }
+
+  return { ok: true }
+}
+
+// ── Q&A Moderation ────────────────────────────────────────────────────────────
+
+export async function embedGetQAQuestions(eventId: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data } = await db
+    .from('session_questions')
+    .select('id, session_id, body, upvote_count, is_hidden, is_pinned, organizer_answer, created_at, sessions(title)')
+    .eq('event_id', eventId)
+    .eq('is_poll', false)
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false })
+  return (data ?? []) as any[]
+}
+
+export async function embedModerateQAQuestion(
+  eventId: string,
+  questionId: string,
+  action: 'hide' | 'pin' | 'unpin' | 'answer',
+  answerText?: string,
+) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data: q } = await db
+    .from('session_questions')
+    .select('id, event_id')
+    .eq('id', questionId)
+    .maybeSingle()
+  if (!q || (q as any).event_id !== eventId) return { error: 'Question not found' }
+
+  const updates: Record<string, unknown> = {}
+  if (action === 'hide')   updates.is_hidden = true
+  if (action === 'pin')    updates.is_pinned = true
+  if (action === 'unpin')  updates.is_pinned = false
+  if (action === 'answer') updates.organizer_answer = answerText ?? ''
+
+  await db.from('session_questions').update(updates).eq('id', questionId)
+  return { ok: true }
+}
