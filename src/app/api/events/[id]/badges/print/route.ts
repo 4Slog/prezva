@@ -83,6 +83,11 @@ async function buildQrDataUrl(value: string): Promise<string> {
   return QRCode.toDataURL(value, { width: 120, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
 }
 
+const SAFE_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/
+function safeCssColor(raw: string | undefined | null, fallback: string): string {
+  return raw && SAFE_COLOR_RE.test(String(raw)) ? String(raw) : fallback
+}
+
 // D: text auto-size constants + helper
 const MM_TO_PX = 3.7795
 const PT_TO_PX = 1.333
@@ -120,7 +125,8 @@ function fieldToHtml(field: BadgeField, bindings: BindingMap, qrDataUrl: string,
   const text = escHtml(raw)
   const fw = field.weight === 'bold' ? 'font-weight:700;' : 'font-weight:400;'
   const ta = field.align ? `text-align:${field.align};` : 'text-align:left;'
-  const color = field.color ? `color:${field.color};` : 'color:#111;'
+  const safeColor = safeCssColor(field.color, '#111')
+  const color = `color:${safeColor};`
   const ww = field.wrap ? 'white-space:normal;' : 'white-space:nowrap;'
   const rot = field.rotation ? `transform:rotate(${field.rotation}deg);transform-origin:top left;` : ''
 
@@ -129,7 +135,7 @@ function fieldToHtml(field: BadgeField, bindings: BindingMap, qrDataUrl: string,
   if (isStripe) {
     const stripeBg = field.shape === 'stripe-teal' ? 'background:#00BFA6;' : 'background:#d97706;'
     const fs = field.font_size ? `font-size:${field.font_size}pt;` : ''
-    return `<div style="${base}${stripeBg}display:flex;align-items:center;justify-content:center;"><span style="writing-mode:vertical-rl;transform:rotate(180deg);${fs}${fw}color:${field.color ?? '#111'};white-space:nowrap;">${text}</span></div>`
+    return `<div style="${base}${stripeBg}display:flex;align-items:center;justify-content:center;"><span style="writing-mode:vertical-rl;transform:rotate(180deg);${fs}${fw}color:${safeColor};white-space:nowrap;">${text}</span></div>`
   }
 
   // D: fit-to-width for non-wrap text fields
@@ -147,11 +153,12 @@ function fieldToHtml(field: BadgeField, bindings: BindingMap, qrDataUrl: string,
 
 function badgeToHtml(template: BadgeTemplate, bindings: BindingMap, qrDataUrl: string): string {
   const { width_mm, height_mm } = template.size
-  // C: resolve accent from literal → binding var → fallback
-  const accentColor =
+  // C: resolve accent from literal → binding var → fallback; sanitize before HTML interpolation
+  const rawAccent =
     template.accent_color ??
     (template.accent_color_var ? bindings[template.accent_color_var] : undefined) ??
     '#00BFA6'
+  const accentColor = safeCssColor(rawAccent, '#00BFA6')
   const fields = template.fields
     .map((f) => fieldToHtml(f, bindings, qrDataUrl, accentColor))
     .filter(Boolean)
