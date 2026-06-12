@@ -5,6 +5,7 @@ import { saveAsOrgTemplate } from '@/lib/productivity/sprint11-actions'
 import { updateBadgeRules } from '@/lib/events/actions'
 import { createClient } from '@/lib/supabase/client'
 import { BADGE_TEMPLATES } from '@/lib/templates/badges'
+import { deleteEventTemplate, deleteOrgTemplate } from '@/lib/badges/delete-actions'
 
 interface BadgeTemplate {
   id: string
@@ -136,11 +137,10 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
       setConfirmDelete(null)
       if (result.error) { setError(result.error); return }
     } else {
-      const supabase = createClient()
-      const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
+      const result = await deleteEventTemplate(templateId, eventId)
       setDeleting(null)
       setConfirmDelete(null)
-      if (err) { setError(err.message); return }
+      if (result.error) { setError(result.error); return }
     }
     setEventTpls(prev => prev.filter(t => t.id !== templateId))
     if (defaultTemplateId === templateId) {
@@ -159,11 +159,10 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
       setConfirmDeleteOrg(null)
       if (result.error) { setError(result.error); return }
     } else {
-      const supabase = createClient()
-      const { error: err } = await supabase.from('badge_templates').delete().eq('id', templateId)
+      const result = await deleteOrgTemplate(templateId, orgId)
       setDeletingOrg(null)
       setConfirmDeleteOrg(null)
-      if (err) { setError(err.message); return }
+      if (result.error) { setError(result.error); return }
     }
     setOrgTpls(prev => prev.filter(t => t.id !== templateId))
     setSuccess('Org template deleted.')
