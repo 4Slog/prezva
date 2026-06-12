@@ -4,29 +4,43 @@ import { useState } from 'react'
 import { bulkIssueCertificates } from '@/lib/certificates/bulk-issue'
 import { Gated } from '@/components/auth/Gated'
 
-export default function BulkIssueButton({ eventId, eligibleCount, permissions }: { eventId: string; eligibleCount: number; permissions: string[] }) {
+interface Props {
+  eventId: string
+  eligibleCount: number
+  permissions: string[]
+  embed?: boolean
+  embedAction?: (eventId: string) => Promise<{ issued: number; skipped: number; failed: number }>
+}
+
+export default function BulkIssueButton({ eventId, eligibleCount, permissions, embed, embedAction }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ issued: number; skipped: number; failed: number } | null>(null)
 
   async function handleIssue() {
     setLoading(true)
-    const r = await bulkIssueCertificates(eventId)
+    const r = await (embed && embedAction ? embedAction(eventId) : bulkIssueCertificates(eventId))
     setLoading(false)
     setResult(r)
     setOpen(false)
   }
 
+  const triggerButton = (
+    <button
+      onClick={() => setOpen(true)}
+      style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+    >
+      Issue to eligible attendees
+    </button>
+  )
+
   return (
     <>
-      <Gated permission="certificates.manage" perms={permissions} mode="disable">
-        <button
-          onClick={() => setOpen(true)}
-          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-        >
-          Issue to eligible attendees
-        </button>
-      </Gated>
+      {embed ? triggerButton : (
+        <Gated permission="certificates.manage" perms={permissions} mode="disable">
+          {triggerButton}
+        </Gated>
+      )}
 
       {result && (
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', borderRadius: 8, fontSize: 13, color: 'var(--pz-text)' }}>

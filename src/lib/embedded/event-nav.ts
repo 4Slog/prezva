@@ -60,7 +60,7 @@ export function buildEmbedEventNav(eventId: string): {
           { label: 'Check-in',     href: `${base}/checkin`,      icon: ScanLine,  built: true },
           { label: 'Tickets',      href: `${base}/tickets`,      icon: Ticket,    external: true },
           { label: 'Badges',       href: `${base}/badges`,       icon: Tag,       built: true },
-          { label: 'Certificates', href: `${base}/certificates`, icon: Award,     external: true },
+          { label: 'Certificates', href: `${base}/certificates`, icon: Award,     built: true },
           { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck },
         ],
       },
