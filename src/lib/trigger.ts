@@ -12,6 +12,7 @@ import type { sendCertificateEmail } from '@/trigger/jobs/certificate-email'
 import type { sendSpeakerInviteEmail } from '@/trigger/jobs/speaker-invite'
 import type { ghlSyncTask } from '@/trigger/jobs/ghl-sync'
 import type { ghlStageMoveTask } from '@/trigger/jobs/ghl-stage-move'
+import type { ghlSpeakerMessageTask } from '@/trigger/jobs/ghl-speaker-message'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -165,6 +166,25 @@ export async function enqueueGhlStageMove(payload: GhlStageMovePayload) {
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue GHL stage move:', err)
+    return null
+  }
+}
+
+type GhlSpeakerMessagePayload = Parameters<typeof ghlSpeakerMessageTask.trigger>[0]
+
+export async function enqueueGhlSpeakerMessage(payload: GhlSpeakerMessagePayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping GHL speaker message')
+    return null
+  }
+  try {
+    const handle = await tasks.trigger<typeof ghlSpeakerMessageTask>(
+      'ghl-speaker-message',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue GHL speaker message:', err)
     return null
   }
 }
