@@ -28,10 +28,19 @@ interface Session {
   session_speakers?: { speakers?: { name?: string } | null }[]
 }
 
+interface EmbedActions {
+  upsertItem: (eventId: string, item: any) => Promise<{ ok?: boolean; error?: string }>
+  updateStatus: (eventId: string, itemId: string, status: RosItem['status']) => Promise<{ ok?: boolean; error?: string }>
+  deleteItem: (eventId: string, itemId: string) => Promise<{ ok?: boolean; error?: string }>
+  importSessions: (eventId: string) => Promise<{ ok?: boolean; error?: string; count?: number }>
+}
+
 interface Props {
   eventId: string
   initItems: RosItem[]
   sessions: Session[]
+  embed?: boolean
+  embedActions?: EmbedActions
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -49,7 +58,7 @@ const EMPTY_FORM = {
   responsible_email: '',
 }
 
-export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
+export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActions }: Props) {
   const [items, setItems] = useState<RosItem[]>(initItems)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -61,14 +70,17 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
     e.preventDefault()
     setSaving(true)
     setError(null)
-    const res = await upsertRosItem(eventId, {
+    const itemPayload = {
       time_at: form.time_at,
       duration_minutes: form.duration_minutes,
       title: form.title,
       responsible_person: form.responsible_person || undefined,
       responsible_email: form.responsible_email || undefined,
       sort_order: items.length,
-    })
+    }
+    const res = embed && embedActions
+      ? await embedActions.upsertItem(eventId, itemPayload)
+      : await upsertRosItem(eventId, itemPayload)
     setSaving(false)
     if (res && 'error' in res && res.error) { setError(res.error); return }
     // Reload page to get fresh data with new id
@@ -76,7 +88,11 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
   }
 
   async function handleStatus(itemId: string, status: RosItem['status']) {
-    await updateRosItemStatus(itemId, status)
+    if (embed && embedActions) {
+      await embedActions.updateStatus(eventId, itemId, status)
+    } else {
+      await updateRosItemStatus(itemId, status)
+    }
     setItems(prev => prev.map(item =>
       item.id === itemId
         ? { ...item, status }
@@ -87,14 +103,20 @@ export function RunOfShowClient({ eventId, initItems, sessions }: Props) {
   }
 
   async function handleDelete(itemId: string) {
-    await deleteRosItem(itemId)
+    if (embed && embedActions) {
+      await embedActions.deleteItem(eventId, itemId)
+    } else {
+      await deleteRosItem(itemId)
+    }
     setItems(prev => prev.filter(i => i.id !== itemId))
   }
 
   async function handleImport() {
     setImporting(true)
     setError(null)
-    const res = await importSessionsToRos(eventId)
+    const res = embed && embedActions
+      ? await embedActions.importSessions(eventId)
+      : await importSessionsToRos(eventId)
     setImporting(false)
     if ('error' in res && res.error) { setError(res.error); return }
     window.location.reload()

@@ -71,7 +71,7 @@ export function buildEmbedEventNav(eventId: string): {
         items: [
           { label: 'Agenda',      href: `${base}/agenda`,      icon: CalendarDays, built: true },
           { label: 'Speakers',    href: `${base}/speakers`,    icon: Mic,         built: true },
-          { label: 'Run of show', href: `${base}/run-of-show`, icon: Clock },
+          { label: 'Run of show', href: `${base}/run-of-show`, icon: Clock, built: true },
         ],
       },
       {
