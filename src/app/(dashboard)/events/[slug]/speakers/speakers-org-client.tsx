@@ -12,6 +12,8 @@ type EmbedSpeakerActions = {
   deleteSpeaker?: (eventId: string, speakerId: string) => Promise<any>
   getOrgSpeakerLibrary: (eventId: string) => Promise<any[]>
   addSpeakerFromLibrary: (eventId: string, orgSpeakerId: string) => Promise<any>
+  sendSpeakerInvite?: (eventId: string, speakerId: string) => Promise<any>
+  renewSpeakerToken?: (eventId: string, speakerId: string) => Promise<any>
 }
 
 type Props = {
@@ -44,13 +46,32 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
 
   async function invite(speakerId: string) {
     setInviting(speakerId)
-    const appUrl = window.location.origin
-    const result = await sendSpeakerInvite(event.id, speakerId, appUrl)
+    let result: any
+    if (embed && embedActions?.sendSpeakerInvite) {
+      result = await embedActions.sendSpeakerInvite(event.id, speakerId)
+    } else {
+      result = await sendSpeakerInvite(event.id, speakerId, window.location.origin)
+    }
     setInviteResult(prev => ({
       ...prev,
-      [speakerId]: (result as any).error ?? ((result as any).sent ? 'Invite sent!' : `Portal: ${(result as any).portalUrl ?? ''}`)
+      [speakerId]: result.error ?? (result.sent || result.ok ? 'Invite sent!' : `Portal: ${result.portalUrl ?? ''}`)
     }))
     setInviting(null)
+  }
+
+  async function renew(speakerId: string) {
+    let result: any
+    if (embed && embedActions?.renewSpeakerToken) {
+      result = await embedActions.renewSpeakerToken(event.id, speakerId)
+    } else {
+      result = await renewSpeakerToken(speakerId)
+    }
+    if (result.ok) {
+      await navigator.clipboard.writeText(result.hubUrl)
+      setInviteResult(prev => ({ ...prev, [speakerId]: 'New link copied to clipboard!' }))
+    } else if (result.error) {
+      setInviteResult(prev => ({ ...prev, [speakerId]: result.error }))
+    }
   }
 
   async function markArrived(speakerId: string) {
@@ -272,22 +293,16 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
                 )}
               </div>
               <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-                {!embed && (
+                {(!embed || embedActions?.sendSpeakerInvite) && (
                   <button onClick={() => invite(sp.id)} disabled={inviting === sp.id || !sp.email}
                     className="rounded-lg px-3 py-1.5 text-xs font-medium"
                     style={{ background: 'var(--pz-teal)', color: 'var(--pz-surface)', opacity: !sp.email ? 0.5 : 1 }}>
                     {inviting === sp.id ? 'Sending…' : 'Send invite'}
                   </button>
                 )}
-                {!embed && (
+                {(!embed || embedActions?.renewSpeakerToken) && (
                   <button
-                    onClick={async () => {
-                      const result = await renewSpeakerToken(sp.id)
-                      if ((result as any).ok) {
-                        await navigator.clipboard.writeText((result as any).hubUrl)
-                        setInviteResult(prev => ({ ...prev, [sp.id]: 'New link copied to clipboard!' }))
-                      }
-                    }}
+                    onClick={() => renew(sp.id)}
                     style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6,
                              border: '1px solid var(--pz-border)', color: 'var(--pz-muted)',
                              background: 'transparent', cursor: 'pointer' }}

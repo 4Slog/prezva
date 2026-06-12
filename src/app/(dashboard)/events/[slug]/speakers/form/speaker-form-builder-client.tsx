@@ -6,7 +6,11 @@ import { Field } from '@/components/ui/Field'
 
 type Field = { key: string; label: string; type: string; required: boolean }
 
-export function SpeakerFormBuilderClient({ eventId, initialSchema }: { eventId: string; initialSchema: any[] }) {
+export function SpeakerFormBuilderClient({ eventId, initialSchema, saveAction }: {
+  eventId: string
+  initialSchema: any[]
+  saveAction?: (eventId: string, schema: any[]) => Promise<any>
+}) {
   const [fields, setFields] = useState<Field[]>(initialSchema.length > 0 ? initialSchema : [
     { key: 'bio', label: 'Bio', type: 'textarea', required: true },
     { key: 'headshot_url', label: 'Headshot URL', type: 'url', required: false },
@@ -31,7 +35,7 @@ export function SpeakerFormBuilderClient({ eventId, initialSchema }: { eventId: 
 
   function save() {
     startTransition(async () => {
-      await saveSpeakerFormSchema(eventId, fields)
+      await (saveAction ?? saveSpeakerFormSchema)(eventId, fields)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     })

@@ -10,6 +10,8 @@ import {
   embedUpdateSpeakerDayOfInfo,
   embedGetOrgSpeakerLibrary,
   embedAddSpeakerFromLibrary,
+  embedSendSpeakerInvite,
+  embedRenewSpeakerToken,
 } from '@/lib/embedded/speakers-actions'
 import { SpeakersOrgClient } from '@/app/(dashboard)/events/[slug]/speakers/speakers-org-client'
 import { DayOfInfoSection } from '@/app/(dashboard)/events/[slug]/speakers/day-of-info-section'
@@ -47,6 +49,13 @@ export default async function EmbedSpeakersPage({ params }: Props) {
           <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--pz-text)' }}>Speakers</h1>
           <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>{event.title}</p>
         </div>
+        <a
+          href={`/embedded/events/${eventId}/speakers/form`}
+          className="text-sm font-medium"
+          style={{ color: 'var(--pz-teal)' }}
+        >
+          Speaker form →
+        </a>
       </div>
       <SpeakersOrgClient
         event={event}
@@ -60,6 +69,8 @@ export default async function EmbedSpeakersPage({ params }: Props) {
           deleteSpeaker: embedDeleteSpeaker,
           getOrgSpeakerLibrary: embedGetOrgSpeakerLibrary,
           addSpeakerFromLibrary: embedAddSpeakerFromLibrary,
+          sendSpeakerInvite: embedSendSpeakerInvite,
+          renewSpeakerToken: embedRenewSpeakerToken,
         }}
       />
       <DayOfInfoSection
