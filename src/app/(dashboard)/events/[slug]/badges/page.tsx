@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgBadgeTemplates } from '@/lib/productivity/sprint11-actions'
+import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { BadgesClient } from './badges-client'
 import Link from 'next/link'
 
@@ -33,6 +34,7 @@ export default async function BadgesPage({ params }: Props) {
     .eq('event_id', (event as any).id)
 
   const orgTemplates = await getOrgBadgeTemplates((event as any).org_id)
+  const permissions = Array.from(await getOrgPermissions((event as any).org_id, user.id))
 
   const { data: ticketTypes } = await supabase
     .from('ticket_types')
@@ -64,6 +66,7 @@ export default async function BadgesPage({ params }: Props) {
         orgTemplates={orgTemplates}
         badgeRules={((event as any).badge_rules ?? []) as any[]}
         ticketTypes={(ticketTypes ?? []) as any[]}
+        permissions={permissions}
       />
     </div>
   )

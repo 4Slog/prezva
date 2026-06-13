@@ -6,6 +6,7 @@ import { updateBadgeRules } from '@/lib/events/actions'
 import { createClient } from '@/lib/supabase/client'
 import { BADGE_TEMPLATES } from '@/lib/templates/badges'
 import { deleteEventTemplate, deleteOrgTemplate } from '@/lib/badges/delete-actions'
+import { Gated } from '@/components/auth/Gated'
 
 interface BadgeTemplate {
   id: string
@@ -42,10 +43,11 @@ interface Props {
   orgTemplates: BadgeTemplate[]
   badgeRules: BadgeRule[]
   ticketTypes: TicketType[]
+  permissions?: string[]
   embedActions?: EmbedBadgeActions
 }
 
-export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg, badgeRules: initialRules, ticketTypes, embedActions }: Props) {
+export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initial, orgTemplates: initialOrg, badgeRules: initialRules, ticketTypes, permissions = [], embedActions }: Props) {
   const [eventTpls, setEventTpls] = useState(initial)
   const [saving, setSaving] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
@@ -317,31 +319,35 @@ export function BadgesClient({ eventId, orgId, eventSlug, eventTemplates: initia
                     >
                       {copying === t.id ? 'Copying…' : 'Use template'}
                     </button>
-                    {confirmDeleteOrg === t.id ? (
-                      <span className="flex items-center gap-1">
-                        <span className="text-xs text-[var(--pz-muted)]">Delete?</span>
-                        <button
-                          onClick={() => handleDeleteOrg(t.id)}
-                          disabled={deletingOrg === t.id}
-                          className="text-xs text-[var(--pz-error)] hover:underline disabled:opacity-50"
-                        >
-                          {deletingOrg === t.id ? 'Deleting…' : 'Yes'}
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteOrg(null)}
-                          className="text-xs text-[var(--pz-muted)] hover:underline"
-                        >
-                          No
-                        </button>
+                    <Gated permission="org.templates.manage" perms={permissions} mode="hide">
+                      <span>
+                        {confirmDeleteOrg === t.id ? (
+                          <span className="flex items-center gap-1">
+                            <span className="text-xs text-[var(--pz-muted)]">Delete?</span>
+                            <button
+                              onClick={() => handleDeleteOrg(t.id)}
+                              disabled={deletingOrg === t.id}
+                              className="text-xs text-[var(--pz-error)] hover:underline disabled:opacity-50"
+                            >
+                              {deletingOrg === t.id ? 'Deleting…' : 'Yes'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteOrg(null)}
+                              className="text-xs text-[var(--pz-muted)] hover:underline"
+                            >
+                              No
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteOrg(t.id)}
+                            className="text-xs text-[var(--pz-error)] hover:underline opacity-50 hover:opacity-100"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </span>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDeleteOrg(t.id)}
-                        className="text-xs text-[var(--pz-error)] hover:underline opacity-50 hover:opacity-100"
-                      >
-                        Delete
-                      </button>
-                    )}
+                    </Gated>
                   </div>
                 </div>
               </div>

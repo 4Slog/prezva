@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 
 export async function deleteEventTemplate(
   templateId: string,
@@ -52,17 +54,8 @@ export async function deleteOrgTemplate(
   const user = await requireUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const supabase = await createClient()
-
-  // Explicit role gate: staff+ required
-  const { data: member } = await supabase
-    .from('org_members')
-    .select('role')
-    .eq('org_id', orgId)
-    .eq('user_id', user.id)
-    .in('role', ['owner', 'admin', 'staff'])
-    .maybeSingle()
-  if (!member) return { error: 'Access denied' }
+  try { await assertPermission(orgId, user.id, 'org.templates.manage') }
+  catch (e) { return catchPermission(e) }
 
   const admin = createAdminClient()
   const { error, count } = await admin
@@ -70,7 +63,7 @@ export async function deleteOrgTemplate(
     .delete({ count: 'exact' })
     .eq('id', templateId)
     .eq('org_id', orgId)
-    .is('event_id', null)
+    .eq('is_template', true)
   if (error) return { error: error.message }
   if (count === 0) return { error: 'Delete failed — no rows affected' }
 
