@@ -5,6 +5,7 @@ import {
   createRegistrationFromExternalPayment,
 } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
+import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 
 export const runtime = 'nodejs'
 
@@ -38,19 +39,25 @@ export async function POST(req: NextRequest) {
     const meta = firstItem?.meta as Record<string, unknown> | undefined
     const location = body.location as Record<string, unknown> | undefined
 
-    const ghlOrderId     = meta?.order_id as string | undefined
-    const locationId     = location?.id as string | undefined
-    const contactId      = body.contact_id as string | undefined
-    const attendeeEmail  = body.email as string | undefined
-    const attendeeName   = body.full_name as string | undefined
-    const attendeePhone  = body.phone as string | undefined
-    const productId      = meta?.product_id as string | undefined
-    const priceId        = meta?.price_id as string | undefined
-    const amountPaidCents = order?.total_price as number | undefined
     const currency       = (order?.currency_code as string | undefined) ?? 'USD'
     const paymentGateway = (order?.payment_gateway as string | undefined) ?? 'unknown'
 
-    if (!ghlOrderId || !locationId || !contactId || !attendeeEmail || !attendeeName || !productId || !priceId || amountPaidCents === undefined) {
+    const parsed = parsePaymentWebhookInput({
+      ghlOrderId:     meta?.order_id as string | undefined,
+      locationId:     location?.id as string | undefined,
+      contactId:      body.contact_id as string | undefined,
+      attendeeEmail:  body.email as string | undefined,
+      attendeeName:   body.full_name as string | undefined,
+      attendeePhone:  body.phone as string | undefined,
+      productId:      meta?.product_id as string | undefined,
+      priceId:        meta?.price_id as string | undefined,
+      amountPaidCents: order?.total_price,
+    })
+    if (!parsed.ok) return parsed.response
+
+    const { ghlOrderId, locationId, contactId, attendeeEmail, attendeeName, attendeePhone, productId, priceId, amountPaidCents } = parsed.data
+
+    if (!ghlOrderId || !locationId || !contactId || !productId || !priceId) {
       return NextResponse.json({ error: 'missing_required_fields' }, { status: 400 })
     }
 
