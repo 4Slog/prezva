@@ -14,8 +14,11 @@ export default async function EmbedEventOverviewPage({ params }: Props) {
   const token = cookieStore.get(COOKIE_NAME)?.value
   if (!token) redirect('/embedded/events')
 
+  let ghlLocationId = ''
+
   try {
     const session = await verifyEmbeddedSession(token)
+    ghlLocationId = session.location_id
     const db = createAdminClient()
     const { data: link } = await db
       .from('ghl_location_links')
@@ -35,7 +38,7 @@ export default async function EmbedEventOverviewPage({ params }: Props) {
     redirect('/embedded/events')
   }
 
-  const { groups } = buildEmbedEventNav(eventId)
+  const { groups } = buildEmbedEventNav(eventId, ghlLocationId)
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

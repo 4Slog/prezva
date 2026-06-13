@@ -42,7 +42,7 @@ export interface EmbedNavGroup {
 
 export { LayoutDashboard as EmbedOverviewIcon }
 
-export function buildEmbedEventNav(eventId: string): {
+export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
   overviewHref: string
   groups: EmbedNavGroup[]
 } {
@@ -58,7 +58,17 @@ export function buildEmbedEventNav(eventId: string): {
         items: [
           { label: 'Attendees',    href: `${base}/attendees`,    icon: Users,     built: true },
           { label: 'Check-in',     href: `${base}/checkin`,      icon: ScanLine,  built: true },
-          { label: 'Tickets',      href: `${base}/tickets`,      icon: Ticket,    external: true },
+          {
+            label: 'Tickets',
+            href: ghlLocationId
+              ? `https://app.gohighlevel.com/v2/location/${ghlLocationId}/payments/products`
+              : `${base}/tickets`,
+            icon: Ticket,
+            external: true,
+            built: Boolean(ghlLocationId), // available external destination when we have the location;
+                                           // falls back to disabled (not a clickable 404) if ever missing
+            // GHL app host hardcoded for the 4S account; white-label/custom-domain sub-accounts are a GE-8 concern.
+          },
           { label: 'Badges',       href: `${base}/badges`,       icon: Tag,       built: true },
           { label: 'Certificates', href: `${base}/certificates`, icon: Award,     built: true },
           { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck },

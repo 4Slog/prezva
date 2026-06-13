@@ -11,15 +11,16 @@ import {
 
 interface Props {
   eventId: string
+  ghlLocationId: string
 }
 
 function firstBuilt(items: EmbedNavItem[]): EmbedNavItem | undefined {
   return items.find(i => i.built)
 }
 
-export function EmbedEventTabs({ eventId }: Props) {
+export function EmbedEventTabs({ eventId, ghlLocationId }: Props) {
   const pathname = usePathname()
-  const { overviewHref, groups } = buildEmbedEventNav(eventId)
+  const { overviewHref, groups } = buildEmbedEventNav(eventId, ghlLocationId)
 
   const isOverview = pathname === overviewHref
 
@@ -137,6 +138,7 @@ export function EmbedEventTabs({ eventId }: Props) {
                   key={item.label}
                   href={item.href}
                   target="_top"
+                  title="Manage ticket products in GHL. To sell them, add the product to an order form and connect the Order Submitted workflow."
                   className="flex shrink-0 items-center gap-1 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
                   style={{
                     color: active ? 'var(--pz-text)' : 'var(--pz-muted)',

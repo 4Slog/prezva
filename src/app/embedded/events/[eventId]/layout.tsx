@@ -24,9 +24,11 @@ export default async function EmbedEventLayout({ params, children }: Props) {
   if (!token) redirect('/embedded/events')
 
   let event: { id: string; title: string; status: string | null; event_type: string | null }
+  let ghlLocationId = ''
 
   try {
     const session = await verifyEmbeddedSession(token)
+    ghlLocationId = session.location_id
     const db = createAdminClient()
     const { data: link } = await db
       .from('ghl_location_links')
@@ -81,7 +83,7 @@ export default async function EmbedEventLayout({ params, children }: Props) {
       </div>
 
       {/* Navigation tabs */}
-      <EmbedEventTabs eventId={eventId} />
+      <EmbedEventTabs eventId={eventId} ghlLocationId={ghlLocationId} />
 
       {/* Page content */}
       <main className="px-6 py-6">{children}</main>
