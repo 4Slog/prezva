@@ -1657,6 +1657,7 @@ export type Database = {
           location_id: string
           payload_hash: string
           pending_stage_id: string | null
+          raw_payload: Json | null
           retries: number
           source: string
           status: string
@@ -1674,6 +1675,7 @@ export type Database = {
           location_id: string
           payload_hash: string
           pending_stage_id?: string | null
+          raw_payload?: Json | null
           retries?: number
           source: string
           status?: string
@@ -1691,6 +1693,7 @@ export type Database = {
           location_id?: string
           payload_hash?: string
           pending_stage_id?: string | null
+          raw_payload?: Json | null
           retries?: number
           source?: string
           status?: string
@@ -3066,6 +3069,7 @@ export type Database = {
           paid_offline_at: string | null
           paid_offline_by: string | null
           payment_method: string
+          pin: string
           press_token: string | null
           qr_code: string | null
           refund_amount_cents: number | null
@@ -3109,6 +3113,7 @@ export type Database = {
           paid_offline_at?: string | null
           paid_offline_by?: string | null
           payment_method?: string
+          pin?: string
           press_token?: string | null
           qr_code?: string | null
           refund_amount_cents?: number | null
@@ -3152,6 +3157,7 @@ export type Database = {
           paid_offline_at?: string | null
           paid_offline_by?: string | null
           payment_method?: string
+          pin?: string
           press_token?: string | null
           qr_code?: string | null
           refund_amount_cents?: number | null
@@ -4025,6 +4031,7 @@ export type Database = {
           recording_enabled: boolean
           recording_url: string | null
           room_id: string | null
+          session_qr_token: string
           session_type: string | null
           simulive_scheduled_at: string | null
           simulive_started_at: string | null
@@ -4058,6 +4065,7 @@ export type Database = {
           recording_enabled?: boolean
           recording_url?: string | null
           room_id?: string | null
+          session_qr_token?: string
           session_type?: string | null
           simulive_scheduled_at?: string | null
           simulive_started_at?: string | null
@@ -4091,6 +4099,7 @@ export type Database = {
           recording_enabled?: boolean
           recording_url?: string | null
           room_id?: string | null
+          session_qr_token?: string
           session_type?: string | null
           simulive_scheduled_at?: string | null
           simulive_started_at?: string | null
@@ -4302,6 +4311,7 @@ export type Database = {
           email: string | null
           event_id: string
           event_role: string
+          ghl_contact_id: string | null
           id: string
           is_published: boolean | null
           job_title: string | null
@@ -4327,6 +4337,7 @@ export type Database = {
           email?: string | null
           event_id: string
           event_role?: string
+          ghl_contact_id?: string | null
           id?: string
           is_published?: boolean | null
           job_title?: string | null
@@ -4352,6 +4363,7 @@ export type Database = {
           email?: string | null
           event_id?: string
           event_role?: string
+          ghl_contact_id?: string | null
           id?: string
           is_published?: boolean | null
           job_title?: string | null
@@ -5522,23 +5534,8 @@ export const Constants = {
         "waitlisted",
         "refunded",
       ],
-      session_type: [
-        "talk",
-        "workshop",
-        "panel",
-        "keynote",
-        "break",
-        "networking",
-        "other",
-      ],
       survey_status: ["draft", "active", "closed"],
       ticket_type: ["free", "paid", "donation"],
     },
   },
 } as const
-
-// Convenience type exports used by the codebase
-export type Profile = Database['public']['Tables']['profiles']['Row']
-export type Organization = Database['public']['Tables']['organizations']['Row']
-export type Event = Database['public']['Tables']['events']['Row']
-export type Registration = Database['public']['Tables']['registrations']['Row']

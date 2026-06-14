@@ -6,6 +6,7 @@ import {
 } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
+import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
 
@@ -26,9 +27,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Parse body
+    let rawBody: string
     let body: Record<string, unknown>
     try {
-      body = await req.json()
+      rawBody = await req.text()
+      body = JSON.parse(rawBody) as Record<string, unknown>
     } catch {
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
     }
@@ -90,6 +93,7 @@ export async function POST(req: NextRequest) {
           external_event_id: ghlOrderId,
           payload_hash:      '',
           status:            'pending',
+          raw_payload:       body as unknown as Json,
         })
         .select('id')
         .single()
