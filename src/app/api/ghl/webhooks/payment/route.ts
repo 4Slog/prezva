@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
     const currency       = (order?.currency_code as string | undefined) ?? 'USD'
     const paymentGateway = (order?.payment_gateway as string | undefined) ?? 'unknown'
 
+    const totalPriceRaw = order?.total_price
+    const amountPaidCents = Math.round(Number(totalPriceRaw) * 100)
+
     const parsed = parsePaymentWebhookInput({
       ghlOrderId:     meta?.order_id as string | undefined,
       locationId:     location?.id as string | undefined,
@@ -54,11 +57,11 @@ export async function POST(req: NextRequest) {
       attendeePhone:  body.phone as string | undefined,
       productId:      meta?.product_id as string | undefined,
       priceId:        meta?.price_id as string | undefined,
-      amountPaidCents: order?.total_price,
+      amountPaidCents: amountPaidCents,
     })
     if (!parsed.ok) return parsed.response
 
-    const { ghlOrderId, locationId, contactId, attendeeEmail, attendeeName, attendeePhone, productId, priceId, amountPaidCents } = parsed.data
+    const { ghlOrderId, locationId, contactId, attendeeEmail, attendeeName, attendeePhone, productId, priceId } = parsed.data
 
     if (!ghlOrderId || !locationId || !contactId || !productId || !priceId) {
       return NextResponse.json({ error: 'missing_required_fields' }, { status: 400 })
