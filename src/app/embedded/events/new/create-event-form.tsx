@@ -241,27 +241,6 @@ export function CreateEventForm({ orgId: _orgId }: Props) {
         </div>
       )}
 
-      {/* Capacity */}
-      <div
-        className="flex flex-col gap-4 rounded-xl border p-5"
-        style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)' }}
-      >
-        <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--pz-muted)' }}>
-          Capacity
-        </h2>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Max attendees">
-            <input name="capacity" type="number" min="1" placeholder="Unlimited" className={inputCls} style={inputStyle} />
-          </Field>
-          <div className="flex items-end pb-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input name="waitlist_enabled" type="checkbox" value="true" className="rounded" />
-              <span className="text-sm" style={{ color: 'var(--pz-muted)' }}>Enable waitlist</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
       {error && (
         <p
           className="rounded-xl px-4 py-3 text-sm"

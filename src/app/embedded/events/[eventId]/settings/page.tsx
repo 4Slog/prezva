@@ -32,7 +32,7 @@ export default async function EmbedEventSettingsPage({ params }: Props) {
   const db = createAdminClient()
   const { data: event } = await db
     .from('events')
-    .select('id, title, description, event_type, timezone, start_at, end_at, venue_name, venue_address, venue_city, venue_state, virtual_url, capacity, waitlist_enabled')
+    .select('id, title, description, event_type, timezone, start_at, end_at, venue_name, venue_address, venue_city, venue_state, virtual_url')
     .eq('id', eventId)
     .eq('org_id', orgId)
     .maybeSingle()

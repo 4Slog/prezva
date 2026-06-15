@@ -111,8 +111,6 @@ const EmbedCreateEventSchema = z.object({
   venue_city:    z.string().max(80).optional(),
   venue_state:   z.string().max(80).optional(),
   virtual_url:   z.string().url().optional().or(z.literal('')),
-  capacity:      z.coerce.number().int().min(1).optional(),
-  waitlist_enabled: z.coerce.boolean().default(false),
 }).refine(d => new Date(d.end_at) > new Date(d.start_at), {
   message: 'End time must be after start time',
   path: ['end_at'],
@@ -144,8 +142,6 @@ export async function createEventFromEmbed(
     venue_city:    formData.get('venue_city') || undefined,
     venue_state:   formData.get('venue_state') || undefined,
     virtual_url:   formData.get('virtual_url') || undefined,
-    capacity:      formData.get('capacity') || undefined,
-    waitlist_enabled: formData.get('waitlist_enabled') === 'true',
   }
 
   const parsed = EmbedCreateEventSchema.safeParse(raw)
@@ -200,8 +196,6 @@ const EmbedUpdateEventSchema = z.object({
   venue_city:    z.string().max(80).optional(),
   venue_state:   z.string().max(80).optional(),
   virtual_url:   z.string().url().optional().or(z.literal('')),
-  capacity:      z.coerce.number().int().min(1).optional(),
-  waitlist_enabled: z.coerce.boolean().optional(),
 }).refine(d => !d.start_at || !d.end_at || new Date(d.end_at) > new Date(d.start_at), {
   message: 'End time must be after start time',
   path: ['end_at'],
@@ -241,8 +235,6 @@ export async function embedUpdateEvent(
     venue_city:    formData.get('venue_city') || undefined,
     venue_state:   formData.get('venue_state') || undefined,
     virtual_url:   formData.get('virtual_url') || undefined,
-    capacity:      formData.get('capacity') || undefined,
-    waitlist_enabled: formData.get('waitlist_enabled') === 'true',
   }
 
   const parsed = EmbedUpdateEventSchema.safeParse(raw)

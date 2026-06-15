@@ -16,8 +16,6 @@ interface EventData {
   venue_city: string | null
   venue_state: string | null
   virtual_url: string | null
-  capacity: number | null
-  waitlist_enabled: boolean | null
 }
 
 interface Props {
@@ -249,41 +247,6 @@ export function EventSettingsForm({ eventId, event }: Props) {
           </Field>
         </div>
       )}
-
-      {/* Capacity */}
-      <div
-        className="flex flex-col gap-4 rounded-xl border p-5"
-        style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)' }}
-      >
-        <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--pz-muted)' }}>
-          Capacity
-        </h2>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Max attendees">
-            <input
-              name="capacity"
-              type="number"
-              min="1"
-              defaultValue={event.capacity ?? ''}
-              placeholder="Unlimited"
-              className={inputCls}
-              style={inputStyle}
-            />
-          </Field>
-          <div className="flex items-end pb-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                name="waitlist_enabled"
-                type="checkbox"
-                value="true"
-                defaultChecked={event.waitlist_enabled ?? false}
-                className="rounded"
-              />
-              <span className="text-sm" style={{ color: 'var(--pz-muted)' }}>Enable waitlist</span>
-            </label>
-          </div>
-        </div>
-      </div>
 
       {saved && (
         <div
