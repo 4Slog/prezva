@@ -1,6 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
@@ -179,6 +180,92 @@ export async function createEventFromEmbed(
 
   if (error || !event) return { error: error?.message ?? 'Failed to create event' }
   return { id: event.id, slug: event.slug }
+}
+
+// ── Update event (edit) ───────────────────────────────────────────────────────
+
+const EmbedUpdateEventSchema = z.object({
+  title:        z.string().min(2).max(120).optional(),
+  description:  z.string().max(5000).optional(),
+  event_type:   z.enum(['in_person', 'virtual', 'hybrid']).optional(),
+  timezone:     z.string().min(1).optional(),
+  start_at:     z.string().min(1).transform(v =>
+    v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
+  ).optional(),
+  end_at:       z.string().min(1).transform(v =>
+    v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
+  ).optional(),
+  venue_name:    z.string().max(120).optional(),
+  venue_address: z.string().max(200).optional(),
+  venue_city:    z.string().max(80).optional(),
+  venue_state:   z.string().max(80).optional(),
+  virtual_url:   z.string().url().optional().or(z.literal('')),
+  capacity:      z.coerce.number().int().min(1).optional(),
+  waitlist_enabled: z.coerce.boolean().optional(),
+}).refine(d => !d.start_at || !d.end_at || new Date(d.end_at) > new Date(d.start_at), {
+  message: 'End time must be after start time',
+  path: ['end_at'],
+})
+
+export async function embedUpdateEvent(
+  eventId: string,
+  formData: FormData,
+): Promise<{ ok: true } | { error: string }> {
+  let ctx: Awaited<ReturnType<typeof resolveEmbedContext>>
+  try {
+    ctx = await resolveEmbedContext()
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
+
+  const { db, orgId } = ctx
+
+  // IDOR guard: event must belong to this org
+  const { data: existing } = await db
+    .from('events')
+    .select('id')
+    .eq('id', eventId)
+    .eq('org_id', orgId)
+    .maybeSingle()
+  if (!existing) return { error: 'Event not found' }
+
+  const raw = {
+    title:        formData.get('title') || undefined,
+    description:  formData.get('description') || undefined,
+    event_type:   formData.get('event_type') || undefined,
+    timezone:     formData.get('timezone') || undefined,
+    start_at:     formData.get('start_at') || undefined,
+    end_at:       formData.get('end_at') || undefined,
+    venue_name:    formData.get('venue_name') || undefined,
+    venue_address: formData.get('venue_address') || undefined,
+    venue_city:    formData.get('venue_city') || undefined,
+    venue_state:   formData.get('venue_state') || undefined,
+    virtual_url:   formData.get('virtual_url') || undefined,
+    capacity:      formData.get('capacity') || undefined,
+    waitlist_enabled: formData.get('waitlist_enabled') === 'true',
+  }
+
+  const parsed = EmbedUpdateEventSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  // Build update object from only the keys present in parsed.data
+  const updateObj: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(parsed.data)) {
+    if (v !== undefined) updateObj[k] = v
+  }
+
+  if (Object.keys(updateObj).length === 0) return { ok: true }
+
+  const { error: updateError } = await db
+    .from('events')
+    .update(updateObj)
+    .eq('id', eventId)
+    .eq('org_id', orgId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath(`/embedded/events/${eventId}/settings`)
+  return { ok: true }
 }
 
 export async function createTicketTypeFromEmbedProduct(
