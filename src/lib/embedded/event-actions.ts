@@ -329,7 +329,7 @@ export async function createTicketTypeFromEmbedProduct(
       event_id:        eventId,
       name:            product.name,
       type,
-      price_cents:     price.amount,
+      price_cents:     Math.round(price.amount * 100),
       currency:        price.currency.toLowerCase(),
       quantity:        quantity ?? undefined,
       delivery_method: 'in_person',
@@ -355,7 +355,7 @@ export async function createTicketTypeFromEmbedProduct(
       ghl_price_id:    ghlPriceId,
       ghl_product_name: product.name,
       ghl_price_name:   price.name,
-      price_cents:     price.amount,
+      price_cents:     Math.round(price.amount * 100),
       currency:        price.currency.toLowerCase(),
     })
     .select('id')
