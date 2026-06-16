@@ -112,7 +112,7 @@ export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
         icon: BarChart2,
         items: [
           { label: 'Event settings', href: `${base}/settings`,    icon: Settings, built: true },
-          { label: 'Analytics',      href: `${base}/analytics`,   icon: BarChart2 },
+          { label: 'Analytics',      href: `${base}/analytics`,   icon: BarChart2, built: true },
           { label: 'Sync health',    href: `${base}/sync-health`, icon: RefreshCw },
         ],
       },

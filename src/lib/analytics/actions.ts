@@ -1,5 +1,6 @@
 'use server'
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 
@@ -38,10 +39,7 @@ export interface EventAnalytics {
   }[]
 }
 
-export async function getEventAnalytics(eventId: string): Promise<EventAnalytics> {
-  const supabase = await createClient()
-  await requireUser()
-
+export async function computeEventAnalytics(supabase: SupabaseClient, eventId: string): Promise<EventAnalytics> {
   const now = new Date()
   const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
   const last7d  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000).toISOString()
@@ -218,4 +216,10 @@ export async function getEventAnalytics(eventId: string): Promise<EventAnalytics
     averageTicketValueCents: avgCents,
     sessionPopularity,
   }
+}
+
+export async function getEventAnalytics(eventId: string): Promise<EventAnalytics> {
+  const supabase = await createClient()
+  await requireUser()
+  return computeEventAnalytics(supabase, eventId)
 }
