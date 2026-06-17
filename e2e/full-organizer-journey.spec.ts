@@ -13,11 +13,9 @@ const PASSWORD = 'E2eTest123!'
 test.describe('Full organizer journey', () => {
   test.setTimeout(120_000)
 
-  test('OJ-01: signup page renders invite-only form with required fields', async ({ page }) => {
-    // Prezva signup is invite-only — form now requires an invite_code field
+  test('OJ-01: signup page renders with required fields', async ({ page }) => {
     await page.goto('/signup')
-    await expect(page.locator('input[name="invite_code"]')).toBeVisible({ timeout: 10_000 })
-    await expect(page.locator('input[name="full_name"]')).toBeVisible()
+    await expect(page.locator('input[name="full_name"]')).toBeVisible({ timeout: 10_000 })
     await expect(page.locator('input[name="email"]')).toBeVisible()
     await expect(page.locator('button[type="submit"]')).toBeVisible()
   })

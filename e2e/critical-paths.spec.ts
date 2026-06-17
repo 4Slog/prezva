@@ -6,12 +6,11 @@ const TEST_PASSWORD = 'TestPass123!'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// E2E-01: Signup form renders with invite-only fields
-test('E2E-01: signup form renders with required invite-only fields', async ({ page }) => {
+// E2E-01: Signup form renders with required fields
+test('E2E-01: signup form renders with required fields', async ({ page }) => {
   await page.goto('/signup')
-  // Prezva signup is invite-only — form has invite_code, full_name, email, password
-  await expect(page.locator('input[name="invite_code"]')).toBeVisible({ timeout: 10_000 })
-  await expect(page.locator('input[name="email"]')).toBeVisible()
+  await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 10_000 })
+  await expect(page.locator('input[name="password"]')).toBeVisible()
   await expect(page.locator('button[type="submit"]')).toBeVisible()
 })
 

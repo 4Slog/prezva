@@ -50,7 +50,7 @@ function SignupFormView({
       <div className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--pz-text)' }}>Create your account</h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--pz-muted)' }}>
-          Prezva is currently invite-only. Enter your invite code to get started.
+          Create your account to manage your events, tickets, and profile.
         </p>
       </div>
 
@@ -89,19 +89,6 @@ function SignupFormView({
 
       <form action={formAction} className="space-y-4">
         {next && <input type="hidden" name="next" value={next} />}
-        <Field label="Invite code" htmlFor="invite_code" required>
-          <input
-            id="invite_code" name="invite_code" type="text" required
-            placeholder="PREZVA-XXXX-XXXX"
-            autoCapitalize="characters"
-            className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--pz-teal)] font-mono tracking-widest"
-            style={{
-              background: 'var(--pz-surface-2)',
-              border: '1px solid var(--pz-border)',
-              color: 'var(--pz-text)',
-            }}
-          />
-        </Field>
         <Field label="Full name" htmlFor="full_name">
           <input
             id="full_name" name="full_name" type="text" required autoComplete="name"
@@ -147,12 +134,6 @@ function SignupFormView({
         <Link href={loginHref} className="font-medium hover:underline" style={{ color: 'var(--pz-teal-ink)' }}>
           Sign in
         </Link>
-      </p>
-      <p className="mt-3 text-center text-xs" style={{ color: 'var(--pz-muted)' }}>
-        Don&apos;t have an invite code?{' '}
-        <a href="https://prezva.app#waitlist" className="hover:underline" style={{ color: 'var(--pz-muted)' }}>
-          Join the waitlist
-        </a>
       </p>
     </div>
   )

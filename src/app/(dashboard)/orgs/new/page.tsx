@@ -134,6 +134,24 @@ export default function NewOrgPage() {
           </select>
         </Field>
 
+        <Field
+          label="Invite code"
+          htmlFor="org-invite-code"
+          helper="Required to create your first organization."
+        >
+          <input
+            id="org-invite-code"
+            name="invite_code"
+            type="text"
+            placeholder="PRZ-ORG-XXXX"
+            autoCapitalize="characters"
+            className="w-full rounded-md border px-3 py-2 text-sm font-mono tracking-widest focus:outline-none"
+            style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--pz-teal)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
+          />
+        </Field>
+
         {error && (
           <p className="rounded-md px-3 py-2 text-sm text-red-400" style={{ background: 'var(--pz-error-bg)' }}>
             {error}

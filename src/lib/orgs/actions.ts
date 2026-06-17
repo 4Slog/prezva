@@ -23,6 +23,7 @@ const CreateOrgSchema = z.object({
     .max(40)
     .regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers, and hyphens'),
   timezone: z.string().min(1).default('America/Chicago'),
+  invite_code: z.string().optional(),
 })
 
 const UpdateOrgSchema = z.object({
@@ -90,6 +91,19 @@ export async function createOrg(formData: FormData) {
   // Admin client: org + first owner member require service role (chicken-and-egg RLS)
   const admin = createAdminClient()
 
+  // Gate first org creation behind an invite code; existing owners are exempt
+  const { count: ownerCount } = await admin.from('org_members').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('role', 'owner')
+  let inviteToConsume: string | null = null
+  if (!ownerCount || ownerCount === 0) {
+    const code = (formData.get('invite_code') as string | null)?.trim().toUpperCase()
+    if (!code) return { error: 'An invite code is required to create your first organization.' }
+    const { data: invite } = await admin.from('invite_codes').select('id, email, used_at').eq('code', code).maybeSingle()
+    if (!invite) return { error: 'Invalid invite code. Please check your code and try again.' }
+    if (invite.used_at) return { error: 'This invite code has already been used.' }
+    if (invite.email && invite.email.toLowerCase() !== user.email?.toLowerCase()) return { error: 'This invite code is not valid for this email address.' }
+    inviteToConsume = invite.id
+  }
+
   const { data: org, error: orgErr } = await admin
     .from('organizations')
     .insert({
@@ -130,6 +144,10 @@ export async function createOrg(formData: FormData) {
     invited_by: user.id,
   })
   if (memberErr) return { error: memberErr.message }
+
+  if (inviteToConsume) {
+    await admin.from('invite_codes').update({ used_at: new Date().toISOString(), used_by: user.id }).eq('id', inviteToConsume)
+  }
 
   await logAudit(supabase, org.id, user.id, 'org.create', 'organization', org.id)
   revalidatePath('/dashboard')
