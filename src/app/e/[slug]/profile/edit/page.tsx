@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
-import { getMyProfile, getAttendeeProfile, upsertAttendeeProfile, getIcebreakerQuestions } from '@/lib/networking/sprint8-actions'
+import { getMyProfile, upsertAttendeeProfile, getIcebreakerQuestions } from '@/lib/networking/sprint8-actions'
 import { AvatarUpload } from '@/components/upload/AvatarUpload'
 import { Field } from '@/components/ui/Field'
 
@@ -27,7 +28,13 @@ export default async function ProfileEditPage({ params }: Props) {
     profileData = await getMyProfile((event as any).id)
   } else {
     // registration tier — guest with cookie-based session
-    const rawProfile = await getAttendeeProfile(identity.registrationId)
+    // Must use admin client: RLS blocks anon reads on rows where user_id is null
+    const admin = createAdminClient()
+    const { data: rawProfile } = await admin
+      .from('attendee_profiles')
+      .select('*')
+      .eq('registration_id', identity.registrationId)
+      .maybeSingle()
     profileData = { profile: rawProfile, registrationId: identity.registrationId }
   }
 
