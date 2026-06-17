@@ -180,7 +180,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     Create a free Prezva account to manage your tickets, track your event history, and get personalized recommendations.
                   </p>
                   <Link
-                    href={`/signup?email=${encodeURIComponent(reg.attendee_email)}&next=${encodeURIComponent(`/e/${slug}`)}`}
+                    href={`/magic?email=${encodeURIComponent(reg.attendee_email)}&next=${encodeURIComponent(`/e/${slug}`)}`}
                     className="inline-block rounded-lg px-4 py-1.5 text-xs font-semibold"
                     style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
                   >

@@ -29,6 +29,18 @@ export async function signUp(_prevState: unknown, formData: FormData): Promise<{
   return { success: 'Check your email to confirm your account.' }
 }
 
+export async function sendMagicLink(_prevState: unknown, formData: FormData): Promise<{ error?: string; success?: string }> {
+  const supabase = await createClient()
+  const email = (formData.get('email') as string | null)?.trim() ?? ''
+  if (!email || !email.includes('@')) return { error: 'Please enter a valid email address.' }
+  const rawNext = formData.get('next')
+  const next = typeof rawNext === 'string' && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\') ? rawNext : null
+  const emailRedirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo } })
+  if (error) return { error: error.message }
+  return { success: 'Check your email for your sign-in link.' }
+}
+
 export async function signIn(_prevState: unknown, formData: FormData): Promise<{ error?: string }> {
   const supabase = await createClient()
   const email = formData.get('email') as string
