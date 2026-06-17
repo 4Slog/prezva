@@ -34,10 +34,14 @@ export async function upsertAttendeeProfile(registrationId: string, raw: unknown
       .select('id, event_id, user_id, attendee_email')
       .eq('id', registrationId)
       .single()
+    const emailVerified = !!user.email_confirmed_at
     const ownsReg =
       !!reg &&
       (reg.user_id === user.id ||
-        (reg.attendee_email ?? '').toLowerCase() === (user.email ?? '').toLowerCase())
+        (reg.user_id == null &&
+          emailVerified &&
+          !!user.email &&
+          (reg.attendee_email ?? '').toLowerCase() === user.email.toLowerCase()))
     if (!ownsReg) return { error: 'Not authorized' }
 
     const admin = createAdminClient()
