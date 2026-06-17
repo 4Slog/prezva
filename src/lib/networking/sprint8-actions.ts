@@ -29,13 +29,16 @@ export async function upsertAttendeeProfile(registrationId: string, raw: unknown
 
   if (user) {
     // ── Logged-in user path ──────────────────────────────────────────────────
-    // RLS-guarded lookup: only succeeds if this registration belongs to the user
     const { data: reg } = await supabase
       .from('registrations')
-      .select('id, event_id')
+      .select('id, event_id, user_id, attendee_email')
       .eq('id', registrationId)
       .single()
-    if (!reg) return { error: 'Not authorized' }
+    const ownsReg =
+      !!reg &&
+      (reg.user_id === user.id ||
+        (reg.attendee_email ?? '').toLowerCase() === (user.email ?? '').toLowerCase())
+    if (!ownsReg) return { error: 'Not authorized' }
 
     const admin = createAdminClient()
     const { error } = await admin
