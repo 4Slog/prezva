@@ -14,6 +14,7 @@ export default function OnboardingClient() {
   const [orgSlug, setOrgSlug] = useState('')
   const [slugEdited, setSlugEdited] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
 
@@ -29,7 +30,7 @@ export default function OnboardingClient() {
       const res = await fetch('/api/orgs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: orgName.trim(), slug: orgSlug.trim() }),
+        body: JSON.stringify({ name: orgName.trim(), slug: orgSlug.trim(), invite_code: inviteCode.trim() }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to create organization'); setCreating(false); return }
@@ -118,12 +119,30 @@ export default function OnboardingClient() {
                   </div>
                 </Field>
               </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <Field label="Invite code" htmlFor="org-invite">
+                  <input
+                    id="org-invite"
+                    value={inviteCode}
+                    onChange={e => setInviteCode(e.target.value)}
+                    placeholder="PRZ-ORG-XXXX"
+                    autoCapitalize="characters"
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 8, fontSize: 15,
+                             border: '1px solid var(--pz-border)', background: 'var(--pz-surface-2)',
+                             color: 'var(--pz-text)', boxSizing: 'border-box',
+                             fontFamily: 'monospace', letterSpacing: 2 }}
+                  />
+                </Field>
+                <p style={{ color: 'var(--pz-muted)', fontSize: 12, margin: '6px 0 0' }}>
+                  Required to create your organization.
+                </p>
+              </div>
               {error && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
               <Button
                 size="lg"
                 className="w-full"
                 onClick={handleCreateOrg}
-                disabled={!orgName.trim() || creating}
+                disabled={!orgName.trim() || !inviteCode.trim() || creating}
               >
                 {creating ? 'Creating…' : 'Continue →'}
               </Button>

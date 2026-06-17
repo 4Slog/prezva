@@ -8,6 +8,7 @@ const Schema = z.object({
   name: z.string().min(2).max(80),
   slug: z.string().min(2).max(40).regex(/^[a-z0-9-]+$/),
   timezone: z.string().min(1).default('America/Chicago'),
+  invite_code: z.string().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -20,6 +21,24 @@ export async function POST(req: NextRequest) {
     const parsed = Schema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
+    }
+
+    // Gate first-org creation behind an invite code; existing owners are exempt.
+    // Mirrors the gate in src/lib/orgs/actions.ts createOrg().
+    const { count: ownerCount } = await admin
+      .from('org_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('role', 'owner')
+    let inviteToConsume: string | null = null
+    if (!ownerCount || ownerCount === 0) {
+      const code = parsed.data.invite_code?.trim().toUpperCase()
+      if (!code) return NextResponse.json({ error: 'An invite code is required to create your first organization.' }, { status: 403 })
+      const { data: invite } = await admin.from('invite_codes').select('id, email, used_at').eq('code', code).maybeSingle()
+      if (!invite) return NextResponse.json({ error: 'Invalid invite code. Please check your code and try again.' }, { status: 403 })
+      if (invite.used_at) return NextResponse.json({ error: 'This invite code has already been used.' }, { status: 403 })
+      if (invite.email && invite.email.toLowerCase() !== user.email?.toLowerCase()) return NextResponse.json({ error: 'This invite code is not valid for this email address.' }, { status: 403 })
+      inviteToConsume = invite.id
     }
 
     const { data: existing } = await admin
@@ -64,6 +83,10 @@ export async function POST(req: NextRequest) {
     })
     if (memberErr) {
       return NextResponse.json({ error: memberErr.message }, { status: 500 })
+    }
+
+    if (inviteToConsume) {
+      await admin.from('invite_codes').update({ used_at: new Date().toISOString(), used_by: user.id }).eq('id', inviteToConsume)
     }
 
     return NextResponse.json(org, { status: 201 })
