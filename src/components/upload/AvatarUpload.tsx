@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { UserRound } from 'lucide-react'
 
-export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
+export function AvatarUpload({ currentUrl, endpoint = '/api/upload/avatar' }: { currentUrl?: string; endpoint?: string }) {
   const [avatarUrl, setAvatarUrl] = useState(currentUrl ?? '')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -14,7 +14,7 @@ export function AvatarUpload({ currentUrl }: { currentUrl?: string }) {
     setError('')
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch('/api/upload/avatar', { method: 'POST', body: fd })
+    const res = await fetch(endpoint, { method: 'POST', body: fd })
     const json = await res.json()
     setUploading(false)
     if (!res.ok) { setError(json.error); return }

@@ -1,8 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 
 // ─── T-091, T-091a, T-094e: Attendee profiles ────────────────────────────────
@@ -20,34 +22,71 @@ const ProfileSchema = z.object({
 })
 
 export async function upsertAttendeeProfile(registrationId: string, raw: unknown) {
-  const user = await requireUser()
   const supabase = await createClient()
   const data = ProfileSchema.parse(raw)
 
-  const { data: reg } = await supabase
-    .from('registrations')
-    .select('id, event_id')
-    .eq('id', registrationId)
-    .single()
-  if (!reg) return { error: 'Registration not found' }
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const { error } = await supabase
-    .from('attendee_profiles')
-    .upsert({
-      registration_id: registrationId,
-      event_id: (reg as any).event_id,
-      user_id: user.id,
-      ...data,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'registration_id' })
+  if (user) {
+    // ── Logged-in user path ──────────────────────────────────────────────────
+    // RLS-guarded lookup: only succeeds if this registration belongs to the user
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('id, event_id')
+      .eq('id', registrationId)
+      .single()
+    if (!reg) return { error: 'Not authorized' }
 
-  if (error) return { error: error.message }
+    const admin = createAdminClient()
+    const { error } = await admin
+      .from('attendee_profiles')
+      .upsert({
+        registration_id: registrationId,
+        event_id: (reg as any).event_id,
+        user_id: user.id,
+        ...data,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'registration_id' })
 
-  const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-  await awardPoints((reg as any).event_id, user.id, 'profile_complete').catch(() => {})
+    if (error) return { error: error.message }
 
-  revalidatePath('/e')
-  return { success: true }
+    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    await awardPoints((reg as any).event_id, user.id, 'profile_complete').catch(() => {})
+
+    revalidatePath('/e')
+    return { success: true }
+  } else {
+    // ── Guest (cookie-only) path ─────────────────────────────────────────────
+    const admin = createAdminClient()
+    const { data: reg } = await admin
+      .from('registrations')
+      .select('id, event_id, events(slug)')
+      .eq('id', registrationId)
+      .single()
+    if (!reg) return { error: 'Registration not found' }
+
+    const slug = (reg as any).events?.slug as string | undefined
+    if (!slug) return { error: 'Event not found' }
+
+    const jar = await cookies()
+    const cookieVal = jar.get(`pz_reg_${slug}`)?.value
+    if (!cookieVal || cookieVal !== registrationId) return { error: 'Not authorized' }
+
+    const { error } = await admin
+      .from('attendee_profiles')
+      .upsert({
+        registration_id: registrationId,
+        event_id: (reg as any).event_id,
+        user_id: null,
+        ...data,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'registration_id' })
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/e')
+    return { success: true }
+  }
 }
 
 export async function getAttendeeProfile(registrationId: string) {

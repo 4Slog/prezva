@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/auth/get-user'
-import { getMyProfile, upsertAttendeeProfile, getIcebreakerQuestions } from '@/lib/networking/sprint8-actions'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { getMyProfile, getAttendeeProfile, upsertAttendeeProfile, getIcebreakerQuestions } from '@/lib/networking/sprint8-actions'
 import { AvatarUpload } from '@/components/upload/AvatarUpload'
 import { Field } from '@/components/ui/Field'
 
@@ -9,17 +9,29 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function ProfileEditPage({ params }: Props) {
   const { slug } = await params
-  const user = await requireUser()
+  const identity = await getSessionIdentity(slug)
+
+  if (identity.type === 'anonymous') {
+    redirect(`/e/${slug}`)
+  }
+
   const supabase = await createClient()
 
   const { data: event } = await supabase
     .from('events').select('id, title').eq('slug', slug).single()
   if (!event) notFound()
 
-  const [profileData, icebreakers] = await Promise.all([
-    getMyProfile((event as any).id),
-    getIcebreakerQuestions(5),
-  ])
+  let profileData: { profile: Record<string, unknown> | null; registrationId: string } | null = null
+
+  if (identity.type === 'user') {
+    profileData = await getMyProfile((event as any).id)
+  } else {
+    // registration tier — guest with cookie-based session
+    const rawProfile = await getAttendeeProfile(identity.registrationId)
+    profileData = { profile: rawProfile, registrationId: identity.registrationId }
+  }
+
+  const icebreakers = await getIcebreakerQuestions(5)
 
   if (!profileData) {
     return (
@@ -104,7 +116,7 @@ export default async function ProfileEditPage({ params }: Props) {
             <h2 className="text-sm font-semibold" style={{ color: 'var(--pz-label)' }}>Links</h2>
             <div>
               <label className="mb-1 block text-xs font-medium" style={{ color: 'var(--pz-muted)' }}>Profile photo</label>
-              <AvatarUpload currentUrl={p.avatar_url ?? ''} />
+              <AvatarUpload currentUrl={p.avatar_url ?? ''} endpoint={`/e/${slug}/profile/photo`} />
             </div>
             <Field label="LinkedIn URL" htmlFor="profile-linkedin">
               <input id="profile-linkedin" name="linkedin_url" type="url" defaultValue={p.linkedin_url ?? ''} placeholder="https://linkedin.com/in/…" className={inputCls} style={inputStyle} />
