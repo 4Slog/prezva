@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<SignupFormView next="" state={{}} loginHref="/login" />}>
+    <Suspense fallback={<SignupFormView next="" emailDefault="" state={{}} loginHref="/login" />}>
       <SignupFormConnected />
     </Suspense>
   )
@@ -20,18 +20,21 @@ function SignupFormConnected() {
   const params = useSearchParams()
   const rawNext = params.get('next') ?? ''
   const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : ''
+  const emailDefault = params.get('email') ?? ''
   const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : '/login'
   const [state, formAction] = useActionState(signUp, {})
-  return <SignupFormView next={next} state={state} formAction={formAction} loginHref={loginHref} />
+  return <SignupFormView next={next} emailDefault={emailDefault} state={state} formAction={formAction} loginHref={loginHref} />
 }
 
 function SignupFormView({
   next,
+  emailDefault,
   state,
   formAction,
   loginHref,
 }: {
   next: string
+  emailDefault: string
   state: { error?: string; success?: string }
   formAction?: (formData: FormData) => void
   loginHref: string
@@ -115,6 +118,7 @@ function SignupFormView({
           <input
             id="email" name="email" type="email" required autoComplete="email"
             placeholder="you@example.com"
+            defaultValue={emailDefault}
             className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--pz-teal)]"
             style={{
               background: 'var(--pz-surface-2)',

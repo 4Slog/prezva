@@ -29,11 +29,17 @@ export async function signUp(_prevState: unknown, formData: FormData): Promise<{
     return { error: 'This invite code is not valid for this email address.' }
   }
 
+  const rawNext = formData.get('next')
+  const next = typeof rawNext === 'string' && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\') ? rawNext : null
+
   // Create the account
   const { data: authData, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: {
+      data: { full_name: fullName },
+      ...(next ? { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(next)}` } : {}),
+    },
   })
 
   if (error) return { error: error.message }

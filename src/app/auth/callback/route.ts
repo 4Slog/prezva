@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       // Honor explicit deep links (e.g. /invite/[token]); else route by relationships.
-      if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) {
+      if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.startsWith('/\\')) {
         return NextResponse.redirect(`${origin}${nextParam}`)
       }
       const user = data.user
