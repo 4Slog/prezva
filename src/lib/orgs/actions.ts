@@ -11,7 +11,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
-import { seedBuiltinRoles } from './seed-builtin-roles'
+import { createOrganization } from './create-organization'
 
 // ── Validation schemas ───────────────────────────────────────────────────────
 
@@ -23,7 +23,6 @@ const CreateOrgSchema = z.object({
     .max(40)
     .regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers, and hyphens'),
   timezone: z.string().min(1).default('America/Chicago'),
-  invite_code: z.string().optional(),
 })
 
 const UpdateOrgSchema = z.object({
@@ -71,87 +70,20 @@ export async function assertOrgRole(
 
 export async function createOrg(formData: FormData) {
   const user = await requireUser()
-  const supabase = await createClient()
-
   const parsed = CreateOrgSchema.safeParse({
     name: formData.get('name'),
     slug: formData.get('slug'),
     timezone: formData.get('timezone') ?? 'America/Chicago',
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
-
-  // Check slug uniqueness
-  const { data: existing } = await supabase
-    .from('organizations')
-    .select('id')
-    .eq('slug', parsed.data.slug)
-    .maybeSingle()
-  if (existing) return { error: 'That slug is already taken — choose another' }
-
-  // Admin client: org + first owner member require service role (chicken-and-egg RLS)
-  const admin = createAdminClient()
-
-  // Gate first org creation behind an invite code; existing owners are exempt
-  const { count: ownerCount } = await admin.from('org_members').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('role', 'owner')
-  let inviteToConsume: string | null = null
-  if (!ownerCount || ownerCount === 0) {
-    const code = (formData.get('invite_code') as string | null)?.trim().toUpperCase()
-    if (!code) return { error: 'An invite code is required to create your first organization.' }
-    const { data: invite } = await admin.from('invite_codes').select('id, email, used_at').eq('code', code).maybeSingle()
-    if (!invite) return { error: 'Invalid invite code. Please check your code and try again.' }
-    if (invite.used_at) return { error: 'This invite code has already been used.' }
-    if (invite.email && invite.email.toLowerCase() !== user.email?.toLowerCase()) return { error: 'This invite code is not valid for this email address.' }
-    inviteToConsume = invite.id
-  }
-
-  const { data: org, error: orgErr } = await admin
-    .from('organizations')
-    .insert({
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      timezone: parsed.data.timezone,
-      created_by: user.id,
-    })
-    .select()
-    .single()
-
-  if (orgErr || !org) {
-    if ((orgErr as any)?.code === '23505') {
-      return { error: 'That URL is already taken. Please choose a different one.', field: 'slug' }
-    }
-    return { error: orgErr?.message ?? 'Failed to create organization' }
-  }
-
-  // Seed built-in roles for the new org and get the owner role_id.
-  // Must happen before the org_members insert so role_id is set from day one.
-  // No DB transaction available here — if seeding fails, the org row exists
-  // but has no roles (same as the pre-fix bug). We return a clear error so the
-  // user knows to retry rather than silently entering a broken state.
-  let ownerRoleId: string
-  try {
-    ownerRoleId = await seedBuiltinRoles(org.id, admin)
-  } catch (e) {
-    console.error('[createOrg] seedBuiltinRoles failed — org created without roles:', e)
-    return { error: 'Organization created but role setup failed. Please contact support.' }
-  }
-
-  // Add creator as owner (dual-write: role enum + role_id FK)
-  const { error: memberErr } = await admin.from('org_members').insert({
-    org_id: org.id,
-    user_id: user.id,
-    role: 'owner',
-    role_id: ownerRoleId,
-    invited_by: user.id,
+  const result = await createOrganization({
+    userId: user.id, userEmail: user.email ?? null,
+    name: parsed.data.name, slug: parsed.data.slug, timezone: parsed.data.timezone,
+    inviteCode: (formData.get('invite_code') as string | null) ?? null,
   })
-  if (memberErr) return { error: memberErr.message }
-
-  if (inviteToConsume) {
-    await admin.from('invite_codes').update({ used_at: new Date().toISOString(), used_by: user.id }).eq('id', inviteToConsume)
-  }
-
-  await logAudit(supabase, org.id, user.id, 'org.create', 'organization', org.id)
+  if (!result.ok) return result.field ? { error: result.error, field: result.field } : { error: result.error }
   revalidatePath('/dashboard')
-  redirect(`/orgs/${org.slug}/settings`)
+  redirect(`/orgs/${result.org.slug}/settings`)
 }
 
 // ── Update org ───────────────────────────────────────────────────────────────

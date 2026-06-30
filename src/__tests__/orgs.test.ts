@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createOrganization } from '@/lib/orgs/create-organization'
 
 // ── Mock requireUser ─────────────────────────────────────────────────────────
 const mockRequireUser = vi.fn().mockResolvedValue({ id: 'user-1', email: 'paul@test.com' })
@@ -10,6 +11,9 @@ vi.mock('@/lib/orgs/actions', async () => {
   const actual = await vi.importActual<typeof import('@/lib/orgs/actions')>('@/lib/orgs/actions')
   return { ...actual, inviteMember: mockInviteMember }
 })
+
+// ── Mock createOrganization (POST /api/orgs delegates to this) ───────────────
+vi.mock('@/lib/orgs/create-organization', () => ({ createOrganization: vi.fn() }))
 
 // ── Mock seedBuiltinRoles (tested separately; here we just need it to succeed) ─
 vi.mock('@/lib/orgs/seed-builtin-roles', () => ({
@@ -66,6 +70,7 @@ beforeEach(() => {
   mockFrom.mockReset().mockImplementation(() => makeChain())
   mockRequireUser.mockResolvedValue({ id: 'user-1', email: 'paul@test.com' })
   mockInviteMember.mockReset()
+  vi.mocked(createOrganization).mockReset()
 })
 
 // ── POST /api/orgs ────────────────────────────────────────────────────────────
@@ -93,7 +98,11 @@ describe('Orgs API — POST /api/orgs', () => {
   })
 
   it('rejects duplicate slug — 409', async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: 'existing-org' }, error: null })
+    vi.mocked(createOrganization).mockResolvedValueOnce({
+      ok: false, status: 409,
+      error: 'That URL is already taken. Please choose a different one.',
+      field: 'slug',
+    })
     const { POST } = await import('@/app/api/orgs/route')
     const req = new Request('http://localhost/api/orgs', {
       method: 'POST',
@@ -104,26 +113,10 @@ describe('Orgs API — POST /api/orgs', () => {
   })
 
   it('creates org and adds owner membership — 201', async () => {
-    // Call 1: organizations.select().eq().maybeSingle() → slug check
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null })
-    // Call 2: organizations.insert().select().single() → new org
-    mockSingle.mockResolvedValueOnce({
-      data: { id: 'org-1', name: 'Test Org', slug: 'test-org', timezone: 'UTC' },
-      error: null,
+    vi.mocked(createOrganization).mockResolvedValueOnce({
+      ok: true,
+      org: { id: 'org-1', name: 'Test Org', slug: 'test-org', timezone: 'UTC' } as never,
     })
-    // Call 3: org_members.insert() → just needs to resolve (no .single())
-    // mockInsert already returns `this` (the chain), so the await on insert()
-    // resolves with the chain — we need the second from() call's insert to resolve
-    let callN = 0
-    mockFrom.mockImplementation(() => {
-      callN++
-      if (callN === 3) {
-        // org_members insert — awaited directly
-        return { insert: vi.fn().mockResolvedValue({ error: null }) } as unknown as ReturnType<typeof makeChain>
-      }
-      return makeChain()
-    })
-
     const { POST } = await import('@/app/api/orgs/route')
     const req = new Request('http://localhost/api/orgs', {
       method: 'POST',
