@@ -6,6 +6,9 @@ import {
 } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
+import { ghlPut } from '@/lib/integrations/ghl/client'
+import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
 import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
@@ -217,6 +220,21 @@ export async function POST(req: NextRequest) {
     const entryUrl = appUrl && eventSlug
       ? `${appUrl}/e/${eventSlug}/enter?reg=${result.registrationId}`
       : null
+
+    // Best-effort: write entryUrl into the GHL contact so the GHL "Send Email"
+    // workflow step can link to it via {{contact.prezva_attendee_link}}. Synchronous
+    // (before the 200) so the field is deterministically set before the workflow
+    // proceeds. Non-fatal: a GHL hiccup must never fail an otherwise-accepted
+    // registration.
+    if (entryUrl && contactId) {
+      try {
+        await ghlPut(getGhlToken(), `/contacts/${contactId}`, {
+          customFields: [{ id: GHL_FIELD_KEYS.prezvaAttendeeLink, value: entryUrl }],
+        })
+      } catch (e) {
+        console.error('[ghl-payment] failed to write entryUrl to contact', contactId, e)
+      }
+    }
 
     return NextResponse.json({ status: 'accepted', registrationId: result.registrationId, entryUrl })
   } catch (err) {

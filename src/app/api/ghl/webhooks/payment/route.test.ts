@@ -11,11 +11,20 @@ vi.mock('@/lib/registration/actions', () => ({
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlSync: vi.fn(),
 }))
+vi.mock('@/lib/integrations/ghl/client', () => ({
+  ghlPut: vi.fn(),
+}))
+vi.mock('@/lib/integrations/ghl/token', () => ({
+  getGhlToken: vi.fn(),
+}))
 
 import { POST } from './route'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
+import { ghlPut } from '@/lib/integrations/ghl/client'
+import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
 
 const CORRECT_SECRET = 'test-webhook-secret-32-chars-longg'
 const BASE_URL = 'http://localhost/api/ghl/webhooks/payment'
@@ -79,6 +88,8 @@ beforeEach(() => {
     registrationId: 'reg-uuid-123',
     qrCode: 'qr-abc-def',
   })
+  vi.mocked(getGhlToken).mockReturnValue('test-token')
+  vi.mocked(ghlPut).mockResolvedValue({} as any)
 })
 
 describe('POST /api/ghl/webhooks/payment — auth', () => {
@@ -192,5 +203,12 @@ describe('POST /api/ghl/webhooks/payment — happy path', () => {
     expect(json.status).toBe('accepted')
     expect(json.registrationId).toBe('reg-uuid-123')
     expect(json.entryUrl).toBe('https://prezva.app/e/test-conf-2026/enter?reg=reg-uuid-123')
+
+    expect(vi.mocked(ghlPut)).toHaveBeenCalledOnce()
+    expect(vi.mocked(ghlPut)).toHaveBeenCalledWith(
+      'test-token',
+      `/contacts/${LIVE_PAYLOAD.contact_id}`,
+      { customFields: [{ id: GHL_FIELD_KEYS.prezvaAttendeeLink, value: 'https://prezva.app/e/test-conf-2026/enter?reg=reg-uuid-123' }] },
+    )
   })
 })

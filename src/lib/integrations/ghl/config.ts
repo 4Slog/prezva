@@ -22,4 +22,6 @@ export const GHL_FIELD_KEYS = {
   prezvaPaymentStatus: '6fyY04s1yyTmpic653C0',
   prezvaSource: 'NfkhHIBJc3Etvq15iQnl',
   prezvaLastSyncTime: 'bYbFHamdFhi4apJXhP9t',
+  // Contact field — written by payment webhook so GHL workflows can link attendees back
+  prezvaAttendeeLink: 'GVx9yhZDVIkPChx7E5lp',
 } as const;
