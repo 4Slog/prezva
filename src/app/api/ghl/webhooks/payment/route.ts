@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
     let eventId: string | null = null
     let ticketTypeTitle: string | null = null
     let eventTitle: string | null = null
+    let eventSlug: string | null = null
 
     const { data: mapping } = await supabase
       .from('ticket_type_product_mappings')
@@ -143,10 +144,11 @@ export async function POST(req: NextRequest) {
       // Fetch ticket title + event title for the sync task
       const [{ data: ttRow }, { data: evRow }] = await Promise.all([
         supabase.from('ticket_types').select('name').eq('id', ticketTypeId!).maybeSingle(),
-        supabase.from('events').select('title').eq('id', eventId!).maybeSingle(),
+        supabase.from('events').select('title, slug').eq('id', eventId!).maybeSingle(),
       ])
       ticketTypeTitle = ttRow?.name ?? null
       eventTitle      = evRow?.title ?? null
+      eventSlug       = evRow?.slug ?? null
     }
 
     if (!ticketTypeId || !eventId) {
@@ -211,7 +213,12 @@ export async function POST(req: NextRequest) {
       syncStateId,
     })
 
-    return NextResponse.json({ status: 'accepted', registrationId: result.registrationId })
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+    const entryUrl = appUrl && eventSlug
+      ? `${appUrl}/e/${eventSlug}/enter?reg=${result.registrationId}`
+      : null
+
+    return NextResponse.json({ status: 'accepted', registrationId: result.registrationId, entryUrl })
   } catch (err) {
     console.error('[ghl-webhook] Unexpected error:', err)
     return NextResponse.json({ error: 'internal_error' }, { status: 500 })
