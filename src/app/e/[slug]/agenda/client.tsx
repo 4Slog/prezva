@@ -345,6 +345,9 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                         ))}
                       </p>
                     )}
+                    {eventSlug && (
+                      <a href={'/e/' + eventSlug + '/sessions/' + s.id} style={{ display: 'inline-block', marginTop: 6, fontSize: 11, color: 'var(--pz-teal-ink)', textDecoration: 'none' }}>View details →</a>
+                    )}
                     {(handoutsBySession[s.id]?.length ?? 0) > 0 && (
                       <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {handoutsBySession[s.id].map((h: any) => (

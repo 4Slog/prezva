@@ -97,6 +97,24 @@ export async function getPublicTicketTypes(eventId: string) {
   return data ?? []
 }
 
+export async function getPublicSession(eventId: string, sessionId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('sessions')
+    .select(`
+      *,
+      tracks(id, name, color),
+      rooms(id, name),
+      session_speakers(role, speakers(id, name, job_title, company, photo_url)),
+      sponsored_by:event_sponsors(id, name, logo_url, website_url)
+    `)
+    .eq('event_id', eventId)
+    .eq('id', sessionId)
+    .eq('is_published', true)
+    .maybeSingle()
+  return data
+}
+
 export async function getBookmarks(userId: string, eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
