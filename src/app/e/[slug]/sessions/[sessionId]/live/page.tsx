@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/get-user'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { ClaimToUnlock } from '@/components/events/ClaimToUnlock'
 import { createClient } from '@/lib/supabase/server'
 import { checkEligibility } from '@/lib/certificates/eligibility'
 import Link from 'next/link'
@@ -13,7 +14,24 @@ type Props = {
 export default async function LiveSessionPage({ params }: Props) {
   const { slug, sessionId } = await params
 
-  const user = await requireUser()
+  const identity = await getSessionIdentity(slug)
+
+  if (identity.type !== 'user') {
+    const email = identity.type === 'registration' ? identity.attendeeEmail : undefined
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <div style={{ maxWidth: 480, width: '100%' }}>
+          <ClaimToUnlock
+            reason="Create your free account to watch this session."
+            next={`/e/${slug}/sessions/${sessionId}/live`}
+            email={email}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  const userId = identity.userId
   const supabase = await createClient()
 
   const { data: session } = await supabase
@@ -41,7 +59,7 @@ export default async function LiveSessionPage({ params }: Props) {
     .from('registrations')
     .select('id')
     .eq('event_id', session.event_id)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('status', 'confirmed')
     .maybeSingle()
 
@@ -65,21 +83,20 @@ export default async function LiveSessionPage({ params }: Props) {
     .from('org_members')
     .select('role')
     .eq('org_id', (event as any).org_id)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle()
   const isOrganizer = !!orgMember
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name, display_name')
-    .eq('id', user.id)
+    .eq('id', userId)
     .maybeSingle()
 
   const displayName =
     (profile as any)?.display_name ||
     (profile as any)?.full_name ||
-    user.email ||
-    user.id
+    userId
 
   const isLive = !!session.mux_stream_id
 
@@ -154,7 +171,7 @@ export default async function LiveSessionPage({ params }: Props) {
           }}
           event={{ id: event.id, title: event.title, slug: event.slug }}
           registrationId={registration.id}
-          userId={user.id}
+          userId={userId}
           displayName={displayName}
           isOrganizer={isOrganizer}
         />

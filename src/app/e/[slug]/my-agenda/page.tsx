@@ -1,18 +1,18 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPublicEvent, getPublicAgenda, getBookmarks } from '@/lib/public/actions'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { ClaimToUnlock } from '@/components/events/ClaimToUnlock'
 
 export default async function MyAgendaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const event = await getPublicEvent(slug)
   if (!event) notFound()
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const identity = await getSessionIdentity(slug)
 
-  // Anonymous users see a sign-in prompt — no redirect so smoke check passes
-  if (!user) {
+  if (identity.type !== 'user') {
+    const email = identity.type === 'registration' ? identity.attendeeEmail : undefined
     return (
       <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
         <div style={{ background: 'var(--pz-surface)', borderBottom: '1px solid var(--pz-border)', padding: '1.25rem 1.5rem' }}>
@@ -21,34 +21,21 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--pz-text)' }}>My Agenda</h1>
           </div>
         </div>
-        <div style={{ maxWidth: 800, margin: '4rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
-          <h2 style={{ fontWeight: 700, marginBottom: 8, color: 'var(--pz-text)', fontSize: '1.25rem' }}>Sign in to see your personal agenda</h2>
-          <p style={{ color: 'var(--pz-muted)', marginBottom: 24, fontSize: 14 }}>
-            Bookmark sessions from the agenda to create your personalized schedule.
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <Link
-              href={`/login?next=/e/${slug}/my-agenda`}
-              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', padding: '0.5rem 1.25rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
-            >
-              Sign in
-            </Link>
-            <Link
-              href={`/e/${slug}/agenda`}
-              style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-text)', padding: '0.5rem 1.25rem', borderRadius: 8, textDecoration: 'none', fontSize: 14 }}
-            >
-              Browse agenda
-            </Link>
-          </div>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+          <ClaimToUnlock
+            reason="Create your free account to save your personal schedule and export it to your calendar."
+            next={`/e/${slug}/my-agenda`}
+            email={email}
+          />
         </div>
       </div>
     )
   }
 
+  const userId = identity.userId
   const [sessions, bookmarkedIds] = await Promise.all([
     getPublicAgenda(event.id),
-    getBookmarks(user.id, event.id),
+    getBookmarks(userId, event.id),
   ])
   const bookmarkedSet = new Set(bookmarkedIds)
   const mySessions = sessions.filter((s: any) => bookmarkedSet.has(s.id))
@@ -63,7 +50,7 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
           </div>
           {mySessions.length > 0 && (
             <a
-              href={`/api/events/${event.id}/my-agenda/calendar.ics?userId=${user.id}`}
+              href={`/api/events/${event.id}/my-agenda/calendar.ics?userId=${userId}`}
               download
               style={{ fontSize: 13, color: 'var(--pz-teal)', border: '1px solid var(--pz-teal)', padding: '0.4rem 0.875rem', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
             >

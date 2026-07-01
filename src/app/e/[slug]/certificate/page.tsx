@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
 import Link from 'next/link'
 import { CertificateClient } from './client'
+import { ClaimToUnlock } from '@/components/events/ClaimToUnlock'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -16,8 +17,7 @@ export default async function CertificatePage({ params }: Props) {
     .eq('slug', slug)
     .maybeSingle()
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const identity = await getSessionIdentity(slug)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)' }}>
@@ -37,18 +37,12 @@ export default async function CertificatePage({ params }: Props) {
           <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '2rem', textAlign: 'center' }}>
             <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>Certificates are not enabled for this event.</p>
           </div>
-        ) : !user ? (
-          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '2rem', textAlign: 'center' }}>
-            <p style={{ fontSize: 14, color: 'var(--pz-muted)', marginBottom: 16 }}>
-              Sign in to access your certificate of attendance.
-            </p>
-            <Link
-              href={`/login?next=/e/${slug}/certificate`}
-              style={{ display: 'inline-block', background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
-            >
-              Sign in
-            </Link>
-          </div>
+        ) : identity.type !== 'user' ? (
+          <ClaimToUnlock
+            reason="Create your free account to access your CE certificate."
+            next={`/e/${slug}/certificate`}
+            email={identity.type === 'registration' ? identity.attendeeEmail : undefined}
+          />
         ) : (
           <CertificateClient eventId={event.id} />
         )}

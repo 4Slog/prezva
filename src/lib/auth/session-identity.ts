@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 
 export type SessionIdentity =
   | { type: 'user'; userId: string }
-  | { type: 'registration'; registrationId: string; eventId: string }
+  | { type: 'registration'; registrationId: string; eventId: string; attendeeEmail?: string }
   | { type: 'anonymous' }
 
 export async function getSessionIdentity(eventSlug?: string): Promise<SessionIdentity> {
@@ -20,11 +20,11 @@ export async function getSessionIdentity(eventSlug?: string): Promise<SessionIde
       const admin = createAdminClient()
       const { data: reg } = await admin
         .from('registrations')
-        .select('id, event_id, status')
+        .select('id, event_id, status, attendee_email')
         .eq('id', regId)
         .in('status', ['confirmed'])
         .maybeSingle()
-      if (reg) return { type: 'registration', registrationId: reg.id, eventId: reg.event_id }
+      if (reg) return { type: 'registration', registrationId: reg.id, eventId: reg.event_id, attendeeEmail: reg.attendee_email ?? undefined }
     }
   }
 
