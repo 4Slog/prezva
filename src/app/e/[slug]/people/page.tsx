@@ -28,7 +28,8 @@ export default async function PeoplePage({ params, searchParams }: Props) {
     .limit(20)
 
   if (q?.trim()) {
-    const term = `%${q.trim()}%`
+    const safe = q.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/[,()]/g, '')
+    const term = `%${safe}%`
     profileQuery = profileQuery.or(`bio.ilike.${term},company.ilike.${term},job_title.ilike.${term}`)
   } else {
     profileQuery = profileQuery.order('created_at', { ascending: true })

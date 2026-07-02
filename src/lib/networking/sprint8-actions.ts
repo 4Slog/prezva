@@ -141,7 +141,8 @@ export async function searchAttendeeProfiles(eventId: string, query: string, pag
     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
   if (query.trim()) {
-    const term = `%${query.trim()}%`
+    const safe = query.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_').replace(/[,()]/g, '')
+    const term = `%${safe}%`
     q = q.or(`bio.ilike.${term},company.ilike.${term},job_title.ilike.${term}`)
   } else {
     q = q.order('created_at', { ascending: true })
