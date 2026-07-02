@@ -354,11 +354,12 @@ export async function upvoteCommunityPost(postId: string) {
     .insert({ post_id: postId, user_id: user.id })
 
   if (!insertErr) {
-    const { count } = await supabase
+    const admin = createAdminClient()
+    const { count } = await admin
       .from('community_upvotes')
       .select('*', { count: 'exact', head: true })
       .eq('post_id', postId)
-    await supabase.from('community_posts').update({ upvote_count: count ?? 0 }).eq('id', postId)
+    await admin.from('community_posts').update({ upvote_count: count ?? 0 }).eq('id', postId)
   }
   return { success: true }
 }
@@ -369,11 +370,12 @@ export async function rsvpToMeetup(postId: string) {
 
   const { error } = await supabase.from('community_rsvps').insert({ post_id: postId, user_id: user.id })
   if (!error) {
-    const { count } = await supabase
+    const admin = createAdminClient()
+    const { count } = await admin
       .from('community_rsvps')
       .select('*', { count: 'exact', head: true })
       .eq('post_id', postId)
-    await supabase.from('community_posts').update({ rsvp_count: count ?? 0 }).eq('id', postId)
+    await admin.from('community_posts').update({ rsvp_count: count ?? 0 }).eq('id', postId)
   }
   return { success: true }
 }
@@ -393,12 +395,13 @@ export async function addCommunityReply(postId: string, body: string) {
 
   if (error) return { error: error.message }
 
-  const { count } = await supabase
+  const admin = createAdminClient()
+  const { count } = await admin
     .from('community_replies')
     .select('*', { count: 'exact', head: true })
     .eq('post_id', postId)
     .eq('is_deleted', false)
-  await supabase.from('community_posts').update({ reply_count: count ?? 0 }).eq('id', postId)
+  await admin.from('community_posts').update({ reply_count: count ?? 0 }).eq('id', postId)
 
   return { data }
 }
