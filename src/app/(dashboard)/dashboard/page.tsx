@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
 import { isSuperAdmin } from '@/lib/admin/gate'
+import { HandleNudge } from '@/components/identity/HandleNudge'
 
 type Props = { searchParams: Promise<{ error?: string; joined?: string; role?: string }> }
 
@@ -58,7 +59,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   // Fetch profile for greeting
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name')
+    .select('full_name, handle, handle_customized')
     .eq('id', user.id)
     .maybeSingle()
   const displayName = (profile as any)?.full_name ?? user.email?.split('@')[0] ?? 'there'
@@ -118,6 +119,9 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div>
+      {profile && (
+        <HandleNudge handle={(profile as any).handle} customized={(profile as any).handle_customized} />
+      )}
       {impersonateOrg && (
         <div className="mb-6 rounded-lg px-4 py-3 flex items-center justify-between"
           style={{ background: 'var(--pz-warning-bg)', border: '1px solid var(--pz-warning-fill)' }}>

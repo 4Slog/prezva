@@ -10,7 +10,7 @@ export default async function MyProfilePage() {
     createClient(),
   ])
 
-  const [{ data: speakerRoles }, { data: volunteerRoles }, { count: eventCount }] = await Promise.all([
+  const [{ data: speakerRoles }, { data: volunteerRoles }, { count: eventCount }, { data: handleRow }] = await Promise.all([
     supabase
       .from('speakers')
       .select('id, event_id, event_role, status, events(title, slug, start_at, status)')
@@ -27,6 +27,11 @@ export default async function MyProfilePage() {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', authUser.id)
       .in('status', ['confirmed']),
+    supabase
+      .from('profiles')
+      .select('handle')
+      .eq('id', authUser.id)
+      .single(),
   ])
 
   return (
@@ -115,6 +120,7 @@ export default async function MyProfilePage() {
 
       <ProfileClient
         email={authUser.email ?? ''}
+        handle={(handleRow as { handle: string } | null)?.handle ?? ''}
         initial={{
           display_name: profile?.display_name ?? '',
           bio: profile?.bio ?? '',

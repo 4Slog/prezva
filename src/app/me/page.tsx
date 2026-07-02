@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { ORG_ROLE_BADGE_CONFIGS } from '@/lib/ui/category-colors'
+import { HandleNudge } from '@/components/identity/HandleNudge'
 
 type EventRef = {
   id: string
@@ -66,7 +67,7 @@ export default async function MePage() {
   const admin = createAdminClient()
   const userEmail = user.email?.toLowerCase() ?? null
 
-  const [orgMembershipsResult, registrationsResult, speakersByUserResult, speakersByEmailResult, volunteersByUserResult, volunteersByEmailResult] = await Promise.all([
+  const [orgMembershipsResult, registrationsResult, speakersByUserResult, speakersByEmailResult, volunteersByUserResult, volunteersByEmailResult, profileHandleResult] = await Promise.all([
     admin
       .from('org_members')
       .select('role, organizations(id, name, slug, logo_url)')
@@ -97,8 +98,14 @@ export default async function MePage() {
           .select('id, status, portal_access_token, role, shift_start, shift_end, event_id, events(id, title, slug, start_at, end_at, venue_city, venue_state, status)')
           .eq('email', userEmail)
       : Promise.resolve({ data: [] as VolunteerRow[] }),
+    admin
+      .from('profiles')
+      .select('handle, handle_customized')
+      .eq('id', user.id)
+      .single(),
   ])
 
+  const profileHandle = profileHandleResult.data as { handle: string; handle_customized: boolean } | null
   const orgs = (orgMembershipsResult.data ?? []) as unknown as OrgMembershipRow[]
   const registrations = (registrationsResult.data ?? []) as unknown as AttendeeRow[]
 
@@ -175,6 +182,9 @@ export default async function MePage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1.25rem 3rem' }}>
+      {profileHandle && (
+        <HandleNudge handle={profileHandle.handle} customized={profileHandle.handle_customized} />
+      )}
       <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--pz-text)', margin: '0 0 4px' }}>
         Hi {firstName} 👋
       </h1>

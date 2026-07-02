@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { upsertUserProfile } from '@/lib/attendees/profile-actions'
+import { updateHandle } from '@/lib/identity/actions'
 import { Field } from '@/components/ui/Field'
 
 interface ProfileFields {
@@ -15,12 +16,34 @@ interface ProfileFields {
   interests: string[]
 }
 
-export function ProfileClient({ email, initial }: { email: string; initial: ProfileFields }) {
+export function ProfileClient({ email, handle, initial }: { email: string; handle: string; initial: ProfileFields }) {
   const [form, setForm] = useState<ProfileFields>(initial)
   const [interestInput, setInterestInput] = useState('')
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
+
+  const [currentHandle, setCurrentHandle] = useState(handle)
+  const [handleInput, setHandleInput] = useState(handle)
+  const [handleError, setHandleError] = useState('')
+  const [handleSaved, setHandleSaved] = useState(false)
+  const [isHandlePending, startHandleTransition] = useTransition()
+
+  function handleHandleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setHandleError('')
+    setHandleSaved(false)
+    startHandleTransition(async () => {
+      const res = await updateHandle(handleInput)
+      if (!res.ok) {
+        setHandleError(res.error)
+      } else {
+        setCurrentHandle(res.handle)
+        setHandleInput(res.handle)
+        setHandleSaved(true)
+      }
+    })
+  }
 
   function set(k: keyof ProfileFields, v: any) {
     setForm(prev => ({ ...prev, [k]: v }))
@@ -63,7 +86,46 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <>
+      <form onSubmit={handleHandleSubmit}>
+        <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.5rem', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 16 }}>Handle</h2>
+          <div style={{ marginBottom: 12 }}>
+            <Field label="Your @handle" htmlFor="profile-handle">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: 'var(--pz-muted)', fontSize: 14 }}>@</span>
+                <input
+                  id="profile-handle"
+                  value={handleInput}
+                  onChange={e => { setHandleInput(e.target.value); setHandleSaved(false) }}
+                  placeholder="your_handle"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+              </div>
+            </Field>
+          </div>
+          {handleError && <p style={{ color: 'var(--pz-error)', fontSize: 13, marginBottom: 12 }}>{handleError}</p>}
+          <button
+            type="submit"
+            disabled={isHandlePending || handleInput === currentHandle}
+            style={{
+              padding: '8px 20px',
+              background: 'var(--pz-teal)',
+              color: 'var(--pz-on-accent)',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: isHandlePending || handleInput === currentHandle ? 'not-allowed' : 'pointer',
+              opacity: isHandlePending || handleInput === currentHandle ? 0.7 : 1,
+            }}
+          >
+            {isHandlePending ? 'Saving…' : handleSaved ? 'Saved ✓' : 'Save handle'}
+          </button>
+        </div>
+      </form>
+
+      <form onSubmit={handleSubmit}>
       <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.5rem', marginBottom: 16 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 16 }}>Basic info</h2>
 
@@ -212,6 +274,7 @@ export function ProfileClient({ email, initial }: { email: string; initial: Prof
       >
         {isPending ? 'Saving…' : saved ? 'Saved ✓' : 'Save profile'}
       </button>
-    </form>
+      </form>
+    </>
   )
 }
