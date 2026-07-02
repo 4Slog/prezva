@@ -2879,6 +2879,7 @@ export type Database = {
           created_at: string | null
           email: string
           full_name: string | null
+          handle: string
           id: string
           job_title: string | null
           linkedin_url: string | null
@@ -2898,6 +2899,7 @@ export type Database = {
           created_at?: string | null
           email: string
           full_name?: string | null
+          handle: string
           id: string
           job_title?: string | null
           linkedin_url?: string | null
@@ -2917,6 +2919,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           full_name?: string | null
+          handle?: string
           id?: string
           job_title?: string | null
           linkedin_url?: string | null
@@ -3216,6 +3219,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reserved_handles: {
+        Row: {
+          handle: string
+        }
+        Insert: {
+          handle: string
+        }
+        Update: {
+          handle?: string
+        }
+        Relationships: []
       }
       rls_baseline_capture: {
         Row: {
@@ -5269,10 +5284,46 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      event_visible_profiles: {
+        Row: {
+          attendee_name: string | null
+          avatar_url: string | null
+          bio: string | null
+          company: string | null
+          created_at: string | null
+          event_id: string | null
+          handle: string | null
+          id: string | null
+          interests: string[] | null
+          job_title: string | null
+          linkedin_url: string | null
+          registration_id: string | null
+          ticket_name: string | null
+          twitter_url: string | null
+          user_id: string | null
+          website_url: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendee_profiles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendee_profiles_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: true
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       event_org_id: { Args: { event_id: string }; Returns: string }
+      generate_unique_handle: { Args: { base: string }; Returns: string }
       get_volunteer_by_token: {
         Args: { p_token: string }
         Returns: {
