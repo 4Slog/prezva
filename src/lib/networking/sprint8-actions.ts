@@ -129,19 +129,15 @@ export async function getMyProfile(eventId: string) {
   return { profile: data, registrationId: (reg as any).id }
 }
 
-// T-091: SmartProfiles search (FTS + name/company/title)
+// T-091: SmartProfiles search — reads event_visible_profiles (SECURITY DEFINER view, enforces is_visible + is_registered)
 export async function searchAttendeeProfiles(eventId: string, query: string, page = 0) {
   const supabase = await createClient()
   const PAGE_SIZE = 20
 
   let q = supabase
-    .from('attendee_profiles')
-    .select(`
-      id, bio, company, job_title, interests, avatar_url, is_visible,
-      registrations!inner(attendee_name, attendee_email, ticket_types(name))
-    `)
+    .from('event_visible_profiles')
+    .select('id, registration_id, attendee_name, company, job_title, bio, interests, avatar_url, ticket_name')
     .eq('event_id', eventId)
-    .eq('is_visible', true)
     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
   if (query.trim()) {
@@ -154,14 +150,14 @@ export async function searchAttendeeProfiles(eventId: string, query: string, pag
   const { data } = await q
   return ((data ?? []) as any[]).map(p => ({
     id: p.id,
-    name: p.registrations?.attendee_name ?? '',
+    name: p.attendee_name ?? '',
     company: p.company ?? '',
     job_title: p.job_title ?? '',
     bio: p.bio ?? '',
     interests: p.interests ?? [],
     avatar_url: p.avatar_url ?? null,
-    ticket_name: p.registrations?.ticket_types?.name ?? '',
-    registration_id: p.registrations?.id,
+    ticket_name: p.ticket_name ?? '',
+    registration_id: p.registration_id,
   }))
 }
 
@@ -526,13 +522,9 @@ export async function getMatchSuggestions(eventId: string, registrationId: strin
   if (!myProfile) return []
 
   const { data: others } = await supabase
-    .from('attendee_profiles')
-    .select(`
-      id, bio, company, job_title, interests, avatar_url, is_visible, registration_id, user_id,
-      registrations!inner(attendee_name, ticket_types(name))
-    `)
+    .from('event_visible_profiles')
+    .select('id, bio, company, job_title, interests, avatar_url, registration_id, user_id, attendee_name, ticket_name')
     .eq('event_id', eventId)
-    .eq('is_visible', true)
     .neq('registration_id', registrationId)
     .limit(200)
 
@@ -553,13 +545,13 @@ export async function getMatchSuggestions(eventId: string, registrationId: strin
     return {
       id: o.id,
       registration_id: o.registration_id,
-      name: o.registrations?.attendee_name ?? '',
+      name: o.attendee_name ?? '',
       company: o.company ?? '',
       job_title: o.job_title ?? '',
       bio: o.bio ?? '',
       interests: o.interests ?? [],
       avatar_url: o.avatar_url ?? null,
-      ticket_name: o.registrations?.ticket_types?.name ?? '',
+      ticket_name: o.ticket_name ?? '',
       score,
     }
   })

@@ -22,17 +22,14 @@ export default async function PeoplePage({ params, searchParams }: Props) {
   const eventId = (event as any).id
 
   let profileQuery = supabase
-    .from('attendee_profiles')
-    .select(`
-      id, bio, company, job_title, interests, avatar_url, registration_id,
-      registrations!inner(attendee_name, ticket_types(name))
-    `)
+    .from('event_visible_profiles')
+    .select('id, registration_id, attendee_name, company, job_title, bio, interests, avatar_url, ticket_name')
     .eq('event_id', eventId)
-    .eq('is_visible', true)
     .limit(20)
 
   if (q?.trim()) {
-    profileQuery = profileQuery.textSearch('fts', q.trim().replace(/\s+/g, ' & '), { type: 'websearch' })
+    const term = `%${q.trim()}%`
+    profileQuery = profileQuery.or(`bio.ilike.${term},company.ilike.${term},job_title.ilike.${term}`)
   } else {
     profileQuery = profileQuery.order('created_at', { ascending: true })
   }
@@ -42,13 +39,13 @@ export default async function PeoplePage({ params, searchParams }: Props) {
   const mappedProfiles = ((profiles ?? []) as any[]).map(p => ({
     id: p.id,
     registration_id: p.registration_id,
-    name: p.registrations?.attendee_name ?? '',
+    name: p.attendee_name ?? '',
     company: p.company ?? '',
     job_title: p.job_title ?? '',
     bio: p.bio ?? '',
     interests: p.interests ?? [],
     avatar_url: p.avatar_url ?? null,
-    ticket_name: p.registrations?.ticket_types?.name ?? '',
+    ticket_name: p.ticket_name ?? '',
   }))
 
   // T-091b: Matchmaking — fetch suggestions if user has a profile and not searching
