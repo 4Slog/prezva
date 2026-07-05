@@ -134,7 +134,7 @@ export default async function AttendeePage({ params }: Props) {
   // View enforces is_visible=true + is_registered; empty result → notFound()
   const { data: viewRow } = await supabase
     .from('event_visible_profiles')
-    .select('id, registration_id, event_id, user_id, attendee_name, handle, company, job_title, bio, interests, avatar_url, linkedin_url, twitter_url, website_url, ticket_name, created_at')
+    .select('id, registration_id, event_id, user_id, attendee_name, handle, company, job_title, bio, interests, avatar_url, linkedin_url, twitter_url, website_url, ticket_name, created_at, email')
     .eq('registration_id', registrationId)
     .eq('event_id', eventId)
     .single()
@@ -202,6 +202,7 @@ export default async function AttendeePage({ params }: Props) {
             </div>
           )}
           <div className="flex flex-wrap gap-3">
+            {p.email && <a href={`mailto:${p.email}`} className="text-sm" style={{ color: 'var(--pz-teal)' }}>Email →</a>}
             {p.linkedin_url && <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-sm" style={{ color: 'var(--pz-teal)' }}>LinkedIn →</a>}
             {p.twitter_url && <a href={p.twitter_url} target="_blank" rel="noreferrer" className="text-sm" style={{ color: 'var(--pz-teal)' }}>Twitter →</a>}
             {p.website_url && <a href={p.website_url} target="_blank" rel="noreferrer" className="text-sm" style={{ color: 'var(--pz-teal)' }}>Website →</a>}

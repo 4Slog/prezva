@@ -82,6 +82,7 @@ export default async function ProfileEditPage({ params }: Props) {
               twitter_url: fd.get('twitter_url') as string || undefined,
               website_url: fd.get('website_url') as string || undefined,
               is_visible: fd.get('is_visible') === 'on',
+              share_email: fd.get('share_email') === 'on',
             })
           }}
           className="space-y-5"
@@ -160,6 +161,16 @@ export default async function ProfileEditPage({ params }: Props) {
               <input type="checkbox" name="is_visible" defaultChecked={p.is_visible !== false} className="accent-[var(--pz-teal)]" />
               Show my profile in the attendee directory
             </label>
+          </div>
+
+          <div className="pz-card p-5">
+            <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--pz-muted)' }}>
+              <input type="checkbox" name="share_email" defaultChecked={p.share_email === true} className="accent-[var(--pz-teal)]" />
+              Share my email with other attendees
+            </label>
+            <p className="mt-1 text-xs" style={{ color: 'var(--pz-muted)' }}>
+              Off by default. Only attendees at this event will see your email.
+            </p>
           </div>
 
           <button

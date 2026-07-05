@@ -372,6 +372,7 @@ export type Database = {
           job_title: string | null
           linkedin_url: string | null
           registration_id: string
+          share_email: boolean
           twitter_url: string | null
           updated_at: string | null
           user_id: string | null
@@ -390,6 +391,7 @@ export type Database = {
           job_title?: string | null
           linkedin_url?: string | null
           registration_id: string
+          share_email?: boolean
           twitter_url?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -408,6 +410,7 @@ export type Database = {
           job_title?: string | null
           linkedin_url?: string | null
           registration_id?: string
+          share_email?: boolean
           twitter_url?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -2880,6 +2883,7 @@ export type Database = {
           email: string
           full_name: string | null
           handle: string
+          handle_customized: boolean
           id: string
           job_title: string | null
           linkedin_url: string | null
@@ -2900,6 +2904,7 @@ export type Database = {
           email: string
           full_name?: string | null
           handle: string
+          handle_customized?: boolean
           id: string
           job_title?: string | null
           linkedin_url?: string | null
@@ -2920,6 +2925,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           handle?: string
+          handle_customized?: boolean
           id?: string
           job_title?: string | null
           linkedin_url?: string | null
@@ -5291,6 +5297,7 @@ export type Database = {
           bio: string | null
           company: string | null
           created_at: string | null
+          email: string | null
           event_id: string | null
           handle: string | null
           id: string | null

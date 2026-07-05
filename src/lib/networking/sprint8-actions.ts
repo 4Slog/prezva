@@ -19,6 +19,7 @@ const ProfileSchema = z.object({
   twitter_url: z.string().url().optional().or(z.literal('')),
   website_url: z.string().url().optional().or(z.literal('')),
   is_visible: z.boolean().optional(),
+  share_email: z.boolean().optional(),
 })
 
 export async function upsertAttendeeProfile(registrationId: string, raw: unknown) {
