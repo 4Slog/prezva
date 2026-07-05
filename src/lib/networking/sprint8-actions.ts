@@ -136,7 +136,7 @@ export async function searchAttendeeProfiles(eventId: string, query: string, pag
 
   let q = supabase
     .from('event_visible_profiles')
-    .select('id, registration_id, attendee_name, company, job_title, bio, interests, avatar_url, ticket_name')
+    .select('id, registration_id, attendee_name, handle, company, job_title, bio, interests, avatar_url, ticket_name')
     .eq('event_id', eventId)
     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
@@ -152,6 +152,7 @@ export async function searchAttendeeProfiles(eventId: string, query: string, pag
   return ((data ?? []) as any[]).map(p => ({
     id: p.id,
     name: p.attendee_name ?? '',
+    handle: p.handle ?? null,
     company: p.company ?? '',
     job_title: p.job_title ?? '',
     bio: p.bio ?? '',
@@ -524,7 +525,7 @@ export async function getMatchSuggestions(eventId: string, registrationId: strin
 
   const { data: others } = await supabase
     .from('event_visible_profiles')
-    .select('id, bio, company, job_title, interests, avatar_url, registration_id, user_id, attendee_name, ticket_name')
+    .select('id, bio, company, job_title, interests, avatar_url, registration_id, user_id, attendee_name, handle, ticket_name')
     .eq('event_id', eventId)
     .neq('registration_id', registrationId)
     .limit(200)
@@ -547,6 +548,7 @@ export async function getMatchSuggestions(eventId: string, registrationId: strin
       id: o.id,
       registration_id: o.registration_id,
       name: o.attendee_name ?? '',
+      handle: o.handle ?? null,
       company: o.company ?? '',
       job_title: o.job_title ?? '',
       bio: o.bio ?? '',

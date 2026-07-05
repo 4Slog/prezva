@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth/get-user'
 import { getLeaderboard } from '@/lib/engagement/sprint10-actions'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
+import { HandleTag } from '@/components/identity/HandleTag'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -20,13 +21,21 @@ export default async function LeaderboardPage({ params }: Props) {
   // Enrich with registration names
   const userIds = leaders.map(l => l.userId)
   const nameMap: Record<string, string> = {}
+  const handleMap: Record<string, string | null> = {}
   if (userIds.length > 0) {
-    const { data: regs } = await supabase
-      .from('registrations')
-      .select('user_id, attendee_name')
-      .eq('event_id', (event as any).id)
-      .in('user_id', userIds)
+    const [{ data: regs }, { data: profs }] = await Promise.all([
+      supabase
+        .from('registrations')
+        .select('user_id, attendee_name')
+        .eq('event_id', (event as any).id)
+        .in('user_id', userIds),
+      supabase
+        .from('profiles')
+        .select('id, handle')
+        .in('id', userIds),
+    ])
     for (const r of (regs ?? []) as any[]) nameMap[r.user_id] = r.attendee_name
+    for (const pr of (profs ?? []) as any[]) handleMap[pr.id] = pr.handle
   }
 
   const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
@@ -58,6 +67,7 @@ export default async function LeaderboardPage({ params }: Props) {
                     {nameMap[l.userId] ?? 'Attendee'}
                     {l.userId === user?.id && ' (you)'}
                   </p>
+                  <HandleTag handle={handleMap[l.userId]} />
                 </div>
                 <span style={{ fontWeight: 700, color: 'var(--pz-teal)', fontSize: 16 }}>{l.total} pts</span>
               </div>

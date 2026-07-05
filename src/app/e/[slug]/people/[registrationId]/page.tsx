@@ -5,6 +5,7 @@ import { getAttendeeProfile, getVirtualCardData, getFollowStatus } from '@/lib/n
 import { ProfileActions } from './profile-actions'
 import VCardQR from '@/components/networking/VCardQR'
 import { MeetingResponsePanel } from '@/components/networking/MeetingResponsePanel'
+import { HandleTag } from '@/components/identity/HandleTag'
 
 type Props = { params: Promise<{ slug: string; registrationId: string }> }
 
@@ -31,6 +32,16 @@ export default async function AttendeePage({ params }: Props) {
       .eq('event_id', eventId)
       .single()
     if (!reg) notFound()
+
+    let ownHandle: string | null = null
+    if (user) {
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('handle')
+        .eq('id', user.id)
+        .maybeSingle()
+      ownHandle = (profileRow as any)?.handle ?? null
+    }
 
     const cardData = await getVirtualCardData(registrationId)
     const p = ownProfile as any
@@ -67,6 +78,7 @@ export default async function AttendeePage({ params }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl font-bold mb-0.5" style={{ color: 'var(--pz-text)' }}>{r.attendee_name}</h1>
+                <HandleTag handle={ownHandle} />
                 {(p.job_title || p.company) && (
                   <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
                     {[p.job_title, p.company].filter(Boolean).join(' · ')}
@@ -104,6 +116,7 @@ export default async function AttendeePage({ params }: Props) {
                 <VCardQR data={vCardData} />
                 <div className="text-xs space-y-1" style={{ color: 'var(--pz-muted)' }}>
                   <p className="font-semibold text-sm" style={{ color: 'var(--pz-text)' }}>{(cardData as any).name}</p>
+                  <HandleTag handle={ownHandle} />
                   {(cardData as any).job_title && <p>{(cardData as any).job_title}</p>}
                   {(cardData as any).company && <p>{(cardData as any).company}</p>}
                   <p>{(cardData as any).email}</p>
@@ -121,7 +134,7 @@ export default async function AttendeePage({ params }: Props) {
   // View enforces is_visible=true + is_registered; empty result → notFound()
   const { data: viewRow } = await supabase
     .from('event_visible_profiles')
-    .select('id, registration_id, event_id, user_id, attendee_name, company, job_title, bio, interests, avatar_url, linkedin_url, twitter_url, website_url, ticket_name, created_at')
+    .select('id, registration_id, event_id, user_id, attendee_name, handle, company, job_title, bio, interests, avatar_url, linkedin_url, twitter_url, website_url, ticket_name, created_at')
     .eq('registration_id', registrationId)
     .eq('event_id', eventId)
     .single()
@@ -167,6 +180,7 @@ export default async function AttendeePage({ params }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold mb-0.5" style={{ color: 'var(--pz-text)' }}>{p.attendee_name}</h1>
+              <HandleTag handle={p.handle} />
               {(p.job_title || p.company) && (
                 <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>
                   {[p.job_title, p.company].filter(Boolean).join(' · ')}

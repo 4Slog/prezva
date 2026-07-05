@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth/get-user'
 import { getMatchSuggestions } from '@/lib/networking/sprint8-actions'
 import { PeopleClient } from './people-client'
+import { HandleTag } from '@/components/identity/HandleTag'
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ q?: string }> }
 
@@ -23,7 +24,7 @@ export default async function PeoplePage({ params, searchParams }: Props) {
 
   let profileQuery = supabase
     .from('event_visible_profiles')
-    .select('id, registration_id, attendee_name, company, job_title, bio, interests, avatar_url, ticket_name')
+    .select('id, registration_id, attendee_name, handle, company, job_title, bio, interests, avatar_url, ticket_name')
     .eq('event_id', eventId)
     .limit(20)
 
@@ -41,6 +42,7 @@ export default async function PeoplePage({ params, searchParams }: Props) {
     id: p.id,
     registration_id: p.registration_id,
     name: p.attendee_name ?? '',
+    handle: p.handle ?? null,
     company: p.company ?? '',
     job_title: p.job_title ?? '',
     bio: p.bio ?? '',
@@ -104,6 +106,7 @@ export default async function PeoplePage({ params, searchParams }: Props) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate" style={{ color: 'var(--pz-text)' }}>{p.name}</p>
+                      <HandleTag handle={p.handle} />
                       {(p.job_title || p.company) && (
                         <p className="text-xs truncate" style={{ color: 'var(--pz-muted)' }}>{[p.job_title, p.company].filter(Boolean).join(' · ')}</p>
                       )}

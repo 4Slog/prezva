@@ -3,11 +3,13 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { searchAttendeeProfiles } from '@/lib/networking/sprint8-actions'
+import { HandleTag } from '@/components/identity/HandleTag'
 
 interface Profile {
   id: string
   registration_id: string
   name: string
+  handle?: string | null
   company: string
   job_title: string
   bio: string
@@ -119,6 +121,7 @@ export function PeopleClient({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate" style={{ color: 'var(--pz-text)' }}>{p.name}</p>
+                  <HandleTag handle={p.handle} />
                   {(p.job_title || p.company) && (
                     <p className="text-xs truncate" style={{ color: 'var(--pz-muted)' }}>
                       {[p.job_title, p.company].filter(Boolean).join(' · ')}
