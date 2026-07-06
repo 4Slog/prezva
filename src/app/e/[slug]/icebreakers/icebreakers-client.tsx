@@ -13,6 +13,7 @@ export function IcebreakersClient({ questions, eventId }: Props) {
   const [submitted, setSubmitted] = useState<Set<string>>(new Set())
   const [pending, setPending] = useState<string | null>(null)
   const [responseFeed, setResponseFeed] = useState<Record<string, FeedEntry[]>>({})
+  const [earnedPoints, setEarnedPoints] = useState<Record<string, number>>({})
 
   async function submit(questionId: string) {
     const text = responses[questionId]?.trim()
@@ -21,6 +22,7 @@ export function IcebreakersClient({ questions, eventId }: Props) {
     const result = await submitIcebreakerResponse(eventId, questionId, text)
     if (!result?.error) {
       setSubmitted(prev => new Set(prev).add(questionId))
+      setEarnedPoints(prev => ({ ...prev, [questionId]: result.points }))
       const feed = await getIcebreakerResponses(eventId, questionId)
       setResponseFeed(prev => ({ ...prev, [questionId]: feed }))
     }
@@ -42,7 +44,7 @@ export function IcebreakersClient({ questions, eventId }: Props) {
           <p style={{ fontWeight: 600, color: 'var(--pz-text)', marginBottom: 12 }}>{q.question || q.question_text || q.prompt || ''}</p>
           {submitted.has(q.id) ? (
             <div>
-              <p style={{ fontSize: 13, color: 'var(--pz-success)', marginBottom: 8 }}>✓ Submitted — +5 points earned!</p>
+              <p style={{ fontSize: 13, color: 'var(--pz-success)', marginBottom: 8 }}>✓ Submitted — +{earnedPoints[q.id] ?? 0} points earned!</p>
               {responseFeed[q.id] && responseFeed[q.id].length > 0 && (
                 <div>
                   <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 6 }}>{responseFeed[q.id].length} people answered</p>

@@ -15,6 +15,7 @@ export function PassportClient({ eventId, locations, initialVisitedIds }: Props)
   const [message, setMessage] = useState('')
   const [pending, setPending] = useState(false)
   const [passportComplete, setPassportComplete] = useState(false)
+  const [bonusPoints, setBonusPoints] = useState(0)
 
   async function checkIn() {
     if (!code.trim()) return
@@ -28,7 +29,10 @@ export function PassportClient({ eventId, locations, initialVisitedIds }: Props)
       if (locId) setVisitedIds(prev => new Set(prev).add(locId))
       setMessage(`Checked in to ${(result as any).location}! +${(result as any).points} pts`)
       setCode('')
-      if ((result as any).completedPassport) setPassportComplete(true)
+      if ((result as any).completedPassport) {
+        setPassportComplete(true)
+        setBonusPoints((result as any).bonusPoints ?? 0)
+      }
     }
     setPending(false)
   }
@@ -41,7 +45,7 @@ export function PassportClient({ eventId, locations, initialVisitedIds }: Props)
       {passportComplete && (
         <div className="pz-card p-4 mb-4" style={{ background: 'var(--pz-success-bg)', border: '1px solid var(--pz-success)' }}>
           <p style={{ fontWeight: 700, color: 'var(--pz-success)', fontSize: 14 }}>
-            Passport complete! You visited all locations. +25 bonus points!
+            Passport complete! You visited all locations. +{bonusPoints} bonus points!
           </p>
         </div>
       )}

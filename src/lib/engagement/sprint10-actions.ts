@@ -119,7 +119,7 @@ export async function getSessionFeedback(sessionId: string) {
 
 // ── T-104: leaderboard ────────────────────────────────────────────────────────
 
-export async function awardPointsForReg(eventId: string, registrationId: string, action: string) {
+export async function awardPointsForReg(eventId: string, registrationId: string, action: string, overridePoints?: number): Promise<number> {
   const supabase = await createClient()
   let points = POINT_VALUES[action] ?? 1
   try {
@@ -133,6 +133,7 @@ export async function awardPointsForReg(eventId: string, registrationId: string,
       if (typeof config[action] === 'number') points = config[action]
     }
   } catch { /* fall back to default */ }
+  if (typeof overridePoints === 'number') points = overridePoints
 
   const admin = (await import('@/lib/supabase/admin')).createAdminClient()
   const { error } = await admin
@@ -141,9 +142,10 @@ export async function awardPointsForReg(eventId: string, registrationId: string,
   if (error && !error.code?.includes('23505')) {
     console.error('[leaderboard] awardPointsForReg error:', error.message)
   }
+  return points
 }
 
-export async function awardPoints(eventId: string, userId: string, action: string) {
+export async function awardPoints(eventId: string, userId: string, action: string, overridePoints?: number): Promise<number> {
   const supabase = await createClient()
 
   // Try to get event-specific config, fall back to defaults
@@ -161,6 +163,7 @@ export async function awardPoints(eventId: string, userId: string, action: strin
   } catch {
     // fall back to default
   }
+  if (typeof overridePoints === 'number') points = overridePoints
 
   // leaderboard_points is service-role only; insert via admin client.
   const admin = createAdminClient()
@@ -171,6 +174,7 @@ export async function awardPoints(eventId: string, userId: string, action: strin
   if (error && !error.code?.includes('23505')) {
     console.error('[leaderboard] awardPoints error:', error.message)
   }
+  return points
 }
 
 export async function updateLeaderboardPointConfig(eventId: string, config: Record<string, number>) {
@@ -277,6 +281,7 @@ export async function submitTriviaAnswer(questionId: string, answerIndex: number
 
   const isCorrect = (q as any).correct_index === answerIndex
 
+  let awardedPoints = 0
   if (user) {
     const { error } = await supabase.from('trivia_answers').insert({
       question_id: questionId,
@@ -285,13 +290,13 @@ export async function submitTriviaAnswer(questionId: string, answerIndex: number
       is_correct: isCorrect,
     })
     if (error) return { error: error.message, correct: false }
-    if (isCorrect) await awardPoints((q as any).event_id, user.id, 'trivia_correct')
+    if (isCorrect) awardedPoints = await awardPoints((q as any).event_id, user.id, 'trivia_correct', (q as any).points)
   } else {
     // Guest: award points by registration_id only
-    if (isCorrect) await awardPointsForReg((q as any).event_id, registrationId!, 'trivia_correct')
+    if (isCorrect) awardedPoints = await awardPointsForReg((q as any).event_id, registrationId!, 'trivia_correct', (q as any).points)
   }
 
-  return { correct: isCorrect, points: isCorrect ? (q as any).points : 0, correctIndex: (q as any).correct_index }
+  return { correct: isCorrect, points: isCorrect ? awardedPoints : 0, correctIndex: (q as any).correct_index }
 }
 
 // ── T-107: icebreaker contest ─────────────────────────────────────────────────
@@ -323,7 +328,7 @@ export async function setIcebreakersActive(eventSlug: string, active: boolean) {
 export async function submitIcebreakerResponse(eventId: string, questionId: string, response: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Enter your registration code to participate' }
+  if (!user) return { error: 'Enter your registration code to participate', points: 0 }
 
   const { error } = await supabase.from('icebreaker_completions').upsert({
     event_id: eventId,
@@ -331,8 +336,9 @@ export async function submitIcebreakerResponse(eventId: string, questionId: stri
     question_id: questionId,
     response,
   }, { onConflict: 'event_id,user_id,question_id' })
-  if (!error) await awardPoints(eventId, user.id, 'icebreaker')
-  return { error: error?.message }
+  let points = 0
+  if (!error) points = await awardPoints(eventId, user.id, 'icebreaker')
+  return { error: error?.message, points }
 }
 
 // ── T-108: passport contest ───────────────────────────────────────────────────
@@ -378,7 +384,7 @@ export async function checkInPassportLocation(eventId: string, code: string) {
   })
   if (error && error.code === '23505') return { error: 'Already visited this location' }
   if (error) return { error: error.message }
-  await awardPoints(eventId, user.id, 'passport_visit')
+  const visitPoints = await awardPoints(eventId, user.id, 'passport_visit', (loc as any).points)
 
   const completionAdmin = createAdminClient()
   const { count: locCount } = await completionAdmin.from('passport_locations')
@@ -387,11 +393,11 @@ export async function checkInPassportLocation(eventId: string, code: string) {
     .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId).eq('user_id', user.id)
   if (locCount && visitCount === locCount) {
-    await awardPoints(eventId, user.id, 'passport_complete')
-    return { ok: true, locationId: (loc as any).id, location: (loc as any).name, points: (loc as any).points, completedPassport: true }
+    const bonusPoints = await awardPoints(eventId, user.id, 'passport_complete')
+    return { ok: true, locationId: (loc as any).id, location: (loc as any).name, points: visitPoints, completedPassport: true, bonusPoints }
   }
 
-  return { ok: true, locationId: (loc as any).id, location: (loc as any).name, points: (loc as any).points }
+  return { ok: true, locationId: (loc as any).id, location: (loc as any).name, points: visitPoints }
 }
 
 export async function getIcebreakerResponses(eventId: string, questionId: string) {

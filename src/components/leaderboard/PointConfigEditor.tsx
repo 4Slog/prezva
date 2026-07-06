@@ -10,8 +10,6 @@ const ACTION_LABELS: Record<string, string> = {
   icebreaker:       'Icebreaker response',
   profile_complete: 'Profile complete',
   community_post:   'Community post',
-  passport_visit:   'Passport visit',
-  trivia_correct:   'Trivia correct answer',
 }
 
 interface PointConfigEditorProps {
