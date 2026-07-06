@@ -6,6 +6,7 @@ import { ProfileActions } from './profile-actions'
 import VCardQR from '@/components/networking/VCardQR'
 import { MeetingResponsePanel } from '@/components/networking/MeetingResponsePanel'
 import { HandleTag } from '@/components/identity/HandleTag'
+import { Avatar } from '@/components/identity/Avatar'
 
 type Props = { params: Promise<{ slug: string; registrationId: string }> }
 
@@ -68,14 +69,7 @@ export default async function AttendeePage({ params }: Props) {
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem' }}>
           <div className="pz-card p-6 mb-6">
             <div className="flex items-start gap-4 mb-4">
-              <div
-                className="rounded-full flex items-center justify-center text-lg font-bold shrink-0"
-                style={{ width: 64, height: 64, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: 'var(--pz-on-accent)', overflow: 'hidden' }}
-              >
-                {p.avatar_url ? (
-                  <img src={p.avatar_url} alt={r.attendee_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : r.attendee_name.charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={r.attendee_name} avatarUrl={p.avatar_url} size={64} />
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl font-bold mb-0.5" style={{ color: 'var(--pz-text)' }}>{r.attendee_name}</h1>
                 <HandleTag handle={ownHandle} />
@@ -170,14 +164,7 @@ export default async function AttendeePage({ params }: Props) {
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem 1.5rem' }}>
         <div className="pz-card p-6 mb-6">
           <div className="flex items-start gap-4 mb-4">
-            <div
-              className="rounded-full flex items-center justify-center text-lg font-bold shrink-0"
-              style={{ width: 64, height: 64, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: 'var(--pz-on-accent)', overflow: 'hidden' }}
-            >
-              {p.avatar_url ? (
-                <img src={p.avatar_url} alt={p.attendee_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : p.attendee_name.charAt(0).toUpperCase()}
-            </div>
+            <Avatar name={p.attendee_name} avatarUrl={p.avatar_url} size={64} />
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold mb-0.5" style={{ color: 'var(--pz-text)' }}>{p.attendee_name}</h1>
               <HandleTag handle={p.handle} />
@@ -221,6 +208,8 @@ export default async function AttendeePage({ params }: Props) {
             <MeetingResponsePanel
               requestId={incomingMeetingRequest.id}
               requesterName={p.attendee_name}
+              requesterAvatarUrl={p.avatar_url}
+              requesterHandle={p.handle}
               message={incomingMeetingRequest.message}
               proposedTimes={incomingMeetingRequest.proposed_times ?? []}
               initialStatus={incomingMeetingRequest.status}

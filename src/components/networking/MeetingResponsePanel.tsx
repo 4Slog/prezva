@@ -2,16 +2,20 @@
 
 import { useState } from 'react'
 import { respondToMeetingRequest } from '@/lib/networking/sprint8-actions'
+import { Avatar } from '@/components/identity/Avatar'
+import { HandleTag } from '@/components/identity/HandleTag'
 
 interface Props {
   requestId: string
   requesterName: string
+  requesterAvatarUrl?: string | null
+  requesterHandle?: string | null
   message: string | null
   proposedTimes: string[]
   initialStatus: string
 }
 
-export function MeetingResponsePanel({ requestId, requesterName, message, proposedTimes, initialStatus }: Props) {
+export function MeetingResponsePanel({ requestId, requesterName, requesterAvatarUrl, requesterHandle, message, proposedTimes, initialStatus }: Props) {
   const [status, setStatus] = useState(initialStatus)
   const [showCounter, setShowCounter] = useState(false)
   const [counterTime, setCounterTime] = useState('')
@@ -52,9 +56,15 @@ export function MeetingResponsePanel({ requestId, requesterName, message, propos
 
   return (
     <div style={{ marginTop: 12, padding: '14px', background: 'var(--pz-surface-2)', border: '1px solid var(--pz-border)', borderRadius: 8 }}>
-      <p style={{ color: 'var(--pz-label)', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-        Meeting request from {requesterName}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <Avatar name={requesterName} avatarUrl={requesterAvatarUrl} size={32} />
+        <div>
+          <p style={{ color: 'var(--pz-label)', fontSize: 12, fontWeight: 600 }}>
+            Meeting request from {requesterName}
+          </p>
+          <HandleTag handle={requesterHandle} />
+        </div>
+      </div>
       {message && <p style={{ color: 'var(--pz-muted)', fontSize: 13, marginBottom: 8 }}>{message}</p>}
       {proposedTimes.length > 0 && (
         <div style={{ marginBottom: 8 }}>

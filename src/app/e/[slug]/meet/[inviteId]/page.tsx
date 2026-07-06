@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { generateToken, createRoom } from '@/lib/video/livekit'
 import Link from 'next/link'
 import LiveRoom from '@/components/video/LiveRoom'
+import { Avatar } from '@/components/identity/Avatar'
+import { HandleTag } from '@/components/identity/HandleTag'
 
 type Props = {
   params: Promise<{ slug: string; inviteId: string }>
@@ -45,6 +47,15 @@ export default async function MeetPage({ params }: Props) {
   if (!otherReg) return notFound()
 
   const myRegId = (myReg as { id: string }).id
+
+  // Peer identity — inviteId is the OTHER party's registration_id, not the viewer's
+  const { data: peerProfile } = await supabase
+    .from('event_visible_profiles')
+    .select('attendee_name, handle, avatar_url')
+    .eq('registration_id', inviteId)
+    .eq('event_id', ev.id)
+    .maybeSingle()
+  const peer = peerProfile as { attendee_name: string; handle: string | null; avatar_url: string | null } | null
 
   // Deterministic room name — same pair always gets the same room
   const roomName = `1on1-${[myRegId, inviteId].sort().join('-')}`
@@ -94,6 +105,15 @@ export default async function MeetPage({ params }: Props) {
           <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-chrome-text)', margin: 0 }}>
             Private video chat
           </p>
+          {peer && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <Avatar name={peer.attendee_name} avatarUrl={peer.avatar_url} size={20} />
+              <span style={{ fontSize: 12, color: 'var(--pz-chrome-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {peer.attendee_name}
+              </span>
+              <HandleTag handle={peer.handle} />
+            </div>
+          )}
         </div>
         <Link
           href={`/e/${slug}/people`}

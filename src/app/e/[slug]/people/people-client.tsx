@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { searchAttendeeProfiles } from '@/lib/networking/sprint8-actions'
 import { HandleTag } from '@/components/identity/HandleTag'
+import { Avatar } from '@/components/identity/Avatar'
 
 interface Profile {
   id: string
@@ -103,22 +104,7 @@ export function PeopleClient({
               style={{ textDecoration: 'none' }}
             >
               <div className="flex items-start gap-3">
-                <div
-                  className="rounded-full shrink-0 flex items-center justify-center text-sm font-semibold"
-                  style={{
-                    width: 40,
-                    height: 40,
-                    background: p.avatar_url ? undefined : 'var(--pz-teal)',
-                    color: 'var(--pz-on-accent)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {p.avatar_url ? (
-                    <img src={p.avatar_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    p.name.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <Avatar name={p.name} avatarUrl={p.avatar_url} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate" style={{ color: 'var(--pz-text)' }}>{p.name}</p>
                   <HandleTag handle={p.handle} />

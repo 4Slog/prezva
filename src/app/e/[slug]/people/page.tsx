@@ -4,6 +4,7 @@ import { getUser } from '@/lib/auth/get-user'
 import { getMatchSuggestions } from '@/lib/networking/sprint8-actions'
 import { PeopleClient } from './people-client'
 import { HandleTag } from '@/components/identity/HandleTag'
+import { Avatar } from '@/components/identity/Avatar'
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ q?: string }> }
 
@@ -98,12 +99,7 @@ export default async function PeoplePage({ params, searchParams }: Props) {
                   style={{ textDecoration: 'none' }}
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div
-                      className="rounded-full shrink-0 flex items-center justify-center text-xs font-semibold"
-                      style={{ width: 32, height: 32, background: p.avatar_url ? undefined : 'var(--pz-teal)', color: 'var(--pz-on-accent)', overflow: 'hidden' }}
-                    >
-                      {p.avatar_url ? <img src={p.avatar_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.name.charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar name={p.name} avatarUrl={p.avatar_url} size={32} />
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate" style={{ color: 'var(--pz-text)' }}>{p.name}</p>
                       <HandleTag handle={p.handle} />
