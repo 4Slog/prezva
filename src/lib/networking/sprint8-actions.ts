@@ -297,6 +297,24 @@ export async function createCommunityPost(eventId: string, raw: unknown) {
     .single()
 
   if (error) return { error: error.message }
+
+  try {
+    const admin = createAdminClient()
+    const { count } = await admin
+      .from('community_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .eq('author_id', user.id)
+      .eq('is_deleted', false)
+
+    if (count === 1) {
+      const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+      await awardPoints(eventId, user.id, 'community_post')
+    }
+  } catch {
+    // first-post award failure must never break post creation
+  }
+
   revalidatePath('/e')
   return { data: post }
 }
@@ -415,6 +433,45 @@ export async function addCommunityReply(postId: string, body: string) {
     .eq('post_id', postId)
     .eq('is_deleted', false)
   await admin.from('community_posts').update({ reply_count: count ?? 0 }).eq('id', postId)
+
+  try {
+    const { data: post } = await admin
+      .from('community_posts')
+      .select('author_id, event_id')
+      .eq('id', postId)
+      .single()
+
+    if (post) {
+      const postAuthorId = (post as any).author_id as string
+      const eventId = (post as any).event_id as string
+
+      const { data: replyAuthors } = await admin
+        .from('community_replies')
+        .select('author_id')
+        .eq('post_id', postId)
+        .eq('is_deleted', false)
+        .neq('author_id', postAuthorId)
+
+      const distinctCount = new Set((replyAuthors ?? []).map((r: any) => r.author_id)).size
+
+      const MILESTONES: [number, number][] = [[1, 20], [5, 10], [10, 5]]
+      for (const [threshold, pts] of MILESTONES) {
+        if (distinctCount >= threshold) {
+          const { data: inserted } = await admin
+            .from('community_reply_milestones')
+            .upsert({ post_id: postId, milestone: threshold }, { onConflict: 'post_id,milestone', ignoreDuplicates: true })
+            .select()
+
+          if (inserted && inserted.length > 0) {
+            const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+            await awardPoints(eventId, postAuthorId, 'community_post', pts)
+          }
+        }
+      }
+    }
+  } catch {
+    // milestone/points failures must never break reply creation
+  }
 
   return { data }
 }
