@@ -318,7 +318,21 @@ export async function getCommunityPosts(eventId: string, postType?: string, page
   if (sessionId) q = q.eq('session_id', sessionId)
 
   const { data } = await q
-  return (data ?? []) as any[]
+  const posts = (data ?? []) as any[]
+
+  const authorIds = Array.from(new Set(posts.map(p => p.author_id).filter(Boolean)))
+  const authorMap = new Map<string, { handle: string | null; full_name: string | null; avatar_url: string | null }>()
+  if (authorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, handle, full_name, avatar_url')
+      .in('id', authorIds)
+    for (const p of (profiles ?? []) as any[]) {
+      authorMap.set(p.id, { handle: p.handle, full_name: p.full_name, avatar_url: p.avatar_url })
+    }
+  }
+
+  return posts.map(p => ({ ...p, author: authorMap.get(p.author_id) ?? null }))
 }
 
 export async function deleteCommunityPost(postId: string) {
@@ -389,7 +403,7 @@ export async function addCommunityReply(postId: string, body: string) {
   const { data, error } = await supabase
     .from('community_replies')
     .insert({ post_id: postId, author_id: user.id, body: body.trim() })
-    .select('id, body, created_at')
+    .select('id, body, created_at, author_id')
     .single()
 
   if (error) return { error: error.message }
@@ -413,7 +427,21 @@ export async function getCommunityReplies(postId: string) {
     .eq('post_id', postId)
     .eq('is_deleted', false)
     .order('created_at', { ascending: true })
-  return (data ?? []) as any[]
+  const replies = (data ?? []) as any[]
+
+  const authorIds = Array.from(new Set(replies.map(r => r.author_id).filter(Boolean)))
+  const authorMap = new Map<string, { handle: string | null; full_name: string | null; avatar_url: string | null }>()
+  if (authorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, handle, full_name, avatar_url')
+      .in('id', authorIds)
+    for (const p of (profiles ?? []) as any[]) {
+      authorMap.set(p.id, { handle: p.handle, full_name: p.full_name, avatar_url: p.avatar_url })
+    }
+  }
+
+  return replies.map(r => ({ ...r, author: authorMap.get(r.author_id) ?? null }))
 }
 
 // T-094g: Follow/unfollow

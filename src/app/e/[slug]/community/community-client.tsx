@@ -12,8 +12,11 @@ import {
   getCommunityReplies,
   reportCommunityContent,
 } from '@/lib/networking/sprint8-actions'
+import { HandleTag } from '@/components/identity/HandleTag'
+import { Avatar } from '@/components/identity/Avatar'
 
 interface OGData { title: string; description: string; image: string }
+interface Author { handle: string | null; full_name: string | null; avatar_url: string | null }
 interface Post {
   id: string
   post_type: string
@@ -31,6 +34,14 @@ interface Post {
   created_at: string
   author_id: string
   session_id: string | null
+  author?: Author | null
+}
+interface Reply {
+  id: string
+  body: string
+  created_at: string
+  author_id: string
+  author?: Author | null
 }
 
 type PostType = 'post' | 'meetup' | 'article'
@@ -64,7 +75,7 @@ export function CommunityClient({
   const [imageUploadError, setImageUploadError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({})
-  const [replies, setReplies] = useState<Record<string, any[]>>({})
+  const [replies, setReplies] = useState<Record<string, Reply[]>>({})
   const [replyBody, setReplyBody] = useState<Record<string, string>>({})
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
   const [reportReason, setReportReason] = useState('')
@@ -172,7 +183,8 @@ export function CommunityClient({
     if (!text || !userId) return
     const result = await addCommunityReply(postId, text)
     if (!('error' in result) && result.data) {
-      setReplies(prev => ({ ...prev, [postId]: [...(prev[postId] ?? []), result.data] }))
+      const newReply: Reply = { ...result.data, author: null }
+      setReplies(prev => ({ ...prev, [postId]: [...(prev[postId] ?? []), newReply] }))
       setReplyBody(prev => ({ ...prev, [postId]: '' }))
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, reply_count: p.reply_count + 1 } : p))
     }
@@ -355,6 +367,15 @@ export function CommunityClient({
         <div className="space-y-4">
           {posts.map(post => (
             <div key={post.id} className="pz-card p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Avatar name={post.author?.full_name} avatarUrl={post.author?.avatar_url} size={40} />
+                {post.author && (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-sm truncate" style={{ color: 'var(--pz-text)' }}>{post.author.full_name}</span>
+                    <HandleTag handle={post.author.handle} />
+                  </div>
+                )}
+              </div>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   {post.is_pinned && (
@@ -427,8 +448,12 @@ export function CommunityClient({
 
               {expandedReplies[post.id] && (
                 <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: 'var(--pz-border)' }}>
-                  {(replies[post.id] ?? []).map((r: any) => (
+                  {(replies[post.id] ?? []).map((r: Reply) => (
                     <div key={r.id} className="text-xs rounded-lg px-3 py-2" style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-text)' }}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Avatar name={r.author?.full_name} avatarUrl={r.author?.avatar_url} size={24} />
+                        <HandleTag handle={r.author?.handle} />
+                      </div>
                       {r.body}
                     </div>
                   ))}
