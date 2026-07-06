@@ -8,7 +8,7 @@ type Props = { questions: any[] }
 export function TriviaClient({ questions }: Props) {
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
-  const [result, setResult] = useState<{ correct: boolean; points: number } | null>(null)
+  const [result, setResult] = useState<{ correct: boolean; points: number; correctIndex?: number } | null>(null)
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
 
@@ -18,7 +18,7 @@ export function TriviaClient({ questions }: Props) {
     if (selected !== null) return
     setSelected(optionIndex)
     const res = await submitTriviaAnswer(q.id, optionIndex)
-    setResult({ correct: res.correct, points: res.points ?? 0 })
+    setResult({ correct: res.correct, points: res.points ?? 0, correctIndex: res.correctIndex })
     if (res.correct) setScore(s => s + (res.points ?? 0))
   }
 
@@ -56,7 +56,7 @@ export function TriviaClient({ questions }: Props) {
             let bg = 'var(--pz-surface-2)'
             let color = 'var(--pz-text)'
             if (selected !== null) {
-              if (i === q.correct_index) { bg = 'var(--pz-success)'; color = '#fff' }
+              if (i === result?.correctIndex) { bg = 'var(--pz-success)'; color = '#fff' }
               else if (i === selected && !result?.correct) { bg = 'var(--pz-error, var(--pz-error))'; color = '#fff' }
             }
             return (

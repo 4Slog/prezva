@@ -240,7 +240,7 @@ export async function getTriviaQuestions(eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('trivia_questions')
-    .select('id, body, question_text, options, correct_index, category, difficulty, points, sort_order')
+    .select('id, body, question_text, options, category, difficulty, points, sort_order')
     .eq('event_id', eventId)
     .eq('is_active', true)
     .order('sort_order')
@@ -285,7 +285,7 @@ export async function submitTriviaAnswer(questionId: string, answerIndex: number
     if (isCorrect) await awardPointsForReg((q as any).event_id, registrationId!, 'trivia_correct')
   }
 
-  return { correct: isCorrect, points: isCorrect ? (q as any).points : 0 }
+  return { correct: isCorrect, points: isCorrect ? (q as any).points : 0, correctIndex: (q as any).correct_index }
 }
 
 // ── T-107: icebreaker contest ─────────────────────────────────────────────────
