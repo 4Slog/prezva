@@ -24,6 +24,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+  const [awardedPoints, setAwardedPoints] = useState(0)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -31,6 +32,7 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
     setError('')
     const result = await submitSurveyResponseByToken(surveyId, token, answers)
     if (result.error) { setError(result.error); setSubmitting(false); return }
+    setAwardedPoints(result.awardedPoints ?? 0)
     setDone(true)
   }
 
@@ -39,6 +41,9 @@ export function SurveyGuestForm({ surveyId, token = '', questions }: SurveyGuest
       <div className="rounded-xl border border-[var(--pz-teal)]/30 bg-[var(--pz-surface)] p-8 text-center">
         <p className="text-xl font-bold text-[var(--pz-teal-ink)]">Thank you!</p>
         <p className="text-sm text-[var(--pz-muted)] mt-2">Your response has been recorded.</p>
+        {awardedPoints > 0 && (
+          <p className="text-sm font-semibold text-[var(--pz-teal)] mt-2">+{awardedPoints} points!</p>
+        )}
       </div>
     )
   }

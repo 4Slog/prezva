@@ -128,31 +128,6 @@ export async function closeSurvey(surveyId: string) {
   return { success: true }
 }
 
-export async function submitSurveyResponse(surveyId: string, answers: Record<string, string>) {
-  const supabase = await createClient()
-  const user = await requireUser()
-
-  const { data: survey } = await supabase.from('surveys').select('event_id').eq('id', surveyId).maybeSingle()
-
-  const { data: resp, error: respErr } = await supabase
-    .from('survey_responses').insert({ survey_id: surveyId, user_id: user.id }).select().single()
-  if (respErr) return { error: respErr.message }
-  const answerRows = Object.entries(answers).map(([questionId, answer]) => ({
-    response_id: resp.id, question_id: questionId, answer_text: answer,
-  }))
-  if (answerRows.length > 0) {
-    const { error: ansErr } = await supabase.from('survey_answers').insert(answerRows)
-    if (ansErr) return { error: ansErr.message }
-  }
-
-  if (survey?.event_id) {
-    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints(survey.event_id, user.id, 'survey_complete').catch(() => {})
-  }
-
-  return { success: true }
-}
-
 export async function submitSurveyResponseByToken(surveyId: string, token: string, answers: Record<string, string>) {
   // Admin client: anon inserts on survey_answers are blocked by RLS
   // (requires sr.user_id = auth.uid()). The token check below provides authz.
@@ -168,13 +143,16 @@ export async function submitSurveyResponseByToken(surveyId: string, token: strin
     .maybeSingle()
   if (!reg) return { error: 'Invalid or expired token' }
 
+  const eventId = (reg as any).event_id
+  const registrationId = (reg as any).id
+
   const { data: survey } = await admin.from('surveys').select('event_id, status').eq('id', surveyId).maybeSingle()
-  if (!survey || survey.event_id !== (reg as any).event_id) return { error: 'Survey not found' }
+  if (!survey || survey.event_id !== eventId) return { error: 'Survey not found' }
   if (survey.status !== 'active') return { error: 'This survey is not accepting responses' }
 
   const { data: resp, error: respErr } = await admin
     .from('survey_responses')
-    .insert({ survey_id: surveyId, user_id: null, registration_id: (reg as any).id })
+    .insert({ survey_id: surveyId, user_id: null, registration_id: registrationId })
     .select().single()
   if (respErr) return { error: respErr.message }
 
@@ -185,7 +163,14 @@ export async function submitSurveyResponseByToken(surveyId: string, token: strin
     const { error: ansErr } = await admin.from('survey_answers').insert(answerRows)
     if (ansErr) return { error: ansErr.message }
   }
-  return { success: true }
+
+  let awardedPoints = 0
+  try {
+    const { awardPointsForReg } = await import('@/lib/engagement/sprint10-actions')
+    awardedPoints = await awardPointsForReg(eventId, registrationId, 'survey_complete')
+  } catch { /* points failure must not break the submission */ }
+
+  return { success: true, awardedPoints }
 }
 
 export async function getSurveyResults(surveyId: string) {
