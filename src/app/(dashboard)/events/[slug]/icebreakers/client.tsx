@@ -11,7 +11,7 @@ interface IcebreakerQuestion {
   prompt?: string;
   category?: string
 }
-interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
+interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; eventSlug: string; isActive?: boolean }
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none'
 
@@ -87,7 +87,8 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
           </button>
           <button onClick={() => startTransition(async () => {
               const next = !published
-              await setIcebreakersActive(eventId, next)
+              const res = await setIcebreakersActive(eventSlug, next)
+              if (res && 'error' in res) { setMsg(`Error: ${res.error}`); return }
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
             })} disabled={pending}

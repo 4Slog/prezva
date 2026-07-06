@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { submitIcebreakerResponse, getIcebreakerResponses } from '@/lib/engagement/sprint10-actions'
+import { Avatar } from '@/components/identity/Avatar'
+import { HandleTag } from '@/components/identity/HandleTag'
 
-type FeedEntry = { display: string; response: string }
+type FeedEntry = { name: string; handle: string | null; avatarUrl: string | null; response: string }
 type Props = { questions: any[]; eventId: string }
 
 export function IcebreakersClient({ questions, eventId }: Props) {
@@ -46,8 +48,15 @@ export function IcebreakersClient({ questions, eventId }: Props) {
                   <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 6 }}>{responseFeed[q.id].length} people answered</p>
                   <div className="space-y-2">
                     {responseFeed[q.id].slice(0, 10).map((entry, i) => (
-                      <div key={i} style={{ fontSize: 13, color: 'var(--pz-text)', background: 'var(--pz-surface-2)', borderRadius: 6, padding: '6px 10px' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--pz-teal)' }}>{entry.display}</span>: {entry.response}
+                      <div key={i} style={{ fontSize: 13, color: 'var(--pz-text)', background: 'var(--pz-surface-2)', borderRadius: 6, padding: '6px 10px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <Avatar name={entry.name} avatarUrl={entry.avatarUrl} size={40} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontWeight: 600, color: 'var(--pz-text)' }}>{entry.name}</span>
+                            <HandleTag handle={entry.handle} />
+                          </div>
+                          <span>{entry.response}</span>
+                        </div>
                       </div>
                     ))}
                   </div>

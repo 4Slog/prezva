@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
 
 export async function getEmailCampaigns(eventId: string) {
@@ -302,37 +303,31 @@ export async function getIcebreakerQuestions(eventId: string) {
   return (data ?? []) as any[]
 }
 
-export async function setIcebreakersActive(eventId: string, active: boolean) {
+export async function setIcebreakersActive(eventSlug: string, active: boolean) {
+  let access: Awaited<ReturnType<typeof requireEventOrgAccess>>
+  try {
+    access = await requireEventOrgAccess(eventSlug)
+  } catch {
+    return { error: 'Not authorized' }
+  }
   const admin = createAdminClient()
-  await admin.from('icebreaker_questions').update({ is_active: active }).eq('event_id', eventId)
+  await admin.from('icebreaker_questions').update({ is_active: active }).eq('event_id', access.event.id)
   return { ok: true }
 }
 
-export async function submitIcebreakerResponse(eventId: string, questionId: string, response: string, registrationId?: string) {
+export async function submitIcebreakerResponse(eventId: string, questionId: string, response: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user && !registrationId) return { error: 'Enter your registration code to participate' }
+  if (!user) return { error: 'Enter your registration code to participate' }
 
-  if (user) {
-    const { error } = await supabase.from('icebreaker_completions').upsert({
-      event_id: eventId,
-      user_id: user.id,
-      question_id: questionId,
-      response,
-    }, { onConflict: 'event_id,user_id,question_id' })
-    if (!error) await awardPoints(eventId, user.id, 'icebreaker')
-    return { error: error?.message }
-  } else {
-    const admin = (await import('@/lib/supabase/admin')).createAdminClient()
-    const { error } = await admin.from('icebreaker_completions').upsert({
-      event_id: eventId,
-      registration_id: registrationId,
-      question_id: questionId,
-      response,
-    }, { onConflict: 'event_id,registration_id,question_id' })
-    if (!error) await awardPointsForReg(eventId, registrationId!, 'icebreaker')
-    return { error: error?.message }
-  }
+  const { error } = await supabase.from('icebreaker_completions').upsert({
+    event_id: eventId,
+    user_id: user.id,
+    question_id: questionId,
+    response,
+  }, { onConflict: 'event_id,user_id,question_id' })
+  if (!error) await awardPoints(eventId, user.id, 'icebreaker')
+  return { error: error?.message }
 }
 
 // ── T-108: passport contest ───────────────────────────────────────────────────
@@ -415,19 +410,39 @@ export async function checkInPassportLocation(eventId: string, code: string, reg
 }
 
 export async function getIcebreakerResponses(eventId: string, questionId: string) {
+  const supabase = await createClient()
+  const { data: registered } = await supabase.rpc('is_registered', { event_id: eventId })
+  if (!registered) return []
+
   const admin = createAdminClient()
-  const { data } = await admin
+  const { data: completions } = await admin
     .from('icebreaker_completions')
-    .select('response, registrations(attendee_name), profiles(full_name)')
+    .select('user_id, response')
     .eq('event_id', eventId)
     .eq('question_id', questionId)
     .order('created_at', { ascending: false })
     .limit(20)
-  return ((data ?? []) as any[]).map(r => {
-    const name = r.profiles?.full_name || r.registrations?.attendee_name || 'Attendee'
-    const parts = name.trim().split(' ')
-    const display = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0]
-    return { display, response: r.response }
+
+  const rows = (completions ?? []) as any[]
+  if (rows.length === 0) return []
+
+  const userIds = [...new Set(rows.map(r => r.user_id))]
+  const { data: visible } = await supabase
+    .from('event_visible_profiles')
+    .select('user_id, attendee_name, handle, avatar_url')
+    .eq('event_id', eventId)
+    .in('user_id', userIds)
+
+  const byUser = new Map(((visible ?? []) as any[]).map(p => [p.user_id, p]))
+
+  return rows.map(r => {
+    const p = byUser.get(r.user_id)
+    return {
+      name: p?.attendee_name || 'An attendee',
+      handle: p?.handle ?? null,
+      avatarUrl: p?.avatar_url ?? null,
+      response: r.response,
+    }
   })
 }
 
