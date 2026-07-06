@@ -8,7 +8,7 @@ export default async function EventPhotosAdminPage({ params }: Props) {
   const { slug } = await params
   const { event } = await requireEventOrgAccess(slug)
   const admin = createAdminClient()
-  const { count } = await admin.from('community_photos').select('*', { count: 'exact', head: true }).eq('event_id', event.id)
+  const { count } = await admin.from('photo_contest_entries').select('*', { count: 'exact', head: true }).eq('event_id', event.id)
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>

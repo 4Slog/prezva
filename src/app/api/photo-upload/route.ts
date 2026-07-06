@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: `File type ${file.type} not allowed` }, { status: 400 })
   if (file.size > MAX_SIZE) return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 })
 
+  const { data: registered } = await supabase.rpc('is_registered', { event_id: eventId })
+  if (!registered) return NextResponse.json({ error: 'Not registered for this event' }, { status: 403 })
+
   const ext = file.type.split('/')[1].replace('jpeg', 'jpg')
   const path = `${eventId}/${user.id}/${Date.now()}.${ext}`
 
@@ -30,15 +33,23 @@ export async function POST(req: NextRequest) {
 
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
 
-  const { error: dbError } = await admin
+  const { data: insertedRow, error: dbError } = await admin
     .from('photo_contest_entries')
     .insert({ event_id: eventId, user_id: user.id, caption: caption || null, storage_path: path })
+    .select()
+    .single()
 
   if (dbError) {
     await admin.storage.from('event-photos').remove([path])
     return NextResponse.json({ error: dbError.message }, { status: 500 })
   }
 
+  let awardedPoints = 0
+  try {
+    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    awardedPoints = await awardPoints(eventId, user.id, 'photo_upload')
+  } catch { /* points failure must not break the upload */ }
+
   const { data: urlData } = admin.storage.from('event-photos').getPublicUrl(data.path)
-  return NextResponse.json({ url: urlData.publicUrl, path })
+  return NextResponse.json({ url: urlData.publicUrl, path, entry: insertedRow, awardedPoints })
 }

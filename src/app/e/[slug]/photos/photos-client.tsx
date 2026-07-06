@@ -14,6 +14,7 @@ export function PhotosClient({ eventId, eventSlug, initialEntries }: Props) {
   const [caption, setCaption] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [awardedPoints, setAwardedPoints] = useState<number | null>(null)
   const [voted, setVoted] = useState<Set<string>>(new Set())
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -31,6 +32,7 @@ export function PhotosClient({ eventId, eventSlug, initialEntries }: Props) {
     if (json.error) { setUploadError(json.error) } else {
       setEntries(prev => [{ ...json.entry, url: json.url }, ...prev])
       setCaption('')
+      if (typeof json.awardedPoints === 'number') setAwardedPoints(json.awardedPoints)
     }
     setUploading(false)
     e.target.value = ''
@@ -59,6 +61,7 @@ export function PhotosClient({ eventId, eventSlug, initialEntries }: Props) {
           <input type="file" className="sr-only" accept="image/*" onChange={handleUpload} disabled={uploading} />
         </label>
         {uploadError && <p style={{ fontSize: 12, color: 'var(--pz-error, var(--pz-error))', marginTop: 4 }}>{uploadError}</p>}
+        {awardedPoints !== null && <p style={{ fontSize: 12, color: 'var(--pz-teal)', marginTop: 4 }}>+{awardedPoints} points!</p>}
       </div>
 
       {entries.length === 0 ? (
