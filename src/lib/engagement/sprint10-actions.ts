@@ -336,7 +336,7 @@ export async function getPassportLocations(eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('passport_locations')
-    .select('id, name, code, points')
+    .select('id, name, points')
     .eq('event_id', eventId)
   return (data ?? []) as any[]
 }
@@ -353,10 +353,10 @@ export async function getPassportVisits(eventId: string) {
   return ((data ?? []) as any[]).map(v => v.location_id)
 }
 
-export async function checkInPassportLocation(eventId: string, code: string, registrationId?: string) {
+export async function checkInPassportLocation(eventId: string, code: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user && !registrationId) return { error: 'Enter your registration code to participate' }
+  if (!user) return { error: 'Enter your registration code to participate' }
 
   const { data: loc } = await supabase
     .from('passport_locations')
@@ -366,47 +366,27 @@ export async function checkInPassportLocation(eventId: string, code: string, reg
     .single()
   if (!loc) return { error: 'Invalid code' }
 
-  if (user) {
-    const { error } = await supabase.from('passport_visits').insert({
-      event_id: eventId,
-      user_id: user.id,
-      location_id: (loc as any).id,
-    })
-    if (error && error.code === '23505') return { error: 'Already visited this location' }
-    if (error) return { error: error.message }
-    await awardPoints(eventId, user.id, 'passport_visit')
-    const completionAdmin = createAdminClient()
-    const { count: locCount } = await completionAdmin.from('passport_locations')
-      .select('id', { count: 'exact', head: true }).eq('event_id', eventId)
-    const { count: visitCount } = await completionAdmin.from('passport_visits')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId).eq('user_id', user.id)
-    if (locCount && visitCount === locCount) {
-      await awardPoints(eventId, user.id, 'passport_complete')
-      return { ok: true, location: (loc as any).name, points: (loc as any).points, completedPassport: true }
-    }
-  } else {
-    const admin = (await import('@/lib/supabase/admin')).createAdminClient()
-    const { error } = await admin.from('passport_visits').insert({
-      event_id: eventId,
-      registration_id: registrationId,
-      location_id: (loc as any).id,
-    })
-    if (error && error.code === '23505') return { error: 'Already visited this location' }
-    if (error) return { error: error.message }
-    await awardPointsForReg(eventId, registrationId!, 'passport_visit')
-    const { count: locCount } = await admin.from('passport_locations')
-      .select('id', { count: 'exact', head: true }).eq('event_id', eventId)
-    const { count: visitCount } = await admin.from('passport_visits')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId).eq('registration_id', registrationId)
-    if (locCount && visitCount === locCount) {
-      await awardPointsForReg(eventId, registrationId!, 'passport_complete')
-      return { ok: true, location: (loc as any).name, points: (loc as any).points, completedPassport: true }
-    }
+  const { error } = await supabase.from('passport_visits').insert({
+    event_id: eventId,
+    user_id: user.id,
+    location_id: (loc as any).id,
+  })
+  if (error && error.code === '23505') return { error: 'Already visited this location' }
+  if (error) return { error: error.message }
+  await awardPoints(eventId, user.id, 'passport_visit')
+
+  const completionAdmin = createAdminClient()
+  const { count: locCount } = await completionAdmin.from('passport_locations')
+    .select('id', { count: 'exact', head: true }).eq('event_id', eventId)
+  const { count: visitCount } = await completionAdmin.from('passport_visits')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', eventId).eq('user_id', user.id)
+  if (locCount && visitCount === locCount) {
+    await awardPoints(eventId, user.id, 'passport_complete')
+    return { ok: true, locationId: (loc as any).id, location: (loc as any).name, points: (loc as any).points, completedPassport: true }
   }
 
-  return { ok: true, location: (loc as any).name, points: (loc as any).points }
+  return { ok: true, locationId: (loc as any).id, location: (loc as any).name, points: (loc as any).points }
 }
 
 export async function getIcebreakerResponses(eventId: string, questionId: string) {

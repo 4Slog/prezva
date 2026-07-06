@@ -24,8 +24,8 @@ export function PassportClient({ eventId, locations, initialVisitedIds }: Props)
     if ((result as any).error) {
       setMessage((result as any).error)
     } else {
-      const loc = locations.find(l => l.code === code.trim().toUpperCase())
-      if (loc) setVisitedIds(prev => new Set(prev).add(loc.id))
+      const locId = (result as any).locationId
+      if (locId) setVisitedIds(prev => new Set(prev).add(locId))
       setMessage(`Checked in to ${(result as any).location}! +${(result as any).points} pts`)
       setCode('')
       if ((result as any).completedPassport) setPassportComplete(true)

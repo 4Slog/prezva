@@ -29,16 +29,33 @@ export async function getPassportAdmin(eventId: string) {
     admin.from('passport_visits').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
     admin
       .from('passport_visits')
-      .select('user_id, registration_id, passport_locations(points), profiles(full_name), registrations(attendee_name)')
+      .select('user_id, passport_locations(points)')
       .eq('event_id', eventId),
   ])
 
-  const byPerson: Record<string, { userId?: string; registrationId?: string; name: string; count: number; totalPoints: number }> = {}
-  for (const v of (topRes.data ?? []) as any[]) {
-    const key = v.user_id ?? `reg-${v.registration_id}`
-    const name = (v as any).profiles?.full_name ?? (v as any).registrations?.attendee_name ?? 'Unknown'
+  const visits = (topRes.data ?? []) as any[]
+  const userIds = [...new Set(visits.map(v => v.user_id).filter(Boolean))] as string[]
+
+  const nameByUser: Record<string, string> = {}
+  if (userIds.length > 0) {
+    const [regRes, profRes] = await Promise.all([
+      admin.from('registrations').select('user_id, attendee_name').eq('event_id', eventId).in('user_id', userIds),
+      admin.from('profiles').select('id, full_name').in('id', userIds),
+    ])
+    for (const r of (regRes.data ?? []) as any[]) {
+      if (r.user_id && r.attendee_name) nameByUser[r.user_id] = r.attendee_name
+    }
+    for (const p of (profRes.data ?? []) as any[]) {
+      if (p.full_name) nameByUser[p.id] = p.full_name
+    }
+  }
+
+  const byPerson: Record<string, { userId: string; name: string; count: number; totalPoints: number }> = {}
+  for (const v of visits) {
+    if (!v.user_id) continue
+    const key = v.user_id as string
     const pts = (v as any).passport_locations?.points ?? 0
-    if (!byPerson[key]) byPerson[key] = { userId: v.user_id, registrationId: v.registration_id, name, count: 0, totalPoints: 0 }
+    if (!byPerson[key]) byPerson[key] = { userId: key, name: nameByUser[key] ?? 'Unknown', count: 0, totalPoints: 0 }
     byPerson[key].count++
     byPerson[key].totalPoints += pts
   }

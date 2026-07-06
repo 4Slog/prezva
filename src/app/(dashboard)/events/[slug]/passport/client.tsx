@@ -6,7 +6,7 @@ import { Field } from '@/components/ui/Field'
 import { Gated } from '@/components/auth/Gated'
 
 interface Location { id: string; name: string; code: string; points: number; created_at: string }
-interface LeaderEntry { userId?: string; registrationId?: string; name: string; count: number; totalPoints: number }
+interface LeaderEntry { userId?: string; name: string; count: number; totalPoints: number }
 
 interface Props {
   eventId: string
@@ -115,7 +115,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
           <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 16 }}>Top Collectors</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {leaderboard.map((entry, i) => (
-              <div key={entry.userId ?? entry.registrationId ?? i} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14 }}>
+              <div key={entry.userId ?? i} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14 }}>
                 <span style={{ fontWeight: 700, color: 'var(--pz-muted)', width: 20, textAlign: 'right' }}>{i + 1}</span>
                 <span style={{ flex: 1 }}>{entry.name}</span>
                 <span style={{ fontWeight: 600, color: 'var(--pz-teal)' }}>{entry.count} stamp{entry.count !== 1 ? 's' : ''} · {entry.totalPoints} pts</span>
