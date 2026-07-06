@@ -193,6 +193,11 @@ export default function SelfCheckInWithPin({
             {result.event_title && (
               <p style={{ color: 'var(--pz-muted)', fontSize: 14 }}>{result.event_title}</p>
             )}
+            {!!result.points_awarded && result.points_awarded > 0 && (
+              <p style={{ color: 'var(--pz-teal-ink)', fontSize: 15, fontWeight: 700, marginTop: 8 }}>
+                +{result.points_awarded} points!
+              </p>
+            )}
           </>
         )}
 

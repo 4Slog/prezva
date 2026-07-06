@@ -14,6 +14,7 @@ export interface SelfCheckInResult {
   event_date?: string
   already_checked_in?: boolean
   check_in_time?: string
+  points_awarded?: number
 }
 
 export async function selfCheckInByToken(token: string): Promise<SelfCheckInResult> {
@@ -71,9 +72,12 @@ export async function selfCheckInByToken(token: string): Promise<SelfCheckInResu
   if (ciErr) return { success: false, error: 'Check-in failed. Please try again or see staff.' }
 
   // Award points if user has account
+  let points_awarded = 0
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints((reg as any).event_id, (reg as any).user_id, 'checkin').catch(() => {})
+    try {
+      points_awarded = await awardPoints((reg as any).event_id, (reg as any).user_id, 'checkin')
+    } catch {}
   }
 
   await logAudit(admin as any, null, null, 'checkin.self', 'registrations', (reg as any).id, {
@@ -86,6 +90,7 @@ export async function selfCheckInByToken(token: string): Promise<SelfCheckInResu
     attendee_name: (reg as any).attendee_name,
     event_title: event?.title,
     event_date: eventDate,
+    points_awarded,
   }
 }
 
@@ -164,16 +169,19 @@ export async function selfCheckInRegistration(
     if (error) return { success: false, error: 'Check-in failed. Please try again or see staff.' }
   }
 
+  let points_awarded = 0
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints((reg as any).event_id, (reg as any).user_id, 'checkin').catch(() => {})
+    try {
+      points_awarded = await awardPoints((reg as any).event_id, (reg as any).user_id, 'checkin')
+    } catch {}
   }
 
   await logAudit(admin as any, null, null, 'checkin.self', 'registrations', registrationId, {
     method: 'self', session_id: sessionId ?? undefined,
   })
 
-  return { success: true, already_checked_in: false, attendee_name: (reg as any).attendee_name, event_title: event?.title }
+  return { success: true, already_checked_in: false, attendee_name: (reg as any).attendee_name, event_title: event?.title, points_awarded }
 }
 
 // ── Email+PIN self-check-in ────────────────────────────────────────────────────
@@ -266,14 +274,17 @@ export async function selfCheckInByEmailPin(
     if (error) return { success: false, error: GENERIC_ERROR }
   }
 
+  let points_awarded = 0
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints(eventId, (reg as any).user_id, 'checkin').catch(() => {})
+    try {
+      points_awarded = await awardPoints(eventId, (reg as any).user_id, 'checkin')
+    } catch {}
   }
 
   await logAudit(admin as any, null, null, 'checkin.self', 'registrations', (reg as any).id, {
     method: 'email_pin', session_id: sessionId ?? undefined,
   })
 
-  return { success: true, already_checked_in: false, attendee_name: (reg as any).attendee_name, event_title: event?.title }
+  return { success: true, already_checked_in: false, attendee_name: (reg as any).attendee_name, event_title: event?.title, points_awarded }
 }

@@ -110,6 +110,7 @@ function LivePollCard({ poll, userId, registrationId }: { poll: LivePoll; userId
 
 function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: string; eventId: string; userId: string }) {
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [pointsAwarded, setPointsAwarded] = useState(0)
   const [, startTransition] = useTransition()
 
   function handleClick() {
@@ -117,13 +118,16 @@ function MarkAttendanceButton({ sessionId, eventId, userId }: { sessionId: strin
     startTransition(async () => {
       const result = await markSessionAttendance(sessionId, eventId)
       if (result.error) setState('error')
-      else setState('done')
+      else {
+        setPointsAwarded(result.pointsAwarded ?? 0)
+        setState('done')
+      }
     })
   }
 
   if (state === 'done') return (
     <span style={{ fontSize:11, color:'var(--pz-teal-ink)', display:'flex', alignItems:'center', gap:3 }}>
-      <CheckCircle2 size={13} /> Attended
+      <CheckCircle2 size={13} /> {pointsAwarded > 0 ? `+${pointsAwarded} points!` : 'Attended'}
     </span>
   )
   return (

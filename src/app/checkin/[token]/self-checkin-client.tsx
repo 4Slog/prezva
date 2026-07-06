@@ -15,6 +15,7 @@ export default function SelfCheckInClient({ token }: Props) {
     already_checked_in?: boolean
     check_in_time?: string
     error?: string
+    points_awarded?: number
   }>({})
 
   async function handleCheckIn() {
@@ -88,6 +89,11 @@ export default function SelfCheckInClient({ token }: Props) {
             )}
             {result.event_date && (
               <p style={{ color: 'var(--pz-muted)', fontSize: 13 }}>{result.event_date}</p>
+            )}
+            {!!result.points_awarded && result.points_awarded > 0 && (
+              <p style={{ color: 'var(--pz-teal-ink)', fontSize: 15, fontWeight: 700, marginTop: 8 }}>
+                +{result.points_awarded} points!
+              </p>
             )}
           </>
         )}

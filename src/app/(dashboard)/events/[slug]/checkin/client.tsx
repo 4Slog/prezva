@@ -256,7 +256,12 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
             lastResult.registration.already_checked_in ? (
               <span className="flex items-center gap-1"><AlertTriangle size={14} /> {lastResult.registration.attendee_name} already checked in</span>
             ) : (
-              <span className="flex items-center gap-1"><Check size={14} /> {lastResult.registration.attendee_name} checked in — {lastResult.registration.ticket_name}</span>
+              <span className="flex items-center gap-1">
+                <Check size={14} /> {lastResult.registration.attendee_name} checked in — {lastResult.registration.ticket_name}
+                {!!lastResult.points_awarded && lastResult.points_awarded > 0 && (
+                  <strong className="ml-1">+{lastResult.points_awarded} points!</strong>
+                )}
+              </span>
             )
           ) : (
             <span className="flex items-center gap-1"><X size={14} /> {lastResult.error}</span>
@@ -362,7 +367,11 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
               {lastResult.success && lastResult.registration ? (
                 lastResult.registration.already_checked_in
                   ? `Already checked in: ${lastResult.registration.attendee_name}`
-                  : `Checked in: ${lastResult.registration.attendee_name} — ${lastResult.registration.ticket_name}`
+                  : `Checked in: ${lastResult.registration.attendee_name} — ${lastResult.registration.ticket_name}${
+                      lastResult.points_awarded && lastResult.points_awarded > 0
+                        ? ` — +${lastResult.points_awarded} points!`
+                        : ''
+                    }`
               ) : (
                 `Error: ${lastResult.error}`
               )}

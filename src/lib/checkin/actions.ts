@@ -20,6 +20,7 @@ export interface CheckInResult {
     check_in_time?: string
   }
   error?: string
+  points_awarded?: number
 }
 
 export interface CheckInStats {
@@ -115,9 +116,12 @@ export async function checkInByQR(
 
   await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', (reg as any).id, { method: 'qr_scan' })
 
+  let points_awarded = 0
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints(eventId, (reg as any).user_id, 'checkin').catch(() => {})
+    try {
+      points_awarded = await awardPoints(eventId, (reg as any).user_id, 'checkin')
+    } catch {}
   }
 
   revalidatePath('/events')
@@ -130,6 +134,7 @@ export async function checkInByQR(
       ticket_name: (reg as any).ticket_types?.name ?? '',
       already_checked_in: false,
     },
+    points_awarded,
   }
 }
 
@@ -187,9 +192,12 @@ export async function checkInBySearch(
 
   await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual' })
 
+  let points_awarded = 0
   if ((reg as any).user_id) {
     const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints(eventId, (reg as any).user_id, 'checkin').catch(() => {})
+    try {
+      points_awarded = await awardPoints(eventId, (reg as any).user_id, 'checkin')
+    } catch {}
   }
 
   revalidatePath('/events')
@@ -202,6 +210,7 @@ export async function checkInBySearch(
       ticket_name: (reg as any).ticket_types?.name ?? '',
       already_checked_in: false,
     },
+    points_awarded,
   }
 }
 

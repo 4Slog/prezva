@@ -1,5 +1,6 @@
 'use server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 
 export async function markSessionAttendance(sessionId: string, eventId: string) {
@@ -46,10 +47,22 @@ export async function markSessionAttendance(sessionId: string, eventId: string) 
 
   if (error) return { error: error.message }
 
-  try {
-    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
-    await awardPoints(eventId, user.id, 'session_attend')
-  } catch { /* non-fatal */ }
+  const admin = createAdminClient()
+  const { data: existingPoint } = await admin
+    .from('leaderboard_points')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .eq('action', 'session_attend')
+    .maybeSingle()
 
-  return { ok: true, alreadyMarked: false }
+  let pointsAwarded = 0
+  if (!existingPoint) {
+    try {
+      const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+      pointsAwarded = await awardPoints(eventId, user.id, 'session_attend')
+    } catch { /* non-fatal */ }
+  }
+
+  return { ok: true, alreadyMarked: false, pointsAwarded }
 }
