@@ -248,10 +248,15 @@ export async function getTriviaQuestions(eventId: string) {
   return (data ?? []) as any[]
 }
 
-export async function setTriviaActive(eventId: string, active: boolean) {
-  await requireUser()
+export async function setTriviaActive(eventSlug: string, active: boolean) {
+  let access: Awaited<ReturnType<typeof requireEventOrgAccess>>
+  try {
+    access = await requireEventOrgAccess(eventSlug)
+  } catch {
+    return { error: 'Not authorized' }
+  }
   const admin = createAdminClient()
-  await admin.from('trivia_questions').update({ is_active: active }).eq('event_id', eventId)
+  await admin.from('trivia_questions').update({ is_active: active }).eq('event_id', access.event.id)
   return { ok: true }
 }
 

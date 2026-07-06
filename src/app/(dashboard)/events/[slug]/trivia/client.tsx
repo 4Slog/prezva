@@ -6,7 +6,7 @@ import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
 import { TRIVIA_DIFF_COLORS as DIFF_COLOR } from '@/lib/ui/category-colors'
 
 interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
-interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; eventSlug?: string; isActive?: boolean }
+interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; eventSlug: string; isActive?: boolean }
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none'
 
@@ -109,7 +109,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
           </button>
           <button onClick={() => startTransition(async () => {
               const next = !published
-              await setTriviaActive(eventId, next)
+              await setTriviaActive(eventSlug, next)
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
             })} disabled={pending}
