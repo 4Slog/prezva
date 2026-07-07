@@ -4,12 +4,15 @@ import { getUserContexts } from '@/lib/auth/get-contexts'
 import { isSuperAdmin } from '@/lib/admin/gate'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { ContextSwitcher } from '@/components/ContextSwitcher'
+import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
 export default async function MeLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
   const contexts = await getUserContexts(user.id)
   const superAdmin = isSuperAdmin(user.id)
+  const supabase = await createClient()
+  const { data: profileRow } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle()
 
   const navLinks = [
     { href: '/me', label: 'Home' },
@@ -49,7 +52,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
             ))}
           </nav>
 
-          <UserMenu email={user.email ?? ''} name={user.user_metadata?.full_name ?? user.email ?? ''} />
+          <UserMenu email={user.email ?? ''} name={user.user_metadata?.full_name ?? user.email ?? ''} avatarUrl={profileRow?.avatar_url ?? null} />
         </div>
       </header>
 

@@ -20,6 +20,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  let adminAvatarUrl: string | null = null
+  if (user) {
+    const { data: profileRow } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle()
+    adminAvatarUrl = profileRow?.avatar_url ?? null
+  }
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--pz-chrome)' }}>
       <header
@@ -31,6 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <UserMenu
             email={user.email ?? ''}
             name={(user.user_metadata as { full_name?: string } | null)?.full_name ?? null}
+            avatarUrl={adminAvatarUrl}
           />
         )}
       </header>

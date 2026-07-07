@@ -7,9 +7,10 @@ import { signOut } from "@/lib/auth/actions"
 interface UserMenuProps {
   email: string
   name?: string | null
+  avatarUrl?: string | null
 }
 
-export function UserMenu({ email, name }: UserMenuProps) {
+export function UserMenu({ email, name, avatarUrl }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -50,13 +51,17 @@ export function UserMenu({ email, name }: UserMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2"
+        className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-sm font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2"
         style={{
-          background: "var(--pz-teal)",
+          background: avatarUrl ? "var(--pz-surface-2)" : "var(--pz-teal)",
           color: "var(--pz-on-accent)",
         }}
       >
-        {initial}
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initial
+        )}
       </button>
 
       {open && (

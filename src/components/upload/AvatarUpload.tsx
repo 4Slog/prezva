@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { UserRound } from 'lucide-react'
 
-export function AvatarUpload({ currentUrl, endpoint = '/api/upload/avatar' }: { currentUrl?: string; endpoint?: string }) {
+export function AvatarUpload({ currentUrl, endpoint = '/api/upload/avatar', refreshOnUpload = false }: { currentUrl?: string; endpoint?: string; refreshOnUpload?: boolean }) {
   const [avatarUrl, setAvatarUrl] = useState(currentUrl ?? '')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const router = useRouter()
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -19,6 +21,7 @@ export function AvatarUpload({ currentUrl, endpoint = '/api/upload/avatar' }: { 
     setUploading(false)
     if (!res.ok) { setError(json.error); return }
     setAvatarUrl(json.url)
+    if (refreshOnUpload) router.refresh()
   }
 
   return (

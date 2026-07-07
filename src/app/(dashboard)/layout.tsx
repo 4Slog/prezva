@@ -77,6 +77,9 @@ export default async function DashboardLayout({
 
   const currentContext = effectiveOrgSlug ?? 'personal'
 
+  const sbAvatar = await createClient()
+  const { data: profileRow } = await sbAvatar.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle()
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--pz-bg)' }}>
 
@@ -102,7 +105,7 @@ export default async function DashboardLayout({
           <ContextSwitcher currentContext={currentContext} contexts={contexts} isSuperAdmin={superAdmin} />
           <div className="flex items-center gap-3">
             <NotificationBell initialUnreadCount={unreadCount} />
-            <UserMenu email={user.email ?? ''} name={(user.user_metadata as { full_name?: string } | null)?.full_name ?? null} />
+            <UserMenu email={user.email ?? ''} name={(user.user_metadata as { full_name?: string } | null)?.full_name ?? null} avatarUrl={profileRow?.avatar_url ?? null} />
           </div>
         </header>
 

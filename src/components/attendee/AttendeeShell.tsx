@@ -37,12 +37,13 @@ interface AttendeeShellEvent {
 interface AttendeeShellProps {
   event: AttendeeShellEvent
   hasRegistration: boolean
+  avatarUrl?: string | null
   children: React.ReactNode
 }
 
 const TAB_BAR_HEIGHT = 64
 
-export function AttendeeShell({ event, hasRegistration, children }: AttendeeShellProps) {
+export function AttendeeShell({ event, hasRegistration, avatarUrl, children }: AttendeeShellProps) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
   const [meOpen, setMeOpen] = useState(false)
@@ -237,9 +238,14 @@ export function AttendeeShell({ event, hasRegistration, children }: AttendeeShel
                     border: '1px solid var(--pz-border)',
                     color: 'var(--pz-text)',
                     cursor: 'pointer',
+                    overflow: 'hidden',
                   }}
                 >
-                  <User size={16} />
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <User size={16} />
+                  )}
                 </button>
 
                 {meOpen && (
