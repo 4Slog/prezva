@@ -14,9 +14,19 @@ interface Props {
   totalStamps: number
   leaderboard: LeaderEntry[]
   permissions: string[]
+  createAction?: typeof createPassportLocation
+  deleteAction?: typeof deletePassportLocation
 }
 
-export default function PassportAdminClient({ eventId, initialLocations, totalStamps, leaderboard, permissions }: Props) {
+export default function PassportAdminClient({
+  eventId,
+  initialLocations,
+  totalStamps,
+  leaderboard,
+  permissions,
+  createAction = createPassportLocation,
+  deleteAction = deletePassportLocation,
+}: Props) {
   const [locations, setLocations] = useState(initialLocations)
   const [name, setName] = useState('')
   const [points, setPoints] = useState('5')
@@ -30,7 +40,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
     if (!name.trim()) return
     setError('')
     startTransition(async () => {
-      const result = await createPassportLocation(eventId, name.trim(), parseInt(points) || 5)
+      const result = await createAction(eventId, name.trim(), parseInt(points) || 5)
       if ('error' in result) { setError(result.error); return }
       setLocations(prev => [...prev, result.data as Location])
       setName('')
@@ -40,7 +50,7 @@ export default function PassportAdminClient({ eventId, initialLocations, totalSt
 
   function handleDelete(locationId: string) {
     startTransition(async () => {
-      const result = await deletePassportLocation(locationId, eventId)
+      const result = await deleteAction(locationId, eventId)
       if (!('error' in result)) setLocations(prev => prev.filter(l => l.id !== locationId))
     })
   }
