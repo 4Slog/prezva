@@ -56,7 +56,7 @@ export async function getPublicSpeakers(eventId: string) {
   const supabase = await createClient()
   const { data } = await supabase
     .from('speakers')
-    .select('*')
+    .select('id, event_id, name, bio, photo_url, job_title, company, website, linkedin_url, twitter_handle, sort_order, is_published, event_role')
     .eq('event_id', eventId)
     .eq('is_published', true)
     .order('sort_order', { ascending: true })
@@ -68,7 +68,7 @@ export async function getPublicSpeaker(eventId: string, speakerId: string) {
   const { data } = await supabase
     .from('speakers')
     .select(`
-      *,
+      id, event_id, name, bio, photo_url, job_title, company, website, linkedin_url, twitter_handle, sort_order, is_published, event_role,
       session_speakers(sessions(id, title, starts_at, ends_at, session_type, is_published))
     `)
     .eq('event_id', eventId)

@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPublicEvent, getPublicAgenda } from '@/lib/public/actions'
-import { getUser } from '@/lib/auth/get-user'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import AgendaClient from './client'
 
 export default async function PublicAgendaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -10,13 +11,16 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
   const event = await getPublicEvent(slug)
   if (!event) notFound()
   const sessions = await getPublicAgenda(event.id)
-  const user = await getUser()
+  const identity = await getSessionIdentity(slug)
+  const registered =
+    identity.type === 'user' ||
+    (identity.type === 'registration' && identity.eventId === event.id)
 
-  const supabase = await createClient()
   const sessionIds = sessions.map((s: any) => s.id)
   const handoutsBySession: Record<string, any[]> = {}
-  if (sessionIds.length > 0) {
-    const { data: handouts } = await supabase
+  if (registered && sessionIds.length > 0) {
+    const admin = createAdminClient()
+    const { data: handouts } = await admin
       .from('session_handouts')
       .select('id, session_id, filename, storage_path')
       .in('session_id', sessionIds)
@@ -26,16 +30,21 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
     }
   }
 
+  let userId: string | null = null
   let registrationId: string | null = null
-  if (user) {
+  if (identity.type === 'user') {
+    userId = identity.userId
+    const supabase = await createClient()
     const { data: reg } = await supabase
       .from('registrations')
       .select('id')
       .eq('event_id', event.id)
-      .eq('user_id', user.id)
+      .eq('user_id', identity.userId)
       .eq('status', 'confirmed')
       .maybeSingle()
     registrationId = reg?.id ?? null
+  } else if (identity.type === 'registration' && identity.eventId === event.id) {
+    registrationId = identity.registrationId
   }
 
   return (
@@ -47,7 +56,7 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
-        <AgendaClient sessions={sessions} eventId={event.id} userId={user?.id ?? null} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={(event as any).timezone ?? 'UTC'} registrationId={registrationId} />
+        <AgendaClient sessions={sessions} eventId={event.id} userId={userId} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={(event as any).timezone ?? 'UTC'} registrationId={registrationId} />
       </div>
     </div>
   )

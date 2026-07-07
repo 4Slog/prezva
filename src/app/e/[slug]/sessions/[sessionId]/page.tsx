@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPublicEvent, getPublicSession } from '@/lib/public/actions'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ slug: string; sessionId: string }> }) {
   const { slug, sessionId } = await params
@@ -10,12 +11,19 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const session = await getPublicSession((event as any).id, sessionId)
   if (!session) notFound()
 
-  const supabase = await createClient()
-  const { data: handoutsRaw } = await supabase
-    .from('session_handouts')
-    .select('id, session_id, filename, storage_path')
-    .eq('session_id', sessionId)
-  const handouts = (handoutsRaw ?? []) as any[]
+  const identity = await getSessionIdentity(slug)
+  const registered =
+    identity.type === 'user' ||
+    (identity.type === 'registration' && identity.eventId === (event as any).id)
+  let handouts: any[] = []
+  if (registered) {
+    const admin = createAdminClient()
+    const { data: handoutsRaw } = await admin
+      .from('session_handouts')
+      .select('id, session_id, filename, storage_path')
+      .eq('session_id', sessionId)
+    handouts = (handoutsRaw ?? []) as any[]
+  }
 
   const tz = (event as any).timezone ?? 'UTC'
   const s = session as any
