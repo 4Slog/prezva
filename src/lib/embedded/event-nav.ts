@@ -90,8 +90,8 @@ export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
         icon: Sparkles,
         items: [
           { label: 'Networking',    href: `${base}/networking`,    icon: Network },
-          { label: 'Icebreakers',   href: `${base}/icebreakers`,   icon: Sparkles },
-          { label: 'Trivia',        href: `${base}/trivia`,        icon: Brain },
+          { label: 'Icebreakers',   href: `${base}/icebreakers`,   icon: Sparkles, built: true },
+          { label: 'Trivia',        href: `${base}/trivia`,        icon: Brain, built: true },
           { label: 'Leaderboard',   href: `${base}/leaderboard`,   icon: Trophy, built: true },
           { label: 'Passport',      href: `${base}/passport`,      icon: MapPin },
           { label: 'Announcements', href: `${base}/announcements`, icon: Bell },

@@ -38,6 +38,21 @@ async function assertEventOwnership(
   return data
 }
 
+async function assertEventOwnershipBySlug(
+  db: ReturnType<typeof createAdminClient>,
+  slug: string,
+  orgId: string,
+) {
+  const { data } = await db
+    .from('events')
+    .select('id, org_id')
+    .eq('slug', slug)
+    .eq('org_id', orgId)
+    .maybeSingle()
+  if (!data) throw new Error('Event not found or access denied')
+  return data
+}
+
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 
 export async function embedGetLeaderboardData(eventId: string) {
@@ -106,4 +121,119 @@ export async function embedGetPhotosData(eventId: string) {
     .single()
 
   return { count: count ?? 0, eventSlug: (event as any)?.slug as string }
+}
+
+// ── Icebreakers ───────────────────────────────────────────────────────────────
+
+export async function embedGetIcebreakersData(eventId: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data: event } = await db
+    .from('events')
+    .select('title, slug')
+    .eq('id', eventId)
+    .eq('org_id', orgId)
+    .single()
+
+  const { data: rawQuestions } = await db
+    .from('icebreaker_questions')
+    .select('id, question, question_text, prompt, category, is_active')
+    .eq('event_id', eventId)
+    .limit(100)
+
+  // Resolve {event_title} merge tag at read time, same as the standalone page
+  const eventTitle = (event as any)?.title ?? ''
+  const questions = (rawQuestions ?? []).map((q: any) => ({
+    ...q,
+    question: typeof q.question === 'string' ? q.question.replaceAll('{event_title}', eventTitle) : q.question,
+    question_text: typeof q.question_text === 'string' ? q.question_text.replaceAll('{event_title}', eventTitle) : q.question_text,
+    prompt: typeof q.prompt === 'string' ? q.prompt.replaceAll('{event_title}', eventTitle) : q.prompt,
+  }))
+
+  const isActive = questions.some((q: any) => q.is_active)
+
+  return { eventSlug: (event as any)?.slug as string, orgId, questions, isActive }
+}
+
+export async function embedSeedIcebreakerPrompts(eventId: string, prompts: { text: string; tags: string[] }[]) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  // Store {event_title} as-is — resolved at read time — mirrors standalone seedIcebreakerPrompts
+  const rows = prompts.map((p) => ({
+    event_id: eventId,
+    question: p.text,
+    question_text: p.text,
+    prompt: p.text,
+  }))
+  const { error } = await db.from('icebreaker_questions').insert(rows)
+  if (error) return { error: error.message }
+  return { count: rows.length }
+}
+
+export async function embedSetIcebreakersActive(eventSlug: string, active: boolean) {
+  const { db, orgId } = await resolveEmbedContext()
+  const event = await assertEventOwnershipBySlug(db, eventSlug, orgId)
+  await db.from('icebreaker_questions').update({ is_active: active }).eq('event_id', event.id)
+  return { ok: true }
+}
+
+// ── Trivia ────────────────────────────────────────────────────────────────────
+
+export async function embedGetTriviaData(eventId: string) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  const { data: event } = await db
+    .from('events')
+    .select('slug')
+    .eq('id', eventId)
+    .eq('org_id', orgId)
+    .single()
+
+  const { data: questions } = await db
+    .from('trivia_questions')
+    .select('id, body, question_text, options, correct_index, category, difficulty, points, sort_order, is_active')
+    .eq('event_id', eventId)
+    .order('sort_order')
+
+  const isActive = (questions ?? []).some((q: any) => q.is_active)
+
+  return { eventSlug: (event as any)?.slug as string, orgId, questions: (questions ?? []) as any[], isActive }
+}
+
+export async function embedSeedTriviaQuestions(
+  eventId: string,
+  questions: { q: string; options: string[]; correct: number; category: string; difficulty: string }[],
+) {
+  const { db, orgId } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+
+  // Same validation as standalone seedTriviaQuestions, so the client sees a useful message
+  for (const q of questions) {
+    if (!Array.isArray(q.options) || q.options.filter((o) => typeof o === 'string' && o.trim().length > 0).length < 2) {
+      return { error: 'Questions must have at least 2 answer options' }
+    }
+  }
+
+  const rows = questions.map((q) => ({
+    event_id: eventId,
+    body: q.q,              // primary display column (what getTriviaQuestions reads)
+    question_text: q.q,     // alias for future use
+    options: q.options,
+    correct_index: q.correct,
+    category: q.category,
+    difficulty: q.difficulty,
+  }))
+  const { error } = await db.from('trivia_questions').insert(rows)
+  if (error) return { error: error.message }
+  return { count: rows.length }
+}
+
+export async function embedSetTriviaActive(eventSlug: string, active: boolean) {
+  const { db, orgId } = await resolveEmbedContext()
+  const event = await assertEventOwnershipBySlug(db, eventSlug, orgId)
+  await db.from('trivia_questions').update({ is_active: active }).eq('event_id', event.id)
+  return { ok: true }
 }

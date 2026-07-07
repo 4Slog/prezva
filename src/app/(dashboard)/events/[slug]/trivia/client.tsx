@@ -6,13 +6,28 @@ import { TRIVIA_QUESTIONS } from '@/lib/templates/trivia'
 import { TRIVIA_DIFF_COLORS as DIFF_COLOR } from '@/lib/ui/category-colors'
 
 interface TriviaQuestion { id: string; body?: string; question_text?: string; options?: any[]; correct_index?: number; category?: string; difficulty?: string; points?: number }
-interface Props { questions: TriviaQuestion[]; eventId: string; orgId: string; eventSlug: string; isActive?: boolean }
+interface Props {
+  questions: TriviaQuestion[]
+  eventId: string
+  orgId: string
+  eventSlug: string
+  isActive?: boolean
+  seedAction?: typeof seedTriviaQuestions
+  setActiveAction?: typeof setTriviaActive
+}
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none'
 
 const getQuestionText = (q: TriviaQuestion) => q.body || q.question_text || ''
 
-export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActive = false }: Props) {
+export function TriviaAdminClient({
+  questions: init,
+  eventId,
+  eventSlug,
+  isActive = false,
+  seedAction = seedTriviaQuestions,
+  setActiveAction = setTriviaActive,
+}: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
@@ -53,7 +68,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
   function handleLoadStarter() {
     setShowPreview(false)
     startTransition(async () => {
-      const res = await seedTriviaQuestions(eventId, STARTER_PACK)
+      const res = await seedAction(eventId, STARTER_PACK)
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} trivia questions.`)
       const newItems = STARTER_PACK.map((q, i) => ({
@@ -68,7 +83,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
   function handleAddCustom() {
     if (!newQ.trim() || newOpts.some(o => !o.trim())) return
     startTransition(async () => {
-      const res = await seedTriviaQuestions(eventId, [{
+      const res = await seedAction(eventId, [{
         q: newQ.trim(), options: newOpts.map(o => o.trim()),
         correct: newCorrect, category: newCategory, difficulty: newDifficulty,
       }])
@@ -109,7 +124,7 @@ export function TriviaAdminClient({ questions: init, eventId, eventSlug, isActiv
           </button>
           <button onClick={() => startTransition(async () => {
               const next = !published
-              await setTriviaActive(eventSlug, next)
+              await setActiveAction(eventSlug, next)
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
             })} disabled={pending}

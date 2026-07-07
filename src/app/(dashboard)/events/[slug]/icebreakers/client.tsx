@@ -4,20 +4,35 @@ import { useState, useTransition } from 'react'
 import { seedIcebreakerPrompts, setIcebreakersActive } from '@/lib/engagement/sprint10-actions'
 import { ICEBREAKER_PROMPTS } from '@/lib/templates/icebreakers'
 
-interface IcebreakerQuestion { 
-  id: string; 
-  question?: string; 
-  question_text?: string; 
+interface IcebreakerQuestion {
+  id: string;
+  question?: string;
+  question_text?: string;
   prompt?: string;
   category?: string
 }
-interface Props { questions: IcebreakerQuestion[]; eventId: string; orgId: string; eventSlug: string; isActive?: boolean }
+interface Props {
+  questions: IcebreakerQuestion[]
+  eventId: string
+  orgId: string
+  eventSlug: string
+  isActive?: boolean
+  seedAction?: typeof seedIcebreakerPrompts
+  setActiveAction?: typeof setIcebreakersActive
+}
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] placeholder-[var(--pz-muted)] focus:border-[var(--pz-teal)] focus:outline-none'
 
 const getPromptText = (q: IcebreakerQuestion) => q.question || q.question_text || q.prompt || ''
 
-export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, isActive = false }: Props) {
+export function IcebreakersAdminClient({
+  questions: init,
+  eventId,
+  eventSlug,
+  isActive = false,
+  seedAction = seedIcebreakerPrompts,
+  setActiveAction = setIcebreakersActive,
+}: Props) {
   const [questions, setQuestions] = useState(init)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState('')
@@ -45,7 +60,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
   function handleLoadStarter() {
     setShowPreview(false)
     startTransition(async () => {
-      const res = await seedIcebreakerPrompts(eventId, ICEBREAKER_PROMPTS.slice(starterOffset, starterOffset + 10))
+      const res = await seedAction(eventId, ICEBREAKER_PROMPTS.slice(starterOffset, starterOffset + 10))
       setStarterOffset(prev => Math.min(prev + 10, 50))
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setMsg(`Added ${res.count} starter prompts.`)
@@ -57,7 +72,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
   function handleAddCustom() {
     if (!customText.trim()) return
     startTransition(async () => {
-      const res = await seedIcebreakerPrompts(eventId, [{ text: customText.trim(), tags: [] }])
+      const res = await seedAction(eventId, [{ text: customText.trim(), tags: [] }])
       if ('error' in res) { setMsg(`Error: ${res.error}`); return }
       setQuestions(prev => [...prev, { id: `tmp-custom-${Date.now()}`, question_text: customText.trim() }])
       setCustomText('')
@@ -87,7 +102,7 @@ export function IcebreakersAdminClient({ questions: init, eventId, eventSlug, is
           </button>
           <button onClick={() => startTransition(async () => {
               const next = !published
-              const res = await setIcebreakersActive(eventSlug, next)
+              const res = await setActiveAction(eventSlug, next)
               if (res && 'error' in res) { setMsg(`Error: ${res.error}`); return }
               setPublished(next)
               setMsg(next ? 'Published to attendees.' : 'Set to draft.')
