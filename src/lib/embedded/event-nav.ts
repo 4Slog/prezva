@@ -92,10 +92,10 @@ export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
           { label: 'Networking',    href: `${base}/networking`,    icon: Network },
           { label: 'Icebreakers',   href: `${base}/icebreakers`,   icon: Sparkles },
           { label: 'Trivia',        href: `${base}/trivia`,        icon: Brain },
-          { label: 'Leaderboard',   href: `${base}/leaderboard`,   icon: Trophy },
+          { label: 'Leaderboard',   href: `${base}/leaderboard`,   icon: Trophy, built: true },
           { label: 'Passport',      href: `${base}/passport`,      icon: MapPin },
           { label: 'Announcements', href: `${base}/announcements`, icon: Bell },
-          { label: 'Photos',        href: `${base}/photos`,        icon: Image },
+          { label: 'Photos',        href: `${base}/photos`,        icon: Image, built: true },
         ],
       },
       {

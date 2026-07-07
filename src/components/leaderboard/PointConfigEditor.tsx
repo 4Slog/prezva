@@ -15,9 +15,10 @@ const ACTION_LABELS: Record<string, string> = {
 interface PointConfigEditorProps {
   eventId: string
   initialConfig: Record<string, number>
+  saveAction?: (eventId: string, config: Record<string, number>) => Promise<{ ok?: boolean; error?: string }>
 }
 
-export function PointConfigEditor({ eventId, initialConfig }: PointConfigEditorProps) {
+export function PointConfigEditor({ eventId, initialConfig, saveAction = updateLeaderboardPointConfig }: PointConfigEditorProps) {
   const [config, setConfig] = useState<Record<string, number>>(initialConfig)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -32,7 +33,7 @@ export function PointConfigEditor({ eventId, initialConfig }: PointConfigEditorP
   async function handleSave() {
     setSaving(true)
     setError(null)
-    const result = await updateLeaderboardPointConfig(eventId, config)
+    const result = await saveAction(eventId, config)
     setSaving(false)
     if ('error' in result) {
       setError(result.error ?? 'Failed to save')
