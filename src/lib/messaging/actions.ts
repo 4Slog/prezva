@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 
@@ -140,8 +141,29 @@ export async function getAttendeeDirectory(eventId: string) {
     }
   }
 
+  // Per-event avatar override (attendee_profiles.avatar_url) — RLS is owner-scoped, must use admin client
+  const overrideAvatar = new Map<string, string | null>()
+  if (userIds.length > 0) {
+    try {
+      const admin = createAdminClient()
+      const { data: overrides } = await admin
+        .from('attendee_profiles')
+        .select('user_id, avatar_url')
+        .eq('event_id', eventId)
+        .in('user_id', userIds)
+      for (const o of (overrides ?? []) as any[]) overrideAvatar.set(o.user_id, o.avatar_url)
+    } catch {
+      // avatar override is an enhancement; fall back to the global avatar on any failure
+    }
+  }
+
   const visible = (regs as any[]).filter(r => !r.user_id || !hiddenSet.has(r.user_id))
-  return visible.map(r => ({ ...r, interests: interestMap[r.id] ?? [] }))
+  return visible.map(r => {
+    const profile = (r as any).profiles
+    if (!profile) return { ...r, interests: interestMap[r.id] ?? [] }
+    const resolvedAvatar = overrideAvatar.get(r.user_id) ?? profile.avatar_url ?? null
+    return { ...r, profiles: { ...profile, avatar_url: resolvedAvatar }, interests: interestMap[r.id] ?? [] }
+  })
 }
 
 export async function getSuggestedConnectionsByInterest(eventId: string) {
@@ -178,14 +200,37 @@ export async function getSuggestedConnectionsByInterest(eventId: string) {
   if (!others) return []
 
   const mySet = new Set(myInterests.map(i => i.toLowerCase().trim()))
-  return (others as any[])
+  const matched = (others as any[])
     .filter(o => (o.interests ?? []).some((i: string) => mySet.has(i.toLowerCase().trim())))
     .slice(0, 5)
-    .map(o => ({
+
+  // Per-event avatar override (attendee_profiles.avatar_url) — RLS is owner-scoped, must use admin client
+  const overrideAvatar = new Map<string, string | null>()
+  const matchedUserIds = matched.map(o => o.registrations?.user_id).filter(Boolean)
+  if (matchedUserIds.length > 0) {
+    try {
+      const admin = createAdminClient()
+      const { data: overrides } = await admin
+        .from('attendee_profiles')
+        .select('user_id, avatar_url')
+        .eq('event_id', eventId)
+        .in('user_id', matchedUserIds)
+      for (const ov of (overrides ?? []) as any[]) overrideAvatar.set(ov.user_id, ov.avatar_url)
+    } catch {
+      // avatar override is an enhancement; fall back to the global avatar on any failure
+    }
+  }
+
+  return matched.map(o => {
+    const profile = o.registrations?.profiles ?? null
+    const userId = o.registrations?.user_id
+    const resolvedAvatar = overrideAvatar.get(userId) ?? profile?.avatar_url ?? null
+    return {
       registration_id: o.registration_id,
-      user_id: o.registrations?.user_id,
+      user_id: userId,
       attendee_name: o.registrations?.attendee_name ?? '',
       interests: o.interests ?? [],
-      profiles: o.registrations?.profiles ?? null,
-    }))
+      profiles: profile ? { ...profile, avatar_url: resolvedAvatar } : profile,
+    }
+  })
 }

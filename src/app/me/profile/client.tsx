@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { upsertUserProfile } from '@/lib/attendees/profile-actions'
 import { updateHandle } from '@/lib/identity/actions'
 import { Field } from '@/components/ui/Field'
+import { AvatarUpload } from '@/components/upload/AvatarUpload'
 
 interface ProfileFields {
   display_name: string
@@ -16,7 +17,7 @@ interface ProfileFields {
   interests: string[]
 }
 
-export function ProfileClient({ email, handle, initial }: { email: string; handle: string; initial: ProfileFields }) {
+export function ProfileClient({ email, handle, avatarUrl, initial }: { email: string; handle: string; avatarUrl: string; initial: ProfileFields }) {
   const [form, setForm] = useState<ProfileFields>(initial)
   const [interestInput, setInterestInput] = useState('')
   const [saved, setSaved] = useState(false)
@@ -87,6 +88,12 @@ export function ProfileClient({ email, handle, initial }: { email: string; handl
 
   return (
     <>
+      <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.5rem', marginBottom: 16 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 4 }}>Profile photo</h2>
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 12 }}>Your avatar across all events. You can set a different photo per event on that event's profile page.</p>
+        <AvatarUpload currentUrl={avatarUrl} />
+      </div>
+
       <form onSubmit={handleHandleSubmit}>
         <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.5rem', marginBottom: 16 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 16 }}>Handle</h2>

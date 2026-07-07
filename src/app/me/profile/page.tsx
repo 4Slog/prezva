@@ -29,7 +29,7 @@ export default async function MyProfilePage() {
       .in('status', ['confirmed']),
     supabase
       .from('profiles')
-      .select('handle')
+      .select('handle, avatar_url')
       .eq('id', authUser.id)
       .single(),
   ])
@@ -121,6 +121,7 @@ export default async function MyProfilePage() {
       <ProfileClient
         email={authUser.email ?? ''}
         handle={(handleRow as { handle: string } | null)?.handle ?? ''}
+        avatarUrl={(handleRow as any)?.avatar_url ?? ''}
         initial={{
           display_name: profile?.display_name ?? '',
           bio: profile?.bio ?? '',

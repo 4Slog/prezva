@@ -350,7 +350,22 @@ export async function getCommunityPosts(eventId: string, postType?: string, page
     }
   }
 
-  return posts.map(p => ({ ...p, author: authorMap.get(p.author_id) ?? null }))
+  const overrideAvatar = new Map<string, string | null>()
+  if (authorIds.length > 0) {
+    const admin = createAdminClient()
+    const { data: overrides } = await admin
+      .from('attendee_profiles')
+      .select('user_id, avatar_url')
+      .eq('event_id', eventId)
+      .in('user_id', authorIds)
+    for (const o of (overrides ?? []) as any[]) overrideAvatar.set(o.user_id, o.avatar_url)
+  }
+
+  return posts.map(p => {
+    const author = authorMap.get(p.author_id) ?? null
+    const resolvedAvatar = overrideAvatar.get(p.author_id) ?? author?.avatar_url ?? null
+    return { ...p, author: author ? { ...author, avatar_url: resolvedAvatar } : null }
+  })
 }
 
 export async function deleteCommunityPost(postId: string) {
@@ -498,7 +513,30 @@ export async function getCommunityReplies(postId: string) {
     }
   }
 
-  return replies.map(r => ({ ...r, author: authorMap.get(r.author_id) ?? null }))
+  const overrideAvatar = new Map<string, string | null>()
+  if (authorIds.length > 0) {
+    const { data: post } = await supabase
+      .from('community_posts')
+      .select('event_id')
+      .eq('id', postId)
+      .single()
+    const eventId = (post as any)?.event_id
+    if (eventId) {
+      const admin = createAdminClient()
+      const { data: overrides } = await admin
+        .from('attendee_profiles')
+        .select('user_id, avatar_url')
+        .eq('event_id', eventId)
+        .in('user_id', authorIds)
+      for (const o of (overrides ?? []) as any[]) overrideAvatar.set(o.user_id, o.avatar_url)
+    }
+  }
+
+  return replies.map(r => {
+    const author = authorMap.get(r.author_id) ?? null
+    const resolvedAvatar = overrideAvatar.get(r.author_id) ?? author?.avatar_url ?? null
+    return { ...r, author: author ? { ...author, avatar_url: resolvedAvatar } : null }
+  })
 }
 
 // T-094g: Follow/unfollow
