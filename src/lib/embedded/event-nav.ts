@@ -71,7 +71,7 @@ export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
           },
           { label: 'Badges',       href: `${base}/badges`,       icon: Tag,       built: true },
           { label: 'Certificates', href: `${base}/certificates`, icon: Award,     built: true },
-          { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck },
+          { label: 'Volunteers',   href: `${base}/volunteers`,   icon: UserCheck, built: true },
         ],
       },
       {

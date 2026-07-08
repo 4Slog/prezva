@@ -38,6 +38,16 @@ interface Session {
   starts_at: string
 }
 
+interface VolunteerFormInput {
+  name: string
+  email: string
+  phone: string
+  role: string
+  shift_start: string
+  shift_end: string
+  notes: string
+}
+
 interface Props {
   eventId: string
   eventSlug: string
@@ -45,6 +55,11 @@ interface Props {
   sessions: Session[]
   alerts: VolunteerAlert[]
   permissions: string[]
+  addAction?: (eventId: string, payload: VolunteerFormInput) => Promise<{ volunteer: Volunteer } | { error: string }>
+  checkinAction?: (volunteerId: string, eventId: string) => Promise<{ ok: true } | { error: string }>
+  resendAction?: (volunteerId: string, eventId: string) => Promise<{ ok: true } | { error: string }>
+  removeAction?: (volunteerId: string, eventId: string) => Promise<{ ok: true } | { error: string }>
+  exportHoursAction?: (eventId: string) => Promise<{ ok: true; csv: string; filename: string } | { error: string }>
 }
 
 const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'team-lead', 'general']
@@ -65,18 +80,53 @@ const SHIFT_RESPONSE_COLORS: Record<string, string> = {
   pending:   'var(--pz-muted)',
 }
 
-export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts, permissions }: Props) {
+export function VolunteersClient({
+  eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts, permissions,
+  addAction, checkinAction, resendAction, removeAction, exportHoursAction,
+}: Props) {
   const [volunteers, setVolunteers] = useState<Volunteer[]>(initial)
   const [alerts, setAlerts] = useState<VolunteerAlert[]>(initialAlerts)
   const [filterStatus, setFilterStatus] = useState('All')
   const [showAdd, setShowAdd] = useState(false)
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<VolunteerFormInput>({
     name: '', email: '', phone: '', role: 'check-in',
     shift_start: '', shift_end: '', notes: '',
   })
   const [err, setErr] = useState('')
+
+  // Default (standalone) implementations — preserved verbatim as the fetch/import fallback
+  // so the client stays byte-identical when no *Action prop is injected (embed lane).
+  async function addViaApi(_eventId: string, payload: VolunteerFormInput): Promise<{ volunteer: Volunteer } | { error: string }> {
+    const res = await fetch(`/api/events/${eventSlug}/volunteers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, event_id: eventId }),
+    })
+    const json = await res.json()
+    if (!res.ok) return { error: json.error ?? 'Failed to add volunteer' }
+    return { volunteer: json.volunteer }
+  }
+
+  async function actionViaApi(volunteerId: string, action: 'checkin' | 'resend' | 'remove'): Promise<{ ok: true } | { error: string }> {
+    const res = await fetch(`/api/events/${eventSlug}/volunteers/${volunteerId}/${action}`, { method: 'POST' })
+    if (!res.ok) {
+      let error = 'Request failed'
+      try { const json = await res.json(); error = json.error ?? error } catch { /* non-JSON response */ }
+      return { error }
+    }
+    return { ok: true }
+  }
+  const checkinViaApi = (volunteerId: string, _eventId: string) => actionViaApi(volunteerId, 'checkin')
+  const resendViaApi = (volunteerId: string, _eventId: string) => actionViaApi(volunteerId, 'resend')
+  const removeViaApi = (volunteerId: string, _eventId: string) => actionViaApi(volunteerId, 'remove')
+
+  const add = addAction ?? addViaApi
+  const checkin = checkinAction ?? checkinViaApi
+  const resend = resendAction ?? resendViaApi
+  const remove = removeAction ?? removeViaApi
+  const doExportHours = exportHoursAction ?? exportVolunteerHours
 
   async function handleResolveAlert(alertId: string) {
     await resolveVolunteerAlert(alertId)
@@ -86,7 +136,7 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
   async function handleExportHours() {
     setExporting(true)
     try {
-      const result = await exportVolunteerHours(eventId)
+      const result = await doExportHours(eventId)
       if ('error' in result) return
       const blob = new Blob([result.csv], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
@@ -115,14 +165,9 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
     setSaving(true)
     setErr('')
     try {
-      const res = await fetch(`/api/events/${eventSlug}/volunteers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, event_id: eventId }),
-      })
-      const json = await res.json()
-      if (!res.ok) { setErr(json.error ?? 'Failed to add volunteer'); return }
-      setVolunteers(v => [...v, json.volunteer])
+      const result = await add(eventId, form)
+      if ('error' in result) { setErr(result.error ?? 'Failed to add volunteer'); return }
+      setVolunteers(v => [...v, result.volunteer])
       setForm({ name: '', email: '', phone: '', role: 'check-in', shift_start: '', shift_end: '', notes: '' })
       setShowAdd(false)
     } finally {
@@ -132,8 +177,9 @@ export function VolunteersClient({ eventId, eventSlug, volunteers: initial, sess
 
   async function handleAction(id: string, action: 'checkin' | 'resend' | 'remove') {
     if (action === 'remove' && !confirm('Remove this volunteer?')) return
-    const res = await fetch(`/api/events/${eventSlug}/volunteers/${id}/${action}`, { method: 'POST' })
-    if (!res.ok) return
+    const fn = action === 'checkin' ? checkin : action === 'resend' ? resend : remove
+    const result = await fn(id, eventId)
+    if ('error' in result) return
     if (action === 'remove') {
       setVolunteers(v => v.filter(x => x.id !== id))
     } else if (action === 'checkin') {
