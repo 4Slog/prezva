@@ -13,10 +13,13 @@ interface Attendee {
 }
 interface Message { id: string; conversation_id: string; sender_id: string; body: string; created_at: string }
 
+const PAGE_SIZE = 25
+
 export default function NetworkingClient({ attendees, eventId, currentUserId }: {
   attendees: Attendee[]; eventId: string; currentUserId: string
 }) {
   const [search, setSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [activeConvId, setActiveConvId] = useState<string | null>(null)
   const [activeAttendee, setActiveAttendee] = useState<Attendee | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -48,6 +51,7 @@ export default function NetworkingClient({ attendees, eventId, currentUserId }: 
     return name.toLowerCase().includes(search.toLowerCase()) ||
       (a.profiles?.company ?? '').toLowerCase().includes(search.toLowerCase())
   })
+  const shown = filtered.slice(0, visibleCount)
 
   function openChat(attendee: Attendee) {
     if (!attendee.user_id) return
@@ -81,11 +85,11 @@ export default function NetworkingClient({ attendees, eventId, currentUserId }: 
       <div>
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search attendees..." style={{ width: '100%', padding: '0.6rem 0.75rem 0.6rem 2rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, boxSizing: 'border-box' }} />
+          <input value={search} onChange={e => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE) }} placeholder="Search attendees..." style={{ width: '100%', padding: '0.6rem 0.75rem 0.6rem 2rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, boxSizing: 'border-box' }} />
         </div>
         {filtered.length === 0 && <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '2rem 0' }}>No attendees found.</p>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filtered.map((a, i) => {
+          {shown.map((a, i) => {
             const name = a.profiles?.full_name ?? a.attendee_name
             const initial = name.charAt(0).toUpperCase()
             return (
@@ -109,6 +113,14 @@ export default function NetworkingClient({ attendees, eventId, currentUserId }: 
             )
           })}
         </div>
+        {visibleCount < filtered.length && (
+          <button
+            onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+            style={{ width: '100%', marginTop: 12, padding: '0.65rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Load more ({filtered.length - visibleCount} more)
+          </button>
+        )}
       </div>
 
       {/* Chat pane */}

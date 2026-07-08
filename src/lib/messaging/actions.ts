@@ -104,13 +104,14 @@ export async function getAttendeeDirectory(eventId: string) {
   const user = await requireUser()
 
   // LEFT JOIN profiles so attendees without global profiles still appear
-  const { data: regs } = await supabase
+  const { data: regs, error } = await supabase
     .from('registrations')
-    .select('id, user_id, attendee_name, attendee_email, profiles!left(id, full_name, avatar_url, job_title, company, bio)')
+    .select('id, user_id, attendee_name, attendee_email, profiles!registrations_user_id_fkey(id, full_name, avatar_url, job_title, company, bio)')
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
     .neq('user_id', user.id)
 
+  if (error) console.error('getAttendeeDirectory:', error.message)
   if (!regs) return []
 
   // Fetch interests from attendee_profiles (event-specific networking profiles)
@@ -190,13 +191,14 @@ export async function getSuggestedConnectionsByInterest(eventId: string) {
   if (myInterests.length === 0) return []
 
   // Fetch other attendee profiles with interests
-  const { data: others } = await supabase
+  const { data: others, error } = await supabase
     .from('attendee_profiles')
-    .select('registration_id, interests, registrations!inner(id, user_id, attendee_name, profiles!left(avatar_url, job_title, company))')
+    .select('registration_id, interests, registrations!inner(id, user_id, attendee_name, profiles!registrations_user_id_fkey(avatar_url, job_title, company))')
     .eq('event_id', eventId)
     .eq('is_visible', true)
     .neq('registration_id', (myReg as any).id)
 
+  if (error) console.error('getSuggestedConnectionsByInterest:', error.message)
   if (!others) return []
 
   const mySet = new Set(myInterests.map(i => i.toLowerCase().trim()))

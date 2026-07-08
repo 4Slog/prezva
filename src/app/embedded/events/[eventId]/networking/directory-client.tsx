@@ -10,14 +10,18 @@ interface Attendee {
   profiles?: { id: string; full_name: string | null; avatar_url: string | null; job_title: string | null; company: string | null; bio: string | null } | null
 }
 
+const PAGE_SIZE = 25
+
 export default function NetworkingDirectoryClient({ attendees }: { attendees: Attendee[] }) {
   const [search, setSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const filtered = attendees.filter(a => {
     const name = a.profiles?.full_name ?? a.attendee_name
     return name.toLowerCase().includes(search.toLowerCase()) ||
       (a.profiles?.company ?? '').toLowerCase().includes(search.toLowerCase())
   })
+  const shown = filtered.slice(0, visibleCount)
 
   return (
     <div>
@@ -25,14 +29,14 @@ export default function NetworkingDirectoryClient({ attendees }: { attendees: At
         <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--pz-muted)' }} />
         <input
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE) }}
           placeholder="Search attendees..."
           style={{ width: '100%', padding: '0.6rem 0.75rem 0.6rem 2rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, boxSizing: 'border-box' }}
         />
       </div>
       {filtered.length === 0 && <p style={{ color: 'var(--pz-muted)', textAlign: 'center', padding: '2rem 0' }}>No attendees found.</p>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.map((a, i) => {
+        {shown.map((a, i) => {
           const name = a.profiles?.full_name ?? a.attendee_name
           const initial = name.charAt(0).toUpperCase()
           return (
@@ -55,6 +59,14 @@ export default function NetworkingDirectoryClient({ attendees }: { attendees: At
           )
         })}
       </div>
+      {visibleCount < filtered.length && (
+        <button
+          onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+          style={{ width: '100%', marginTop: 12, padding: '0.65rem', borderRadius: 8, border: '1px solid var(--pz-border)', background: 'var(--pz-bg)', color: 'var(--pz-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Load more ({filtered.length - visibleCount} more)
+        </button>
+      )}
     </div>
   )
 }
