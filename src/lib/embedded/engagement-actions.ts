@@ -332,12 +332,13 @@ export async function embedGetNetworkingData(eventId: string) {
   await assertEventOwnership(db, eventId, orgId)
 
   // LEFT JOIN profiles so attendees without global profiles still appear. No self-exclusion — embed has no auth user.
-  const { data: regs } = await db
+  const { data: regs, error } = await db
     .from('registrations')
-    .select('id, user_id, attendee_name, attendee_email, profiles!left(id, full_name, avatar_url, job_title, company, bio)')
+    .select('id, user_id, attendee_name, attendee_email, profiles!registrations_user_id_fkey(id, full_name, avatar_url, job_title, company, bio)')
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
 
+  if (error) throw new Error(`embedGetNetworkingData: ${error.message}`)
   if (!regs) return { attendees: [] }
 
   // Fetch interests from attendee_profiles (event-specific networking profiles)
