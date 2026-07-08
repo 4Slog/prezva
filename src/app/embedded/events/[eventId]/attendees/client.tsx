@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { removeAttendee, manualAddAttendee } from '@/lib/embedded/attendees-actions'
+import { getAttendees, removeAttendee, manualAddAttendee } from '@/lib/embedded/attendees-actions'
 import type { AttendeeWithTicket, AttendeePage } from '@/lib/embedded/attendees-actions'
 
 interface EmbedAttendeesClientProps {
@@ -12,6 +12,7 @@ interface EmbedAttendeesClientProps {
 }
 
 export function EmbedAttendeesClient({ eventId, eventName, initialData, tickets }: EmbedAttendeesClientProps) {
+  const pageSize = initialData.pageSize
   const [data, setData] = useState<AttendeePage>(initialData)
   const [search, setSearch] = useState('')
   const [msg, setMsg] = useState('')
@@ -25,13 +26,22 @@ export function EmbedAttendeesClient({ eventId, eventName, initialData, tickets 
 
   const applySearch = useCallback(async (q: string) => {
     setSearch(q)
-    const params = new URLSearchParams({ search: q, pageSize: '50' })
-    const res = await fetch(`/api/events/${eventId}/attendees?` + params.toString())
-    if (res.ok) {
-      const json = await res.json()
-      setData(json)
+    try {
+      const result = await getAttendees(eventId, { search: q || undefined, page: 1, pageSize })
+      setData(result)
+    } catch {
+      setMsg('Could not load attendees.')
     }
-  }, [eventId])
+  }, [eventId, pageSize])
+
+  async function goToPage(p: number) {
+    try {
+      const result = await getAttendees(eventId, { search: search || undefined, page: p, pageSize })
+      setData(result)
+    } catch {
+      setMsg('Could not load attendees.')
+    }
+  }
 
   async function handleRemove(registrationId: string) {
     setMsg('')
@@ -61,9 +71,11 @@ export function EmbedAttendeesClient({ eventId, eventName, initialData, tickets 
     if (result && 'error' in result) { setMsg(result.error ?? 'Error'); return }
     setShowAdd(false)
     setMsg('Attendee added.')
-    // Reload
-    const res = await fetch(`/api/events/${eventId}/attendees?pageSize=50`)
-    if (res.ok) setData(await res.json())
+    setSearch('')
+    try {
+      const result = await getAttendees(eventId, { page: 1, pageSize })
+      setData(result)
+    } catch { /* leave the existing success msg */ }
   }
 
   return (
@@ -126,6 +138,16 @@ export function EmbedAttendeesClient({ eventId, eventName, initialData, tickets 
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {data.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm" style={{ color: 'var(--pz-muted)' }}>
+          <span>Page {data.page} of {data.totalPages}</span>
+          <div className="flex gap-2">
+            <button disabled={data.page <= 1} onClick={() => goToPage(data.page - 1)} className="px-3 py-1 rounded border disabled:opacity-40" style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text)', background: 'var(--pz-surface)' }}>Prev</button>
+            <button disabled={data.page >= data.totalPages} onClick={() => goToPage(data.page + 1)} className="px-3 py-1 rounded border disabled:opacity-40" style={{ borderColor: 'var(--pz-border)', color: 'var(--pz-text)', background: 'var(--pz-surface)' }}>Next</button>
+          </div>
         </div>
       )}
 
