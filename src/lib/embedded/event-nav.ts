@@ -103,7 +103,7 @@ export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
         label: 'Sponsors',
         icon: Building,
         items: [
-          { label: 'Sponsors', href: `${base}/sponsors`, icon: Building },
+          { label: 'Sponsors', href: `${base}/sponsors`, icon: Building, built: true },
         ],
       },
       {

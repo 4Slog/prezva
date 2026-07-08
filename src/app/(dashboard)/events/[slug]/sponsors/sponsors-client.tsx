@@ -34,6 +34,10 @@ type Props = {
   eventSlug: string
   sponsors: Sponsor[]
   permissions: string[]
+  createAction?: typeof createSponsor
+  updateAction?: typeof updateSponsor
+  deleteAction?: typeof deleteSponsor
+  showBoothContacts?: boolean
 }
 
 function SponsorForm({
@@ -41,14 +45,20 @@ function SponsorForm({
   initial,
   onSuccess,
   onCancel,
+  createAction,
+  updateAction,
 }: {
   eventId: string
   initial?: Sponsor
   onSuccess: () => void
   onCancel: () => void
+  createAction?: typeof createSponsor
+  updateAction?: typeof updateSponsor
 }) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const create = createAction ?? createSponsor
+  const update = updateAction ?? updateSponsor
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -56,8 +66,8 @@ function SponsorForm({
     setError(null)
     startTransition(async () => {
       const result = initial
-        ? await updateSponsor(initial.id, eventId, fd)
-        : await createSponsor(eventId, fd)
+        ? await update(initial.id, eventId, fd)
+        : await create(eventId, fd)
       if ((result as any).error) {
         setError((result as any).error)
       } else {
@@ -262,13 +272,23 @@ function ContactsPanel({ sponsorId, eventSlug, sponsorSlug }: { sponsorId: strin
   )
 }
 
-export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Props) {
+export function SponsorsClient({
+  eventId,
+  eventSlug,
+  sponsors,
+  permissions,
+  createAction,
+  updateAction,
+  deleteAction,
+  showBoothContacts = true,
+}: Props) {
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedContacts, setExpandedContacts] = useState<string | null>(null)
   const [inviteStatus, setInviteStatus] = useState<Record<string, string>>({})
   const [pending, startTransition] = useTransition()
+  const del = deleteAction ?? deleteSponsor
 
   async function handleSendInvite(sponsorId: string) {
     setInviteStatus(s => ({ ...s, [sponsorId]: 'sending' }))
@@ -284,7 +304,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Pr
     if (!confirm('Delete this sponsor?')) return
     setDeletingId(sponsorId)
     startTransition(async () => {
-      await deleteSponsor(sponsorId, eventId)
+      await del(sponsorId, eventId)
       setDeletingId(null)
     })
   }
@@ -316,6 +336,8 @@ export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Pr
             eventId={eventId}
             onSuccess={() => setShowAdd(false)}
             onCancel={() => setShowAdd(false)}
+            createAction={createAction}
+            updateAction={updateAction}
           />
         </div>
       )}
@@ -348,6 +370,8 @@ export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Pr
                         initial={sp}
                         onSuccess={() => setEditing(null)}
                         onCancel={() => setEditing(null)}
+                        createAction={createAction}
+                        updateAction={updateAction}
                       />
                     </div>
                   ) : (
@@ -388,7 +412,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Pr
 
                       {/* Actions */}
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                        {sp.contact_email ? (
+                        {showBoothContacts && sp.contact_email ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                             <button
                               onClick={() => handleSendInvite(sp.id)}
@@ -402,12 +426,14 @@ export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Pr
                             )}
                           </div>
                         ) : null}
-                        <button
-                          onClick={() => setExpandedContacts(expandedContacts === sp.id ? null : sp.id)}
-                          style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
-                        >
-                          Contacts
-                        </button>
+                        {showBoothContacts && (
+                          <button
+                            onClick={() => setExpandedContacts(expandedContacts === sp.id ? null : sp.id)}
+                            style={{ background: 'var(--pz-surface-2)', color: 'var(--pz-muted)', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
+                          >
+                            Contacts
+                          </button>
+                        )}
                         <Gated permission="sponsors.manage" perms={permissions} mode="disable">
                           <button
                             onClick={() => { setEditing(sp.id); setShowAdd(false) }}
@@ -427,7 +453,7 @@ export function SponsorsClient({ eventId, eventSlug, sponsors, permissions }: Pr
                         </Gated>
                       </div>
                     </div>
-                    {expandedContacts === sp.id && (
+                    {showBoothContacts && expandedContacts === sp.id && (
                       <ContactsPanel
                         sponsorId={sp.id}
                         eventSlug={eventSlug}
