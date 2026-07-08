@@ -94,7 +94,7 @@ export function buildEmbedEventNav(eventId: string, ghlLocationId?: string): {
           { label: 'Trivia',        href: `${base}/trivia`,        icon: Brain, built: true },
           { label: 'Leaderboard',   href: `${base}/leaderboard`,   icon: Trophy, built: true },
           { label: 'Passport',      href: `${base}/passport`,      icon: MapPin, built: true },
-          { label: 'Announcements', href: `${base}/announcements`, icon: Bell },
+          { label: 'Announcements', href: `${base}/announcements`, icon: Bell, built: true },
           { label: 'Photos',        href: `${base}/photos`,        icon: Image, built: true },
         ],
       },

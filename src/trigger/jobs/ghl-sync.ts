@@ -1,9 +1,9 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
-import { ghlPost, ghlPut } from '@/lib/integrations/ghl/client'
+import { ghlPost, ghlPut, ghlAddContactTags } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_EVENTS_PIPELINE_ID, GHL_STAGE_IDS, GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
+import { GHL_EVENTS_PIPELINE_ID, GHL_STAGE_IDS, GHL_FIELD_KEYS, buildEventTag, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
 
 export const ghlSyncTask = schemaTask({
   id: 'sync-ghl-registration',
@@ -15,6 +15,7 @@ export const ghlSyncTask = schemaTask({
     ticketTypeTitle: z.string(),
     eventId:         z.string(),
     eventTitle:      z.string(),
+    eventSlug:       z.string(),
     attendeeName:    z.string(),
     amountPaidCents: z.number(),
     paymentStatus:   z.string(),
@@ -59,6 +60,14 @@ export const ghlSyncTask = schemaTask({
           updated_at:         new Date().toISOString(),
         })
         .eq('id', payload.syncStateId)
+
+      try {
+        const tags: string[] = [GHL_LIFECYCLE_TAGS.confirmed]
+        if (payload.eventSlug) tags.push(buildEventTag(payload.eventSlug))
+        await ghlAddContactTags(token, payload.ghlContactId, tags)
+      } catch (e) {
+        console.error('[ghl-sync] tag apply failed (non-fatal):', e)
+      }
 
       // Self-heal: if a check-in arrived before the opportunity was created,
       // apply the parked stage now that we have the opportunity id.

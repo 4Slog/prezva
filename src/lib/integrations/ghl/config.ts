@@ -25,3 +25,25 @@ export const GHL_FIELD_KEYS = {
   // Contact field — written by payment webhook so GHL workflows can link attendees back
   prezvaAttendeeLink: 'GVx9yhZDVIkPChx7E5lp',
 } as const;
+
+export const GHL_TAG_PREFIX = 'prezva' as const
+
+export function buildEventTag(eventSlug: string): string {
+  return `${GHL_TAG_PREFIX}-event-${eventSlug}`
+}
+
+export const GHL_LIFECYCLE_TAGS = {
+  confirmed:  `${GHL_TAG_PREFIX}-confirmed`,
+  checkedIn:  `${GHL_TAG_PREFIX}-checked-in`,
+  noShow:     `${GHL_TAG_PREFIX}-no-show`,
+  certIssued: `${GHL_TAG_PREFIX}-cert-issued`,
+} as const
+
+// Maps a pipeline stage id to the lifecycle tag applied on entering that stage.
+// Stages absent from this map intentionally apply no tag.
+export const GHL_STAGE_TAGS: Record<string, string> = {
+  [GHL_STAGE_IDS.confirmed]:         GHL_LIFECYCLE_TAGS.confirmed,
+  [GHL_STAGE_IDS.checkedIn]:         GHL_LIFECYCLE_TAGS.checkedIn,
+  [GHL_STAGE_IDS.noShow]:            GHL_LIFECYCLE_TAGS.noShow,
+  [GHL_STAGE_IDS.certificateIssued]: GHL_LIFECYCLE_TAGS.certIssued,
+}

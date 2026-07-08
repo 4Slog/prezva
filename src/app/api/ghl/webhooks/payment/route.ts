@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
           payload_hash:      '',
           status:            'pending',
           raw_payload:       body as unknown as Json,
+          ghl_contact_id:    contactId,
         })
         .select('id')
         .single()
@@ -199,6 +200,7 @@ export async function POST(req: NextRequest) {
         internal_registration_id: result.registrationId,
         status:                   'queued_for_sync',
         updated_at:               new Date().toISOString(),
+        ghl_contact_id:           contactId,
       })
       .eq('id', syncStateId)
 
@@ -210,6 +212,7 @@ export async function POST(req: NextRequest) {
       ticketTypeTitle: ticketTypeTitle ?? '',
       eventId,
       eventTitle:      eventTitle ?? '',
+      eventSlug:       eventSlug ?? '',
       attendeeName,
       amountPaidCents,
       paymentStatus:   'paid',

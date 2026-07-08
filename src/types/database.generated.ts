@@ -817,6 +817,35 @@ export type Database = {
           },
         ]
       }
+      community_reply_milestones: {
+        Row: {
+          awarded_at: string
+          id: string
+          milestone: number
+          post_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          id?: string
+          milestone: number
+          post_id: string
+        }
+        Update: {
+          awarded_at?: string
+          id?: string
+          milestone?: number
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reply_milestones_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_reports: {
         Row: {
           created_at: string | null
@@ -1653,6 +1682,7 @@ export type Database = {
           dead_lettered: boolean
           event_type: string
           external_event_id: string
+          ghl_contact_id: string | null
           ghl_opportunity_id: string | null
           id: string
           internal_registration_id: string | null
@@ -1671,6 +1701,7 @@ export type Database = {
           dead_lettered?: boolean
           event_type: string
           external_event_id: string
+          ghl_contact_id?: string | null
           ghl_opportunity_id?: string | null
           id?: string
           internal_registration_id?: string | null
@@ -1689,6 +1720,7 @@ export type Database = {
           dead_lettered?: boolean
           event_type?: string
           external_event_id?: string
+          ghl_contact_id?: string | null
           ghl_opportunity_id?: string | null
           id?: string
           internal_registration_id?: string | null
@@ -2299,6 +2331,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "org_integrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          id: string
+          invited_by: string | null
+          org_id: string
+          role: string
+          token: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          invited_by?: string | null
+          org_id: string
+          role?: string
+          token?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          invited_by?: string | null
+          org_id?: string
+          role?: string
+          token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invites_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -4716,9 +4789,10 @@ export type Database = {
       }
       surveys: {
         Row: {
+          audience: string | null
           closes_at: string | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           description: string | null
           event_id: string
           id: string
@@ -4731,9 +4805,10 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          audience?: string | null
           closes_at?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           description?: string | null
           event_id: string
           id?: string
@@ -4746,9 +4821,10 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          audience?: string | null
           closes_at?: string | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           description?: string | null
           event_id?: string
           id?: string
@@ -5177,6 +5253,54 @@ export type Database = {
           },
         ]
       }
+      volunteer_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          event_id: string
+          id: string
+          message: string
+          resolved: boolean
+          resolved_at: string | null
+          volunteer_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          event_id: string
+          id?: string
+          message: string
+          resolved?: boolean
+          resolved_at?: string | null
+          volunteer_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          message?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volunteer_alerts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "volunteer_alerts_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       volunteers: {
         Row: {
           assigned_sessions: string[] | null
@@ -5191,7 +5315,10 @@ export type Database = {
           phone: string | null
           portal_access_token: string
           role: string
+          shift_decline_reason: string | null
           shift_end: string | null
+          shift_response: string | null
+          shift_response_at: string | null
           shift_start: string | null
           status: string
           user_id: string | null
@@ -5209,7 +5336,10 @@ export type Database = {
           phone?: string | null
           portal_access_token?: string
           role: string
+          shift_decline_reason?: string | null
           shift_end?: string | null
+          shift_response?: string | null
+          shift_response_at?: string | null
           shift_start?: string | null
           status?: string
           user_id?: string | null
@@ -5227,7 +5357,10 @@ export type Database = {
           phone?: string | null
           portal_access_token?: string
           role?: string
+          shift_decline_reason?: string | null
           shift_end?: string | null
+          shift_response?: string | null
+          shift_response_at?: string | null
           shift_start?: string | null
           status?: string
           user_id?: string | null
@@ -5346,7 +5479,10 @@ export type Database = {
           phone: string | null
           portal_access_token: string
           role: string
+          shift_decline_reason: string | null
           shift_end: string | null
+          shift_response: string | null
+          shift_response_at: string | null
           shift_start: string | null
           status: string
           user_id: string | null

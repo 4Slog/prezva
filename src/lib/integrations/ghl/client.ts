@@ -55,6 +55,25 @@ export async function ghlUpsertContact(
   return contactId
 }
 
+export async function ghlAddContactTags(
+  token: string,
+  contactId: string,
+  tags: string[],
+): Promise<string[]> {
+  if (tags.length === 0) return []
+  const res = await fetch(`${GHL_BASE}/contacts/${contactId}/tags`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify({ tags }),
+  })
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`GHL add contact tags failed: ${res.status} — ${errBody}`)
+  }
+  const data = await res.json() as { tags?: string[] }
+  return data.tags ?? []
+}
+
 export async function ghlSendEmail(
   token: string,
   params: { contactId: string; subject: string; html: string; emailFrom?: string },
