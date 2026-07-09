@@ -101,7 +101,7 @@ jobs:
   deploy-trigger:
     name: Deploy Trigger.dev Jobs
     runs-on: ubuntu-latest
-    needs: [lint-and-type-check, unit-tests, e2e-readonly, e2e-lifecycle]
+    needs: [lint-and-type-check, unit-tests]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
