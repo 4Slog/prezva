@@ -14,7 +14,6 @@ export const ghlStageMoveTask = schemaTask({
   run: async (payload) => {
     const { registrationId, stageId } = payload
     const admin = createAdminClient()
-    const token = getGhlToken()
 
     const { data: syncState } = await admin
       .from('ghl_sync_state')
@@ -31,6 +30,7 @@ export const ghlStageMoveTask = schemaTask({
     let result: { applied: true; opportunityId: string } | { parked: true; syncStateId: string }
 
     if (syncState.status === 'synced' && syncState.ghl_opportunity_id) {
+      const token = getGhlToken()
       await ghlPut(token, `/opportunities/${syncState.ghl_opportunity_id}`, {
         pipelineStageId: stageId,
       })
@@ -47,6 +47,7 @@ export const ghlStageMoveTask = schemaTask({
     const tag = GHL_STAGE_TAGS[stageId]
     if (tag && syncState.ghl_contact_id) {
       try {
+        const token = getGhlToken()
         await ghlAddContactTags(token, syncState.ghl_contact_id, [tag])
       } catch (e) {
         console.error('[ghl-stage-move] tag apply failed (non-fatal):', e)
