@@ -42,8 +42,6 @@ next-env.d.ts
 /*.png
 .claude/worktrees/
 docs/production-secrets.md
-pnpm-lock.yaml
-pnpm-workspace.yaml
 .sweep/
 
 # Temp/workflow files (untracked 2026-05-30)

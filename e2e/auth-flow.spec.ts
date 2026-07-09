@@ -24,6 +24,9 @@ test.describe('Auth flow — sign in and sign out', () => {
   })
 
   test('admin can sign in and reach the organizer dashboard', async ({ page }) => {
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      test.skip(true, 'E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set')
+    }
     await page.goto('/login')
     await page.fill('input[name="email"]', ADMIN_EMAIL)
     await page.fill('input[name="password"]', ADMIN_PASSWORD)
@@ -35,6 +38,9 @@ test.describe('Auth flow — sign in and sign out', () => {
   })
 
   test('admin can open user menu and sign out', async ({ page }) => {
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      test.skip(true, 'E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set')
+    }
     await page.goto('/login')
     await page.fill('input[name="email"]', ADMIN_EMAIL)
     await page.fill('input[name="password"]', ADMIN_PASSWORD)
