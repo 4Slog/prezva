@@ -46,6 +46,9 @@ export interface GhlPickerProduct {
   priceId: string
   productName: string
   priceName: string
+  // GHL price.amount is DOLLARS, not cents (verified 2026-07-09 against GHL Payments >
+  // Products: a $225.00 product returns amount=225). Prezva stores integer cents, so
+  // any downstream *100 conversion (see price_cents below) is correct and must stay.
   amount: number
   currency: string
   availableQuantity: number | null
@@ -329,6 +332,8 @@ export async function createTicketTypeFromEmbedProduct(
       event_id:        eventId,
       name:            product.name,
       type,
+      // price.amount is dollars (verified 2026-07-09 against GHL Payments > Products);
+      // Prezva stores integer cents, so *100 is correct here — do not remove.
       price_cents:     Math.round(price.amount * 100),
       currency:        price.currency.toLowerCase(),
       quantity:        quantity ?? undefined,
@@ -355,6 +360,8 @@ export async function createTicketTypeFromEmbedProduct(
       ghl_price_id:    ghlPriceId,
       ghl_product_name: product.name,
       ghl_price_name:   price.name,
+      // price.amount is dollars (verified 2026-07-09 against GHL Payments > Products);
+      // Prezva stores integer cents, so *100 is correct here — do not remove.
       price_cents:     Math.round(price.amount * 100),
       currency:        price.currency.toLowerCase(),
     })

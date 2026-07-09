@@ -8,14 +8,14 @@ interface Props {
   eventId: string
 }
 
-function formatPrice(amount: number, currency: string): string {
-  if (amount === 0) return 'Free'
+function formatGhlDollars(dollars: number, currency: string): string {
+  if (dollars === 0) return 'Free'
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency.toUpperCase(),
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount / 100)
+  }).format(dollars)
 }
 
 function QtyBadge({ qty }: { qty: number | null }) {
@@ -173,7 +173,7 @@ export function GhlProductPicker({ eventId }: Props) {
               )}
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs font-medium" style={{ color: tealColor }}>
-                  {formatPrice(product.amount, product.currency)}
+                  {formatGhlDollars(product.amount, product.currency)}
                 </span>
                 <QtyBadge qty={product.availableQuantity} />
               </div>
