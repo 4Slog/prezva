@@ -41,7 +41,9 @@ describe('createOrganization', () => {
 
   beforeEach(() => {
     mockFrom = vi.fn()
-    vi.mocked(createAdminClient).mockReturnValue({ from: mockFrom } as ReturnType<typeof createAdminClient>)
+    vi.mocked(createAdminClient).mockReturnValue(
+      { from: mockFrom } as unknown as ReturnType<typeof createAdminClient>,
+    )
     vi.mocked(seedBuiltinRoles).mockResolvedValue('owner-role-id')
     vi.mocked(logAudit).mockResolvedValue(undefined)
   })

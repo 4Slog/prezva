@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useCallback, useTransition } from 'react'
 import { listGhlProductsForPicker, createTicketTypeFromEmbedProduct } from '@/lib/embedded/event-actions'
 import type { GhlPickerProduct } from '@/lib/embedded/event-actions'
 
@@ -48,19 +48,35 @@ export function GhlProductPicker({ eventId }: Props) {
   const [isPending, startTransition] = useTransition()
   const [linkingId, setLinkingId] = useState<string | null>(null)
 
+  const applyProductsResult = useCallback(
+    (result: Awaited<ReturnType<typeof listGhlProductsForPicker>>) => {
+      if ('error' in result) {
+        setFetchError(result.error)
+      } else {
+        setProducts(result)
+        setFetchError(null)
+      }
+      setLoading(false)
+    },
+    [],
+  )
+
+  // Retry button handler — synchronous setState in an event handler is legal.
   async function loadProducts() {
     setLoading(true)
     setFetchError(null)
-    const result = await listGhlProductsForPicker(eventId)
-    if ('error' in result) {
-      setFetchError(result.error)
-    } else {
-      setProducts(result)
-    }
-    setLoading(false)
+    applyProductsResult(await listGhlProductsForPicker(eventId))
   }
 
-  useEffect(() => { loadProducts() }, [eventId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const result = await listGhlProductsForPicker(eventId)
+      if (cancelled) return
+      applyProductsResult(result)
+    })()
+    return () => { cancelled = true }
+  }, [eventId, applyProductsResult])
 
   async function handleLink(product: GhlPickerProduct) {
     if (product.alreadyMapped || isPending) return

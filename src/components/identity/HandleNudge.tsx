@@ -1,23 +1,36 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 
 const DISMISS_KEY = 'pz_handle_nudge_dismissed'
 
-export function HandleNudge({ handle, customized }: { handle: string; customized: boolean }) {
-  const [dismissed, setDismissed] = useState(true)
+function subscribe() {
+  return () => {}
+}
 
-  useEffect(() => {
-    if (customized) return
-    setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1')
-  }, [customized])
+function getSnapshot() {
+  try {
+    return sessionStorage.getItem(DISMISS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function getServerSnapshot() {
+  return true
+}
+
+export function HandleNudge({ handle, customized }: { handle: string; customized: boolean }) {
+  const storedDismissed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const [clickDismissed, setClickDismissed] = useState(false)
+  const dismissed = storedDismissed || clickDismissed
 
   if (customized || dismissed) return null
 
   function dismiss() {
     sessionStorage.setItem(DISMISS_KEY, '1')
-    setDismissed(true)
+    setClickDismissed(true)
   }
 
   return (

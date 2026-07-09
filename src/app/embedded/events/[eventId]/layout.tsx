@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { EventStatusBadge } from '@/components/events/EventStatusBadge'
@@ -55,13 +56,13 @@ export default async function EmbedEventLayout({ params, children }: Props) {
       <div className="flex flex-col gap-2 px-6 pb-2 pt-4">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--pz-muted)' }}>
-          <a
+          <Link
             href="/embedded/events"
             className="transition-opacity hover:opacity-75"
             style={{ color: 'var(--pz-muted)' }}
           >
             Events
-          </a>
+          </Link>
           <span>/</span>
           <span style={{ color: 'var(--pz-text)' }}>{event.title}</span>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createEventFromEmbed } from '@/lib/embedded/event-actions'
 import { GhlProductPicker } from '@/app/embedded/_components/ghl-product-picker'
 
@@ -108,13 +109,13 @@ export function CreateEventForm({ orgId: _orgId }: Props) {
         </div>
 
         <div className="flex gap-3">
-          <a
+          <Link
             href="/embedded/events"
             className="flex-1 rounded-lg py-2.5 text-center text-sm font-semibold transition-opacity hover:opacity-75"
             style={{ border: '1px solid var(--pz-border)', color: 'var(--pz-text)', background: 'var(--pz-surface)' }}
           >
             Back to events
-          </a>
+          </Link>
           <button
             onClick={() => { setStep('form'); setNewEventId(null); setNewEventSlug(null) }}
             className="flex-1 rounded-lg py-2.5 text-sm font-semibold transition-opacity hover:opacity-75"

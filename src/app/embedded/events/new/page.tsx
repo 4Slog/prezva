@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CreateEventForm } from './create-event-form'
@@ -30,7 +31,7 @@ export default async function EmbeddedNewEventPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
-        <a
+        <Link
           href="/embedded/events"
           className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors hover:opacity-75"
           style={{ color: 'var(--pz-muted)', background: 'var(--pz-surface-2)' }}
@@ -39,7 +40,7 @@ export default async function EmbeddedNewEventPage() {
             <path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 1.06L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06z" />
           </svg>
           Events
-        </a>
+        </Link>
         <span style={{ color: 'var(--pz-border)' }}>/</span>
         <span className="text-xs font-medium" style={{ color: 'var(--pz-text)' }}>New event</span>
       </div>

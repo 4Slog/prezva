@@ -90,7 +90,7 @@ export function ProfileClient({ email, handle, avatarUrl, initial }: { email: st
     <>
       <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', borderRadius: 10, padding: '1.5rem', marginBottom: 16 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 4 }}>Profile photo</h2>
-        <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 12 }}>Your avatar across all events. You can set a different photo per event on that event's profile page.</p>
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', marginBottom: 12 }}>Your avatar across all events. You can set a different photo per event on that event&apos;s profile page.</p>
         <AvatarUpload currentUrl={avatarUrl} refreshOnUpload />
       </div>
 
