@@ -28,6 +28,7 @@ interface EventRow {
   venue_state: string | null
   capacity: number | null
   registration_count: number | null
+  timezone: string | null
 }
 
 interface TicketRow {
@@ -82,7 +83,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
           db.from('organizations').select('name').eq('id', orgId).maybeSingle(),
           db
             .from('events')
-            .select('id, title, slug, start_at, end_at, status, event_type, venue_name, venue_city, venue_state, capacity, registration_count')
+            .select('id, title, slug, start_at, end_at, status, event_type, venue_name, venue_city, venue_state, capacity, registration_count, timezone')
             .eq('org_id', orgId)
             .order('start_at', { ascending: false }),
         ])
@@ -151,7 +152,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
             <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--pz-text)' }}>
               {orgName ?? 'Events'}
             </h1>
-            <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>Events</p>
+            <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>Events · times shown in each event&apos;s time zone</p>
           </div>
           <Link
             href="/embedded/events/new"

@@ -26,6 +26,7 @@ interface Event {
   venue_state: string | null
   capacity: number | null
   registration_count: number | null
+  timezone: string | null
 }
 
 interface Props {
@@ -39,15 +40,21 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   hybrid:    'Hybrid',
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+function formatDate(iso: string, timeZone: string | null): string {
+  const zone = timeZone ?? 'UTC'
+  const opts: Intl.DateTimeFormatOptions = {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     timeZoneName: 'short',
-  })
+  }
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { ...opts, timeZone: zone })
+  } catch {
+    return new Date(iso).toLocaleDateString('en-US', { ...opts, timeZone: 'UTC' })
+  }
 }
 
 function formatPrice(priceCents: number, currency: string): string {
@@ -120,7 +127,7 @@ export function EmbeddedEventCard({ event, tickets }: Props) {
           </div>
         </div>
         <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
-          {formatDate(event.start_at)}
+          {formatDate(event.start_at, event.timezone)}
         </p>
         {venueLabel && (
           <p className="text-xs" style={{ color: 'var(--pz-muted)' }}>
