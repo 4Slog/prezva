@@ -98,20 +98,3 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-  deploy-trigger:
-    name: Deploy Trigger.dev Jobs
-    runs-on: ubuntu-latest
-    needs: [lint-and-type-check, unit-tests]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - name: Deploy Trigger.dev jobs
-        run: ./node_modules/.bin/trigger deploy
-        env:
-          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_SECRET_KEY }}

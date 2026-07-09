@@ -8,11 +8,5 @@
     "enabled": true,
     "autoAlias": true,
     "autoJobCancelation": true
-  },
-  "crons": [
-    {
-      "path": "/api/cron/scheduled-announcements",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  }
 }
