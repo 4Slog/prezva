@@ -111,7 +111,7 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string, appU
 
   const { data: speaker } = await supabase
     .from('speakers')
-    .select('email, name')
+    .select('email, name, ghl_contact_id')
     .eq('id', speakerId)
     .eq('event_id', eventId)
     .single()
@@ -125,7 +125,7 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string, appU
 
   const { data: eventRow } = await supabase
     .from('events')
-    .select('title, start_at')
+    .select('title, start_at, org_id')
     .eq('id', eventId)
     .single()
 
@@ -145,6 +145,9 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string, appU
     eventTitle:   (eventRow as any)?.title ?? '',
     eventDate:    (eventRow as any)?.start_at ?? '',
     portalUrl,
+    orgId: (eventRow as any)?.org_id,
+    speakerId,
+    speakerGhlContactId: (speaker as any)?.ghl_contact_id ?? null,
   })
 
   if (error) {

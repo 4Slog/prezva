@@ -1,6 +1,7 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
 import { escapeHtml } from '../lib/escape'
+import { sendSpeakerEmail } from '@/lib/speaker/send-speaker-email'
 
 export const speakerSessionReminderTask = schedules.task({
   id: 'speaker-session-reminder',
@@ -13,7 +14,7 @@ export const speakerSessionReminderTask = schedules.task({
 
     const { data: sessions } = await admin
       .from('sessions')
-      .select('id, title, starts_at, event_id, rooms(name), events(title, timezone, organizations(name))')
+      .select('id, title, starts_at, event_id, rooms(name), events(title, timezone, org_id, organizations(name))')
       .gte('starts_at', windowStart)
       .lte('starts_at', windowEnd)
 
@@ -22,7 +23,7 @@ export const speakerSessionReminderTask = schedules.task({
     for (const session of sessions as any[]) {
       const { data: assigned } = await admin
         .from('session_speakers')
-        .select('speaker_id, reminder_sent_at, speakers(name, email, confirmation_token)')
+        .select('speaker_id, reminder_sent_at, speakers(name, email, confirmation_token, ghl_contact_id)')
         .eq('session_id', session.id)
         .is('reminder_sent_at', null)
 
@@ -47,35 +48,43 @@ export const speakerSessionReminderTask = schedules.task({
 
         const hubUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/speaker/${speaker.confirmation_token}`
 
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: `${orgName} <noreply@prezva.app>`,
-            to: speaker.email,
-            subject: `Your session starts in ~15 minutes — ${session.title}`,
-            text: [
-              `Hi ${speaker.name},`,
-              `Just a reminder: "${session.title}" begins at ${sessionTime}${room}.`,
-              `Head to your speaker hub for last-minute details: ${hubUrl}`,
-              `— ${orgName}`,
-            ].join('\n\n'),
-            html: `<p>Hi ${escapeHtml(speaker.name)},</p>
+        const text = [
+          `Hi ${speaker.name},`,
+          `Just a reminder: "${session.title}" begins at ${sessionTime}${room}.`,
+          `Head to your speaker hub for last-minute details: ${hubUrl}`,
+          `— ${orgName}`,
+        ].join('\n\n')
+        const html = `<p>Hi ${escapeHtml(speaker.name)},</p>
                    <p>Just a reminder: <strong>${escapeHtml(session.title)}</strong> begins at <strong>${sessionTime}${roomHtml}</strong>.</p>
                    <p>Head to your speaker hub for last-minute details:</p>
                    <p><a href="${hubUrl}">Open speaker hub →</a></p>
-                   <p>— ${escapeHtml(orgName)}</p>`,
-          }),
-        }).catch((err: unknown) => console.error('[speaker-reminder] email error:', err))
+                   <p>— ${escapeHtml(orgName)}</p>`
 
-        await admin
-          .from('session_speakers')
-          .update({ reminder_sent_at: now.toISOString() })
-          .eq('session_id', session.id)
-          .eq('speaker_id', row.speaker_id)
+        try {
+          await sendSpeakerEmail({
+            admin,
+            orgId: session.events?.org_id,
+            speaker: {
+              id: row.speaker_id,
+              name: speaker.name,
+              email: speaker.email,
+              ghlContactId: speaker.ghl_contact_id,
+            },
+            subject: `Your session starts in ~15 minutes — ${session.title}`,
+            html,
+            text,
+            resend: { from: `${orgName} <noreply@prezva.app>` },
+          })
+
+          await admin
+            .from('session_speakers')
+            .update({ reminder_sent_at: now.toISOString() })
+            .eq('session_id', session.id)
+            .eq('speaker_id', row.speaker_id)
+        } catch (err) {
+          console.error('[speaker-reminder] send failed, will retry:', err)
+          continue
+        }
       }
     }
   },

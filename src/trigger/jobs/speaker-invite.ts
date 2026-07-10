@@ -1,6 +1,8 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { escapeHtml } from '../lib/escape'
+import { createAdminClient } from '../lib/supabase-admin'
+import { sendSpeakerEmail } from '@/lib/speaker/send-speaker-email'
 
 export const sendSpeakerInviteEmail = schemaTask({
   id: 'send-speaker-invite',
@@ -11,6 +13,9 @@ export const sendSpeakerInviteEmail = schemaTask({
     eventDate:    z.string(),
     portalUrl:    z.string(),
     orgEmail:     z.string().email().optional(),
+    orgId:        z.string(),
+    speakerId:    z.string(),
+    speakerGhlContactId: z.string().nullable().optional(),
   }),
   run: async (payload) => {
     const fmtDate = (d: string) =>
@@ -69,28 +74,26 @@ export const sendSpeakerInviteEmail = schemaTask({
       `Questions about your session? Reply to this email and the organizer will follow up.`,
     ].join('\n')
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
+    const admin = createAdminClient()
+
+    await sendSpeakerEmail({
+      admin,
+      orgId: payload.orgId,
+      speaker: {
+        id: payload.speakerId,
+        name: payload.speakerName,
+        email: payload.speakerEmail,
+        ghlContactId: payload.speakerGhlContactId ?? null,
       },
-      body: JSON.stringify({
-        from:     'Prezva Events <noreply@prezva.app>',
-        to:       payload.speakerEmail,
-        subject:  `You're speaking at ${payload.eventTitle} — here's your portal`,
-        html,
-        text,
-        reply_to: payload.orgEmail || undefined,
-      }),
+      subject: `You're speaking at ${payload.eventTitle} — here's your portal`,
+      html,
+      text,
+      resend: {
+        from: 'Prezva Events <noreply@prezva.app>',
+        replyTo: payload.orgEmail || undefined,
+      },
     })
 
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(`Resend failed (${res.status}): ${err}`)
-    }
-
-    const data = (await res.json()) as { id: string }
-    return { emailId: data.id, sentTo: payload.speakerEmail }
+    return { sentTo: payload.speakerEmail }
   },
 })

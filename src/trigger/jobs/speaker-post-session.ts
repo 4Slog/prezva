@@ -1,6 +1,7 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
 import { escapeHtml } from '../lib/escape'
+import { sendSpeakerEmail } from '@/lib/speaker/send-speaker-email'
 
 export const speakerPostSessionTask = schedules.task({
   id: 'speaker-post-session-summary',
@@ -13,7 +14,7 @@ export const speakerPostSessionTask = schedules.task({
 
     const { data: sessions } = await admin
       .from('sessions')
-      .select('id, title, ends_at, event_id, events(title, slug, timezone, organizations(name))')
+      .select('id, title, ends_at, event_id, events(title, slug, timezone, org_id, organizations(name))')
       .gte('ends_at', windowStart)
       .lte('ends_at', windowEnd)
 
@@ -22,7 +23,7 @@ export const speakerPostSessionTask = schedules.task({
     for (const session of sessions as any[]) {
       const { data: assigned } = await admin
         .from('session_speakers')
-        .select('speaker_id, post_session_email_sent_at, speakers(name, email, confirmation_token)')
+        .select('speaker_id, post_session_email_sent_at, speakers(name, email, confirmation_token, ghl_contact_id)')
         .eq('session_id', session.id)
         .is('post_session_email_sent_at', null)
 
@@ -66,38 +67,46 @@ export const speakerPostSessionTask = schedules.task({
           ? `Your session received ${ratings.length} rating${ratings.length !== 1 ? 's' : ''} with an average of ${avg}/5.\n\n${comments.length ? 'What attendees said:\n' + comments.map((c: string) => `"${c}"`).join('\n') : ''}`
           : 'No ratings yet — check back in your speaker hub for feedback.'
 
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: `${orgName} <noreply@prezva.app>`,
-            to: speaker.email,
-            subject: `Thank you for speaking at ${eventTitle}!`,
-            text: [
-              `Hi ${speaker.name},`,
-              `Thank you for delivering "${session.title}" at ${eventTitle}. We hope it went well!`,
-              feedbackText,
-              `View full feedback in your speaker hub: ${hubUrl}`,
-              `We hope to see you at a future event.`,
-              `— ${orgName}`,
-            ].filter(Boolean).join('\n\n'),
-            html: `<p>Hi ${escapeHtml(speaker.name)},</p>
+        const text = [
+          `Hi ${speaker.name},`,
+          `Thank you for delivering "${session.title}" at ${eventTitle}. We hope it went well!`,
+          feedbackText,
+          `View full feedback in your speaker hub: ${hubUrl}`,
+          `We hope to see you at a future event.`,
+          `— ${orgName}`,
+        ].filter(Boolean).join('\n\n')
+        const html = `<p>Hi ${escapeHtml(speaker.name)},</p>
                    <p>Thank you for delivering <strong>${escapeHtml(session.title)}</strong> at ${escapeHtml(eventTitle)}. We hope it went well!</p>
                    ${feedbackHtml}
                    <p><a href="${hubUrl}">View full feedback in your speaker hub →</a></p>
                    <p>We hope to see you at a future event.</p>
-                   <p>— ${escapeHtml(orgName)}</p>`,
-          }),
-        }).catch((err: unknown) => console.error('[post-session] email error:', err))
+                   <p>— ${escapeHtml(orgName)}</p>`
 
-        await admin
-          .from('session_speakers')
-          .update({ post_session_email_sent_at: now.toISOString() })
-          .eq('session_id', session.id)
-          .eq('speaker_id', row.speaker_id)
+        try {
+          await sendSpeakerEmail({
+            admin,
+            orgId: session.events?.org_id,
+            speaker: {
+              id: row.speaker_id,
+              name: speaker.name,
+              email: speaker.email,
+              ghlContactId: speaker.ghl_contact_id,
+            },
+            subject: `Thank you for speaking at ${eventTitle}!`,
+            html,
+            text,
+            resend: { from: `${orgName} <noreply@prezva.app>` },
+          })
+
+          await admin
+            .from('session_speakers')
+            .update({ post_session_email_sent_at: now.toISOString() })
+            .eq('session_id', session.id)
+            .eq('speaker_id', row.speaker_id)
+        } catch (err) {
+          console.error('[post-session] send failed, will retry:', err)
+          continue
+        }
       }
     }
   },
