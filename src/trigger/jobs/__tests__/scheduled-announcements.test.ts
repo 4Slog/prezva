@@ -74,7 +74,7 @@ describe('runScheduledAnnouncementsPoll', () => {
 
     const result = await runScheduledAnnouncementsPoll(admin as any)
 
-    expect(pushMock).toHaveBeenCalledWith('e1', 'T1', 'B1')
+    expect(pushMock).toHaveBeenCalledWith('e1', 'T1', 'B1', expect.anything())
 
     const claimCall = calls.find((c) => c.mode === 'update' && c.orFilter)
     expect(claimCall?.orFilter).toMatch(

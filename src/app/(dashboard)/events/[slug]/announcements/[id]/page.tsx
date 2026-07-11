@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { Field } from '@/components/ui/Field'
+import { announcementBadge, ANNOUNCEMENT_EDITABLE } from '@/lib/ui/announcement-status'
 
 type Props = { params: Promise<{ slug: string; id: string }> }
 
@@ -40,7 +41,12 @@ export default async function AnnouncementDetailPage({ params }: Props) {
     .single()
   if (!ann) notFound()
 
-  const isDraft = !ann.sent_at
+  const badge = announcementBadge(ann.status)
+  const isEditable = ANNOUNCEMENT_EDITABLE.has(ann.status)
+  const badgeDate =
+    badge.dateField === 'scheduled_for' ? ann.scheduled_for
+    : badge.dateField === 'sent_at' ? ann.sent_at
+    : null
 
   return (
     <div style={{ padding: '32px', maxWidth: '700px' }}>
@@ -55,23 +61,31 @@ export default async function AnnouncementDetailPage({ params }: Props) {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <h1 style={{ color: 'var(--pz-text)', fontSize: '22px', fontWeight: 700, margin: 0 }}>
-          {isDraft ? 'Edit Announcement' : 'Announcement'}
+          {isEditable ? 'Edit Announcement' : 'Announcement'}
         </h1>
-        <span
-          style={{
-            background: isDraft ? 'var(--pz-warning-bg)' : 'var(--pz-teal-bg)',
-            color: isDraft ? 'var(--pz-warning)' : 'var(--pz-teal-ink)',
-            borderRadius: '20px',
-            padding: '3px 12px',
-            fontSize: '12px',
-            fontWeight: 600,
-          }}
-        >
-          {isDraft ? 'Draft' : 'Sent'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              background: badge.background,
+              color: badge.color,
+              border: badge.border,
+              borderRadius: '20px',
+              padding: '3px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+            }}
+          >
+            {badge.label}
+          </span>
+          {badgeDate && (
+            <span style={{ color: 'var(--pz-muted)', fontSize: '12px' }}>
+              {new Date(badgeDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
       </div>
 
-      {isDraft ? (
+      {isEditable ? (
         <form
           action={async (fd: FormData) => {
             'use server'

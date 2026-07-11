@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { escapeHtml } from '../lib/escape'
 import { sendAnnouncementPush } from '@/lib/push/send'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 
 const CLAIM_STALE_MS = 10 * 60 * 1000
 
@@ -42,7 +43,7 @@ export async function runSendAnnouncement(
     // push failure never blocks the email path.
     if (ann.channel === 'both') {
       try {
-        await sendAnnouncementPush(ann.event_id, ann.title, ann.body)
+        await sendAnnouncementPush(ann.event_id, ann.title, ann.body, supabase)
       } catch (err) {
         console.error('[announcement] push send failed (continuing with email):', err)
       }
@@ -53,7 +54,7 @@ export async function runSendAnnouncement(
 
     const { data: ev } = await supabase
       .from('events')
-      .select('title, slug, organizations(name, email)')
+      .select('title, slug, org_id, organizations(name, email)')
       .eq('id', ann.event_id)
       .maybeSingle()
 
@@ -69,6 +70,20 @@ export async function runSendAnnouncement(
     const orgName    = orgInfo.name
     const orgEmail   = orgInfo.email || undefined
     const eventUrl   = eventSlug ? `https://prezva.app/e/${eventSlug}` : ''
+    const orgId      = (ev as any)?.org_id as string | undefined
+
+    // GHL-linked events: GoHighLevel owns email delivery, so Prezva suppresses
+    // its Resend blast and marks the announcement handed_off. For channel
+    // 'both', push already fired above. sent_at is deliberately left null —
+    // Prezva did not send this email.
+    const ghlLocationId = orgId ? await ghlLocationIdForOrg(supabase, orgId) : null
+    if (ghlLocationId) {
+      await supabase
+        .from('announcements')
+        .update({ status: 'handed_off', recipient_count: 0 })
+        .eq('id', announcementId)
+      return { sent: 0, failed: 0, reason: 'handed off to GHL' }
+    }
 
     const regQuery = supabase
       .from('registrations')

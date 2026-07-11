@@ -9,10 +9,12 @@ import { sendSMSAnnouncement, getSMSEligibleCount } from '@/lib/announcements/sm
 import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import type { AnnouncementTemplate } from '@/lib/templates/types'
 import { CHANNEL_COLORS as CHANNEL_COLOR } from '@/lib/ui/category-colors'
+import { announcementBadge } from '@/lib/ui/announcement-status'
 import { Gated } from '@/components/auth/Gated'
 
 interface Announcement {
   id: string; title: string; body: string; channel: string
+  status: string; scheduled_for: string | null
   sent_at: string | null; recipient_count: number; segment: string | null
 }
 const CHANNEL_ICON = { email: Mail, push: Bell, both: BellRing }
@@ -223,7 +225,16 @@ export default function AnnouncementsClient({ announcements: init, eventId, slug
                   <p style={{ fontSize: 13, color: 'var(--pz-muted)', marginBottom: 6, lineHeight: 1.5 }}>{a.body}</p>
                   <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--pz-muted)' }}>
                     <span>{a.recipient_count} recipients</span>
-                    <span>{a.sent_at ? new Date(a.sent_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Draft'}</span>
+                    {(() => {
+                      const b = announcementBadge(a.status)
+                      const dv = b.dateField === 'scheduled_for' ? a.scheduled_for : b.dateField === 'sent_at' ? a.sent_at : null
+                      return (
+                        <>
+                          <span style={{ background: b.background, color: b.color, border: b.border, padding: '1px 8px', borderRadius: 20, fontWeight: 600 }}>{b.label}</span>
+                          {dv && <span>{new Date(dv).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
+                        </>
+                      )
+                    })()}
                     <span style={{ background: color + '22', color, padding: '1px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{a.channel}</span>
                   </div>
                 </div>

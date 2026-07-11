@@ -94,7 +94,7 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
       exclude_filter: { types: excludeTypes, tags: [] },
       status: isScheduled ? 'scheduled' : 'draft',
       scheduled_for: scheduledFor,
-      sent_at: isScheduled ? null : new Date().toISOString(),
+      sent_at: null,
       recipient_count: recipientCount,
     })
     .select()

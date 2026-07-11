@@ -6,6 +6,11 @@ vi.mock('@/lib/push/send', () => ({
   sendAnnouncementPush: pushMock,
 }))
 
+const ghlLocationMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlLocationIdForOrg: ghlLocationMock,
+}))
+
 import { runSendAnnouncement } from '../announcement'
 
 const ANN_ID = 'ann_1'
@@ -29,6 +34,7 @@ function baseAnn(overrides: Record<string, any> = {}) {
 const validEvent = {
   title: 'Prezva Conf',
   slug: 'prezva-conf',
+  org_id: 'org_1',
   organizations: { name: 'Acme Org', email: 'org@acme.com' },
 }
 
@@ -67,6 +73,8 @@ describe('runSendAnnouncement', () => {
     process.env.RESEND_API_KEY = 'test-resend-key'
     fetchMock.mockReset()
     pushMock.mockReset()
+    ghlLocationMock.mockReset()
+    ghlLocationMock.mockResolvedValue(null)
     vi.stubGlobal('fetch', fetchMock)
   })
 
@@ -242,7 +250,7 @@ describe('runSendAnnouncement', () => {
 
     const result = await runSendAnnouncement(ANN_ID, admin as any)
 
-    expect(pushMock).toHaveBeenCalledWith('ev_1', 'Big News', 'Something happened')
+    expect(pushMock).toHaveBeenCalledWith('ev_1', 'Big News', 'Something happened', expect.anything())
     expect(result).toEqual({ sent: 0, failed: 0, reason: 'no eligible recipients' }) // email path still completed
   })
 
@@ -269,5 +277,18 @@ describe('runSendAnnouncement', () => {
       (c) => c.table === 'announcements' && c.mode === 'update' && !c.orFilter,
     )
     expect(terminalWrite?.payload).toMatchObject({ status: 'sent', recipient_count: 1 })
+  })
+
+  it('hands off to GHL without sending email when the org is GHL-linked', async () => {
+    ghlLocationMock.mockResolvedValue('loc_123')
+    const claimRow = { status: 'scheduled', updated_at: STALE() }
+    const resolver = buildResolver({ annRow: baseAnn({ channel: 'email' }), claimRow, event: validEvent })
+    const { admin, calls } = makeFakeAdmin(resolver)
+    const result = await runSendAnnouncement(ANN_ID, admin as any)
+    expect(fetchMock).not.toHaveBeenCalled()
+    const terminal = calls.find(c => c.table === 'announcements' && c.mode === 'update' && !c.orFilter)
+    expect(terminal?.payload).toMatchObject({ status: 'handed_off', recipient_count: 0 })
+    expect(terminal?.payload.sent_at).toBeUndefined()
+    expect(result).toMatchObject({ reason: 'handed off to GHL' })
   })
 })

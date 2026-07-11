@@ -39,7 +39,7 @@ export async function runScheduledAnnouncementsPoll(
       if (!claimed) continue // owned by another run or terminal
 
       try {
-        await sendAnnouncementPush(row.event_id, row.title, row.body)
+        await sendAnnouncementPush(row.event_id, row.title, row.body, admin)
         await admin
           .from('announcements')
           .update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: 0 })
