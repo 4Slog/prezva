@@ -104,11 +104,17 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
   await logAudit(supabase, null, user.id, 'announcement.create', 'announcements', data.id, { channel: parsed.data.channel, recipientCount })
 
   if (!isScheduled) {
-    if (parsed.data.channel === 'email' || parsed.data.channel === 'both') {
+    if (parsed.data.channel === 'push') {
+      try {
+        await sendAnnouncementPush(eventId, parsed.data.title, parsed.data.body)
+        await supabase.from('announcements').update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: recipientCount }).eq('id', data.id)
+      } catch (err) {
+        console.error('[announcement] push-only send failed:', err)
+        await supabase.from('announcements').update({ status: 'failed' }).eq('id', data.id)
+      }
+    } else {
+      // email or both — the delivery task owns email AND (for 'both') push, so we do NOT fire push here
       await enqueueAnnouncementDelivery({ announcementId: data.id })
-    }
-    if (parsed.data.channel === 'push' || parsed.data.channel === 'both') {
-      await sendAnnouncementPush(eventId, parsed.data.title, parsed.data.body)
     }
   }
 

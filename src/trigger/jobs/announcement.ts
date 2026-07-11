@@ -1,27 +1,52 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { escapeHtml } from '../lib/escape'
+import { sendAnnouncementPush } from '@/lib/push/send'
 
-export const sendAnnouncement = schemaTask({
-  id: 'send-announcement',
-  schema: z.object({
-    announcementId: z.string(),
-  }),
-  run: async (payload) => {
-    const supabase = createAdminClient()
+const CLAIM_STALE_MS = 10 * 60 * 1000
 
-    const { data: ann } = await supabase
-      .from('announcements')
-      .select('id, event_id, title, body, channel, audience_filter, exclude_filter, status')
-      .eq('id', payload.announcementId)
-      .maybeSingle()
+export async function runSendAnnouncement(
+  announcementId: string,
+  supabase: SupabaseClient,
+): Promise<{ sent: number; failed: number; reason?: string }> {
+  const { data: ann } = await supabase
+    .from('announcements')
+    .select('id, event_id, title, body, channel, audience_filter, exclude_filter, status')
+    .eq('id', announcementId)
+    .maybeSingle()
 
-    if (!ann) return { sent: 0, failed: 0, reason: 'announcement not found' }
-    if (ann.status === 'sent' || ann.status === 'sending') {
-      return { sent: 0, failed: 0, reason: `already ${ann.status} — duplicate trigger ignored` }
+  if (!ann) return { sent: 0, failed: 0, reason: 'announcement not found' }
+  if (ann.status === 'sent') return { sent: 0, failed: 0, reason: 'already sent' }
+  if (ann.channel === 'push') return { sent: 0, failed: 0, reason: 'push-only — no email sent' }
+
+  // Atomic claim: only pick up rows that are freshly (scheduled|draft), or
+  // 'sending' rows abandoned by a run that died mid-flight (stale > 10min,
+  // per announcements.updated_at, auto-bumped by trg_announcements_updated_at).
+  const staleBefore = new Date(Date.now() - CLAIM_STALE_MS).toISOString()
+  const { data: claimed } = await supabase
+    .from('announcements')
+    .update({ status: 'sending' })
+    .eq('id', announcementId)
+    .or(`status.in.(scheduled,draft),and(status.eq.sending,updated_at.lt.${staleBefore})`)
+    .select('id')
+    .maybeSingle()
+
+  if (!claimed) {
+    return { sent: 0, failed: 0, reason: 'not claimable — owned by another run or terminal' }
+  }
+
+  try {
+    // For 'both', this task is the sole push-firer — fire-and-continue so a
+    // push failure never blocks the email path.
+    if (ann.channel === 'both') {
+      try {
+        await sendAnnouncementPush(ann.event_id, ann.title, ann.body)
+      } catch (err) {
+        console.error('[announcement] push send failed (continuing with email):', err)
+      }
     }
-    if (ann.channel === 'push') return { sent: 0, failed: 0, reason: 'push-only — no email sent' }
 
     const audienceTypes: string[] = ann.audience_filter?.types ?? []
     const excludeTypes: string[] = ann.exclude_filter?.types ?? []
@@ -34,12 +59,12 @@ export const sendAnnouncement = schemaTask({
 
     const eventTitle = (ev as any)?.title as string | undefined
     if (!eventTitle?.trim()) {
-      throw new Error(`merge-tag: announcement eventTitle is empty (announcementId=${payload.announcementId}, eventId=${ann.event_id})`)
+      throw new Error(`merge-tag: announcement eventTitle is empty (announcementId=${announcementId}, eventId=${ann.event_id})`)
     }
     const eventSlug  = (ev as any)?.slug ?? ''
     const orgInfo    = (ev as any)?.organizations as { name: string; email?: string } | null
     if (!orgInfo?.name?.trim()) {
-      throw new Error(`merge-tag: announcement orgName is empty (announcementId=${payload.announcementId}, eventId=${ann.event_id})`)
+      throw new Error(`merge-tag: announcement orgName is empty (announcementId=${announcementId}, eventId=${ann.event_id})`)
     }
     const orgName    = orgInfo.name
     const orgEmail   = orgInfo.email || undefined
@@ -61,7 +86,13 @@ export const sendAnnouncement = schemaTask({
       regs = regs.filter((r: any) => !excludeTypes.includes(r.ticket_type_id))
     }
 
-    if (regs.length === 0) return { sent: 0, failed: 0 }
+    if (regs.length === 0) {
+      await supabase
+        .from('announcements')
+        .update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: 0 })
+        .eq('id', announcementId)
+      return { sent: 0, failed: 0, reason: 'no eligible recipients' }
+    }
 
     // Fetch opt-out prefs for all users who have them
     const userIds = regs.map((r: any) => r.user_id).filter(Boolean)
@@ -97,7 +128,13 @@ export const sendAnnouncement = schemaTask({
       (reg: any) => !suppressedSet.has(reg.attendee_email.toLowerCase()),
     )
 
-    if (finalRegs.length === 0) return { sent: 0, failed: 0 }
+    if (finalRegs.length === 0) {
+      await supabase
+        .from('announcements')
+        .update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: 0 })
+        .eq('id', announcementId)
+      return { sent: 0, failed: 0, reason: 'no eligible recipients' }
+    }
 
     const buildEmailPayload = (reg: any) => {
       const regIdB64 = Buffer.from(reg.id).toString('base64url')
@@ -202,19 +239,36 @@ export const sendAnnouncement = schemaTask({
     }
 
     // Update announcement status based on delivery outcome
-    const admin = createAdminClient()
     if (sent > 0) {
-      await admin
+      await supabase
         .from('announcements')
         .update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: sent })
-        .eq('id', payload.announcementId)
+        .eq('id', announcementId)
     } else if (failed > 0 && sent === 0) {
-      await admin
+      await supabase
         .from('announcements')
         .update({ status: 'failed' })
-        .eq('id', payload.announcementId)
+        .eq('id', announcementId)
     }
 
     return { sent, failed }
-  },
+  } catch (err) {
+    try {
+      await supabase
+        .from('announcements')
+        .update({ status: 'failed' })
+        .eq('id', announcementId)
+    } catch (updateErr) {
+      console.error('[announcement] failed to write terminal failed status:', updateErr)
+    }
+    throw err
+  }
+}
+
+export const sendAnnouncement = schemaTask({
+  id: 'send-announcement',
+  schema: z.object({
+    announcementId: z.string(),
+  }),
+  run: async (payload) => runSendAnnouncement(payload.announcementId, createAdminClient()),
 })
