@@ -546,6 +546,8 @@ export async function virtualCheckIn(registrationId: string) {
     .single()
 
   if (!reg) return { error: 'Registration not found' }
+  if ((reg as any).status === 'cancelled') return { error: 'Registration is cancelled' }
+  if ((reg as any).status === 'refunded') return { error: 'Registration was refunded' }
   if (!['virtual', 'both'].includes((reg as any).delivery_method ?? ''))
     return { error: 'This registration is not virtual' }
 

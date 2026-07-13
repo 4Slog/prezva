@@ -17,7 +17,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { checkInByQR, checkInBySearch } from '@/lib/embedded/checkin-actions'
+import { checkInByQR, checkInBySearch, processOfflineQueue } from '@/lib/embedded/checkin-actions'
 
 const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const REG_ID   = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
@@ -69,5 +69,28 @@ describe('embedded checkInBySearch', () => {
     const result = await checkInBySearch(EVENT_ID, REG_ID)
     expect(result.success).toBe(false)
     expect(result.error).toContain('refunded')
+  })
+})
+
+describe('embedded processOfflineQueue (checkInByQRInternal)', () => {
+  it('rejects a refunded entry in the offline batch', async () => {
+    const refundedReg = {
+      id: REG_ID, attendee_name: 'Alice', attendee_email: 'alice@test.com',
+      status: 'refunded', ticket_types: { name: 'General' },
+    }
+    mockFromImpl = (t) => {
+      if (t === 'ghl_location_links') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockLink, error: null }) })
+      if (t === 'events') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: EVENT_ID }, error: null }) })
+      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: refundedReg, error: null }) })
+      return makeChain()
+    }
+    const result = await processOfflineQueue({
+      eventId: EVENT_ID,
+      deviceId: 'scanner-1',
+      entries: [{ qr_code: QR_CODE, scanned_at: new Date().toISOString() }],
+    })
+    expect((result as any).processed).toBe(0)
+    expect((result as any).failedQrCodes).toEqual([QR_CODE])
+    expect((result as any).errors[0]).toContain('refunded')
   })
 })
