@@ -73,6 +73,7 @@ export async function checkInByQR(
 
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
 
   const { data: existing } = await db
     .from('check_ins')
@@ -138,6 +139,7 @@ export async function checkInBySearch(
 
   if (!reg) return { success: false, error: 'Attendee not found' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
 
   const { data: existing } = await db
     .from('check_ins')

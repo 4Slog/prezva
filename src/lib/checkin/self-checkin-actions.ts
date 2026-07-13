@@ -29,6 +29,7 @@ export async function selfCheckInByToken(token: string): Promise<SelfCheckInResu
 
   if (!reg) return { success: false, error: 'This check-in link is invalid.' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'This registration has been cancelled.' }
+  if ((reg as any).status === 'refunded') return { success: false, error: 'This registration was refunded.' }
   if ((reg as any).status === 'pending') return { success: false, error: 'Your registration is pending approval.' }
 
   const event = (reg as any).events as any

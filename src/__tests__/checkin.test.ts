@@ -24,6 +24,7 @@ import {
   getCheckInStats,
   processOfflineQueue,
   searchAttendeesForCheckIn,
+  orgCheckInToSession,
 } from '@/lib/checkin/actions'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -125,6 +126,19 @@ describe('checkInByQR', () => {
     const result = await checkInByQR(EVENT_ID, QR_CODE)
     expect(result.success).toBe(false)
     expect(result.error).toContain('cancelled')
+  })
+
+  it('returns error for refunded registration', async () => {
+    const refundedReg = { ...mockReg, status: 'refunded' }
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: refundedReg, error: null }) })
+      return makeChain()
+    }
+    const result = await checkInByQR(EVENT_ID, QR_CODE)
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('refunded')
   })
 })
 
@@ -306,5 +320,37 @@ describe('searchAttendeesForCheckIn', () => {
     expect(results).toHaveLength(1)
     expect(results[0].attendee_name).toBe('Alice')
     expect(results[0].checked_in).toBe(false)
+  })
+})
+
+// ── orgCheckInToSession ───────────────────────────────────────────────────────
+
+describe('orgCheckInToSession', () => {
+  const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+
+  it('returns error for refunded registration (qr_scan branch)', async () => {
+    const refundedReg = { ...mockReg, status: 'refunded' }
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: refundedReg, error: null }) })
+      return makeChain()
+    }
+    const result = await orgCheckInToSession(EVENT_ID, SESSION_ID, QR_CODE, 'qr_scan')
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('refunded')
+  })
+
+  it('returns error for refunded registration (manual branch)', async () => {
+    const refundedReg = { ...mockReg, status: 'refunded' }
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: refundedReg, error: null }) })
+      return makeChain()
+    }
+    const result = await orgCheckInToSession(EVENT_ID, SESSION_ID, REG_ID, 'manual')
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('refunded')
   })
 })
