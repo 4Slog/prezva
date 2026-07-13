@@ -5502,6 +5502,15 @@ export type Database = {
       is_org_member: { Args: { org_id: string }; Returns: boolean }
       is_registered: { Args: { event_id: string }; Returns: boolean }
       role_org_id: { Args: { p_role_id: string }; Returns: string }
+      record_virtual_watch: {
+        Args: {
+          p_session_id: string
+          p_registration_id: string
+          p_event_id: string
+          p_watched: number
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
