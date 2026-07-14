@@ -49,3 +49,11 @@ export const GHL_STAGE_TAGS: Record<string, string> = {
   [GHL_STAGE_IDS.noShow]:            GHL_LIFECYCLE_TAGS.noShow,
   [GHL_STAGE_IDS.certificateIssued]: GHL_LIFECYCLE_TAGS.certIssued,
 }
+
+// Entering these stages falsifies the no-show inference, so its tag is removed.
+// One-directional by design: noShow never strips positive-fact tags.
+export const GHL_STAGE_SUPERSEDES_TAGS: Record<string, string[]> = {
+  [GHL_STAGE_IDS.checkedIn]:         [GHL_LIFECYCLE_TAGS.noShow],
+  [GHL_STAGE_IDS.attendedSession]:   [GHL_LIFECYCLE_TAGS.noShow],
+  [GHL_STAGE_IDS.certificateIssued]: [GHL_LIFECYCLE_TAGS.noShow],
+}

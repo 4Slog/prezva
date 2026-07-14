@@ -36,6 +36,16 @@ export async function ghlPut<T>(token: string, path: string, body: object): Prom
   return res.json() as Promise<T>
 }
 
+export async function ghlDelete<T>(token: string, path: string, body?: object): Promise<T> {
+  const res = await fetch(`${GHL_BASE}${path}`, {
+    method: 'DELETE',
+    headers: headers(token),
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  })
+  if (!res.ok) throw new Error(`GHL DELETE ${path} failed: ${res.status}`)
+  return res.json() as Promise<T>
+}
+
 export async function ghlUpsertContact(
   token: string,
   params: { firstName: string; lastName: string; email: string; phone?: string; locationId: string },
@@ -69,6 +79,25 @@ export async function ghlAddContactTags(
   if (!res.ok) {
     const errBody = await res.text()
     throw new Error(`GHL add contact tags failed: ${res.status} — ${errBody}`)
+  }
+  const data = await res.json() as { tags?: string[] }
+  return data.tags ?? []
+}
+
+export async function ghlRemoveContactTags(
+  token: string,
+  contactId: string,
+  tags: string[],
+): Promise<string[]> {
+  if (tags.length === 0) return []
+  const res = await fetch(`${GHL_BASE}/contacts/${contactId}/tags`, {
+    method: 'DELETE',
+    headers: headers(token),
+    body: JSON.stringify({ tags }),
+  })
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`GHL remove contact tags failed: ${res.status} — ${errBody}`)
   }
   const data = await res.json() as { tags?: string[] }
   return data.tags ?? []

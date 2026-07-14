@@ -1,9 +1,9 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
-import { ghlPut, ghlAddContactTags } from '@/lib/integrations/ghl/client'
+import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_STAGE_TAGS } from '@/lib/integrations/ghl/config'
+import { GHL_STAGE_TAGS, GHL_STAGE_SUPERSEDES_TAGS } from '@/lib/integrations/ghl/config'
 
 export const ghlStageMoveTask = schemaTask({
   id: 'ghl-stage-move',
@@ -51,6 +51,16 @@ export const ghlStageMoveTask = schemaTask({
         await ghlAddContactTags(token, syncState.ghl_contact_id, [tag])
       } catch (e) {
         console.error('[ghl-stage-move] tag apply failed (non-fatal):', e)
+      }
+    }
+
+    const superseded = GHL_STAGE_SUPERSEDES_TAGS[stageId]
+    if (superseded?.length && syncState.ghl_contact_id) {
+      try {
+        const token = getGhlToken()
+        await ghlRemoveContactTags(token, syncState.ghl_contact_id, superseded)
+      } catch (e) {
+        console.error('[ghl-stage-move] superseded tag removal failed (non-fatal):', e)
       }
     }
 
