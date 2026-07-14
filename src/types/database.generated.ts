@@ -5501,22 +5501,28 @@ export type Database = {
       increment_discount_uses: { Args: { code_id: string }; Returns: undefined }
       is_org_member: { Args: { org_id: string }; Returns: boolean }
       is_registered: { Args: { event_id: string }; Returns: boolean }
-      role_org_id: { Args: { p_role_id: string }; Returns: string }
       record_virtual_watch: {
         Args: {
-          p_session_id: string
-          p_registration_id: string
           p_event_id: string
+          p_registration_id: string
+          p_session_id: string
           p_watched: number
         }
         Returns: undefined
       }
+      role_org_id: { Args: { p_role_id: string }; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       announcement_channel: "email" | "push" | "both"
-      announcement_status: "draft" | "scheduled" | "sent" | "sending" | "failed"
+      announcement_status:
+        | "draft"
+        | "scheduled"
+        | "sent"
+        | "sending"
+        | "failed"
+        | "handed_off"
       audit_action:
         | "create"
         | "update"
@@ -5689,7 +5695,14 @@ export const Constants = {
   public: {
     Enums: {
       announcement_channel: ["email", "push", "both"],
-      announcement_status: ["draft", "scheduled", "sent", "sending", "failed"],
+      announcement_status: [
+        "draft",
+        "scheduled",
+        "sent",
+        "sending",
+        "failed",
+        "handed_off",
+      ],
       audit_action: [
         "create",
         "update",
