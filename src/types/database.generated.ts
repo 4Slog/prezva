@@ -1687,6 +1687,8 @@ export type Database = {
           id: string
           internal_registration_id: string | null
           last_error: string | null
+          last_pushed_attendance_pct: number | null
+          last_pushed_ce_credits: number | null
           location_id: string
           payload_hash: string
           pending_stage_id: string | null
@@ -1706,6 +1708,8 @@ export type Database = {
           id?: string
           internal_registration_id?: string | null
           last_error?: string | null
+          last_pushed_attendance_pct?: number | null
+          last_pushed_ce_credits?: number | null
           location_id: string
           payload_hash: string
           pending_stage_id?: string | null
@@ -1725,6 +1729,8 @@ export type Database = {
           id?: string
           internal_registration_id?: string | null
           last_error?: string | null
+          last_pushed_attendance_pct?: number | null
+          last_pushed_ce_credits?: number | null
           location_id?: string
           payload_hash?: string
           pending_stage_id?: string | null

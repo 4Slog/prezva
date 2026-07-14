@@ -89,13 +89,13 @@ describe('ghlStageMoveTask — superseded tag removal', () => {
     expect(ghlRemoveContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [NO_SHOW_TAG])
   })
 
-  it('entering certificateIssued calls ghlRemoveContactTags with [prezva-no-show]', async () => {
+  it('entering certificateIssued calls ghlRemoveContactTags with [prezva-no-show, prezva-ce-incomplete]', async () => {
     const { admin } = makeFakeAdmin(buildResolver(baseSyncState()))
     vi.mocked(createAdminClient).mockReturnValue(admin as any)
 
     await runTask({ registrationId: REGISTRATION_ID, stageId: GHL_STAGE_IDS.certificateIssued })
 
-    expect(ghlRemoveContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [NO_SHOW_TAG])
+    expect(ghlRemoveContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [NO_SHOW_TAG, 'prezva-ce-incomplete'])
   })
 
   it('entering confirmed does not call ghlRemoveContactTags', async () => {

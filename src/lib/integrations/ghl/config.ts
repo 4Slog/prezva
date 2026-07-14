@@ -24,6 +24,11 @@ export const GHL_FIELD_KEYS = {
   prezvaLastSyncTime: 'bYbFHamdFhi4apJXhP9t',
   // Contact field — written by payment webhook so GHL workflows can link attendees back
   prezvaAttendeeLink: 'GVx9yhZDVIkPChx7E5lp',
+  // Opportunity fields, provisioned 2026-06-30 by the golden-dataset seed. GHL
+  // auto-slugged Attendance %'s key to `opportunity.prezva_attendance_` (not
+  // `_pct`) — the slug is unusable, so both fields MUST be referenced by ID.
+  prezvaCeCredits: '4mYrFTnrQvdMUQ19LMSt',
+  prezvaAttendancePct: 'jN0w8V3yMDLQaIJcp5pO',
 } as const;
 
 export const GHL_TAG_PREFIX = 'prezva' as const
@@ -33,11 +38,12 @@ export function buildEventTag(eventSlug: string): string {
 }
 
 export const GHL_LIFECYCLE_TAGS = {
-  confirmed:  `${GHL_TAG_PREFIX}-confirmed`,
-  checkedIn:  `${GHL_TAG_PREFIX}-checked-in`,
-  attended:   `${GHL_TAG_PREFIX}-attended`,
-  noShow:     `${GHL_TAG_PREFIX}-no-show`,
-  certIssued: `${GHL_TAG_PREFIX}-cert-issued`,
+  confirmed:    `${GHL_TAG_PREFIX}-confirmed`,
+  checkedIn:    `${GHL_TAG_PREFIX}-checked-in`,
+  attended:     `${GHL_TAG_PREFIX}-attended`,
+  noShow:       `${GHL_TAG_PREFIX}-no-show`,
+  certIssued:   `${GHL_TAG_PREFIX}-cert-issued`,
+  ceIncomplete: `${GHL_TAG_PREFIX}-ce-incomplete`,
 } as const
 
 // Maps a pipeline stage id to the lifecycle tag applied on entering that stage.
@@ -55,5 +61,5 @@ export const GHL_STAGE_TAGS: Record<string, string> = {
 export const GHL_STAGE_SUPERSEDES_TAGS: Record<string, string[]> = {
   [GHL_STAGE_IDS.checkedIn]:         [GHL_LIFECYCLE_TAGS.noShow],
   [GHL_STAGE_IDS.attendedSession]:   [GHL_LIFECYCLE_TAGS.noShow],
-  [GHL_STAGE_IDS.certificateIssued]: [GHL_LIFECYCLE_TAGS.noShow],
+  [GHL_STAGE_IDS.certificateIssued]: [GHL_LIFECYCLE_TAGS.noShow, GHL_LIFECYCLE_TAGS.ceIncomplete],
 }
