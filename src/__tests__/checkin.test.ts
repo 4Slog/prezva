@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/auth/get-user', () => ({
   requireUser: vi.fn().mockResolvedValue({ id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', email: 'staff@test.com' }),
@@ -7,6 +7,9 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 // Make the test user a super-admin so assertPermission short-circuits; permission
 // logic is unit-tested separately in auth.test.ts.
 vi.mock('@/lib/admin/gate', () => ({ isSuperAdmin: vi.fn().mockReturnValue(true) }))
+vi.mock('@/lib/trigger', () => ({
+  enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
+}))
 
 let mockFromImpl: (table: string) => any
 const mockFrom = vi.fn((t: string) => mockFromImpl(t))
@@ -26,6 +29,8 @@ import {
   searchAttendeesForCheckIn,
   orgCheckInToSession,
 } from '@/lib/checkin/actions'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -352,5 +357,59 @@ describe('orgCheckInToSession', () => {
     const result = await orgCheckInToSession(EVENT_ID, SESSION_ID, REG_ID, 'manual')
     expect(result.success).toBe(false)
     expect(result.error).toContain('refunded')
+  })
+})
+
+// ── checkInToSession — GHL stage move (door 2) ──────────────────────────────────
+
+describe('checkInToSession — GHL stage move', () => {
+  const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const confirmedReg = { id: REG_ID, event_id: EVENT_ID, status: 'confirmed', attendee_name: 'Alice', attendee_email: 'alice@test.com', ticket_types: { name: 'General' } }
+
+  function setupNewAttendance() {
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'registrations') return makeChain({
+        single: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }),
+      })
+      if (t === 'sessions') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: SESSION_ID, event_id: EVENT_ID }, error: null }) })
+      if (t === 'check_ins') return makeChain({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockReturnValue({ error: null }),
+      })
+      return makeChain()
+    }
+  }
+
+  beforeEach(() => {
+    vi.mocked(enqueueGhlStageMove).mockClear()
+  })
+
+  it('fires enqueueGhlStageMove exactly once with attendedSession stage on new session check-in', async () => {
+    setupNewAttendance()
+    const result = await orgCheckInToSession(EVENT_ID, SESSION_ID, REG_ID, 'manual')
+    expect(result.success).toBe(true)
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    expect(enqueueGhlStageMove).toHaveBeenCalledWith({ registrationId: REG_ID, stageId: GHL_STAGE_IDS.attendedSession })
+  })
+
+  it('does not fire enqueueGhlStageMove when already checked in to the session', async () => {
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'registrations') return makeChain({
+        single: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }),
+      })
+      if (t === 'sessions') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: SESSION_ID, event_id: EVENT_ID }, error: null }) })
+      if (t === 'check_ins') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'existing-checkin' }, error: null }) })
+      return makeChain()
+    }
+    const result = await orgCheckInToSession(EVENT_ID, SESSION_ID, REG_ID, 'manual')
+    expect(result.success).toBe(true)
+    expect(result.registration?.already_checked_in).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
   })
 })

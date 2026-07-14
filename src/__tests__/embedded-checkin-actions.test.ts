@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn().mockResolvedValue({ get: vi.fn().mockReturnValue({ value: 'fake-embed-token' }) }),
@@ -17,7 +17,9 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { checkInByQR, checkInBySearch, processOfflineQueue } from '@/lib/embedded/checkin-actions'
+import { checkInByQR, checkInBySearch, processOfflineQueue, embedScanIntoSession, embedManualMarkSession } from '@/lib/embedded/checkin-actions'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const REG_ID   = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
@@ -92,5 +94,60 @@ describe('embedded processOfflineQueue (checkInByQRInternal)', () => {
     expect((result as any).processed).toBe(0)
     expect((result as any).failedQrCodes).toEqual([QR_CODE])
     expect((result as any).errors[0]).toContain('refunded')
+  })
+})
+
+// ── embedScanIntoSession / embedManualMarkSession — GHL stage move (doors 3 & 4) ─
+
+describe('embedScanIntoSession / embedManualMarkSession — GHL stage move', () => {
+  const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const confirmedReg = { id: REG_ID, attendee_name: 'Alice', attendee_email: 'alice@test.com', status: 'confirmed', ticket_types: { name: 'General' } }
+
+  beforeEach(() => {
+    vi.mocked(enqueueGhlStageMove).mockClear()
+  })
+
+  function setupSessionTables(opts: { existingCheckIn: any; insertError?: any }) {
+    mockFromImpl = (t) => {
+      if (t === 'ghl_location_links') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockLink, error: null }) })
+      if (t === 'events') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'sessions') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: SESSION_ID }, error: null }) })
+      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }) })
+      if (t === 'check_ins') return makeChain({
+        maybeSingle: vi.fn().mockResolvedValue({ data: opts.existingCheckIn, error: null }),
+        insert: vi.fn().mockReturnValue({ error: opts.insertError ?? null }),
+      })
+      return makeChain()
+    }
+  }
+
+  it('embedScanIntoSession fires enqueueGhlStageMove exactly once with attendedSession stage on new attendance', async () => {
+    setupSessionTables({ existingCheckIn: null })
+    const result = await embedScanIntoSession(EVENT_ID, SESSION_ID, QR_CODE)
+    expect(result.success).toBe(true)
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    expect(enqueueGhlStageMove).toHaveBeenCalledWith({ registrationId: REG_ID, stageId: GHL_STAGE_IDS.attendedSession })
+  })
+
+  it('embedScanIntoSession does not fire enqueueGhlStageMove when already checked in', async () => {
+    setupSessionTables({ existingCheckIn: { id: 'existing-checkin', checked_in_at: new Date().toISOString() } })
+    const result = await embedScanIntoSession(EVENT_ID, SESSION_ID, QR_CODE)
+    expect(result.registration?.already_checked_in).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+  })
+
+  it('embedManualMarkSession fires enqueueGhlStageMove exactly once with attendedSession stage on new attendance', async () => {
+    setupSessionTables({ existingCheckIn: null })
+    const result = await embedManualMarkSession(EVENT_ID, SESSION_ID, REG_ID)
+    expect(result.success).toBe(true)
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    expect(enqueueGhlStageMove).toHaveBeenCalledWith({ registrationId: REG_ID, stageId: GHL_STAGE_IDS.attendedSession })
+  })
+
+  it('embedManualMarkSession does not fire enqueueGhlStageMove when already checked in', async () => {
+    setupSessionTables({ existingCheckIn: { id: 'existing-checkin', checked_in_at: new Date().toISOString() } })
+    const result = await embedManualMarkSession(EVENT_ID, SESSION_ID, REG_ID)
+    expect(result.registration?.already_checked_in).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
   })
 })

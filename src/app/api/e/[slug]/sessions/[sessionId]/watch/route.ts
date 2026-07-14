@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 type Params = { params: Promise<{ slug: string; sessionId: string }> }
 
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     Math.min(rawWatched, sessionDurationSeconds || Number.MAX_SAFE_INTEGER),
   )
 
-  const { error } = await admin.rpc('record_virtual_watch', {
+  const { data, error } = await admin.rpc('record_virtual_watch', {
     p_session_id: sessionId,
     p_registration_id: reg.id,
     p_event_id: session.event_id,
@@ -68,6 +70,17 @@ export async function POST(req: NextRequest, { params }: Params) {
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const prior = data?.[0]?.prior_watched ?? null
+  const next = data?.[0]?.new_watched ?? null
+  const threshold = sessionDurationSeconds * 0.8
+  if (sessionDurationSeconds > 0 && next !== null && next >= threshold && (prior === null || prior < threshold)) {
+    try {
+      await enqueueGhlStageMove({ registrationId: reg.id, stageId: GHL_STAGE_IDS.attendedSession })
+    } catch (e) {
+      console.error('[watch] enqueueGhlStageMove failed:', e)
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

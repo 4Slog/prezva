@@ -5508,7 +5508,10 @@ export type Database = {
           p_session_id: string
           p_watched: number
         }
-        Returns: undefined
+        Returns: {
+          new_watched: number
+          prior_watched: number
+        }[]
       }
       role_org_id: { Args: { p_role_id: string }; Returns: string }
       show_limit: { Args: never; Returns: number }

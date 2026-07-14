@@ -8,6 +8,8 @@ import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 export interface CheckInResult {
   success: boolean
@@ -366,6 +368,13 @@ export async function checkInToSession(
   })
 
   if (error) return { ok: false, error: error.message }
+
+  try {
+    await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.attendedSession })
+  } catch (e) {
+    console.error('[checkin] enqueueGhlStageMove failed:', e)
+  }
+
   return { ok: true, alreadyCheckedIn: false }
 }
 

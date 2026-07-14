@@ -35,6 +35,7 @@ export function buildEventTag(eventSlug: string): string {
 export const GHL_LIFECYCLE_TAGS = {
   confirmed:  `${GHL_TAG_PREFIX}-confirmed`,
   checkedIn:  `${GHL_TAG_PREFIX}-checked-in`,
+  attended:   `${GHL_TAG_PREFIX}-attended`,
   noShow:     `${GHL_TAG_PREFIX}-no-show`,
   certIssued: `${GHL_TAG_PREFIX}-cert-issued`,
 } as const
@@ -44,6 +45,7 @@ export const GHL_LIFECYCLE_TAGS = {
 export const GHL_STAGE_TAGS: Record<string, string> = {
   [GHL_STAGE_IDS.confirmed]:         GHL_LIFECYCLE_TAGS.confirmed,
   [GHL_STAGE_IDS.checkedIn]:         GHL_LIFECYCLE_TAGS.checkedIn,
+  [GHL_STAGE_IDS.attendedSession]:   GHL_LIFECYCLE_TAGS.attended,
   [GHL_STAGE_IDS.noShow]:            GHL_LIFECYCLE_TAGS.noShow,
   [GHL_STAGE_IDS.certificateIssued]: GHL_LIFECYCLE_TAGS.certIssued,
 }

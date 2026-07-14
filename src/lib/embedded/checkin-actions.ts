@@ -45,9 +45,9 @@ async function assertEventOwnership(
 
 // ── Check-in helpers ──────────────────────────────────────────────────────────
 
-async function fireGhlStageMove(registrationId: string) {
+async function fireGhlStageMove(registrationId: string, stageId: string = GHL_STAGE_IDS.checkedIn) {
   try {
-    await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.checkedIn })
+    await enqueueGhlStageMove({ registrationId, stageId })
   } catch (e) {
     // Never let GHL sync failure block a check-in
     console.error('[embed-checkin] enqueueGhlStageMove failed:', e)
@@ -455,6 +455,8 @@ export async function embedScanIntoSession(
 
   if (ciErr) return { success: false, error: ciErr.message }
 
+  await fireGhlStageMove((reg as any).id, GHL_STAGE_IDS.attendedSession)
+
   return {
     success: true,
     registration: {
@@ -521,6 +523,8 @@ export async function embedManualMarkSession(
   })
 
   if (error) return { success: false, error: error.message }
+
+  await fireGhlStageMove(registrationId, GHL_STAGE_IDS.attendedSession)
 
   return {
     success: true,

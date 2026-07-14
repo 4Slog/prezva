@@ -1,7 +1,24 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/audit/log', () => ({
   logAudit: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/lib/trigger', () => ({
+  enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
+}))
+vi.mock('@/lib/ratelimit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ limited: false }),
+  pinLookupLimiter: {},
+}))
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue({ get: vi.fn().mockReturnValue(null) }),
+}))
+
+const USER_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(() => Promise.resolve({
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID } } }) },
+  })),
 }))
 
 let mockFromImpl: (table: string) => any
@@ -10,7 +27,9 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { selfCheckInByToken } from '@/lib/checkin/self-checkin-actions'
+import { selfCheckInByToken, selfCheckInRegistration, selfCheckInByEmailPin } from '@/lib/checkin/self-checkin-actions'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 function makeChain(override: Record<string, any> = {}) {
   const base: Record<string, any> = {}
@@ -41,5 +60,105 @@ describe('selfCheckInByToken', () => {
     const result = await selfCheckInByToken(TOKEN)
     expect(result.success).toBe(false)
     expect(result.error).toContain('refunded')
+  })
+})
+
+// ── selfCheckInRegistration — GHL stage move (door 6) ───────────────────────────
+
+describe('selfCheckInRegistration — GHL stage move', () => {
+  const REG_ID = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const confirmedReg = {
+    id: REG_ID, user_id: USER_ID, attendee_name: 'Alice', status: 'confirmed', event_id: 'event-1',
+    events: { id: 'event-1', title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC' },
+  }
+
+  beforeEach(() => {
+    vi.mocked(enqueueGhlStageMove).mockClear()
+  })
+
+  function setupTables(opts: { existingCheckIn: any; insertError?: any }) {
+    mockFromImpl = (t) => {
+      if (t === 'registrations') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }) })
+      if (t === 'check_ins') return makeChain({
+        maybeSingle: vi.fn().mockResolvedValue({ data: opts.existingCheckIn, error: null }),
+        insert: vi.fn().mockReturnValue({ error: opts.insertError ?? null }),
+      })
+      return makeChain()
+    }
+  }
+
+  it('fires enqueueGhlStageMove exactly once with attendedSession stage on new SESSION attendance', async () => {
+    setupTables({ existingCheckIn: null })
+    const result = await selfCheckInRegistration(REG_ID, SESSION_ID)
+    expect(result.success).toBe(true)
+    expect(result.already_checked_in).toBe(false)
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    expect(enqueueGhlStageMove).toHaveBeenCalledWith({ registrationId: REG_ID, stageId: GHL_STAGE_IDS.attendedSession })
+  })
+
+  it('does not fire enqueueGhlStageMove on repeat SESSION check-in', async () => {
+    setupTables({ existingCheckIn: { id: 'existing', checked_in_at: new Date().toISOString() } })
+    const result = await selfCheckInRegistration(REG_ID, SESSION_ID)
+    expect(result.already_checked_in).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+  })
+
+  it('does not fire attendedSession for the EVENT-scope branch (sessionId null)', async () => {
+    setupTables({ existingCheckIn: null })
+    const result = await selfCheckInRegistration(REG_ID, null)
+    expect(result.success).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+  })
+})
+
+// ── selfCheckInByEmailPin — GHL stage move (door 7) ─────────────────────────────
+
+describe('selfCheckInByEmailPin — GHL stage move', () => {
+  const REG_ID = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const PIN = '1234'
+  const confirmedReg = {
+    id: REG_ID, user_id: USER_ID, attendee_name: 'Alice', pin: PIN, status: 'confirmed', event_id: EVENT_ID,
+    events: { id: EVENT_ID, title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC' },
+  }
+
+  beforeEach(() => {
+    vi.mocked(enqueueGhlStageMove).mockClear()
+  })
+
+  function setupTables(opts: { existingCheckIn: any; insertError?: any }) {
+    mockFromImpl = (t) => {
+      if (t === 'registrations') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: confirmedReg, error: null }) })
+      if (t === 'check_ins') return makeChain({
+        maybeSingle: vi.fn().mockResolvedValue({ data: opts.existingCheckIn, error: null }),
+        insert: vi.fn().mockReturnValue({ error: opts.insertError ?? null }),
+      })
+      return makeChain()
+    }
+  }
+
+  it('fires enqueueGhlStageMove exactly once with attendedSession stage on new SESSION attendance', async () => {
+    setupTables({ existingCheckIn: null })
+    const result = await selfCheckInByEmailPin(EVENT_ID, SESSION_ID, 'alice@test.com', PIN)
+    expect(result.success).toBe(true)
+    expect(result.already_checked_in).toBe(false)
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    expect(enqueueGhlStageMove).toHaveBeenCalledWith({ registrationId: REG_ID, stageId: GHL_STAGE_IDS.attendedSession })
+  })
+
+  it('does not fire enqueueGhlStageMove on repeat SESSION check-in', async () => {
+    setupTables({ existingCheckIn: { id: 'existing', checked_in_at: new Date().toISOString() } })
+    const result = await selfCheckInByEmailPin(EVENT_ID, SESSION_ID, 'alice@test.com', PIN)
+    expect(result.already_checked_in).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+  })
+
+  it('does not fire attendedSession for the EVENT-scope branch (sessionId null)', async () => {
+    setupTables({ existingCheckIn: null })
+    const result = await selfCheckInByEmailPin(EVENT_ID, null, 'alice@test.com', PIN)
+    expect(result.success).toBe(true)
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
   })
 })

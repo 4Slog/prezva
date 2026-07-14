@@ -2,6 +2,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 export async function markSessionAttendance(sessionId: string, eventId: string) {
   const user = await requireUser()
@@ -46,6 +48,12 @@ export async function markSessionAttendance(sessionId: string, eventId: string) 
     })
 
   if (error) return { error: error.message }
+
+  try {
+    await enqueueGhlStageMove({ registrationId: reg.id, stageId: GHL_STAGE_IDS.attendedSession })
+  } catch (e) {
+    console.error('[session-checkin] enqueueGhlStageMove failed:', e)
+  }
 
   const admin = createAdminClient()
   const { data: existingPoint } = await admin

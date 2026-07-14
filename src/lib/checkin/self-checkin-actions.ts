@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit/log'
 import { checkRateLimit, pinLookupLimiter } from '@/lib/ratelimit'
+import { enqueueGhlStageMove } from '@/lib/trigger'
+import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
 
 export interface SelfCheckInResult {
   success: boolean
@@ -144,6 +146,12 @@ export async function selfCheckInRegistration(
     })
 
     if (error) return { success: false, error: 'Check-in failed. Please try again or see staff.' }
+
+    try {
+      await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.attendedSession })
+    } catch (e) {
+      console.error('[self-checkin] enqueueGhlStageMove failed:', e)
+    }
   } else {
     // Event scope: manual dedup (NULL != NULL in unique constraint)
     const { data: existing } = await admin
@@ -249,6 +257,12 @@ export async function selfCheckInByEmailPin(
     })
 
     if (error) return { success: false, error: GENERIC_ERROR }
+
+    try {
+      await enqueueGhlStageMove({ registrationId: (reg as any).id, stageId: GHL_STAGE_IDS.attendedSession })
+    } catch (e) {
+      console.error('[self-checkin] enqueueGhlStageMove failed:', e)
+    }
   } else {
     // Event scope: manual dedup (NULL != NULL in unique constraint)
     const { data: existing } = await admin
