@@ -87,34 +87,61 @@ export async function POST(req: NextRequest) {
     // 6. Determine the refunded amount. The payload shape is unknown — try a
     // few plausible fields (logging which one hit) before defaulting to a full
     // refund of the amount on record.
+    // GHL sends order amounts in dollars (see payment/route.ts:52 — same
+    // Math.round(Number(x) * 100) conversion for order.total_price). The
+    // amount_paid_cents fallback is already cents and needs no conversion.
     const refundObj = body.refund as Record<string, unknown> | undefined
+    let field: string
+    let rawValue: unknown
     let refundAmountCents: number
-    let isFullRefund: boolean
 
     if (typeof refundObj?.amount === 'number') {
-      refundAmountCents = Math.round(refundObj.amount)
-      console.log('[ghl-refund] refund amount resolved via body.refund.amount:', refundAmountCents)
+      field = 'body.refund.amount'
+      rawValue = refundObj.amount
+      refundAmountCents = Math.round(Number(rawValue) * 100)
     } else if (typeof body.amount_refunded === 'number') {
-      refundAmountCents = Math.round(body.amount_refunded)
-      console.log('[ghl-refund] refund amount resolved via body.amount_refunded:', refundAmountCents)
+      field = 'body.amount_refunded'
+      rawValue = body.amount_refunded
+      refundAmountCents = Math.round(Number(rawValue) * 100)
     } else if (typeof body.refundAmount === 'number') {
-      refundAmountCents = Math.round(body.refundAmount)
-      console.log('[ghl-refund] refund amount resolved via body.refundAmount:', refundAmountCents)
+      field = 'body.refundAmount'
+      rawValue = body.refundAmount
+      refundAmountCents = Math.round(Number(rawValue) * 100)
     } else {
+      field = 'fallback:amount_paid_cents'
+      rawValue = undefined
       refundAmountCents = reg.amount_paid_cents ?? 0
-      console.log('[ghl-refund] no determinable refund amount in payload — treating as full refund of amount_paid_cents:', refundAmountCents)
     }
-    isFullRefund = refundAmountCents >= (reg.amount_paid_cents ?? 0)
+    const isFullRefund = refundAmountCents >= (reg.amount_paid_cents ?? 0)
+
+    console.log('[ghl-refund] amount resolution:', {
+      field,
+      rawValue,
+      computedCents: refundAmountCents,
+      amountPaidCents: reg.amount_paid_cents,
+      isFullRefund,
+    })
 
     // 7. Write refund state (mirrors the Stripe webhook: refund_amount_cents
-    // always, status/refunded_at only on a full refund).
-    await supabase
+    // always, status/refunded_at only on a full refund). The update itself is
+    // the idempotency guard — .neq('status', 'refunded') closes the race where
+    // two concurrent deliveries both read a pre-refund status before either
+    // writes; only the request whose update actually flips a row may enqueue.
+    const { data: updated } = await supabase
       .from('registrations')
       .update({
         ...(isFullRefund ? { status: 'refunded', refunded_at: new Date().toISOString() } : {}),
         refund_amount_cents: refundAmountCents,
       })
       .eq('id', reg.id)
+      .neq('status', 'refunded')
+      .select('id')
+      .maybeSingle()
+
+    if (!updated) {
+      console.log('[ghl-refund] lost the race to a concurrent refund — no-op:', reg.id)
+      return NextResponse.json({ ok: true, status: 'already_refunded' })
+    }
 
     // 8. Full refund frees a confirmed seat — promote next waitlisted attendee.
     // GHL already moved the money — no Stripe call, no ghlPut, no stage/tag change.

@@ -49,6 +49,7 @@ function makeSequentialClient(responses: Array<{ data: unknown; error?: unknown 
       const chain: Record<string, unknown> = {}
       chain.select = vi.fn().mockReturnValue(chain)
       chain.eq     = vi.fn().mockReturnValue(chain)
+      chain.neq    = vi.fn().mockReturnValue(chain)
       chain.update = vi.fn().mockReturnValue(chain)
       chain.maybeSingle = vi.fn().mockResolvedValue(resp)
       chain.single      = vi.fn().mockResolvedValue(resp)
@@ -147,7 +148,7 @@ describe('POST /api/ghl/webhooks/refund — full refund', () => {
         },
         error: null,
       },
-      { data: null, error: null }, // registrations update
+      { data: { id: REG_ID }, error: null }, // registrations update — row flipped
     ])
     vi.mocked(createAdminClient).mockReturnValue(client as any)
 
@@ -186,7 +187,7 @@ describe('POST /api/ghl/webhooks/refund — full refund', () => {
         },
         error: null,
       },
-      { data: null, error: null },
+      { data: { id: REG_ID }, error: null },
     ])
     vi.mocked(createAdminClient).mockReturnValue(client as any)
 
@@ -219,11 +220,12 @@ describe('POST /api/ghl/webhooks/refund — partial refund', () => {
         },
         error: null,
       },
-      { data: null, error: null },
+      { data: { id: REG_ID }, error: null },
     ])
     vi.mocked(createAdminClient).mockReturnValue(client as any)
 
-    const partialPayload = { ...REFUND_PAYLOAD, refund: { amount: 5000 } }
+    // GHL sends dollars — $50 of a $225 registration is a partial refund.
+    const partialPayload = { ...REFUND_PAYLOAD, refund: { amount: 50 } }
     const res = await POST(makeRequest(CORRECT_SECRET, partialPayload))
     expect(res.status).toBe(200)
     const json = await res.json()
@@ -231,5 +233,74 @@ describe('POST /api/ghl/webhooks/refund — partial refund', () => {
 
     expect(chains[1].update).toHaveBeenCalledWith({ refund_amount_cents: 5000 })
     expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/ghl/webhooks/refund — idempotency race (TOCTOU)', () => {
+  it('is a no-op and does NOT enqueue when a concurrent delivery wins the race between read and write', async () => {
+    // Initial read sees a pre-refund status, but the compare-and-swap update
+    // (.neq('status', 'refunded')) returns no row because another concurrent
+    // delivery already flipped it to refunded first.
+    const { client, chains } = makeSequentialClient([
+      {
+        data: {
+          id: REG_ID,
+          event_id: 'ev-uuid-1',
+          amount_paid_cents: AMOUNT_PAID_CENTS,
+          status: 'confirmed',
+          events: { title: 'Test Conference 2026', slug: 'test-conf-2026' },
+        },
+        error: null,
+      },
+      { data: null, error: null }, // update raced and lost — no row flipped
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: true, status: 'already_refunded' })
+
+    expect(chains[1].neq).toHaveBeenCalledWith('status', 'refunded')
+    expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/ghl/webhooks/refund — units (GHL sends dollars, Prezva stores cents)', () => {
+  it('a $225 full refund payload against amount_paid_cents=22500 writes refund_amount_cents=22500, flips to refunded, and enqueues', async () => {
+    const { client, chains } = makeSequentialClient([
+      {
+        data: {
+          id: REG_ID,
+          event_id: 'ev-uuid-1',
+          amount_paid_cents: AMOUNT_PAID_CENTS, // 22500
+          status: 'confirmed',
+          events: { title: 'Test Conference 2026', slug: 'test-conf-2026' },
+        },
+        error: null,
+      },
+      { data: { id: REG_ID }, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    // GHL sends the refund amount in dollars, same as order.total_price on the payment webhook.
+    const dollarAmountPayload = { ...REFUND_PAYLOAD, refund: { amount: 225 } }
+    const res = await POST(makeRequest(CORRECT_SECRET, dollarAmountPayload))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: true, status: 'refunded' })
+
+    expect(chains[1].update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'refunded',
+        refunded_at: expect.any(String),
+        refund_amount_cents: AMOUNT_PAID_CENTS,
+      }),
+    )
+    expect(vi.mocked(enqueueWaitlistProcessing)).toHaveBeenCalledWith({
+      eventId: 'ev-uuid-1',
+      eventTitle: 'Test Conference 2026',
+      eventSlug: 'test-conf-2026',
+    })
   })
 })
