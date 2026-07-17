@@ -171,6 +171,33 @@ describe('POST /api/ghl/webhooks/refund — transaction lookup (customData.trans
     expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
   })
 
+  it('falls through to the existing five paths with no DB write when amountRefunded is null (NOT a silent $0 refund)', async () => {
+    vi.mocked(ghlGet).mockResolvedValue([
+      { entityType: 'order', entityId: GHL_ORDER_ID, amount: 225, amountRefunded: null },
+    ])
+
+    const res = await POST(makeRequest(CORRECT_SECRET, TXN_ONLY_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: false, reason: 'unresolved_order_id' })
+    // No DB reached at all — in particular, no refund_amount_cents:0 write.
+    expect(vi.mocked(createAdminClient)).not.toHaveBeenCalled()
+    expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the existing five paths with no DB write when amountRefunded is undefined (key absent)', async () => {
+    vi.mocked(ghlGet).mockResolvedValue([
+      { entityType: 'order', entityId: GHL_ORDER_ID, amount: 225 },
+    ])
+
+    const res = await POST(makeRequest(CORRECT_SECRET, TXN_ONLY_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: false, reason: 'unresolved_order_id' })
+    expect(vi.mocked(createAdminClient)).not.toHaveBeenCalled()
+    expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+
   it('falls through to the existing five paths with no DB write and no 500 when ghlGet throws', async () => {
     vi.mocked(ghlGet).mockRejectedValue(new Error('GHL GET /payments/transactions/... failed: 503 — upstream outage'))
 

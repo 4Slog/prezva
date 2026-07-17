@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
           console.log('[ghl-refund] txn lookup: entityType is not "order":', txn.entityType, 'for transaction_id:', txnId)
         } else if (typeof txn.entityId !== 'string' || txn.entityId.length === 0) {
           console.log('[ghl-refund] txn lookup: entityId missing/invalid for transaction_id:', txnId)
+        } else if (typeof txn.amountRefunded !== 'number' || typeof txn.amount !== 'number') {
+          console.log('[ghl-refund] txn lookup: non-numeric amounts for transaction_id:', txnId,
+            'amountRefunded:', txn.amountRefunded, 'amount:', txn.amount)
         } else {
           ghlOrderId = txn.entityId
           ghlRefundAmountCents = Math.round(Number(txn.amountRefunded) * 100)
