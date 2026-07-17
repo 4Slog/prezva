@@ -12,7 +12,10 @@ function headers(token: string): Record<string, string> {
 
 export async function ghlGet<T>(token: string, path: string): Promise<T> {
   const res = await fetch(`${GHL_BASE}${path}`, { headers: headers(token) })
-  if (!res.ok) throw new Error(`GHL GET ${path} failed: ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`GHL GET ${path} failed: ${res.status} — ${errBody}`)
+  }
   return res.json() as Promise<T>
 }
 

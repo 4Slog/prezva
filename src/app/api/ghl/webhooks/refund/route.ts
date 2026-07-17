@@ -2,6 +2,8 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueWaitlistProcessing } from '@/lib/trigger'
+import { ghlGet } from '@/lib/integrations/ghl/client'
+import { getGhlToken } from '@/lib/integrations/ghl/token'
 
 export const runtime = 'nodejs'
 
@@ -21,40 +23,82 @@ export async function POST(req: NextRequest) {
       return new NextResponse(null, { status: 401 })
     }
 
-    // 2. Parse body. Nobody has seen a real GHL Refund webhook body yet, so log
-    // it in full before touching it — this log is the point of the first firing.
+    // 2. Parse body.
     let rawBody: string
     let body: Record<string, unknown>
     try {
       rawBody = await req.text()
-      console.log('[ghl-refund] raw payload:', rawBody)
       body = JSON.parse(rawBody) as Record<string, unknown>
+      // Reduced instrumentation log — the full payload carries the attendee's email,
+      // name, and contact id, which must not land in retained Vercel logs.
+      console.log('[ghl-refund] payload keys:', Object.keys(body), 'customData:', body?.customData)
     } catch {
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
     }
 
-    // 3. Resolve the GHL order id by trying candidate paths in order.
-    const order = body.order as Record<string, unknown> | undefined
-    const lineItems = Array.isArray(order?.line_items) ? (order!.line_items as Record<string, unknown>[]) : []
-    const firstItem = lineItems[0] as Record<string, unknown> | undefined
-    const meta = firstItem?.meta as Record<string, unknown> | undefined
+    // 3. Resolve the GHL order id. First candidate: the GHL Payments API transaction
+    // lookup via customData.transaction_id (verified live — the transaction record
+    // carries entityType:"order" + entityId, the actual order id, plus amount/
+    // amountRefunded). Any failure here (missing id, bad shape, GHL outage) falls
+    // through to the original five candidate paths — this must never 500 the route.
+    const customData = body.customData as Record<string, unknown> | undefined
+    const txnId = typeof customData?.transaction_id === 'string'
+      ? customData.transaction_id.trim()
+      : undefined
 
     let ghlOrderId: string | undefined
-    if (typeof meta?.order_id === 'string') {
-      ghlOrderId = meta.order_id
-      console.log('[ghl-refund] order id resolved via body.order.line_items[0].meta.order_id:', ghlOrderId)
-    } else if (typeof order?._id === 'string') {
-      ghlOrderId = order._id
-      console.log('[ghl-refund] order id resolved via body.order._id:', ghlOrderId)
-    } else if (typeof order?.id === 'string') {
-      ghlOrderId = order.id
-      console.log('[ghl-refund] order id resolved via body.order.id:', ghlOrderId)
-    } else if (typeof body.orderId === 'string') {
-      ghlOrderId = body.orderId
-      console.log('[ghl-refund] order id resolved via body.orderId:', ghlOrderId)
-    } else if (typeof body._id === 'string') {
-      ghlOrderId = body._id
-      console.log('[ghl-refund] order id resolved via body._id:', ghlOrderId)
+    let ghlRefundAmountCents: number | undefined
+    let ghlIsFullRefund: boolean | undefined
+
+    if (txnId) {
+      try {
+        const locationId = process.env.GHL_LOCATION_ID
+        const path = `/payments/transactions/${encodeURIComponent(txnId)}?altId=${locationId}&altType=location`
+        const result = await ghlGet<unknown>(getGhlToken(), path)
+        // The endpoint returns a bare array, not an object and not a {data:[...]} envelope.
+        const txn = Array.isArray(result) ? (result[0] as Record<string, unknown> | undefined) : undefined
+
+        if (!txn) {
+          console.log('[ghl-refund] txn lookup: empty response for transaction_id:', txnId)
+        } else if (txn.entityType !== 'order') {
+          console.log('[ghl-refund] txn lookup: entityType is not "order":', txn.entityType, 'for transaction_id:', txnId)
+        } else if (typeof txn.entityId !== 'string' || txn.entityId.length === 0) {
+          console.log('[ghl-refund] txn lookup: entityId missing/invalid for transaction_id:', txnId)
+        } else {
+          ghlOrderId = txn.entityId
+          ghlRefundAmountCents = Math.round(Number(txn.amountRefunded) * 100)
+          ghlIsFullRefund = Number(txn.amountRefunded) >= Number(txn.amount)
+          console.log('[ghl-refund] order id resolved via GHL transaction lookup:', ghlOrderId)
+        }
+      } catch (err) {
+        console.log('[ghl-refund] txn lookup failed:', err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    // Fallback: the original five candidate paths, tried when the transaction lookup
+    // above didn't resolve an order id (no transaction_id in customData, or any failure).
+    if (!ghlOrderId) {
+      const order = body.order as Record<string, unknown> | undefined
+      const lineItems = Array.isArray(order?.line_items) ? (order!.line_items as Record<string, unknown>[]) : []
+      const firstItem = lineItems[0] as Record<string, unknown> | undefined
+      const meta = firstItem?.meta as Record<string, unknown> | undefined
+
+      if (typeof meta?.order_id === 'string') {
+        ghlOrderId = meta.order_id
+        console.log('[ghl-refund] order id resolved via body.order.line_items[0].meta.order_id:', ghlOrderId)
+      } else if (typeof order?._id === 'string') {
+        ghlOrderId = order._id
+        console.log('[ghl-refund] order id resolved via body.order._id:', ghlOrderId)
+      } else if (typeof order?.id === 'string') {
+        ghlOrderId = order.id
+        console.log('[ghl-refund] order id resolved via body.order.id:', ghlOrderId)
+      } else if (typeof body.orderId === 'string') {
+        ghlOrderId = body.orderId
+        console.log('[ghl-refund] order id resolved via body.orderId:', ghlOrderId)
+      } else if (typeof body._id === 'string') {
+        ghlOrderId = body._id
+        console.log('[ghl-refund] order id resolved via body._id:', ghlOrderId)
+      }
     }
 
     if (!ghlOrderId) {
@@ -84,35 +128,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, status: 'already_refunded' })
     }
 
-    // 6. Determine the refunded amount. The payload shape is unknown — try a
-    // few plausible fields (logging which one hit) before defaulting to a full
-    // refund of the amount on record.
+    // 6. Determine the refunded amount. If the GHL transaction lookup resolved (step 3),
+    // it is the source of truth for both the amount and the full/partial determination.
+    // Otherwise the payload shape is unknown — try a few plausible fields (logging which
+    // one hit) before defaulting to a full refund of the amount on record.
     // GHL sends order amounts in dollars (see payment/route.ts:52 — same
     // Math.round(Number(x) * 100) conversion for order.total_price). The
     // amount_paid_cents fallback is already cents and needs no conversion.
-    const refundObj = body.refund as Record<string, unknown> | undefined
     let field: string
     let rawValue: unknown
     let refundAmountCents: number
+    let isFullRefund: boolean
 
-    if (typeof refundObj?.amount === 'number') {
-      field = 'body.refund.amount'
-      rawValue = refundObj.amount
-      refundAmountCents = Math.round(Number(rawValue) * 100)
-    } else if (typeof body.amount_refunded === 'number') {
-      field = 'body.amount_refunded'
-      rawValue = body.amount_refunded
-      refundAmountCents = Math.round(Number(rawValue) * 100)
-    } else if (typeof body.refundAmount === 'number') {
-      field = 'body.refundAmount'
-      rawValue = body.refundAmount
-      refundAmountCents = Math.round(Number(rawValue) * 100)
+    if (ghlRefundAmountCents !== undefined && ghlIsFullRefund !== undefined) {
+      field = 'ghl_transaction_lookup'
+      rawValue = ghlRefundAmountCents
+      refundAmountCents = ghlRefundAmountCents
+      isFullRefund = ghlIsFullRefund
     } else {
-      field = 'fallback:amount_paid_cents'
-      rawValue = undefined
-      refundAmountCents = reg.amount_paid_cents ?? 0
+      const refundObj = body.refund as Record<string, unknown> | undefined
+      if (typeof refundObj?.amount === 'number') {
+        field = 'body.refund.amount'
+        rawValue = refundObj.amount
+        refundAmountCents = Math.round(Number(rawValue) * 100)
+      } else if (typeof body.amount_refunded === 'number') {
+        field = 'body.amount_refunded'
+        rawValue = body.amount_refunded
+        refundAmountCents = Math.round(Number(rawValue) * 100)
+      } else if (typeof body.refundAmount === 'number') {
+        field = 'body.refundAmount'
+        rawValue = body.refundAmount
+        refundAmountCents = Math.round(Number(rawValue) * 100)
+      } else {
+        field = 'fallback:amount_paid_cents'
+        rawValue = undefined
+        refundAmountCents = reg.amount_paid_cents ?? 0
+      }
+      isFullRefund = refundAmountCents >= (reg.amount_paid_cents ?? 0)
     }
-    const isFullRefund = refundAmountCents >= (reg.amount_paid_cents ?? 0)
 
     console.log('[ghl-refund] amount resolution:', {
       field,
@@ -121,6 +174,19 @@ export async function POST(req: NextRequest) {
       amountPaidCents: reg.amount_paid_cents,
       isFullRefund,
     })
+
+    // Divergence check: GHL's own full/partial call vs. what amount_paid_cents implies.
+    // Purely observability — the GHL comparison (isFullRefund above) always wins.
+    if (ghlIsFullRefund !== undefined) {
+      const localComparison = refundAmountCents >= (reg.amount_paid_cents ?? 0)
+      if (ghlIsFullRefund !== localComparison) {
+        console.warn(
+          '[ghl-refund] isFullRefund divergence for registration', reg.id,
+          '— GHL says', ghlIsFullRefund, 'local amount comparison says', localComparison,
+          '(refundAmountCents:', refundAmountCents, 'amount_paid_cents:', reg.amount_paid_cents, ')',
+        )
+      }
+    }
 
     // 7. Write refund state (mirrors the Stripe webhook: refund_amount_cents
     // always, status/refunded_at only on a full refund). The update itself is

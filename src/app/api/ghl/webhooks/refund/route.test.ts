@@ -8,10 +8,18 @@ vi.mock('@/lib/supabase/admin', () => ({
 vi.mock('@/lib/trigger', () => ({
   enqueueWaitlistProcessing: vi.fn(),
 }))
+vi.mock('@/lib/integrations/ghl/client', () => ({
+  ghlGet: vi.fn(),
+}))
+vi.mock('@/lib/integrations/ghl/token', () => ({
+  getGhlToken: vi.fn(() => 'test-ghl-token'),
+}))
 
 import { POST } from './route'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueWaitlistProcessing } from '@/lib/trigger'
+import { ghlGet } from '@/lib/integrations/ghl/client'
+import { getGhlToken } from '@/lib/integrations/ghl/token'
 
 const CORRECT_SECRET = 'test-webhook-secret-32-chars-longg'
 const BASE_URL = 'http://localhost/api/ghl/webhooks/refund'
@@ -19,8 +27,20 @@ const BASE_URL = 'http://localhost/api/ghl/webhooks/refund'
 // Fixture from the merged-queue item: reg 417b5587-e1f7-4e5d-b248-3a7d8d981009,
 // external_order_id 6a45295be8b92c36872a71be ($225, completed/paid, GHL test mode).
 const GHL_ORDER_ID = '6a45295be8b92c36872a71be'
+const GHL_TXN_ID = '6a45295dfe764a11d566a485'
+const GHL_LOCATION_ID = 'test-location-id'
 const REG_ID = '417b5587-e1f7-4e5d-b248-3a7d8d981009'
 const AMOUNT_PAID_CENTS = 22500
+
+const TXN_ONLY_PAYLOAD = { customData: { transaction_id: GHL_TXN_ID } }
+
+const CONFIRMED_REG = {
+  id: REG_ID,
+  event_id: 'ev-uuid-1',
+  amount_paid_cents: AMOUNT_PAID_CENTS,
+  status: 'confirmed',
+  events: { title: 'Test Conference 2026', slug: 'test-conf-2026' },
+}
 
 const REFUND_PAYLOAD = {
   order: {
@@ -63,7 +83,9 @@ function makeSequentialClient(responses: Array<{ data: unknown; error?: unknown 
 beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv('GHL_WEBHOOK_SECRET', CORRECT_SECRET)
+  vi.stubEnv('GHL_LOCATION_ID', GHL_LOCATION_ID)
   vi.mocked(enqueueWaitlistProcessing).mockResolvedValue(null as any)
+  vi.mocked(getGhlToken).mockReturnValue('test-ghl-token')
 })
 
 describe('POST /api/ghl/webhooks/refund — auth', () => {
@@ -76,6 +98,106 @@ describe('POST /api/ghl/webhooks/refund — auth', () => {
     const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
     const res = await POST(makeRequest(wrongSameLength))
     expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /api/ghl/webhooks/refund — transaction lookup (customData.transaction_id, first candidate)', () => {
+  it('resolves the order id via customData.transaction_id when the GHL transaction entityType is "order", unwrapping the bare-array response, and uses txn.amount/amountRefunded for a full refund', async () => {
+    vi.mocked(ghlGet).mockResolvedValue([
+      { entityType: 'order', entityId: GHL_ORDER_ID, amount: 225, amountRefunded: 225 },
+    ])
+    const { client, chains } = makeSequentialClient([
+      { data: CONFIRMED_REG, error: null },
+      { data: { id: REG_ID }, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, TXN_ONLY_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: true, status: 'refunded' })
+
+    // The bare array (not {data:[...]}) was unwrapped via result[0], not treated as an object.
+    expect(vi.mocked(ghlGet)).toHaveBeenCalledWith(
+      'test-ghl-token',
+      `/payments/transactions/${GHL_TXN_ID}?altId=${GHL_LOCATION_ID}&altType=location`,
+    )
+    // The registration lookup used txn.entityId as the order id, not any fallback path.
+    expect(chains[0].eq).toHaveBeenCalledWith('external_order_id', GHL_ORDER_ID)
+
+    expect(chains[1].update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'refunded',
+        refunded_at: expect.any(String),
+        refund_amount_cents: AMOUNT_PAID_CENTS,
+      }),
+    )
+    expect(vi.mocked(enqueueWaitlistProcessing)).toHaveBeenCalledWith({
+      eventId: 'ev-uuid-1',
+      eventTitle: 'Test Conference 2026',
+      eventSlug: 'test-conf-2026',
+    })
+  })
+
+  it('treats amountRefunded 100 against amount 225 as a partial refund: refund_amount_cents 10000, status NOT flipped, no enqueue', async () => {
+    vi.mocked(ghlGet).mockResolvedValue([
+      { entityType: 'order', entityId: GHL_ORDER_ID, amount: 225, amountRefunded: 100 },
+    ])
+    const { client, chains } = makeSequentialClient([
+      { data: CONFIRMED_REG, error: null },
+      { data: { id: REG_ID }, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, TXN_ONLY_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: true, status: 'partial_refund' })
+
+    expect(chains[1].update).toHaveBeenCalledWith({ refund_amount_cents: 10000 })
+    expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the existing five paths with no DB write when entityType is not "order"', async () => {
+    vi.mocked(ghlGet).mockResolvedValue([
+      { entityType: 'contact', entityId: 'some-contact-id' },
+    ])
+
+    const res = await POST(makeRequest(CORRECT_SECRET, TXN_ONLY_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: false, reason: 'unresolved_order_id' })
+    expect(vi.mocked(createAdminClient)).not.toHaveBeenCalled()
+    expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the existing five paths with no DB write and no 500 when ghlGet throws', async () => {
+    vi.mocked(ghlGet).mockRejectedValue(new Error('GHL GET /payments/transactions/... failed: 503 — upstream outage'))
+
+    const res = await POST(makeRequest(CORRECT_SECRET, TXN_ONLY_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: false, reason: 'unresolved_order_id' })
+    expect(vi.mocked(createAdminClient)).not.toHaveBeenCalled()
+    expect(vi.mocked(enqueueWaitlistProcessing)).not.toHaveBeenCalled()
+  })
+
+  it('is not invoked when customData has no transaction_id — the existing five candidate paths still work unchanged', async () => {
+    const { client, chains } = makeSequentialClient([
+      { data: CONFIRMED_REG, error: null },
+      { data: { id: REG_ID }, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    // REFUND_PAYLOAD carries no customData at all — only the original
+    // body.order.line_items[0].meta.order_id fallback path.
+    const res = await POST(makeRequest(CORRECT_SECRET, REFUND_PAYLOAD))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ ok: true, status: 'refunded' })
+
+    expect(vi.mocked(ghlGet)).not.toHaveBeenCalled()
+    expect(chains[0].eq).toHaveBeenCalledWith('external_order_id', GHL_ORDER_ID)
   })
 })
 
