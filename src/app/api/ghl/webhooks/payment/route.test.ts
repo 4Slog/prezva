@@ -87,6 +87,7 @@ beforeEach(() => {
     success: true,
     registrationId: 'reg-uuid-123',
     qrCode: 'qr-abc-def',
+    appAccessToken: 'app-access-token-xyz',
   })
   vi.mocked(getGhlToken).mockReturnValue('test-token')
   vi.mocked(ghlPut).mockResolvedValue({} as any)
@@ -178,7 +179,7 @@ describe('POST /api/ghl/webhooks/payment — ticket mapping', () => {
 })
 
 describe('POST /api/ghl/webhooks/payment — happy path', () => {
-  it('returns accepted with registrationId and entryUrl', async () => {
+  it('returns accepted with registrationId and an /app-access entryUrl (I10 cross-device link)', async () => {
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://prezva.app')
 
     // Call order: [0] ghl_sync_state select (none), [1] ghl_sync_state insert,
@@ -202,14 +203,41 @@ describe('POST /api/ghl/webhooks/payment — happy path', () => {
     const json = await res.json()
     expect(json.status).toBe('accepted')
     expect(json.registrationId).toBe('reg-uuid-123')
-    expect(json.entryUrl).toBe('https://prezva.app/e/test-conf-2026/enter?reg=reg-uuid-123')
+    expect(json.entryUrl).toBe('https://prezva.app/e/test-conf-2026/app-access?t=app-access-token-xyz')
 
     expect(vi.mocked(ghlPut)).toHaveBeenCalledOnce()
     expect(vi.mocked(ghlPut)).toHaveBeenCalledWith(
       'test-token',
       `/contacts/${LIVE_PAYLOAD.contact_id}`,
-      { customFields: [{ id: GHL_FIELD_KEYS.prezvaAttendeeLink, value: 'https://prezva.app/e/test-conf-2026/enter?reg=reg-uuid-123' }] },
+      { customFields: [{ id: GHL_FIELD_KEYS.prezvaAttendeeLink, value: 'https://prezva.app/e/test-conf-2026/app-access?t=app-access-token-xyz' }] },
     )
+  })
+
+  it('falls back to /enter?reg= when no appAccessToken is available', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://prezva.app')
+    vi.mocked(createRegistrationFromExternalPayment).mockResolvedValueOnce({
+      success: true,
+      registrationId: 'reg-uuid-123',
+      qrCode: 'qr-abc-def',
+      appAccessToken: '',
+    })
+
+    vi.mocked(createAdminClient).mockReturnValue(
+      makeSequentialClient([
+        { data: null, error: null },
+        { data: { id: 'state-new' }, error: null },
+        { data: { org_id: 'org-uuid-1' }, error: null },
+        { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+        { data: { name: 'General Admission' }, error: null },
+        { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
+        { data: null, error: null },
+      ]) as any,
+    )
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.entryUrl).toBe('https://prezva.app/e/test-conf-2026/enter?reg=reg-uuid-123')
   })
 })
 

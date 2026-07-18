@@ -3137,6 +3137,7 @@ export type Database = {
       registrations: {
         Row: {
           amount_paid_cents: number | null
+          app_access_token: string | null
           attendee_company: string | null
           attendee_email: string
           attendee_job_title: string | null
@@ -3181,6 +3182,7 @@ export type Database = {
         }
         Insert: {
           amount_paid_cents?: number | null
+          app_access_token?: string | null
           attendee_company?: string | null
           attendee_email: string
           attendee_job_title?: string | null
@@ -3225,6 +3227,7 @@ export type Database = {
         }
         Update: {
           amount_paid_cents?: number | null
+          app_access_token?: string | null
           attendee_company?: string | null
           attendee_email?: string
           attendee_job_title?: string | null
@@ -5764,3 +5767,4 @@ export const Constants = {
     },
   },
 } as const
+

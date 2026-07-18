@@ -479,7 +479,7 @@ export interface CreateRegistrationFromExternalPaymentParams {
 }
 
 export type CreateRegistrationFromExternalPaymentResult =
-  | { success: true; registrationId: string; qrCode: string }
+  | { success: true; registrationId: string; qrCode: string; appAccessToken: string }
   | { success: false; error: string; waitlisted?: boolean }
 
 export async function createRegistrationFromExternalPayment(
@@ -490,12 +490,12 @@ export async function createRegistrationFromExternalPayment(
   // Idempotency: if a registration for this externalOrderId already exists, return it
   const { data: existing } = await supabase
     .from('registrations')
-    .select('id, qr_code')
+    .select('id, qr_code, app_access_token')
     .eq('external_order_id', params.externalOrderId)
     .maybeSingle()
 
   if (existing) {
-    return { success: true, registrationId: existing.id, qrCode: existing.qr_code }
+    return { success: true, registrationId: existing.id, qrCode: existing.qr_code, appAccessToken: existing.app_access_token }
   }
 
   // Insert directly as confirmed/paid. DB trigger trg_enforce_capacity fires before insert.
@@ -522,7 +522,7 @@ export async function createRegistrationFromExternalPayment(
       sms_opt_in_at:        null,
       external_order_id:    params.externalOrderId,
     })
-    .select('id, qr_code')
+    .select('id, qr_code, app_access_token')
     .single()
 
   if (error) {
@@ -532,7 +532,7 @@ export async function createRegistrationFromExternalPayment(
     return { success: false, error: error.message }
   }
 
-  return { success: true, registrationId: data.id, qrCode: data.qr_code }
+  return { success: true, registrationId: data.id, qrCode: data.qr_code, appAccessToken: data.app_access_token }
 }
 
 // ── Virtual check-in ──────────────────────────────────────────────────────────

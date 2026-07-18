@@ -251,7 +251,9 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
     const entryUrl = appUrl && eventSlug
-      ? `${appUrl}/e/${eventSlug}/enter?reg=${result.registrationId}`
+      ? (result.appAccessToken
+          ? `${appUrl}/e/${eventSlug}/app-access?t=${result.appAccessToken}`
+          : `${appUrl}/e/${eventSlug}/enter?reg=${result.registrationId}`)
       : null
 
     // Best-effort: write entryUrl into the GHL contact so the GHL "Send Email"
