@@ -212,3 +212,149 @@ describe('POST /api/ghl/webhooks/payment — happy path', () => {
     )
   })
 })
+
+describe('POST /api/ghl/webhooks/payment — amount divergence (R30 multi-seat tripwire)', () => {
+  function bodyWithTotal(totalPrice: number) {
+    return {
+      ...LIVE_PAYLOAD,
+      order: { ...LIVE_PAYLOAD.order, total_price: totalPrice },
+    }
+  }
+
+  // Call order (mapped + no divergence): [0] ghl_sync_state select, [1] ghl_sync_state insert,
+  // [2] ghl_location_links, [3] ticket_type_product_mappings, [4] ticket_types, [5] events,
+  // [6] ghl_sync_state update (queued_for_sync). A divergence/unverifiable write inserts one
+  // extra update between [5] and the final one.
+  function baseResponses(priceCents: number | null) {
+    return [
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', price_cents: priceCents }, error: null },
+      { data: { name: 'General Admission' }, error: null },
+      { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
+    ]
+  }
+
+  it('paid == expected -> no divergence recorded, registration created, status unchanged', async () => {
+    const client = makeSequentialClient([
+      ...baseResponses(22500),
+      { data: null, error: null }, // queued_for_sync update
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(225)))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+
+    expect(client.from.mock.calls.length).toBe(7)
+    const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs.status).toBe('queued_for_sync')
+    expect(finalUpdateArgs.last_error).toBeUndefined()
+  })
+
+  it('paid is an exact multiple of expected (3 seats, 67500 vs 22500) -> divergence recorded, registration STILL created', async () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const client = makeSequentialClient([
+      ...baseResponses(22500),
+      { data: null, error: null }, // divergence update
+      { data: null, error: null }, // queued_for_sync update
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(675)))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+    expect(json.registrationId).toBe('reg-uuid-123')
+
+    const divergenceArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(divergenceArgs.last_error).toBe('amount_divergence: paid=67500 expected=22500')
+    expect(divergenceArgs.status).toBeUndefined()
+
+    const finalUpdateArgs = client.from.mock.results[7].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs.status).toBe('queued_for_sync')
+
+    expect(consoleErr).toHaveBeenCalledWith(
+      '[ghl-webhook] amount divergence — possible multi-seat order:',
+      expect.objectContaining({ expectedCents: 22500, paidCents: 67500 }),
+    )
+    consoleErr.mockRestore()
+  })
+
+  it('paid differs by a non-multiple (3 seats + 50% off, 33750 vs 22500) -> divergence recorded, registration STILL created', async () => {
+    const client = makeSequentialClient([
+      ...baseResponses(22500),
+      { data: null, error: null }, // divergence update
+      { data: null, error: null }, // queued_for_sync update
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(337.5)))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+
+    const divergenceArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(divergenceArgs.last_error).toBe('amount_divergence: paid=33750 expected=22500')
+  })
+
+  it('coupon: paid=0 vs expected=22500 (100% comped, registration 61d9ba3f is real) -> NOT flagged, registration STILL created', async () => {
+    const client = makeSequentialClient([
+      ...baseResponses(22500),
+      { data: null, error: null }, // queued_for_sync update
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(0)))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+
+    expect(client.from.mock.calls.length).toBe(7)
+    const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs.status).toBe('queued_for_sync')
+    expect(finalUpdateArgs.last_error).toBeUndefined()
+  })
+
+  it('partial coupon: paid=11250 vs expected=22500 -> not flagged, registration created', async () => {
+    const client = makeSequentialClient([
+      ...baseResponses(22500),
+      { data: null, error: null }, // queued_for_sync update
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(112.5)))
+    expect(res.status).toBe(200)
+
+    expect(client.from.mock.calls.length).toBe(7)
+    const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs.last_error).toBeUndefined()
+  })
+
+  it('mapping has price_cents=null -> amount_unverifiable recorded (distinct from divergence), registration STILL created', async () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const client = makeSequentialClient([
+      ...baseResponses(null),
+      { data: null, error: null }, // unverifiable update
+      { data: null, error: null }, // queued_for_sync update
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(225)))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+
+    const unverifiableArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(unverifiableArgs.last_error).toBe('amount_unverifiable: paid=22500 expected=null')
+    expect(unverifiableArgs.status).toBeUndefined()
+
+    expect(consoleErr).toHaveBeenCalledWith(
+      '[ghl-webhook] amount unverifiable — mapping has no price_cents:',
+      expect.objectContaining({ paidCents: 22500 }),
+    )
+    consoleErr.mockRestore()
+  })
+})

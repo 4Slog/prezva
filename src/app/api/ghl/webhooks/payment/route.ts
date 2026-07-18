@@ -133,10 +133,11 @@ export async function POST(req: NextRequest) {
     let ticketTypeTitle: string | null = null
     let eventTitle: string | null = null
     let eventSlug: string | null = null
+    let mappedPriceCents: number | null = null
 
     const { data: mapping } = await supabase
       .from('ticket_type_product_mappings')
-      .select('ticket_type_id, event_id')
+      .select('ticket_type_id, event_id, price_cents')
       .eq('ghl_product_id', productId)
       .eq('ghl_price_id', priceId)
       .maybeSingle()
@@ -144,6 +145,7 @@ export async function POST(req: NextRequest) {
     if (mapping) {
       ticketTypeId = mapping.ticket_type_id
       eventId      = mapping.event_id
+      mappedPriceCents = mapping.price_cents
 
       // Fetch ticket title + event title for the sync task
       const [{ data: ttRow }, { data: evRow }] = await Promise.all([
@@ -162,6 +164,34 @@ export async function POST(req: NextRequest) {
         .update({ status: 'failed', last_error: 'ticket_not_mapped', updated_at: new Date().toISOString() })
         .eq('id', syncStateId)
       return NextResponse.json({ error: 'ticket_not_mapped' }, { status: 400 })
+    }
+
+    // 5b. Multi-seat tripwire (R30): amount paid vs single-ticket price.
+    // > not != — coupons/discounts (paid < expected) are real (e.g. registration
+    // 61d9ba3f) and must not trip this. Only overpayment indicates more than one
+    // seat in a single registration. Never blocks the webhook — canary only.
+    if (mappedPriceCents === null) {
+      console.error('[ghl-webhook] amount unverifiable — mapping has no price_cents:', {
+        ghlOrderId, paidCents: amountPaidCents,
+      })
+      await supabase
+        .from('ghl_sync_state')
+        .update({
+          last_error: `amount_unverifiable: paid=${amountPaidCents} expected=null`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', syncStateId)
+    } else if (amountPaidCents > mappedPriceCents) {
+      console.error('[ghl-webhook] amount divergence — possible multi-seat order:', {
+        ghlOrderId, expectedCents: mappedPriceCents, paidCents: amountPaidCents,
+      })
+      await supabase
+        .from('ghl_sync_state')
+        .update({
+          last_error: `amount_divergence: paid=${amountPaidCents} expected=${mappedPriceCents}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', syncStateId)
     }
 
     // 6. Create registration
