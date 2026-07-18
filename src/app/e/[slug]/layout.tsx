@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { getPublicEvent } from '@/lib/public/actions'
 import { AttendeeShell } from '@/components/attendee/AttendeeShell'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
@@ -17,11 +16,10 @@ export default async function AttendeeLayout({
   const event = await getPublicEvent(slug)
   if (!event) notFound()
 
-  const jar = await cookies()
-  const hasRegistration = !!jar.get(`pz_reg_${slug}`)?.value
+  const identity = await getSessionIdentity(slug)
+  const hasRegistration = identity.type !== 'anonymous'
 
   let avatarUrl: string | null = null
-  const identity = await getSessionIdentity(slug)
   if (identity.type === 'user') {
     const sb = await createClient()
     const admin = createAdminClient()
