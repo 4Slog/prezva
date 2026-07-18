@@ -76,7 +76,10 @@ export default function LivePageClient({ session, event, registrationId, userId,
 
   const watchedSecondsRef = useRef(0)
   const lastSentRef = useRef(0)
-  watchedSecondsRef.current = watchedSeconds
+
+  useEffect(() => {
+    watchedSecondsRef.current = watchedSeconds
+  }, [watchedSeconds])
 
   function handleProgress(seconds: number) {
     setWatchedSeconds(prev => prev + seconds)
