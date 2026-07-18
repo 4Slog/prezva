@@ -39,10 +39,9 @@ test('E2E-04: signup form renders with required fields', async ({ page }) => {
 // E2E-05: Help center page accessible to anon users
 test('E2E-05: help center page loads without server error', async ({ page }) => {
   // /help is not in middleware protected-routes — renders for anon users
-  const response = await page.goto('/help')
+  const response = await page.goto('/help', { waitUntil: 'domcontentloaded' })
   expect(response?.status()).not.toBe(500)
-  const status = await page.evaluate(() => document.readyState)
-  expect(status).toBe('complete')
+  await page.waitForLoadState('load')
 })
 
 // E2E-06: Survey page with invalid token returns not-found
