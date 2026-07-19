@@ -1676,6 +1676,44 @@ export type Database = {
           },
         ]
       }
+      ghl_org_config: {
+        Row: {
+          created_at: string
+          field_ids: Json
+          org_id: string
+          pipeline_id: string
+          provisioned_by: string
+          stage_ids: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_ids: Json
+          org_id: string
+          pipeline_id: string
+          provisioned_by?: string
+          stage_ids: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_ids?: Json
+          org_id?: string
+          pipeline_id?: string
+          provisioned_by?: string
+          stage_ids?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ghl_org_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ghl_sync_state: {
         Row: {
           created_at: string
@@ -2301,6 +2339,7 @@ export type Database = {
         Row: {
           created_at: string
           directionality_preferences: Json | null
+          encrypted_access_token: string | null
           encrypted_refresh_token: string | null
           id: string
           last_synced_at: string | null
@@ -2308,11 +2347,13 @@ export type Database = {
           provider: string
           scopes: string[] | null
           status: Database["public"]["Enums"]["integration_status"]
+          token_expires_at: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           directionality_preferences?: Json | null
+          encrypted_access_token?: string | null
           encrypted_refresh_token?: string | null
           id?: string
           last_synced_at?: string | null
@@ -2320,11 +2361,13 @@ export type Database = {
           provider: string
           scopes?: string[] | null
           status?: Database["public"]["Enums"]["integration_status"]
+          token_expires_at?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           directionality_preferences?: Json | null
+          encrypted_access_token?: string | null
           encrypted_refresh_token?: string | null
           id?: string
           last_synced_at?: string | null
@@ -2332,6 +2375,7 @@ export type Database = {
           provider?: string
           scopes?: string[] | null
           status?: Database["public"]["Enums"]["integration_status"]
+          token_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -5767,4 +5811,3 @@ export const Constants = {
     },
   },
 } as const
-

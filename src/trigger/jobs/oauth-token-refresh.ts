@@ -1,6 +1,7 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
 import { getAdapter } from '@/lib/integrations/_shared/registry'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 
 // Runs every 5 minutes — refreshes tokens expiring within 10 minutes
 export const oauthTokenRefreshTask = schedules.task({
@@ -23,8 +24,13 @@ export const oauthTokenRefreshTask = schedules.task({
     let refreshed = 0
     for (const integration of expiring) {
       try {
+        if (integration.provider === 'ghl') {
+          await ghlAdapter.getAccessToken(integration.org_id)
+          refreshed++
+          continue
+        }
         const adapter = getAdapter(integration.provider)
-        // getStatus calls the provider API and triggers an internal token refresh
+        // NOTE: getStatus is a pure DB read, not a refresh — this path is a known pre-existing no-op, tracked separately from the GHL branch above.
         await adapter.getStatus(integration.org_id)
         refreshed++
       } catch (err: unknown) {
