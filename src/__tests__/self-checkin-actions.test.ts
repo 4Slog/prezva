@@ -6,6 +6,15 @@ vi.mock('@/lib/audit/log', () => ({
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
 }))
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlLocationIdForOrg: vi.fn(),
+}))
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls directly.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
 vi.mock('@/lib/ratelimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ limited: false }),
   pinLookupLimiter: {},
@@ -29,7 +38,27 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 import { selfCheckInByToken, selfCheckInRegistration, selfCheckInByEmailPin } from '@/lib/checkin/self-checkin-actions'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_STAGE_IDS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_FIELD_KEYS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
+
+const ORG_ID = 'c1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+const LOCATION_ID = '4KrDX2FYA2XZ68q88rFS'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 function makeChain(override: Record<string, any> = {}) {
   const base: Record<string, any> = {}
@@ -70,11 +99,13 @@ describe('selfCheckInRegistration — GHL stage move', () => {
   const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
   const confirmedReg = {
     id: REG_ID, user_id: USER_ID, attendee_name: 'Alice', status: 'confirmed', event_id: 'event-1',
-    events: { id: 'event-1', title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC' },
+    events: { id: 'event-1', title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC', org_id: ORG_ID },
   }
 
   beforeEach(() => {
     vi.mocked(enqueueGhlStageMove).mockClear()
+    vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+    vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   })
 
   function setupTables(opts: { existingCheckIn: any; insertError?: any }) {
@@ -121,11 +152,13 @@ describe('selfCheckInByEmailPin — GHL stage move', () => {
   const PIN = '1234'
   const confirmedReg = {
     id: REG_ID, user_id: USER_ID, attendee_name: 'Alice', pin: PIN, status: 'confirmed', event_id: EVENT_ID,
-    events: { id: EVENT_ID, title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC' },
+    events: { id: EVENT_ID, title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC', org_id: ORG_ID },
   }
 
   beforeEach(() => {
     vi.mocked(enqueueGhlStageMove).mockClear()
+    vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+    vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   })
 
   function setupTables(opts: { existingCheckIn: any; insertError?: any }) {

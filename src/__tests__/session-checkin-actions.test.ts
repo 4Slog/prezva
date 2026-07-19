@@ -6,6 +6,15 @@ vi.mock('@/lib/auth/get-user', () => ({
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
 }))
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlLocationIdForOrg: vi.fn(),
+}))
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls directly.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
 
 let mockFromImpl: (table: string) => any
 const mockFrom = vi.fn((t: string) => mockFromImpl(t))
@@ -18,11 +27,30 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 import { markSessionAttendance } from '@/lib/checkin/session-checkin-actions'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_STAGE_IDS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_FIELD_KEYS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
 
 const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const REG_ID = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+const ORG_ID = 'c1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+const LOCATION_ID = '4KrDX2FYA2XZ68q88rFS'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 function makeChain(override: Record<string, any> = {}) {
   const base: Record<string, any> = {}
@@ -42,6 +70,7 @@ function setupTables(opts: { existingAttendance: any; insertError?: any }) {
   mockFromImpl = (t) => {
     if (t === 'registrations') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: REG_ID, user_id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }, error: null }) })
     if (t === 'sessions') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: SESSION_ID }, error: null }) })
+    if (t === 'events') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { org_id: ORG_ID }, error: null }) })
     if (t === 'session_attendance') return makeChain({
       maybeSingle: vi.fn().mockResolvedValue({ data: opts.existingAttendance, error: null }),
       insert: vi.fn().mockReturnValue({ error: opts.insertError ?? null }),
@@ -54,6 +83,8 @@ function setupTables(opts: { existingAttendance: any; insertError?: any }) {
 describe('markSessionAttendance — GHL stage move (door 1)', () => {
   beforeEach(() => {
     vi.mocked(enqueueGhlStageMove).mockClear()
+    vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+    vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   })
 
   it('fires enqueueGhlStageMove exactly once with attendedSession stage on new attendance', async () => {

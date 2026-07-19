@@ -1,9 +1,21 @@
+import { buildStageTagMaps, GHL_TAG_PREFIX, buildEventTag, GHL_LIFECYCLE_TAGS } from './org-config'
+
+// Re-exported unchanged — canonical definitions live in org-config.ts (see
+// comment there) purely to keep this module's dependency on org-config.ts
+// one-directional. Every existing `from '@/lib/integrations/ghl/config'`
+// import of these three keeps working without changes.
+export { GHL_TAG_PREFIX, buildEventTag, GHL_LIFECYCLE_TAGS }
+
 export function isGhlEventsEnabled(): boolean {
   return process.env.GHL_EVENTS_ENABLED === 'true'
 }
 
+// LEGACY SINGLE-TENANT CONSTANTS — seed/test reference only. Production code
+// resolves via getGhlOrgConfig (GE-8 Batch 1). Do not import from production code.
 export const GHL_EVENTS_PIPELINE_ID = 'oTf46hAR05Cnms51VGeC';
 
+// LEGACY SINGLE-TENANT CONSTANTS — seed/test reference only. Production code
+// resolves via getGhlOrgConfig (GE-8 Batch 1). Do not import from production code.
 export const GHL_STAGE_IDS = {
   registered: 'd08d5780-342c-4a09-9cbf-7c0ab80eb4af',
   paymentPending: '5e0e12f8-6784-4293-94e5-39aeb3be66a5',
@@ -15,6 +27,8 @@ export const GHL_STAGE_IDS = {
   followUpComplete: '5e067088-7278-44c4-9da6-3d09b350a96b',
 } as const;
 
+// LEGACY SINGLE-TENANT CONSTANTS — seed/test reference only. Production code
+// resolves via getGhlOrgConfig (GE-8 Batch 1). Do not import from production code.
 export const GHL_FIELD_KEYS = {
   prezvaEventId: 'pZB1j7QMFIFzlvmbE4Om',
   prezvaRegistrationId: 'xgwB65VeroEozIlRNyFS',
@@ -31,35 +45,15 @@ export const GHL_FIELD_KEYS = {
   prezvaAttendancePct: 'jN0w8V3yMDLQaIJcp5pO',
 } as const;
 
-export const GHL_TAG_PREFIX = 'prezva' as const
-
-export function buildEventTag(eventSlug: string): string {
-  return `${GHL_TAG_PREFIX}-event-${eventSlug}`
-}
-
-export const GHL_LIFECYCLE_TAGS = {
-  confirmed:    `${GHL_TAG_PREFIX}-confirmed`,
-  checkedIn:    `${GHL_TAG_PREFIX}-checked-in`,
-  attended:     `${GHL_TAG_PREFIX}-attended`,
-  noShow:       `${GHL_TAG_PREFIX}-no-show`,
-  certIssued:   `${GHL_TAG_PREFIX}-cert-issued`,
-  ceIncomplete: `${GHL_TAG_PREFIX}-ce-incomplete`,
-} as const
+// Derived from the legacy constants via the same pure function production
+// code uses for per-org config (buildStageTagMaps in org-config.ts), so
+// these can't drift from what getGhlOrgConfig produces for a real org.
+const LEGACY_STAGE_TAG_MAPS = buildStageTagMaps(GHL_STAGE_IDS)
 
 // Maps a pipeline stage id to the lifecycle tag applied on entering that stage.
 // Stages absent from this map intentionally apply no tag.
-export const GHL_STAGE_TAGS: Record<string, string> = {
-  [GHL_STAGE_IDS.confirmed]:         GHL_LIFECYCLE_TAGS.confirmed,
-  [GHL_STAGE_IDS.checkedIn]:         GHL_LIFECYCLE_TAGS.checkedIn,
-  [GHL_STAGE_IDS.attendedSession]:   GHL_LIFECYCLE_TAGS.attended,
-  [GHL_STAGE_IDS.noShow]:            GHL_LIFECYCLE_TAGS.noShow,
-  [GHL_STAGE_IDS.certificateIssued]: GHL_LIFECYCLE_TAGS.certIssued,
-}
+export const GHL_STAGE_TAGS: Record<string, string> = LEGACY_STAGE_TAG_MAPS.stageTags
 
 // Entering these stages falsifies the no-show inference, so its tag is removed.
 // One-directional by design: noShow never strips positive-fact tags.
-export const GHL_STAGE_SUPERSEDES_TAGS: Record<string, string[]> = {
-  [GHL_STAGE_IDS.checkedIn]:         [GHL_LIFECYCLE_TAGS.noShow],
-  [GHL_STAGE_IDS.attendedSession]:   [GHL_LIFECYCLE_TAGS.noShow],
-  [GHL_STAGE_IDS.certificateIssued]: [GHL_LIFECYCLE_TAGS.noShow, GHL_LIFECYCLE_TAGS.ceIncomplete],
-}
+export const GHL_STAGE_SUPERSEDES_TAGS: Record<string, string[]> = LEGACY_STAGE_TAG_MAPS.stageSupersedesTags

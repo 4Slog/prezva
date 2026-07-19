@@ -10,6 +10,12 @@ vi.mock('@/lib/embedded/session', () => ({
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
 }))
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls directly.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
 
 let mockFromImpl: (table: string) => any
 const mockFrom = vi.fn((t: string) => mockFromImpl(t))
@@ -19,7 +25,23 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 import { checkInByQR, checkInBySearch, processOfflineQueue, embedScanIntoSession, embedManualMarkSession } from '@/lib/embedded/checkin-actions'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_STAGE_IDS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_FIELD_KEYS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const REG_ID   = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
@@ -105,6 +127,7 @@ describe('embedScanIntoSession / embedManualMarkSession — GHL stage move', () 
 
   beforeEach(() => {
     vi.mocked(enqueueGhlStageMove).mockClear()
+    vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   })
 
   function setupSessionTables(opts: { existingCheckIn: any; insertError?: any }) {

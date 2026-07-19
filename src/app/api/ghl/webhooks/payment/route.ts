@@ -8,7 +8,7 @@ import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 import { ghlPut } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
@@ -263,9 +263,17 @@ export async function POST(req: NextRequest) {
     // registration.
     if (entryUrl && contactId) {
       try {
-        await ghlPut(getGhlToken(), `/contacts/${contactId}`, {
-          customFields: [{ id: GHL_FIELD_KEYS.prezvaAttendeeLink, value: entryUrl }],
-        })
+        // locationLink was already validated truthy at step 4 — GHL-linkage
+        // is implied, so a null config here is always the "linked but
+        // unprovisioned" case, not "not linked."
+        const config = await getGhlOrgConfig(supabase, locationLink.org_id)
+        if (!config) {
+          console.error(`[ghl] org ${locationLink.org_id} is GHL-linked but has no ghl_org_config row — sync skipped`)
+        } else {
+          await ghlPut(getGhlToken(), `/contacts/${contactId}`, {
+            customFields: [{ id: config.fieldIds.prezvaAttendeeLink, value: entryUrl }],
+          })
+        }
       } catch (e) {
         console.error('[ghl-payment] failed to write entryUrl to contact', contactId, e)
       }

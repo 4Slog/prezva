@@ -7,7 +7,8 @@ import { checkEligibility } from './eligibility'
 import { enqueueCertificateEmail, enqueueGhlStageMove } from '@/lib/trigger'
 import { logAudit } from '@/lib/audit/log'
 import { createNotification } from '@/lib/notifications/notification-actions'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
   // Admin client: template management bypasses RLS for server-side cert generation
@@ -91,7 +92,15 @@ export async function issueOrGetCertificate(
   // Move the attendee's GHL opportunity to Certificate Issued.
   // The ghl-stage-move job silently skips registrations with no GHL sync state, so this is a no-op for standalone orgs.
   try {
-    await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.certificateIssued })
+    const locationId = await ghlLocationIdForOrg(admin, orgId)
+    if (locationId) {
+      const config = await getGhlOrgConfig(admin, orgId)
+      if (config) {
+        await enqueueGhlStageMove({ registrationId, stageId: config.stageIds.certificateIssued })
+      } else {
+        console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      }
+    }
   } catch (e) {
     console.error('[certificates] enqueueGhlStageMove failed:', e)
   }

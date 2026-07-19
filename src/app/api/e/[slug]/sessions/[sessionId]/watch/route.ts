@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 type Params = { params: Promise<{ slug: string; sessionId: string }> }
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Load session — use admin client to bypass RLS, check is_published manually
   const { data: session } = await admin
     .from('sessions')
-    .select('id, event_id, starts_at, ends_at, is_published')
+    .select('id, event_id, starts_at, ends_at, is_published, events(org_id)')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -76,7 +77,16 @@ export async function POST(req: NextRequest, { params }: Params) {
   const threshold = sessionDurationSeconds * 0.8
   if (sessionDurationSeconds > 0 && next !== null && next >= threshold && (prior === null || prior < threshold)) {
     try {
-      await enqueueGhlStageMove({ registrationId: reg.id, stageId: GHL_STAGE_IDS.attendedSession })
+      const orgId = (session as any).events?.org_id as string | undefined
+      const locationId = orgId ? await ghlLocationIdForOrg(admin, orgId) : null
+      if (locationId) {
+        const config = await getGhlOrgConfig(admin, orgId as string)
+        if (config) {
+          await enqueueGhlStageMove({ registrationId: reg.id, stageId: config.stageIds.attendedSession })
+        } else {
+          console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+        }
+      }
     } catch (e) {
       console.error('[watch] enqueueGhlStageMove failed:', e)
     }

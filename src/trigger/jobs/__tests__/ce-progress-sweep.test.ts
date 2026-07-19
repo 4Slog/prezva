@@ -23,6 +23,17 @@ vi.mock('@/lib/certificates/eligibility', () => ({
   checkEligibility: vi.fn(),
 }))
 
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlLocationIdForOrg: vi.fn(),
+}))
+
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls per-case.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
+
 import {
   findCeProgressCandidates,
   processCeProgressCandidate,
@@ -31,17 +42,32 @@ import {
 } from '../ce-progress-sweep'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { checkEligibility } from '@/lib/certificates/eligibility'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import {
   GHL_FIELD_KEYS,
   GHL_LIFECYCLE_TAGS,
   GHL_STAGE_IDS,
+  GHL_STAGE_TAGS,
   GHL_STAGE_SUPERSEDES_TAGS,
+  GHL_EVENTS_PIPELINE_ID,
 } from '@/lib/integrations/ghl/config'
 
 const TOKEN = 'test-token'
 const OPP_ID = 'opp-1'
 const CONTACT_ID = 'contact-1'
 const EVENT_ID = 'event-1'
+const ORG_ID = 'org-1'
+const LOCATION_ID = '4KrDX2FYA2XZ68q88rFS'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 function baseCandidate(overrides: Partial<CeProgressCandidate> = {}): CeProgressCandidate {
   return {
@@ -67,6 +93,8 @@ beforeEach(() => {
   vi.mocked(ghlAddContactTags).mockReset().mockResolvedValue([])
   vi.mocked(ghlRemoveContactTags).mockReset().mockResolvedValue([])
   vi.mocked(checkEligibility).mockReset()
+  vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+  vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
 })
 
 describe('processCeProgressCandidate', () => {
@@ -76,7 +104,7 @@ describe('processCeProgressCandidate', () => {
     })
     const { admin } = makeFakeAdmin(buildUpdateOnlyResolver())
 
-    const result = await processCeProgressCandidate(admin as any, TOKEN, baseCandidate())
+    const result = await processCeProgressCandidate(admin as any, TOKEN, baseCandidate(), SAUP_CONFIG)
 
     expect(ghlPut).toHaveBeenCalledWith(TOKEN, `/opportunities/${OPP_ID}`, {
       customFields: [
@@ -95,7 +123,7 @@ describe('processCeProgressCandidate', () => {
     })
     const { admin } = makeFakeAdmin(buildUpdateOnlyResolver())
 
-    const result = await processCeProgressCandidate(admin as any, TOKEN, baseCandidate())
+    const result = await processCeProgressCandidate(admin as any, TOKEN, baseCandidate(), SAUP_CONFIG)
 
     expect(ghlPut).toHaveBeenCalledWith(TOKEN, `/opportunities/${OPP_ID}`, {
       customFields: [
@@ -114,7 +142,7 @@ describe('processCeProgressCandidate', () => {
     })
     const { admin } = makeFakeAdmin(buildUpdateOnlyResolver())
 
-    await processCeProgressCandidate(admin as any, TOKEN, baseCandidate())
+    await processCeProgressCandidate(admin as any, TOKEN, baseCandidate(), SAUP_CONFIG)
 
     expect(ghlAddContactTags).not.toHaveBeenCalled()
     expect(ghlRemoveContactTags).not.toHaveBeenCalled()
@@ -131,6 +159,7 @@ describe('processCeProgressCandidate', () => {
       admin as any,
       TOKEN,
       baseCandidate({ lastPushedAttendancePct: 60, lastPushedCeCredits: 4.5 }),
+      SAUP_CONFIG,
     )
 
     expect(ghlPut).not.toHaveBeenCalled()
@@ -145,7 +174,7 @@ describe('processCeProgressCandidate', () => {
     })
     const { admin } = makeFakeAdmin(buildUpdateOnlyResolver())
 
-    await processCeProgressCandidate(admin as any, TOKEN, baseCandidate({ ghlContactId: null }))
+    await processCeProgressCandidate(admin as any, TOKEN, baseCandidate({ ghlContactId: null }), SAUP_CONFIG)
 
     expect(ghlPut).toHaveBeenCalled()
     expect(ghlAddContactTags).not.toHaveBeenCalled()
@@ -206,6 +235,9 @@ describe('runCeProgressSweepForEvent — failure isolation', () => {
       baseCandidate({ registrationId: 'reg-ok', syncStateId: 'sync-ok', ghlOpportunityId: 'opp-ok', ghlContactId: 'contact-ok' }),
     ]
     const resolver = (call: Recorded) => {
+      if (call.table === 'events') {
+        return { data: { org_id: ORG_ID }, error: null }
+      }
       if (call.table === 'registrations') {
         return { data: candidates.map((c) => ({ id: c.registrationId })), error: null }
       }

@@ -17,6 +17,13 @@ vi.mock('@/lib/integrations/ghl/client', () => ({
 vi.mock('@/lib/integrations/ghl/token', () => ({
   getGhlToken: vi.fn(),
 }))
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls directly —
+// avoids adding a new admin.from() call to the sequential mock call order.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
 
 import { POST } from './route'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -24,7 +31,23 @@ import { createRegistrationFromExternalPayment } from '@/lib/registration/action
 import { enqueueGhlSync } from '@/lib/trigger'
 import { ghlPut } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_FIELD_KEYS } from '@/lib/integrations/ghl/config'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_FIELD_KEYS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_STAGE_IDS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 const CORRECT_SECRET = 'test-webhook-secret-32-chars-longg'
 const BASE_URL = 'http://localhost/api/ghl/webhooks/payment'
@@ -91,6 +114,7 @@ beforeEach(() => {
   })
   vi.mocked(getGhlToken).mockReturnValue('test-token')
   vi.mocked(ghlPut).mockResolvedValue({} as any)
+  vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
 })
 
 describe('POST /api/ghl/webhooks/payment — auth', () => {

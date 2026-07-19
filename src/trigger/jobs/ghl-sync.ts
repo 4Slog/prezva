@@ -3,7 +3,9 @@ import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlPost, ghlPut, ghlAddContactTags } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_EVENTS_PIPELINE_ID, GHL_STAGE_IDS, GHL_FIELD_KEYS, buildEventTag, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
+import { buildEventTag, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
+import { ghlOrgIdForLocation } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 export const ghlSyncTask = schemaTask({
   id: 'sync-ghl-registration',
@@ -25,20 +27,30 @@ export const ghlSyncTask = schemaTask({
     const admin = createAdminClient()
     const token = getGhlToken()
 
+    // This job only ever runs off a ghlLocationId already validated by the
+    // payment webhook — GHL-linkage is implied, so a null config here is
+    // always the "linked but unprovisioned" case, not "not linked."
+    const orgId = await ghlOrgIdForLocation(admin, payload.ghlLocationId)
+    const config = orgId ? await getGhlOrgConfig(admin, orgId) : null
+    if (!config) {
+      console.error(`[ghl] org ${orgId ?? payload.ghlLocationId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      return { skipped: true }
+    }
+
     const opportunityBody = {
-      pipelineId:      GHL_EVENTS_PIPELINE_ID,
-      pipelineStageId: GHL_STAGE_IDS.confirmed,
+      pipelineId:      config.pipelineId,
+      pipelineStageId: config.stageIds.confirmed,
       name:            `[Prezva] ${payload.eventTitle} — ${payload.attendeeName}`,
       status:          'open',
       contactId:       payload.ghlContactId,
       monetaryValue:   payload.amountPaidCents / 100,
       customFields: [
-        { id: GHL_FIELD_KEYS.prezvaEventId,        value: payload.eventId },
-        { id: GHL_FIELD_KEYS.prezvaRegistrationId, value: payload.registrationId },
-        { id: GHL_FIELD_KEYS.prezvaTicketType,     value: payload.ticketTypeTitle },
-        { id: GHL_FIELD_KEYS.prezvaPaymentStatus,  value: payload.paymentStatus },
-        { id: GHL_FIELD_KEYS.prezvaSource,         value: 'ghl_payment' },
-        { id: GHL_FIELD_KEYS.prezvaLastSyncTime,   value: new Date().toISOString() },
+        { id: config.fieldIds.prezvaEventId,        value: payload.eventId },
+        { id: config.fieldIds.prezvaRegistrationId, value: payload.registrationId },
+        { id: config.fieldIds.prezvaTicketType,     value: payload.ticketTypeTitle },
+        { id: config.fieldIds.prezvaPaymentStatus,  value: payload.paymentStatus },
+        { id: config.fieldIds.prezvaSource,         value: 'ghl_payment' },
+        { id: config.fieldIds.prezvaLastSyncTime,   value: new Date().toISOString() },
       ],
       locationId: payload.ghlLocationId,
     }

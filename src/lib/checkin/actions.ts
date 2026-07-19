@@ -9,7 +9,8 @@ import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 export interface CheckInResult {
   success: boolean
@@ -330,7 +331,7 @@ export async function checkInToSession(
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, event_id, status')
+    .select('id, event_id, status, events(org_id)')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -370,7 +371,16 @@ export async function checkInToSession(
   if (error) return { ok: false, error: error.message }
 
   try {
-    await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.attendedSession })
+    const orgId = (reg.events as any)?.org_id as string | undefined
+    const locationId = orgId ? await ghlLocationIdForOrg(supabase, orgId) : null
+    if (locationId) {
+      const config = await getGhlOrgConfig(supabase, orgId as string)
+      if (config) {
+        await enqueueGhlStageMove({ registrationId, stageId: config.stageIds.attendedSession })
+      } else {
+        console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      }
+    }
   } catch (e) {
     console.error('[checkin] enqueueGhlStageMove failed:', e)
   }

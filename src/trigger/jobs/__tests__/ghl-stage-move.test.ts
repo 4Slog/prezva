@@ -19,11 +19,44 @@ vi.mock('@/lib/integrations/ghl/token', () => ({
   getGhlToken: vi.fn(),
 }))
 
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlOrgIdForLocation: vi.fn(),
+}))
+
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load to build GHL_STAGE_TAGS/GHL_STAGE_SUPERSEDES_TAGS) and only stub
+// getGhlOrgConfig, which this test controls per-case.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
+
 import { ghlStageMoveTask } from '../ghl-stage-move'
 import { createAdminClient } from '../../lib/supabase-admin'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlOrgIdForLocation } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_STAGE_IDS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_FIELD_KEYS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
+
+const SAUP_ORG_ID = '22222222-2222-4222-8222-222222222201'
+const SAUP_LOCATION_ID = '4KrDX2FYA2XZ68q88rFS'
+
+// Built from the legacy constants (which are themselves derived via
+// buildStageTagMaps) so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 // schemaTask is mocked to identity above, so at runtime ghlStageMoveTask is the
 // raw opts object with a callable .run — but its real (unmocked) type is
@@ -41,6 +74,7 @@ type SyncStateRow = {
   status: string
   ghl_opportunity_id: string | null
   ghl_contact_id: string | null
+  location_id: string | null
 }
 
 function baseSyncState(overrides: Partial<SyncStateRow> = {}): SyncStateRow {
@@ -49,6 +83,7 @@ function baseSyncState(overrides: Partial<SyncStateRow> = {}): SyncStateRow {
     status: 'synced',
     ghl_opportunity_id: 'opp-1',
     ghl_contact_id: CONTACT_ID,
+    location_id: SAUP_LOCATION_ID,
     ...overrides,
   }
 }
@@ -68,6 +103,8 @@ beforeEach(() => {
   vi.mocked(ghlPut).mockReset().mockResolvedValue({} as any)
   vi.mocked(ghlAddContactTags).mockReset().mockResolvedValue([])
   vi.mocked(ghlRemoveContactTags).mockReset().mockResolvedValue([])
+  vi.mocked(ghlOrgIdForLocation).mockReset().mockResolvedValue(SAUP_ORG_ID)
+  vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
 })
 
 describe('ghlStageMoveTask — superseded tag removal', () => {
@@ -136,5 +173,22 @@ describe('ghlStageMoveTask — superseded tag removal', () => {
     await runTask({ registrationId: REGISTRATION_ID, stageId: GHL_STAGE_IDS.attendedSession })
 
     expect(ghlRemoveContactTags).not.toHaveBeenCalled()
+  })
+})
+
+describe('ghlStageMoveTask — missing ghl_org_config (Amendment 2, case b)', () => {
+  it('still applies the stage PUT but skips tag apply/removal and logs console.error', async () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(getGhlOrgConfig).mockResolvedValueOnce(null)
+    const { admin } = makeFakeAdmin(buildResolver(baseSyncState()))
+    vi.mocked(createAdminClient).mockReturnValue(admin as any)
+
+    const result = await runTask({ registrationId: REGISTRATION_ID, stageId: GHL_STAGE_IDS.attendedSession })
+
+    expect(result).toEqual({ applied: true, opportunityId: 'opp-1' })
+    expect(ghlAddContactTags).not.toHaveBeenCalled()
+    expect(ghlRemoveContactTags).not.toHaveBeenCalled()
+    expect(consoleErr).toHaveBeenCalledWith(expect.stringContaining('has no ghl_org_config row'))
+    consoleErr.mockRestore()
   })
 })

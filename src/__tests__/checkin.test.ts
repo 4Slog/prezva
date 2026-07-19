@@ -10,6 +10,15 @@ vi.mock('@/lib/admin/gate', () => ({ isSuperAdmin: vi.fn().mockReturnValue(true)
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
 }))
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlLocationIdForOrg: vi.fn(),
+}))
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls directly.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
 
 let mockFromImpl: (table: string) => any
 const mockFrom = vi.fn((t: string) => mockFromImpl(t))
@@ -30,7 +39,26 @@ import {
   orgCheckInToSession,
 } from '@/lib/checkin/actions'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_STAGE_IDS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_FIELD_KEYS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
+
+const LOCATION_ID = '4KrDX2FYA2XZ68q88rFS'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -364,7 +392,7 @@ describe('orgCheckInToSession', () => {
 
 describe('checkInToSession — GHL stage move', () => {
   const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
-  const confirmedReg = { id: REG_ID, event_id: EVENT_ID, status: 'confirmed', attendee_name: 'Alice', attendee_email: 'alice@test.com', ticket_types: { name: 'General' } }
+  const confirmedReg = { id: REG_ID, event_id: EVENT_ID, status: 'confirmed', attendee_name: 'Alice', attendee_email: 'alice@test.com', ticket_types: { name: 'General' }, events: { org_id: ORG_ID } }
 
   function setupNewAttendance() {
     mockFromImpl = (t) => {
@@ -385,6 +413,8 @@ describe('checkInToSession — GHL stage move', () => {
 
   beforeEach(() => {
     vi.mocked(enqueueGhlStageMove).mockClear()
+    vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+    vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   })
 
   it('fires enqueueGhlStageMove exactly once with attendedSession stage on new session check-in', async () => {

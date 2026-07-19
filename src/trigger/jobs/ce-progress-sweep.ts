@@ -3,7 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_FIELD_KEYS, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
+import { GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import { checkEligibility } from '@/lib/certificates/eligibility'
 
 const WINDOW_MS = 14 * 24 * 60 * 60 * 1000
@@ -60,6 +62,7 @@ export async function processCeProgressCandidate(
   admin: SupabaseClient,
   token: string,
   candidate: CeProgressCandidate,
+  config: GhlOrgConfig,
 ): Promise<CeProgressResult> {
   const el = await checkEligibility(candidate.registrationId)
   const pct = el.sessionsTotal > 0 ? Math.round((el.sessionsAttended / el.sessionsTotal) * 100) : 0
@@ -71,8 +74,8 @@ export async function processCeProgressCandidate(
 
   await ghlPut(token, `/opportunities/${candidate.ghlOpportunityId}`, {
     customFields: [
-      { id: GHL_FIELD_KEYS.prezvaAttendancePct, value: pct },
-      { id: GHL_FIELD_KEYS.prezvaCeCredits, value: credits },
+      { id: config.fieldIds.prezvaAttendancePct, value: pct },
+      { id: config.fieldIds.prezvaCeCredits, value: credits },
     ],
   })
 
@@ -105,11 +108,24 @@ export async function runCeProgressSweepForEvent(
   token: string,
   eventId: string,
 ): Promise<{ processed: number; updated: number }> {
+  const { data: eventRow } = await admin.from('events').select('org_id').eq('id', eventId).maybeSingle()
+  const orgId = eventRow?.org_id
+  if (!orgId) return { processed: 0, updated: 0 }
+
+  const locationId = await ghlLocationIdForOrg(admin, orgId)
+  if (!locationId) return { processed: 0, updated: 0 } // org not GHL-linked — silent skip
+
+  const config = await getGhlOrgConfig(admin, orgId)
+  if (!config) {
+    console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+    return { processed: 0, updated: 0 }
+  }
+
   const candidates = await findCeProgressCandidates(admin, eventId)
   let updated = 0
   for (const candidate of candidates) {
     try {
-      const result = await processCeProgressCandidate(admin, token, candidate)
+      const result = await processCeProgressCandidate(admin, token, candidate, config)
       if ('updated' in result) updated++
     } catch (e) {
       console.error('[ce-progress-sweep] processCeProgressCandidate failed:', candidate.registrationId, e)

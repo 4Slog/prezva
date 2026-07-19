@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { getGhlOrgConfig, type GhlStageKey } from '@/lib/integrations/ghl/org-config'
 
 export type { CheckInResult, CheckInStats, RecentCheckIn, SessionAttendeeRow } from '@/lib/checkin/actions'
 
@@ -45,9 +45,22 @@ async function assertEventOwnership(
 
 // ── Check-in helpers ──────────────────────────────────────────────────────────
 
-async function fireGhlStageMove(registrationId: string, stageId: string = GHL_STAGE_IDS.checkedIn) {
+async function fireGhlStageMove(
+  db: ReturnType<typeof createAdminClient>,
+  registrationId: string,
+  orgId: string,
+  stageKey: GhlStageKey = 'checkedIn',
+) {
   try {
-    await enqueueGhlStageMove({ registrationId, stageId })
+    // Every caller resolves orgId via resolveEmbedContext's ghl_location_links
+    // lookup (or receives it already resolved) — GHL-linkage is implied, so a
+    // null config here is always the "linked but unprovisioned" case.
+    const config = await getGhlOrgConfig(db, orgId)
+    if (!config) {
+      console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      return
+    }
+    await enqueueGhlStageMove({ registrationId, stageId: config.stageIds[stageKey] })
   } catch (e) {
     // Never let GHL sync failure block a check-in
     console.error('[embed-checkin] enqueueGhlStageMove failed:', e)
@@ -108,7 +121,7 @@ export async function checkInByQR(
 
   if (ciErr) return { success: false, error: ciErr.message }
 
-  await fireGhlStageMove((reg as any).id)
+  await fireGhlStageMove(db, (reg as any).id, orgId)
 
   return {
     success: true,
@@ -174,7 +187,7 @@ export async function checkInBySearch(
 
   if (error) return { success: false, error: error.message }
 
-  await fireGhlStageMove(registrationId)
+  await fireGhlStageMove(db, registrationId, orgId)
 
   return {
     success: true,
@@ -340,7 +353,7 @@ async function checkInByQRInternal(
 
   if (ciErr) return { success: false, error: ciErr.message }
 
-  await fireGhlStageMove((reg as any).id)
+  await fireGhlStageMove(db, (reg as any).id, orgId)
 
   return {
     success: true,
@@ -455,7 +468,7 @@ export async function embedScanIntoSession(
 
   if (ciErr) return { success: false, error: ciErr.message }
 
-  await fireGhlStageMove((reg as any).id, GHL_STAGE_IDS.attendedSession)
+  await fireGhlStageMove(db, (reg as any).id, orgId, 'attendedSession')
 
   return {
     success: true,
@@ -524,7 +537,7 @@ export async function embedManualMarkSession(
 
   if (error) return { success: false, error: error.message }
 
-  await fireGhlStageMove(registrationId, GHL_STAGE_IDS.attendedSession)
+  await fireGhlStageMove(db, registrationId, orgId, 'attendedSession')
 
   return {
     success: true,

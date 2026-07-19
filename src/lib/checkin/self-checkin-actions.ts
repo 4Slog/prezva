@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit/log'
 import { checkRateLimit, pinLookupLimiter } from '@/lib/ratelimit'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 export interface SelfCheckInResult {
   success: boolean
@@ -111,7 +112,7 @@ export async function selfCheckInRegistration(
 
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, user_id, attendee_name, status, event_id, events(id, title, start_at, timezone)')
+    .select('id, user_id, attendee_name, status, event_id, events(id, title, start_at, timezone, org_id)')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -148,7 +149,16 @@ export async function selfCheckInRegistration(
     if (error) return { success: false, error: 'Check-in failed. Please try again or see staff.' }
 
     try {
-      await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.attendedSession })
+      const orgId = event?.org_id as string | undefined
+      const locationId = orgId ? await ghlLocationIdForOrg(admin, orgId) : null
+      if (locationId) {
+        const config = await getGhlOrgConfig(admin, orgId as string)
+        if (config) {
+          await enqueueGhlStageMove({ registrationId, stageId: config.stageIds.attendedSession })
+        } else {
+          console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+        }
+      }
     } catch (e) {
       console.error('[self-checkin] enqueueGhlStageMove failed:', e)
     }
@@ -221,7 +231,7 @@ export async function selfCheckInByEmailPin(
 
   const { data: reg } = await admin
     .from('registrations')
-    .select('id, user_id, attendee_name, pin, status, event_id, events(id, title, start_at, timezone)')
+    .select('id, user_id, attendee_name, pin, status, event_id, events(id, title, start_at, timezone, org_id)')
     .eq('event_id', eventId)
     .eq('attendee_email', email.toLowerCase())
     .eq('status', 'confirmed')
@@ -259,7 +269,16 @@ export async function selfCheckInByEmailPin(
     if (error) return { success: false, error: GENERIC_ERROR }
 
     try {
-      await enqueueGhlStageMove({ registrationId: (reg as any).id, stageId: GHL_STAGE_IDS.attendedSession })
+      const orgId = event?.org_id as string | undefined
+      const locationId = orgId ? await ghlLocationIdForOrg(admin, orgId) : null
+      if (locationId) {
+        const config = await getGhlOrgConfig(admin, orgId as string)
+        if (config) {
+          await enqueueGhlStageMove({ registrationId: (reg as any).id, stageId: config.stageIds.attendedSession })
+        } else {
+          console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+        }
+      }
     } catch (e) {
       console.error('[self-checkin] enqueueGhlStageMove failed:', e)
     }

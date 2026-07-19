@@ -12,3 +12,15 @@ export async function ghlLocationIdForOrg(
     .single()
   return data?.ghl_location_id ?? null
 }
+
+export async function ghlOrgIdForLocation(
+  admin: SupabaseClient,
+  locationId: string,
+): Promise<string | null> {
+  const { data } = await admin
+    .from('ghl_location_links')
+    .select('org_id')
+    .eq('ghl_location_id', locationId)
+    .maybeSingle()
+  return data?.org_id ?? null
+}

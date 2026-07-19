@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 export async function markSessionAttendance(sessionId: string, eventId: string) {
   const user = await requireUser()
@@ -50,7 +51,17 @@ export async function markSessionAttendance(sessionId: string, eventId: string) 
   if (error) return { error: error.message }
 
   try {
-    await enqueueGhlStageMove({ registrationId: reg.id, stageId: GHL_STAGE_IDS.attendedSession })
+    const { data: eventRow } = await supabase.from('events').select('org_id').eq('id', eventId).maybeSingle()
+    const orgId = eventRow?.org_id
+    const locationId = orgId ? await ghlLocationIdForOrg(supabase, orgId) : null
+    if (locationId) {
+      const config = await getGhlOrgConfig(supabase, orgId as string)
+      if (config) {
+        await enqueueGhlStageMove({ registrationId: reg.id, stageId: config.stageIds.attendedSession })
+      } else {
+        console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      }
+    }
   } catch (e) {
     console.error('[session-checkin] enqueueGhlStageMove failed:', e)
   }

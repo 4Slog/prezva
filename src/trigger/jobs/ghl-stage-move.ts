@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
-import { GHL_STAGE_TAGS, GHL_STAGE_SUPERSEDES_TAGS } from '@/lib/integrations/ghl/config'
+import { ghlOrgIdForLocation } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 export const ghlStageMoveTask = schemaTask({
   id: 'ghl-stage-move',
@@ -17,7 +18,7 @@ export const ghlStageMoveTask = schemaTask({
 
     const { data: syncState } = await admin
       .from('ghl_sync_state')
-      .select('id, status, ghl_opportunity_id, ghl_contact_id')
+      .select('id, status, ghl_opportunity_id, ghl_contact_id, location_id')
       .eq('internal_registration_id', registrationId)
       .maybeSingle()
 
@@ -44,7 +45,19 @@ export const ghlStageMoveTask = schemaTask({
       result = { parked: true, syncStateId: syncState.id }
     }
 
-    const tag = GHL_STAGE_TAGS[stageId]
+    // A ghl_sync_state row only exists for already-linked orgs — GHL-linkage
+    // is implied, so a null config here is always the "linked but
+    // unprovisioned" case, not "not linked." Only the tag maps depend on
+    // config — the stage PUT/park above already ran unconditionally.
+    const orgId = syncState.location_id ? await ghlOrgIdForLocation(admin, syncState.location_id) : null
+    const config = orgId ? await getGhlOrgConfig(admin, orgId) : null
+
+    if (!config) {
+      console.error(`[ghl] org ${orgId ?? syncState.location_id ?? 'unknown'} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      return result
+    }
+
+    const tag = config.stageTags[stageId]
     if (tag && syncState.ghl_contact_id) {
       try {
         const token = getGhlToken()
@@ -54,7 +67,7 @@ export const ghlStageMoveTask = schemaTask({
       }
     }
 
-    const superseded = GHL_STAGE_SUPERSEDES_TAGS[stageId]
+    const superseded = config.stageSupersedesTags[stageId]
     if (superseded?.length && syncState.ghl_contact_id) {
       try {
         const token = getGhlToken()

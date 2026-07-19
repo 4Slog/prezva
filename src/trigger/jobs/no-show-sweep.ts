@@ -2,7 +2,8 @@ import { schedules } from '@trigger.dev/sdk/v3'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
 const GRACE_MS = 2 * 60 * 60 * 1000
 const LOOKBACK_MS = 6 * 60 * 60 * 1000
@@ -70,7 +71,7 @@ export const noShowSweepTask = schedules.task({
 
     const { data: events } = await admin
       .from('events')
-      .select('id')
+      .select('id, org_id')
       .lt('end_at', windowEnd)
       .gt('end_at', windowStart)
       .neq('status', 'archived')
@@ -80,9 +81,20 @@ export const noShowSweepTask = schedules.task({
     let registrationsEnqueued = 0
     for (const event of events) {
       const regIds = await findNoShowRegistrations(admin, event.id)
+      if (regIds.length === 0) continue
+
+      const locationId = await ghlLocationIdForOrg(admin, event.org_id)
+      if (!locationId) continue // org not GHL-linked — silent skip
+
+      const config = await getGhlOrgConfig(admin, event.org_id)
+      if (!config) {
+        console.error(`[ghl] org ${event.org_id} is GHL-linked but has no ghl_org_config row — sync skipped`)
+        continue
+      }
+
       for (const registrationId of regIds) {
         try {
-          await enqueueGhlStageMove({ registrationId, stageId: GHL_STAGE_IDS.noShow })
+          await enqueueGhlStageMove({ registrationId, stageId: config.stageIds.noShow })
           registrationsEnqueued++
         } catch (e) {
           console.error('[no-show-sweep] enqueueGhlStageMove failed:', e)

@@ -3,6 +3,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlStageMove: vi.fn().mockResolvedValue(null),
 }))
+vi.mock('@/lib/integrations/ghl/location', () => ({
+  ghlLocationIdForOrg: vi.fn(),
+}))
+// Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
+// load) and only stub getGhlOrgConfig, which this test controls directly.
+vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
+  return { ...actual, getGhlOrgConfig: vi.fn() }
+})
 
 const USER_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 vi.mock('@/lib/supabase/server', () => ({
@@ -20,16 +29,36 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 import { POST } from '@/app/api/e/[slug]/sessions/[sessionId]/watch/route'
 import { enqueueGhlStageMove } from '@/lib/trigger'
-import { GHL_STAGE_IDS } from '@/lib/integrations/ghl/config'
+import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import {
+  GHL_STAGE_IDS,
+  GHL_EVENTS_PIPELINE_ID,
+  GHL_FIELD_KEYS,
+  GHL_STAGE_TAGS,
+  GHL_STAGE_SUPERSEDES_TAGS,
+} from '@/lib/integrations/ghl/config'
 
 const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
 const REG_ID = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+const ORG_ID = 'c1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+const LOCATION_ID = '4KrDX2FYA2XZ68q88rFS'
+
+// Built from the legacy constants so this fixture can't drift from production values.
+const SAUP_CONFIG: GhlOrgConfig = {
+  pipelineId: GHL_EVENTS_PIPELINE_ID,
+  stageIds: GHL_STAGE_IDS,
+  fieldIds: GHL_FIELD_KEYS,
+  stageTags: GHL_STAGE_TAGS,
+  stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+}
 
 // 1-hour session: duration = 3600s, 80% threshold = 2880s
 const mockSession = {
   id: SESSION_ID, event_id: EVENT_ID, is_published: true,
   starts_at: '2026-01-01T00:00:00Z', ends_at: '2026-01-01T01:00:00Z',
+  events: { org_id: ORG_ID },
 }
 const mockReg = { id: REG_ID }
 
@@ -67,6 +96,8 @@ async function callPost(watchedSeconds: number) {
 describe('watch route — GHL stage move on 80% crossing (door 5)', () => {
   beforeEach(() => {
     vi.mocked(enqueueGhlStageMove).mockClear()
+    vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+    vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
     setupTables()
   })
 
