@@ -29,6 +29,7 @@ const SCOPES = [
 ]
 
 export const REDIRECT_URI = 'https://prezva.app/api/oauth/callback'
+export const STATE_COOKIE = 'ghl_oauth_state'
 
 interface GhlTokenResponse {
   access_token: string
