@@ -109,8 +109,15 @@ describe('provisionGhlOrgConfig', () => {
         expect(body).toEqual({
           name: 'Events',
           locationId: LOCATION_ID,
+          showInFunnel: true,
+          showInPieChart: true,
           useOpportunityProbability: false,
-          stages: STAGE_NAMES.map((name, i) => ({ name, position: i })),
+          stages: STAGE_NAMES.map((name, i) => ({
+            name,
+            position: i,
+            showInFunnel: true,
+            showInPieChart: true,
+          })),
         })
         return {
           id: 'pipe-new',
@@ -131,6 +138,47 @@ describe('provisionGhlOrgConfig', () => {
           registered: 'newstage-registered',
           noShow: 'newstage-noShow',
           followUpComplete: 'newstage-followUpComplete',
+        }),
+      }),
+      { onConflict: 'org_id' },
+    )
+  })
+
+  it('(b2) pipeline create response is WRAPPED {pipeline, traceId} -> unwrapped, stage ids captured', async () => {
+    vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
+      if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
+      if (path.includes('/customFields')) return fullCustomFields() as any
+      throw new Error(`unexpected ghlGet path: ${path}`)
+    })
+    vi.mocked(ghlPost).mockImplementation(async (_token, path) => {
+      if (path === '/opportunities/pipelines') {
+        return {
+          pipeline: {
+            id: 'BgpFDGi6iHwohUoWLRvC',
+            name: 'Events',
+            stages: STAGE_NAMES.map((name, i) => ({
+              id: `wrapped-${STAGE_KEY_BY_NAME[name]}`,
+              name,
+              position: i,
+            })),
+            locationId: LOCATION_ID,
+          },
+          traceId: 'trace-123',
+        } as any
+      }
+      throw new Error(`unexpected ghlPost path: ${path}`)
+    })
+
+    const { admin, upsert } = makeAdmin()
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pipeline_id: 'BgpFDGi6iHwohUoWLRvC',
+        stage_ids: expect.objectContaining({
+          registered: 'wrapped-registered',
+          noShow: 'wrapped-noShow',
+          followUpComplete: 'wrapped-followUpComplete',
         }),
       }),
       { onConflict: 'org_id' },
@@ -192,6 +240,32 @@ describe('provisionGhlOrgConfig', () => {
 
     const { admin, upsert } = makeAdmin()
     await expect(provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)).rejects.toThrow(/returned no id/)
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('(d3) wrapped pipeline create response missing id -> throws refusing to half-fire, no upsert', async () => {
+    vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
+      if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
+      if (path.includes('/customFields')) return fullCustomFields() as any
+      throw new Error(`unexpected ghlGet path: ${path}`)
+    })
+    vi.mocked(ghlPost).mockImplementation(async (_token, path) => {
+      if (path === '/opportunities/pipelines') {
+        return {
+          pipeline: {
+            name: 'Events',
+            stages: STAGE_NAMES.map((name, i) => ({ name, position: i })),
+          },
+          traceId: 'trace-456',
+        } as any
+      }
+      throw new Error(`unexpected ghlPost path: ${path}`)
+    })
+
+    const { admin, upsert } = makeAdmin()
+    await expect(provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)).rejects.toThrow(
+      /pipeline create returned no id — refusing to half-fire/,
+    )
     expect(upsert).not.toHaveBeenCalled()
   })
 

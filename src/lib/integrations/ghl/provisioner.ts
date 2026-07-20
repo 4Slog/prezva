@@ -50,6 +50,11 @@ interface GhlPipelinesListResponse {
   pipelines: GhlPipeline[]
 }
 
+interface GhlPipelineCreateResponse {
+  pipeline?: GhlPipeline
+  traceId?: string
+}
+
 interface GhlCustomField {
   id: string
   name: string
@@ -75,12 +80,26 @@ async function resolvePipeline(token: string, locationId: string): Promise<GhlPi
   const existing = list.pipelines?.find((p) => p.name === PIPELINE_NAME)
   if (existing) return existing
 
-  return ghlPost<GhlPipeline>(token, '/opportunities/pipelines', {
+  const res = await ghlPost<GhlPipelineCreateResponse | GhlPipeline>(token, '/opportunities/pipelines', {
     name: PIPELINE_NAME,
     locationId,
+    showInFunnel: true,
+    showInPieChart: true,
     useOpportunityProbability: false,
-    stages: STAGE_DEFS.map(({ name, position }) => ({ name, position })),
+    stages: STAGE_DEFS.map(({ name, position }) => ({
+      name,
+      position,
+      showInFunnel: true,
+      showInPieChart: true,
+    })),
   })
+  const pipeline = (res as GhlPipelineCreateResponse).pipeline ?? (res as GhlPipeline)
+  if (!pipeline?.id) {
+    throw new Error(
+      `[ghl-provision] pipeline create returned no id — refusing to half-fire`,
+    )
+  }
+  return pipeline
 }
 
 function resolveStageIds(pipeline: GhlPipeline, orgId: string): Record<GhlStageKey, string> {
