@@ -1,6 +1,7 @@
 import type { IntegrationAdapter, IntegrationStatus } from '../_shared/adapter'
 import { encryptToken, decryptToken } from '../_shared/encryption'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { provisionGhlOrgConfig } from './provisioner'
 
 const PROVIDER = 'ghl'
 const GHL_BASE_URL = 'https://services.leadconnectorhq.com'
@@ -22,6 +23,9 @@ const SCOPES = [
   'payments/orders.readonly',
   'payments/transactions.readonly',
   'pipelines.readonly',
+  'pipelines.write',
+  'pipelines.create',
+  'conversations.write',
   'products.readonly',
   'products/prices.readonly',
   'users.readonly',
@@ -94,6 +98,12 @@ class GhlAdapter implements IntegrationAdapter {
         org_id: orgId,
         ghl_account_id: tokens.companyId ?? null,
       }, { onConflict: 'ghl_location_id' })
+
+      try {
+        await provisionGhlOrgConfig(admin, tokens.access_token, orgId, tokens.locationId)
+      } catch (e) {
+        console.error('[ghl-provision] failed for org', orgId, e instanceof Error ? e.message : String(e))
+      }
     } else if (tokens.userType === 'Company') {
       console.log('[ghl-oauth] Company/agency token stored; per-location enumeration deferred to Batch 3')
     }

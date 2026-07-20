@@ -5,9 +5,14 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(),
 }))
 
+vi.mock('./provisioner', () => ({
+  provisionGhlOrgConfig: vi.fn(),
+}))
+
 import { ghlAdapter } from './adapter'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { encryptToken } from '../_shared/encryption'
+import { provisionGhlOrgConfig } from './provisioner'
 
 // Mirrors the sequential-response admin mock in
 // src/app/api/ghl/webhooks/payment/route.test.ts — makes the exact DB call
@@ -41,6 +46,7 @@ describe('ghlAdapter', () => {
     vi.stubEnv('GHL_CLIENT_ID', 'test-client-id')
     vi.stubEnv('GHL_CLIENT_SECRET', 'test-client-secret')
     vi.stubEnv('INTEGRATION_ENCRYPTION_KEY', ENCRYPTION_KEY)
+    vi.mocked(provisionGhlOrgConfig).mockReset().mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -83,6 +89,42 @@ describe('ghlAdapter', () => {
         { ghl_location_id: 'loc-1', org_id: 'org-1', ghl_account_id: 'company-1' },
         { onConflict: 'ghl_location_id' },
       )
+
+      expect(provisionGhlOrgConfig).toHaveBeenCalledWith(client, 'access-123', 'org-1', 'loc-1')
+    })
+
+    it('Location response: provisioning failure is non-fatal — install still succeeds', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          access_token: 'access-123',
+          refresh_token: 'refresh-123',
+          expires_in: 3600,
+          userType: 'Location',
+          locationId: 'loc-1',
+          companyId: 'company-1',
+        }),
+      })
+
+      const client = makeSequentialClient([
+        { data: null, error: null },
+        { data: null, error: null },
+      ])
+      vi.mocked(createAdminClient).mockReturnValue(client as any)
+      vi.mocked(provisionGhlOrgConfig).mockRejectedValue(new Error('GHL create-pipeline 400'))
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await expect(
+        ghlAdapter.handleCallback('auth-code', 'org-1', 'https://prezva.app/api/oauth/callback'),
+      ).resolves.toBeUndefined()
+
+      expect(client.from).toHaveBeenNthCalledWith(1, 'org_integrations')
+      expect(client.from).toHaveBeenNthCalledWith(2, 'ghl_location_links')
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ghl-provision] failed for org', 'org-1', 'GHL create-pipeline 400',
+      )
+
+      errorSpy.mockRestore()
     })
 
     it('Company response: writes org_integrations only, no location enumeration', async () => {
