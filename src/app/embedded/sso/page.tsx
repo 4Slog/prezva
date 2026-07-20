@@ -12,6 +12,10 @@ import { useRouter } from 'next/navigation'
 
 const RESPONSE_TIMEOUT_MS = 10_000
 
+// Must match the frame-ancestors origin buildEmbeddedCsp hardcodes for /embedded/*
+// (src/lib/embedded/session.ts) — the only origin allowed to frame this page at all.
+const GHL_PARENT_ORIGIN = 'https://app.gohighlevel.com'
+
 type Status = 'waiting' | 'exchanging' | 'error'
 
 interface RequestUserDataResponse {
@@ -44,7 +48,13 @@ export default function EmbeddedSsoPage() {
     }, RESPONSE_TIMEOUT_MS)
 
     async function handleMessage(event: MessageEvent) {
-      if (settled || !isRequestUserDataResponse(event.data)) return
+      if (settled) return
+      // Only the real GHL parent frame may answer REQUEST_USER_DATA — reject
+      // messages from any other origin or window (e.g. a compromised sibling
+      // frame with a reference to this window).
+      if (event.origin !== GHL_PARENT_ORIGIN) return
+      if (event.source !== window.parent) return
+      if (!isRequestUserDataResponse(event.data)) return
 
       settled = true
       clearTimeout(timeout)
@@ -72,7 +82,7 @@ export default function EmbeddedSsoPage() {
     }
 
     window.addEventListener('message', handleMessage)
-    window.parent.postMessage({ message: 'REQUEST_USER_DATA' }, '*')
+    window.parent.postMessage({ message: 'REQUEST_USER_DATA' }, GHL_PARENT_ORIGIN)
 
     return () => {
       clearTimeout(timeout)
