@@ -10,14 +10,13 @@ function secretsMatch(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB)
 }
 
-// Shared secret check for the GHL webhook routes (GE-8 hardening — rotation
-// step 1 of 2). Accepts the secret via the X-Prezva-Webhook-Secret header
-// (checked first) or the legacy ?secret= query param. Query-param support is
-// transitional: it stays until the GHL workflow actions are migrated to send
-// the header, then gets removed in a later commit once Paul rotates
-// GHL_WEBHOOK_SECRET.
+// Shared secret check for the GHL webhook routes (GE-8 hardening — O41
+// rotation complete 2026-07-21). The X-Prezva-Webhook-Secret header is the
+// ONLY accepted transport — the legacy ?secret= query param is no longer
+// honored, so the webhook secret can never appear in a URL (query strings
+// land in access logs, browser history, and Referer headers).
 export function verifyWebhookSecret(req: NextRequest): boolean {
-  const provided = req.headers.get(WEBHOOK_SECRET_HEADER) ?? req.nextUrl.searchParams.get('secret')
+  const provided = req.headers.get(WEBHOOK_SECRET_HEADER)
   const expected = process.env.GHL_WEBHOOK_SECRET
   if (!provided || !expected) return false
   return secretsMatch(provided, expected)

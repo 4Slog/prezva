@@ -50,10 +50,13 @@ const REFUND_PAYLOAD = {
   },
 }
 
-function makeRequest(secret: string | null, body: object = REFUND_PAYLOAD, headerSecret?: string | null) {
-  const url = secret !== null ? `${BASE_URL}?secret=${encodeURIComponent(secret)}` : BASE_URL
+// secret goes via the X-Prezva-Webhook-Secret header — the only transport the
+// route honors post-rotation. querySecret exists solely to prove the retired
+// ?secret= query param is now ignored.
+function makeRequest(secret: string | null, body: object = REFUND_PAYLOAD, querySecret?: string | null) {
+  const url = querySecret ? `${BASE_URL}?secret=${encodeURIComponent(querySecret)}` : BASE_URL
   const headers: Record<string, string> = { 'content-type': 'application/json' }
-  if (headerSecret) headers['X-Prezva-Webhook-Secret'] = headerSecret
+  if (secret) headers['X-Prezva-Webhook-Secret'] = secret
   return new NextRequest(url, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -91,37 +94,31 @@ beforeEach(() => {
 })
 
 describe('POST /api/ghl/webhooks/refund — auth', () => {
-  it('returns 401 when secret query param is missing', async () => {
+  it('returns 401 when no secret is provided', async () => {
     const res = await POST(makeRequest(null))
     expect(res.status).toBe(401)
   })
 
-  it('returns 401 when secret is wrong (timingSafeEqual enforced, not ==)', async () => {
+  it('returns 401 when the header secret is wrong (timingSafeEqual enforced, not ==)', async () => {
     const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
     const res = await POST(makeRequest(wrongSameLength))
     expect(res.status).toBe(401)
   })
 
   it('accepts the secret via the X-Prezva-Webhook-Secret header', async () => {
-    const res = await POST(makeRequest(null, REFUND_PAYLOAD, CORRECT_SECRET))
+    const res = await POST(makeRequest(CORRECT_SECRET))
     expect(res.status).not.toBe(401)
   })
 
-  it('still accepts the secret via the legacy ?secret= query param', async () => {
-    const res = await POST(makeRequest(CORRECT_SECRET))
-    expect(res.status).not.toBe(401)
+  it('returns 401 when the correct secret is sent via the legacy ?secret= query param (rotation complete — query is no longer honored)', async () => {
+    const res = await POST(makeRequest(null, REFUND_PAYLOAD, CORRECT_SECRET))
+    expect(res.status).toBe(401)
   })
 
   it('returns 401 when both header and query secrets are wrong', async () => {
     const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
     const res = await POST(makeRequest(wrongSameLength, REFUND_PAYLOAD, wrongSameLength))
     expect(res.status).toBe(401)
-  })
-
-  it('prefers the header over the query param when both are present', async () => {
-    const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
-    const res = await POST(makeRequest(wrongSameLength, REFUND_PAYLOAD, CORRECT_SECRET))
-    expect(res.status).not.toBe(401)
   })
 })
 
