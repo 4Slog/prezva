@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -6,6 +5,7 @@ import {
 } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
+import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { ghlPut } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
@@ -14,19 +14,10 @@ import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
 
-function secretsMatch(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8')
-  const bufB = Buffer.from(b, 'utf8')
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
-}
-
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify shared secret
-    const secret = req.nextUrl.searchParams.get('secret')
-    const envSecret = process.env.GHL_WEBHOOK_SECRET
-    if (!secret || !envSecret || !secretsMatch(secret, envSecret)) {
+    // 1. Verify shared secret (header X-Prezva-Webhook-Secret or ?secret= query)
+    if (!verifyWebhookSecret(req)) {
       return new NextResponse(null, { status: 401 })
     }
 

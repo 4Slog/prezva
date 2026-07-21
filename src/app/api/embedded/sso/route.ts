@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { mintEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { decryptSsoPayload, SsoConfigError } from '@/lib/embedded/sso'
+import { hashSsoPayload, claimSsoNonce } from '@/lib/embedded/sso-nonce'
 import { isGhlEventsEnabled } from '@/lib/integrations/ghl/config'
 
 // GHL Custom Page SSO doorway (GE-8). This is the sole entry point into the
@@ -40,6 +41,19 @@ export async function POST(request: NextRequest) {
     // nothing to log beyond the fact that it failed.
     console.error('[embedded-sso] SSO payload rejected')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Replay guard: claim the payload's hash as a one-time-use nonce before
+  // minting any session. Insert-first — the sso_nonces primary key is the
+  // atomic claim, not a check-then-insert race.
+  const payloadHash = hashSsoPayload(encryptedData)
+  const claim = await claimSsoNonce(payloadHash)
+  if (!claim.ok) {
+    if (claim.reason === 'replay') {
+      console.error('[embedded-sso] replay rejected, hash prefix:', payloadHash.slice(0, 12))
+      return NextResponse.json({ error: 'replay' }, { status: 401 })
+    }
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
 
   console.log('[embedded-sso] decrypted payload keys:', Object.keys(context))

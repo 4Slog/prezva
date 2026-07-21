@@ -1,25 +1,16 @@
-import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueWaitlistProcessing } from '@/lib/trigger'
 import { ghlGet } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 
 export const runtime = 'nodejs'
 
-function secretsMatch(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8')
-  const bufB = Buffer.from(b, 'utf8')
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
-}
-
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify shared secret
-    const secret = req.nextUrl.searchParams.get('secret')
-    const envSecret = process.env.GHL_WEBHOOK_SECRET
-    if (!secret || !envSecret || !secretsMatch(secret, envSecret)) {
+    // 1. Verify shared secret (header X-Prezva-Webhook-Secret or ?secret= query)
+    if (!verifyWebhookSecret(req)) {
       return new NextResponse(null, { status: 401 })
     }
 
@@ -29,9 +20,6 @@ export async function POST(req: NextRequest) {
     try {
       rawBody = await req.text()
       body = JSON.parse(rawBody) as Record<string, unknown>
-      // Reduced instrumentation log — the full payload carries the attendee's email,
-      // name, and contact id, which must not land in retained Vercel logs.
-      console.log('[ghl-refund] payload keys:', Object.keys(body), 'customData:', body?.customData)
     } catch {
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
     }
@@ -45,6 +33,11 @@ export async function POST(req: NextRequest) {
     const txnId = typeof customData?.transaction_id === 'string'
       ? customData.transaction_id.trim()
       : undefined
+
+    // Non-PII instrumentation: event type + external id only. Never log
+    // customData/body in full — GHL populates it with the attendee's email,
+    // name, and contact id for this workflow.
+    console.log('[ghl-refund] webhook received', { event: 'refund', transactionId: txnId ?? null })
 
     let ghlOrderId: string | undefined
     let ghlRefundAmountCents: number | undefined

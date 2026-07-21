@@ -83,12 +83,14 @@ const LIVE_PAYLOAD = {
   },
 }
 
-function makeRequest(secret: string | null, body: object = LIVE_PAYLOAD) {
+function makeRequest(secret: string | null, body: object = LIVE_PAYLOAD, headerSecret?: string | null) {
   const url = secret !== null ? `${BASE_URL}?secret=${encodeURIComponent(secret)}` : BASE_URL
+  const headers: Record<string, string> = { 'content-type': 'application/json' }
+  if (headerSecret) headers['X-Prezva-Webhook-Secret'] = headerSecret
   return new NextRequest(url, {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
+    headers,
   })
 }
 
@@ -137,6 +139,29 @@ describe('POST /api/ghl/webhooks/payment — auth', () => {
     const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
     const res = await POST(makeRequest(wrongSameLength))
     expect(res.status).toBe(401)
+  })
+
+  it('accepts the secret via the X-Prezva-Webhook-Secret header', async () => {
+    const res = await POST(makeRequest(null, LIVE_PAYLOAD, CORRECT_SECRET))
+    expect(res.status).not.toBe(401)
+  })
+
+  it('still accepts the secret via the legacy ?secret= query param', async () => {
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).not.toBe(401)
+  })
+
+  it('returns 401 when both header and query secrets are wrong', async () => {
+    const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
+    const res = await POST(makeRequest(wrongSameLength, LIVE_PAYLOAD, wrongSameLength))
+    expect(res.status).toBe(401)
+  })
+
+  it('prefers the header over the query param when both are present', async () => {
+    // Header carries the correct secret, query carries a wrong one — header wins.
+    const wrongSameLength = 'test-webhook-secret-32-chars-wrongg'
+    const res = await POST(makeRequest(wrongSameLength, LIVE_PAYLOAD, CORRECT_SECRET))
+    expect(res.status).not.toBe(401)
   })
 })
 
