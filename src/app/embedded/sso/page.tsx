@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-// GHL Custom Page entry point (GE-8 batch 4). Performs the REQUEST_USER_DATA
-// postMessage handshake documented at
+// GHL Custom Page entry point (GE-8) — the sole doorway into the embedded
+// app. Performs the REQUEST_USER_DATA postMessage handshake documented at
 // marketplace.gohighlevel.com/docs/other/user-context-marketplace-apps,
 // exchanges the encrypted payload for an embedded session via
-// /api/embedded/sso, then hands off to /embedded/events. Alongside, not
-// replacing, the ?k= launch flow.
+// /api/embedded/sso, then hands off to /embedded/events.
 
 const RESPONSE_TIMEOUT_MS = 10_000
 

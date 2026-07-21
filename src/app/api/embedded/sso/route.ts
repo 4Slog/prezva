@@ -4,11 +4,12 @@ import { mintEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { decryptSsoPayload, SsoConfigError } from '@/lib/embedded/sso'
 import { isGhlEventsEnabled } from '@/lib/integrations/ghl/config'
 
-// GHL Custom Page SSO doorway (GE-8 batch 4). Built ALONGSIDE the interim
-// ?k= gate in /api/embedded/launch (authorizeLaunch) — that route is
-// untouched. This path is multi-tenant by design: it does NOT check
-// GHL_LOCATION_ID. Tenant scoping happens downstream in /embedded/events via
-// ghl_location_links, same as the ?k= path.
+// GHL Custom Page SSO doorway (GE-8). This is the sole entry point into the
+// embedded app — the earlier interim ?k= pre-shared-secret gate
+// (/api/embedded/launch, authorizeLaunch) has been removed now that this
+// GHL-signed SSO handshake is live-proven. This path is multi-tenant by
+// design: it does NOT check GHL_LOCATION_ID. Tenant scoping happens
+// downstream in /embedded/events via ghl_location_links.
 
 export async function POST(request: NextRequest) {
   if (!isGhlEventsEnabled()) {

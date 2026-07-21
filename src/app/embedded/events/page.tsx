@@ -4,16 +4,8 @@ import Link from 'next/link'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import type { EmbeddedSessionPayload } from '@/lib/embedded/session'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isOrgEntitled } from '@/lib/entitlements'
 import { EmbeddedEventCard } from '@/app/embedded/_components/embedded-event-card'
-
-interface Props {
-  searchParams: Promise<{
-    location_id?: string
-    user_email?: string
-    location_name?: string
-    k?: string
-  }>
-}
 
 interface EventRow {
   id: string
@@ -44,10 +36,9 @@ interface TicketRow {
 type LoadResult =
   | { kind: 'unlinked' }
   | { kind: 'failed' }
-  | { kind: 'ok'; orgName: string | null; events: EventRow[]; ticketsByEvent: Map<string, TicketRow[]> }
+  | { kind: 'ok'; orgName: string | null; events: EventRow[]; ticketsByEvent: Map<string, TicketRow[]>; entitled: boolean }
 
-export default async function EmbeddedEventsPage({ searchParams }: Props) {
-  const params = await searchParams
+export default async function EmbeddedEventsPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get(COOKIE_NAME)?.value
 
@@ -56,7 +47,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
     try {
       session = await verifyEmbeddedSession(token)
     } catch {
-      // Token invalid or expired — fall through to launch redirect or no-context UI
+      // Token invalid or expired — fall through to no-context UI
       session = null
     }
   }
@@ -78,14 +69,15 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
       } else {
         const orgId = link.org_id
 
-        // Fetch org name and events in parallel — both scoped strictly to orgId
-        const [{ data: org }, { data: events }] = await Promise.all([
+        // Fetch org name, events, and entitlement in parallel — all scoped strictly to orgId
+        const [{ data: org }, { data: events }, entitled] = await Promise.all([
           db.from('organizations').select('name').eq('id', orgId).maybeSingle(),
           db
             .from('events')
             .select('id, title, slug, start_at, end_at, status, event_type, venue_name, venue_city, venue_state, capacity, registration_count, timezone')
             .eq('org_id', orgId)
             .order('start_at', { ascending: false }),
+          isOrgEntitled(orgId),
         ])
 
         // Fetch ticket types scoped to this org's event ids only — never global
@@ -108,7 +100,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
           ticketsByEvent.set(tt.event_id, list)
         }
 
-        result = { kind: 'ok', orgName: org?.name ?? null, events: events ?? [], ticketsByEvent }
+        result = { kind: 'ok', orgName: org?.name ?? null, events: events ?? [], ticketsByEvent, entitled }
       }
     } catch {
       result = { kind: 'failed' }
@@ -133,7 +125,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
       )
     }
 
-    const { orgName, events, ticketsByEvent } = result
+    const { orgName, events, ticketsByEvent, entitled } = result
 
     return (
       <div className="flex flex-1 flex-col gap-6 p-6">
@@ -174,6 +166,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
                 key={event.id}
                 event={event}
                 tickets={ticketsByEvent.get(event.id) ?? []}
+                entitled={entitled}
               />
             ))}
           </div>
@@ -182,17 +175,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
     )
   }
 
-  // No session, but launch params present: send through the launch flow.
-  if (params.location_id) {
-    const launchUrl = new URL('/api/embedded/launch', process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
-    launchUrl.searchParams.set('location_id', params.location_id)
-    if (params.user_email) launchUrl.searchParams.set('user_email', params.user_email)
-    if (params.location_name) launchUrl.searchParams.set('location_name', params.location_name)
-    if (params.k) launchUrl.searchParams.set('k', params.k)
-    redirect(launchUrl.pathname + launchUrl.search)
-  }
-
-  // No session, no params: neutral no-context placeholder
+  // No session: neutral no-context placeholder
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
       <p className="text-base font-medium text-gray-700">

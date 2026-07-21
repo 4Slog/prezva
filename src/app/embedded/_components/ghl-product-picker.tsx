@@ -6,6 +6,7 @@ import type { GhlPickerProduct } from '@/lib/embedded/event-actions'
 
 interface Props {
   eventId: string
+  entitled: boolean
 }
 
 function formatGhlDollars(dollars: number, currency: string): string {
@@ -40,7 +41,7 @@ function QtyBadge({ qty }: { qty: number | null }) {
   )
 }
 
-export function GhlProductPicker({ eventId }: Props) {
+export function GhlProductPicker({ eventId, entitled }: Props) {
   const [products, setProducts] = useState<GhlPickerProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -79,7 +80,7 @@ export function GhlProductPicker({ eventId }: Props) {
   }, [eventId, applyProductsResult])
 
   async function handleLink(product: GhlPickerProduct) {
-    if (product.alreadyMapped || isPending) return
+    if (product.alreadyMapped || isPending || !entitled) return
     const key = product.priceId
     setLinkingId(key)
     setRowErrors(prev => ({ ...prev, [key]: '' }))
@@ -153,6 +154,14 @@ export function GhlProductPicker({ eventId }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
+      {!entitled && (
+        <p
+          className="rounded-lg px-3 py-2 text-xs font-medium"
+          style={{ background: surface2, color: mutedColor }}
+        >
+          Linking products requires an active Prezva plan
+        </p>
+      )}
       {products.map(product => {
         const key = product.priceId
         const isLinking = linkingId === key && isPending
@@ -201,8 +210,9 @@ export function GhlProductPicker({ eventId }: Props) {
             ) : (
               <button
                 onClick={() => handleLink(product)}
-                disabled={isLinking || isPending}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
+                disabled={isLinking || isPending || !entitled}
+                title={entitled ? undefined : 'Linking products requires an active Prezva plan'}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ background: tealColor, color: tealInk }}
               >
                 {isLinking ? (

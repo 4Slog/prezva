@@ -32,6 +32,7 @@ interface Event {
 interface Props {
   event: Event
   tickets: TicketType[]
+  entitled: boolean
 }
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
@@ -67,7 +68,7 @@ function formatPrice(priceCents: number, currency: string): string {
   }).format(priceCents / 100)
 }
 
-export function EmbeddedEventCard({ event, tickets }: Props) {
+export function EmbeddedEventCard({ event, tickets, entitled }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false)
 
   const venueLabel = [event.venue_name, event.venue_city, event.venue_state]
@@ -177,7 +178,7 @@ export function EmbeddedEventCard({ event, tickets }: Props) {
           <p className="text-xs font-semibold" style={{ color: 'var(--pz-text)' }}>
             Link a GHL product as a ticket type
           </p>
-          <GhlProductPicker eventId={event.id} />
+          <GhlProductPicker eventId={event.id} entitled={entitled} />
         </div>
       )}
     </div>

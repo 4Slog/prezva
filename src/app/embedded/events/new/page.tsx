@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isOrgEntitled } from '@/lib/entitlements'
 import { CreateEventForm } from './create-event-form'
 
 export default async function EmbeddedNewEventPage() {
@@ -14,6 +15,7 @@ export default async function EmbeddedNewEventPage() {
   }
 
   let orgId: string
+  let entitled: boolean
   try {
     const session = await verifyEmbeddedSession(token)
     const db = createAdminClient()
@@ -24,6 +26,7 @@ export default async function EmbeddedNewEventPage() {
       .maybeSingle()
     if (!link) redirect('/embedded/events')
     orgId = link.org_id
+    entitled = await isOrgEntitled(orgId)
   } catch {
     redirect('/embedded/events')
   }
@@ -54,7 +57,7 @@ export default async function EmbeddedNewEventPage() {
         </p>
       </div>
 
-      <CreateEventForm orgId={orgId} />
+      <CreateEventForm orgId={orgId} entitled={entitled} />
     </div>
   )
 }
