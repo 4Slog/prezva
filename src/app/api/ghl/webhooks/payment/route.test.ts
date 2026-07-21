@@ -24,8 +24,16 @@ vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/integrations/ghl/org-config')>()
   return { ...actual, getGhlOrgConfig: vi.fn() }
 })
+// isOrgEntitled is mocked (not left real) specifically so it does NOT consume
+// a slot in the sequential admin.from() mock queue below — every existing
+// test's response array and index-based assertions stay untouched. Defaults
+// to entitled so none of them need to know this check exists.
+vi.mock('@/lib/entitlements', () => ({
+  isOrgEntitled: vi.fn(),
+}))
 
 import { POST } from './route'
+import { isOrgEntitled } from '@/lib/entitlements'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
@@ -115,6 +123,7 @@ beforeEach(() => {
   vi.mocked(getGhlToken).mockReturnValue('test-token')
   vi.mocked(ghlPut).mockResolvedValue({} as any)
   vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
+  vi.mocked(isOrgEntitled).mockReset().mockResolvedValue(true)
 })
 
 describe('POST /api/ghl/webhooks/payment — auth', () => {
@@ -199,6 +208,63 @@ describe('POST /api/ghl/webhooks/payment — ticket mapping', () => {
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toBe('ticket_not_mapped')
+  })
+})
+
+describe('POST /api/ghl/webhooks/payment — entitlement backstop', () => {
+  it('unentitled org -> no registration created, ledger records entitlement_blocked, returns 200 (loud, not silent)', async () => {
+    vi.mocked(isOrgEntitled).mockResolvedValue(false)
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    // Call order: [0] ghl_sync_state select, [1] insert, [2] ghl_location_links,
+    // [3] ticket_type_product_mappings, [4] ticket_types, [5] events,
+    // [6] ghl_sync_state update (entitlement_blocked) — createRegistrationFromExternalPayment
+    // is never reached, so there is no further DB call after this one.
+    const client = makeSequentialClient([
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+      { data: { name: 'General Admission' }, error: null },
+      { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
+      { data: null, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('entitlement_blocked')
+
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+    expect(enqueueGhlSync).not.toHaveBeenCalled()
+
+    expect(client.from.mock.calls.length).toBe(7)
+    const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs).toEqual(expect.objectContaining({ status: 'failed', last_error: 'entitlement_blocked' }))
+
+    expect(consoleErr).toHaveBeenCalledWith(expect.stringContaining('entitlement_blocked'))
+    consoleErr.mockRestore()
+  })
+
+  it('checks entitlement against the resolved org (entitled org proceeds normally)', async () => {
+    vi.mocked(isOrgEntitled).mockResolvedValue(true)
+    const client = makeSequentialClient([
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+      { data: { name: 'General Admission' }, error: null },
+      { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
+      { data: null, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+    expect(isOrgEntitled).toHaveBeenCalledWith('org-uuid-1')
   })
 })
 

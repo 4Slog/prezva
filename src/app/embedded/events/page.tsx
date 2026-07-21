@@ -117,16 +117,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
 
   if (result) {
     if (result.kind === 'unlinked') {
-      return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-          <p className="text-base font-medium text-gray-700">
-            This location isn&apos;t linked to an organization yet.
-          </p>
-          <p className="text-sm text-gray-400">
-            Contact your administrator to complete the setup.
-          </p>
-        </div>
-      )
+      redirect('/embedded/claim')
     }
 
     if (result.kind === 'failed') {

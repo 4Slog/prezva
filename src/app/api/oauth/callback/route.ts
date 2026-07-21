@@ -9,6 +9,15 @@ function errorRedirect(origin: string, message: string): NextResponse {
   return NextResponse.redirect(new URL(`/dashboard?error=${encodeURIComponent(message)}`, origin))
 }
 
+function pendingInstallPage(): NextResponse {
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Prezva</title></head>
+<body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 24px;">
+  <p style="font-size: 16px; color: #1f2937;">Prezva installed — open Prezva from your GoHighLevel sidebar to finish setup.</p>
+</body></html>`
+  return new NextResponse(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } })
+}
+
 function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a)
   const bufB = Buffer.from(b)
@@ -17,8 +26,6 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  const user = await requireUser()
-
   const code = req.nextUrl.searchParams.get('code')
   const stateB64 = req.nextUrl.searchParams.get('state')
 
@@ -27,6 +34,24 @@ export async function GET(req: NextRequest) {
   const cookieStore = await cookies()
   const cookieNonce = cookieStore.get(STATE_COOKIE)?.value
   cookieStore.delete(STATE_COOKIE)
+
+  // Fully state-less arrival (code present, no state param AND no state
+  // cookie): the marketplace-originated cold install. GHL sent the user
+  // straight to this REDIRECT_URI without ever routing through
+  // /api/oauth/start, so there's no Prezva session and none is required —
+  // requireUser() must not run here. Any OTHER combination (state present
+  // without a cookie, or vice versa) falls through unchanged to the
+  // existing state-ful branch below, which still rejects it as invalid.
+  if (code && !stateB64 && !cookieNonce) {
+    try {
+      await ghlAdapter.handlePendingInstall(code, REDIRECT_URI)
+    } catch (err: unknown) {
+      console.error('[ghl-oauth] pending install failed:', err instanceof Error ? err.message : String(err))
+    }
+    return pendingInstallPage()
+  }
+
+  const user = await requireUser()
 
   if (!code || !stateB64 || !cookieNonce) {
     return errorRedirect(req.nextUrl.origin, 'Invalid or missing OAuth state')

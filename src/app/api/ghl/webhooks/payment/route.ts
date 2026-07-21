@@ -9,6 +9,7 @@ import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 import { ghlPut } from '@/lib/integrations/ghl/client'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import { isOrgEntitled } from '@/lib/entitlements'
 import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
@@ -164,6 +165,23 @@ export async function POST(req: NextRequest) {
         .update({ status: 'failed', last_error: 'ticket_not_mapped', updated_at: new Date().toISOString() })
         .eq('id', syncStateId)
       return NextResponse.json({ error: 'ticket_not_mapped' }, { status: 400 })
+    }
+
+    // 5a. Entitlement backstop (GE-8 R36-R41): an unentitled org can build and
+    // preview drafts, but a real GHL-linked registration never lands for one.
+    // Loud and recorded on the ledger — never a silent 200 that looks like
+    // "accepted" — so an unentitled org's Order Submitted workflow surfaces
+    // this instead of quietly losing attendees.
+    const orgEntitled = await isOrgEntitled(locationLink.org_id)
+    if (!orgEntitled) {
+      console.error(
+        `[ghl-webhook] entitlement_blocked — org ${locationLink.org_id} is not entitled (product=${productId} price=${priceId})`,
+      )
+      await supabase
+        .from('ghl_sync_state')
+        .update({ status: 'failed', last_error: 'entitlement_blocked', updated_at: new Date().toISOString() })
+        .eq('id', syncStateId)
+      return NextResponse.json({ status: 'entitlement_blocked' })
     }
 
     // 5b. Multi-seat tripwire (R30): amount paid vs single-ticket price.

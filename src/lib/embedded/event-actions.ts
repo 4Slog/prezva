@@ -8,6 +8,7 @@ import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { resolveOrgOwnerProfileId } from '@/lib/embedded/org-helpers'
 import { getGhlToken } from '@/lib/integrations/ghl/token'
 import { ghlGet } from '@/lib/integrations/ghl/client'
+import { requireEntitlement } from '@/lib/entitlements'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -263,6 +264,58 @@ export async function embedUpdateEvent(
   return { ok: true }
 }
 
+// ── Publish (embed lane only) ─────────────────────────────────────────────────
+//
+// Mirrors ONLY the draft->published and published->live edges of the
+// standalone VALID_TRANSITIONS table (src/lib/events/actions.ts) — the
+// embed lane never touches live->ended or the cancel/archive edges, and
+// deliberately does not import or call transitionEventStatus. Gated by
+// requireEntitlement: FREE orgs can build and preview drafts but cannot
+// take an event live to a real GHL-linked audience (R36-R41).
+const EMBED_VALID_TRANSITIONS: Record<string, string> = {
+  draft: 'published',
+  published: 'live',
+}
+
+export async function embedPublishEvent(
+  eventId: string,
+): Promise<{ ok: true; status: string } | { error: string }> {
+  let ctx: Awaited<ReturnType<typeof resolveEmbedContext>>
+  try {
+    ctx = await resolveEmbedContext()
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
+
+  const { db, orgId } = ctx
+
+  const gate = await requireEntitlement(orgId)
+  if (gate) return gate
+
+  // IDOR guard: event must belong to this org
+  const { data: existing } = await db
+    .from('events')
+    .select('id, status')
+    .eq('id', eventId)
+    .eq('org_id', orgId)
+    .maybeSingle()
+  if (!existing) return { error: 'Event not found' }
+
+  const currentStatus = existing.status ?? 'draft'
+  const nextStatus = EMBED_VALID_TRANSITIONS[currentStatus]
+  if (!nextStatus) return { error: `Cannot publish from '${currentStatus}'` }
+
+  const { error } = await db
+    .from('events')
+    .update({ status: nextStatus })
+    .eq('id', eventId)
+    .eq('org_id', orgId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/embedded/events/${eventId}`)
+  return { ok: true, status: nextStatus }
+}
+
 export async function createTicketTypeFromEmbedProduct(
   eventId: string,
   ghlProductId: string,
@@ -276,6 +329,9 @@ export async function createTicketTypeFromEmbedProduct(
   }
 
   const { db, orgId, locationId } = ctx
+
+  const gate = await requireEntitlement(orgId)
+  if (gate) return gate
 
   // Verify the event belongs to this org
   const { data: eventRow } = await db

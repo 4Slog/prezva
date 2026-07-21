@@ -221,4 +221,125 @@ describe('ghlAdapter', () => {
       )
     })
   })
+
+  describe('handlePendingInstall', () => {
+    it('Location response: upserts ghl_pending_installs with encrypted tokens', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          access_token: 'access-123',
+          refresh_token: 'refresh-123',
+          expires_in: 3600,
+          userType: 'Location',
+          locationId: 'loc-1',
+          companyId: 'company-1',
+        }),
+      })
+
+      const client = makeSequentialClient([{ data: null, error: null }])
+      vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+      await ghlAdapter.handlePendingInstall('auth-code', 'https://prezva.app/api/oauth/callback')
+
+      expect(client.from).toHaveBeenCalledWith('ghl_pending_installs')
+      const chain = client.from.mock.results[0].value as any
+      expect(chain.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ghl_location_id: 'loc-1',
+          ghl_company_id: 'company-1',
+          encrypted_access_token: expect.any(String),
+          encrypted_refresh_token: expect.any(String),
+        }),
+        { onConflict: 'ghl_location_id' },
+      )
+    })
+
+    it('Company response (no location in token): stores nothing, no DB call', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          access_token: 'access-agency',
+          refresh_token: 'refresh-agency',
+          expires_in: 3600,
+          userType: 'Company',
+          companyId: 'company-9',
+        }),
+      })
+
+      const client = makeSequentialClient([])
+      vi.mocked(createAdminClient).mockReturnValue(client as any)
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      await ghlAdapter.handlePendingInstall('auth-code', 'https://prezva.app/api/oauth/callback')
+
+      expect(client.from).not.toHaveBeenCalled()
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('nothing stored'))
+      logSpy.mockRestore()
+    })
+  })
+
+  describe('claimPendingInstall', () => {
+    it('returns null when no pending row exists for the location', async () => {
+      const client = makeSequentialClient([{ data: null, error: null }])
+      vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+      const result = await ghlAdapter.claimPendingInstall('loc-1', 'org-1')
+
+      expect(result).toBeNull()
+      expect(client.from).toHaveBeenCalledTimes(1)
+      expect(client.from).toHaveBeenCalledWith('ghl_pending_installs')
+    })
+
+    it('binds a pending install to an org: upserts org_integrations + ghl_location_links, deletes the pending row', async () => {
+      const encryptedAccess = encryptToken('pending-access-token')!
+      const encryptedRefresh = encryptToken('pending-refresh-token')!
+
+      const client = makeSequentialClient([
+        {
+          data: {
+            encrypted_access_token: encryptedAccess,
+            encrypted_refresh_token: encryptedRefresh,
+            token_expires_at: '2026-01-01T00:00:00.000Z',
+            scopes: ['contacts.readonly'],
+            ghl_company_id: 'company-1',
+          },
+          error: null,
+        },
+        { data: null, error: null }, // org_integrations upsert
+        { data: null, error: null }, // ghl_location_links upsert
+        { data: null, error: null }, // ghl_pending_installs delete
+      ])
+      vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+      const result = await ghlAdapter.claimPendingInstall('loc-1', 'org-1')
+
+      expect(result).toEqual({ accessToken: 'pending-access-token' })
+
+      expect(client.from).toHaveBeenNthCalledWith(2, 'org_integrations')
+      const orgIntegrationsChain = client.from.mock.results[1].value as any
+      expect(orgIntegrationsChain.upsert).toHaveBeenCalledWith(
+        {
+          org_id: 'org-1',
+          provider: 'ghl',
+          status: 'connected',
+          encrypted_access_token: encryptedAccess,
+          encrypted_refresh_token: encryptedRefresh,
+          token_expires_at: '2026-01-01T00:00:00.000Z',
+          scopes: ['contacts.readonly'],
+        },
+        { onConflict: 'org_id,provider' },
+      )
+
+      expect(client.from).toHaveBeenNthCalledWith(3, 'ghl_location_links')
+      const locationChain = client.from.mock.results[2].value as any
+      expect(locationChain.upsert).toHaveBeenCalledWith(
+        { ghl_location_id: 'loc-1', org_id: 'org-1', ghl_account_id: 'company-1' },
+        { onConflict: 'ghl_location_id' },
+      )
+
+      expect(client.from).toHaveBeenNthCalledWith(4, 'ghl_pending_installs')
+      const deleteChain = client.from.mock.results[3].value as any
+      expect(deleteChain.delete).toHaveBeenCalled()
+    })
+  })
 })

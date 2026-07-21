@@ -87,7 +87,12 @@ export function GhlProductPicker({ eventId }: Props) {
     startTransition(async () => {
       const result = await createTicketTypeFromEmbedProduct(eventId, product.productId, product.priceId)
       if ('error' in result) {
-        setRowErrors(prev => ({ ...prev, [key]: result.error === 'price_already_mapped' ? 'Already linked' : result.error }))
+        const message = result.error === 'price_already_mapped'
+          ? 'Already linked'
+          : result.error === 'entitlement_required'
+            ? 'Requires an active Prezva plan'
+            : result.error
+        setRowErrors(prev => ({ ...prev, [key]: message }))
       } else {
         // Optimistically mark as mapped
         setProducts(prev => prev.map(p => p.priceId === key ? { ...p, alreadyMapped: true } : p))

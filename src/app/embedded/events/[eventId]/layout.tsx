@@ -4,8 +4,10 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isOrgEntitled } from '@/lib/entitlements'
 import { EventStatusBadge } from '@/components/events/EventStatusBadge'
 import { EmbedEventTabs } from './_components/EmbedEventTabs'
+import { EmbedPublishControl } from './_components/EmbedPublishControl'
 
 interface Props {
   params: Promise<{ eventId: string }>
@@ -26,6 +28,7 @@ export default async function EmbedEventLayout({ params, children }: Props) {
 
   let event: { id: string; title: string; status: string | null; event_type: string | null }
   let ghlLocationId = ''
+  let entitled = false
 
   try {
     const session = await verifyEmbeddedSession(token)
@@ -46,6 +49,7 @@ export default async function EmbedEventLayout({ params, children }: Props) {
       .maybeSingle()
     if (!data) redirect('/embedded/events')
     event = data
+    entitled = await isOrgEntitled(link.org_id)
   } catch {
     redirect('/embedded/events')
   }
@@ -80,6 +84,9 @@ export default async function EmbedEventLayout({ params, children }: Props) {
               {EVENT_TYPE_LABEL[event.event_type] ?? event.event_type}
             </span>
           )}
+          <div className="ml-auto">
+            <EmbedPublishControl eventId={eventId} status={event.status ?? 'draft'} entitled={entitled} />
+          </div>
         </div>
       </div>
 

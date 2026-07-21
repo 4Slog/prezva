@@ -64,7 +64,7 @@ class GhlAdapter implements IntegrationAdapter {
     return `${GHL_AUTH_URL}?${params}`
   }
 
-  async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
+  private async exchangeCode(code: string, redirectUri: string): Promise<GhlTokenResponse> {
     const res = await fetch(`${GHL_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -78,6 +78,11 @@ class GhlAdapter implements IntegrationAdapter {
     })
     const tokens: GhlTokenResponse = await res.json()
     if (!res.ok) throw new Error(`GHL token exchange failed: ${res.status}`)
+    return tokens
+  }
+
+  async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
+    const tokens = await this.exchangeCode(code, redirectUri)
 
     const admin = createAdminClient()
     const expiresInSeconds = tokens.expires_in ?? 86400
@@ -107,6 +112,81 @@ class GhlAdapter implements IntegrationAdapter {
     } else if (tokens.userType === 'Company') {
       console.log('[ghl-oauth] Company/agency token stored; per-location enumeration deferred to Batch 3')
     }
+  }
+
+  // Marketplace-originated cold install (GE-8 entitlement batch): GHL sent
+  // the code straight to REDIRECT_URI with no /api/oauth/start state cookie,
+  // because no Prezva session/org exists yet. Exchange the code and park the
+  // tokens by location — claimPendingInstall binds them to an org later, at
+  // claim time. No org is touched here.
+  async handlePendingInstall(code: string, redirectUri: string): Promise<void> {
+    const tokens = await this.exchangeCode(code, redirectUri)
+
+    if (!(tokens.userType === 'Location' && tokens.locationId)) {
+      // Company/agency-level cold installs have no location to key a
+      // pending row on. Nothing to park; the install page still renders.
+      console.log('[ghl-oauth] pending install: no location in token response — nothing stored')
+      return
+    }
+
+    const encryptedAccess = encryptToken(tokens.access_token)
+    const encryptedRefresh = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
+    if (!encryptedAccess || !encryptedRefresh) {
+      console.error('[ghl-oauth] pending install: encryption unavailable — refusing to half-store tokens')
+      return
+    }
+
+    const admin = createAdminClient()
+    const expiresInSeconds = tokens.expires_in ?? 86400
+
+    await admin.from('ghl_pending_installs').upsert({
+      ghl_location_id: tokens.locationId,
+      ghl_company_id: tokens.companyId ?? null,
+      encrypted_access_token: encryptedAccess,
+      encrypted_refresh_token: encryptedRefresh,
+      token_expires_at: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
+      scopes: SCOPES,
+    }, { onConflict: 'ghl_location_id' })
+  }
+
+  // Consumes a pending install for `locationId` and binds it to `orgId`:
+  // upserts org_integrations + ghl_location_links (mirrors handleCallback's
+  // own writes) and deletes the pending row. Returns the decrypted access
+  // token so the caller can run provisionGhlOrgConfig; null if no pending
+  // install exists for this location.
+  async claimPendingInstall(locationId: string, orgId: string): Promise<{ accessToken: string } | null> {
+    const admin = createAdminClient()
+
+    const { data: pending } = await admin
+      .from('ghl_pending_installs')
+      .select('encrypted_access_token, encrypted_refresh_token, token_expires_at, scopes, ghl_company_id')
+      .eq('ghl_location_id', locationId)
+      .maybeSingle()
+
+    if (!pending) return null
+
+    const accessToken = decryptToken(pending.encrypted_access_token)
+    if (!accessToken) throw new Error('claimPendingInstall: failed to decrypt pending access token')
+
+    await admin.from('org_integrations').upsert({
+      org_id: orgId,
+      provider: PROVIDER,
+      status: 'connected',
+      encrypted_access_token: pending.encrypted_access_token,
+      encrypted_refresh_token: pending.encrypted_refresh_token,
+      token_expires_at: pending.token_expires_at,
+      scopes: pending.scopes ?? SCOPES,
+    }, { onConflict: 'org_id,provider' })
+
+    await admin.from('ghl_location_links').upsert({
+      ghl_location_id: locationId,
+      org_id: orgId,
+      ghl_account_id: pending.ghl_company_id ?? null,
+    }, { onConflict: 'ghl_location_id' })
+
+    await admin.from('ghl_pending_installs').delete().eq('ghl_location_id', locationId)
+
+    return { accessToken }
   }
 
   async disconnect(orgId: string): Promise<void> {
