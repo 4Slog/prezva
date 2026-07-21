@@ -157,10 +157,20 @@ class GhlAdapter implements IntegrationAdapter {
   async claimPendingInstall(locationId: string, orgId: string): Promise<{ accessToken: string } | null> {
     const admin = createAdminClient()
 
+    // Atomic DELETE...RETURNING: the delete itself is the lock. Only the
+    // first of any concurrent callers for this location_id gets a non-null
+    // row back — a second caller's delete affects zero rows. This closes the
+    // read-then-delete race where two claimants could each read the
+    // still-present row before either delete ran, each binding a copy of the
+    // same live tokens into a different org (security review, Vuln 4 on
+    // 6e465e9). The caller (claimLocation) is responsible for distinguishing
+    // "someone else just won this race" from "no install exists at all" when
+    // this returns null.
     const { data: pending } = await admin
       .from('ghl_pending_installs')
-      .select('encrypted_access_token, encrypted_refresh_token, token_expires_at, scopes, ghl_company_id')
+      .delete()
       .eq('ghl_location_id', locationId)
+      .select('encrypted_access_token, encrypted_refresh_token, token_expires_at, scopes, ghl_company_id')
       .maybeSingle()
 
     if (!pending) return null
@@ -183,8 +193,6 @@ class GhlAdapter implements IntegrationAdapter {
       org_id: orgId,
       ghl_account_id: pending.ghl_company_id ?? null,
     }, { onConflict: 'ghl_location_id' })
-
-    await admin.from('ghl_pending_installs').delete().eq('ghl_location_id', locationId)
 
     return { accessToken }
   }

@@ -24,7 +24,7 @@ export type OrgChoice =
 
 export type ClaimLocationResult =
   | { ok: true; next: string }
-  | { error: 'session_expired' | 'forbidden' | 'install_missing' | string }
+  | { error: 'session_expired' | 'forbidden' | 'install_missing' | 'already_claimed' | string }
 
 export interface ClaimOrgOption {
   id: string
@@ -291,8 +291,21 @@ export async function claimLocation(claimToken: string, orgChoice: OrgChoice): P
     orgId = result.id
   }
 
+  // claimPendingInstall's DELETE...RETURNING is the actual race lock — the
+  // pendingRow check above is only a fast-path hint and can go stale between
+  // that read and this call. A null result here means someone else's delete
+  // won; disambiguate by re-checking ghl_location_links rather than assuming
+  // install_missing (which would be misleading — the install DID complete,
+  // just not for this caller).
   const claimed = await ghlAdapter.claimPendingInstall(locationId, orgId)
-  if (!claimed) return { error: 'install_missing' }
+  if (!claimed) {
+    const { data: linkAfterRace } = await admin
+      .from('ghl_location_links')
+      .select('org_id')
+      .eq('ghl_location_id', locationId)
+      .maybeSingle()
+    return { error: linkAfterRace ? 'already_claimed' : 'install_missing' }
+  }
 
   try {
     await provisionGhlOrgConfig(admin, claimed.accessToken, orgId, locationId)

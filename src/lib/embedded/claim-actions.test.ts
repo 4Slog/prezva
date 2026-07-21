@@ -274,6 +274,45 @@ describe('claimLocation', () => {
     expect(cookieSet).toHaveBeenCalledWith('embedded_session', 'minted:loc-1', expect.objectContaining({ sameSite: 'none' }))
   })
 
+  it('returns already_claimed when claimPendingInstall loses the race (another claimant already bound this location)', async () => {
+    const claimToken = await getValidClaimToken()
+    let ghlLocationLinksCalls = 0
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') {
+        ghlLocationLinksCalls++
+        // 1st call: the upfront existingLink pre-check (not yet linked).
+        // 2nd call: the post-race recheck after claimPendingInstall returns
+        // null — by then the winning racer has already bound it.
+        return makeChain({
+          maybeSingle: ghlLocationLinksCalls === 1
+            ? { data: null, error: null }
+            : { data: { org_id: 'org-winner' }, error: null },
+        })
+      }
+      if (table === 'ghl_pending_installs') return makeChain({ maybeSingle: { data: { ghl_location_id: 'loc-1' }, error: null } })
+      return makeChain()
+    }
+    vi.mocked(hasPermission).mockResolvedValue(true)
+    vi.mocked(ghlAdapter.claimPendingInstall).mockResolvedValue(null)
+
+    const result = await claimLocation(claimToken, { type: 'existing', orgId: 'org-1' })
+    expect(result).toEqual({ error: 'already_claimed' })
+  })
+
+  it('returns install_missing when claimPendingInstall returns null and no link exists either (pending row vanished without ever being bound)', async () => {
+    const claimToken = await getValidClaimToken()
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: null, error: null } })
+      if (table === 'ghl_pending_installs') return makeChain({ maybeSingle: { data: { ghl_location_id: 'loc-1' }, error: null } })
+      return makeChain()
+    }
+    vi.mocked(hasPermission).mockResolvedValue(true)
+    vi.mocked(ghlAdapter.claimPendingInstall).mockResolvedValue(null)
+
+    const result = await claimLocation(claimToken, { type: 'existing', orgId: 'org-1' })
+    expect(result).toEqual({ error: 'install_missing' })
+  })
+
   it('uses the session-attested location even when a different location is implied elsewhere', async () => {
     sessionLocationId = 'loc-from-session-only'
     const claimToken = await getValidClaimToken()

@@ -279,7 +279,7 @@ describe('ghlAdapter', () => {
   })
 
   describe('claimPendingInstall', () => {
-    it('returns null when no pending row exists for the location', async () => {
+    it('returns null when no pending row exists for the location (delete affects zero rows)', async () => {
       const client = makeSequentialClient([{ data: null, error: null }])
       vi.mocked(createAdminClient).mockReturnValue(client as any)
 
@@ -288,9 +288,11 @@ describe('ghlAdapter', () => {
       expect(result).toBeNull()
       expect(client.from).toHaveBeenCalledTimes(1)
       expect(client.from).toHaveBeenCalledWith('ghl_pending_installs')
+      const deleteChain = client.from.mock.results[0].value as any
+      expect(deleteChain.delete).toHaveBeenCalled()
     })
 
-    it('binds a pending install to an org: upserts org_integrations + ghl_location_links, deletes the pending row', async () => {
+    it('binds a pending install to an org via an atomic DELETE...RETURNING, then upserts org_integrations + ghl_location_links', async () => {
       const encryptedAccess = encryptToken('pending-access-token')!
       const encryptedRefresh = encryptToken('pending-refresh-token')!
 
@@ -304,16 +306,20 @@ describe('ghlAdapter', () => {
             ghl_company_id: 'company-1',
           },
           error: null,
-        },
+        }, // ghl_pending_installs DELETE...RETURNING (the race lock)
         { data: null, error: null }, // org_integrations upsert
         { data: null, error: null }, // ghl_location_links upsert
-        { data: null, error: null }, // ghl_pending_installs delete
       ])
       vi.mocked(createAdminClient).mockReturnValue(client as any)
 
       const result = await ghlAdapter.claimPendingInstall('loc-1', 'org-1')
 
       expect(result).toEqual({ accessToken: 'pending-access-token' })
+
+      expect(client.from).toHaveBeenNthCalledWith(1, 'ghl_pending_installs')
+      const pendingChain = client.from.mock.results[0].value as any
+      expect(pendingChain.delete).toHaveBeenCalled()
+      expect(pendingChain.eq).toHaveBeenCalledWith('ghl_location_id', 'loc-1')
 
       expect(client.from).toHaveBeenNthCalledWith(2, 'org_integrations')
       const orgIntegrationsChain = client.from.mock.results[1].value as any
@@ -337,9 +343,8 @@ describe('ghlAdapter', () => {
         { onConflict: 'ghl_location_id' },
       )
 
-      expect(client.from).toHaveBeenNthCalledWith(4, 'ghl_pending_installs')
-      const deleteChain = client.from.mock.results[3].value as any
-      expect(deleteChain.delete).toHaveBeenCalled()
+      // Exactly 3 calls now — no separate trailing delete step.
+      expect(client.from).toHaveBeenCalledTimes(3)
     })
   })
 })

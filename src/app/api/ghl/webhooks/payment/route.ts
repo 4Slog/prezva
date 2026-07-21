@@ -136,17 +136,24 @@ export async function POST(req: NextRequest) {
     let eventSlug: string | null = null
     let mappedPriceCents: number | null = null
 
+    // Filtered by ghl_location_id (not just product/price) so a forged
+    // location.id + a real product/price pair from a DIFFERENT location can
+    // never resolve someone else's mapping (security review, Vuln 3 on
+    // 6e465e9).
+    let mappingOrgId: string | null = null
     const { data: mapping } = await supabase
       .from('ticket_type_product_mappings')
-      .select('ticket_type_id, event_id, price_cents')
+      .select('ticket_type_id, event_id, price_cents, org_id')
       .eq('ghl_product_id', productId)
       .eq('ghl_price_id', priceId)
+      .eq('ghl_location_id', locationId)
       .maybeSingle()
 
     if (mapping) {
       ticketTypeId = mapping.ticket_type_id
       eventId      = mapping.event_id
       mappedPriceCents = mapping.price_cents
+      mappingOrgId = mapping.org_id
 
       // Fetch ticket title + event title for the sync task
       const [{ data: ttRow }, { data: evRow }] = await Promise.all([
@@ -167,7 +174,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'ticket_not_mapped' }, { status: 400 })
     }
 
-    // 5a. Entitlement backstop (GE-8 R36-R41): an unentitled org can build and
+    // 5a-i. Tenant consistency assertion. The location filter above already
+    // stops a forged location.id from resolving a different location's
+    // mapping — this is defense-in-depth against the mapping's own org_id
+    // having drifted from ghl_location_links.org_id (e.g. a stale mapping
+    // surviving a location rebind). Never trust the resolved org for
+    // entitlement/registration unless both independently agree.
+    if (mappingOrgId !== locationLink.org_id) {
+      console.error(
+        `[ghl-webhook] tenant_mismatch — mapping.org_id=${mappingOrgId} locationLink.org_id=${locationLink.org_id} (product=${productId} price=${priceId} location=${locationId})`,
+      )
+      await supabase
+        .from('ghl_sync_state')
+        .update({ status: 'failed', last_error: 'tenant_mismatch', updated_at: new Date().toISOString() })
+        .eq('id', syncStateId)
+      return NextResponse.json({ status: 'tenant_mismatch' })
+    }
+
+    // 5a-ii. Entitlement backstop (GE-8 R36-R41): an unentitled org can build and
     // preview drafts, but a real GHL-linked registration never lands for one.
     // Loud and recorded on the ledger — never a silent 200 that looks like
     // "accepted" — so an unentitled org's Order Submitted workflow surfaces

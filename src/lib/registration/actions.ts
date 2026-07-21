@@ -7,6 +7,7 @@ import { createCheckoutSession } from '@/lib/stripe/checkout'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
 import { verifyMembership } from '@/lib/integrations/_shared/association-verify'
 import { checkRateLimit, registrationLimiter } from '@/lib/ratelimit'
+import { isOrgEntitled } from '@/lib/entitlements'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -120,6 +121,22 @@ export async function startRegistration(formData: FormData) {
   if (!event) return { error: 'Event not found' }
   if (!['published', 'live'].includes(event.status)) {
     return { error: 'Registration is not open for this event' }
+  }
+
+  // Lane-scoped entitlement gate (GE-8 R36-R41 hardening): standalone orgs
+  // are ALL plan='free' by default, so a blanket entitlement check here
+  // would close registration platform-wide. Only orgs with a ghl_location_links
+  // row (i.e. GHL-linked) are subject to entitlement; every other org hits
+  // zero extra queries and zero entitlement logic. No lapse-revert/cron
+  // machinery — this is a point-in-time check only (R41 tabled).
+  const { data: ghlLink } = await createAdminClient()
+    .from('ghl_location_links')
+    .select('ghl_location_id')
+    .eq('org_id', event.org_id)
+    .maybeSingle()
+
+  if (ghlLink && !(await isOrgEntitled(event.org_id))) {
+    return { error: 'Registration is closed for this event.' }
   }
 
   const { data: ticket } = await supabase

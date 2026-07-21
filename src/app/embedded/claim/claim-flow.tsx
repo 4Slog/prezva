@@ -27,6 +27,7 @@ const CLAIM_ERROR_COPY: Record<string, string> = {
   session_expired: 'Your session expired. Please sign in again.',
   forbidden: "You don't have settings access on that organization.",
   install_missing: "We couldn't find an install for this location. Please reinstall the app from the GoHighLevel marketplace.",
+  already_claimed: "This location was just claimed — if this wasn't you or your team, contact support.",
 }
 
 function claimErrorMessage(error: string): string {

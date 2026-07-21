@@ -224,7 +224,7 @@ describe('POST /api/ghl/webhooks/payment — entitlement backstop', () => {
       { data: null, error: null },
       { data: { id: 'state-new' }, error: null },
       { data: { org_id: 'org-uuid-1' }, error: null },
-      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-1' }, error: null },
       { data: { name: 'General Admission' }, error: null },
       { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
       { data: null, error: null },
@@ -253,7 +253,7 @@ describe('POST /api/ghl/webhooks/payment — entitlement backstop', () => {
       { data: null, error: null },
       { data: { id: 'state-new' }, error: null },
       { data: { org_id: 'org-uuid-1' }, error: null },
-      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-1' }, error: null },
       { data: { name: 'General Admission' }, error: null },
       { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
       { data: null, error: null },
@@ -265,6 +265,47 @@ describe('POST /api/ghl/webhooks/payment — entitlement backstop', () => {
     const json = await res.json()
     expect(json.status).toBe('accepted')
     expect(isOrgEntitled).toHaveBeenCalledWith('org-uuid-1')
+  })
+
+  it('tenant_mismatch: mapping.org_id disagrees with the resolved locationLink.org_id -> no registration, ledger records tenant_mismatch, returns 200', async () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+    // Clear call history accumulated by the preceding "entitled org proceeds
+    // normally" test in this describe block — vitest doesn't auto-clear mocks
+    // between tests here, and that test legitimately calls these.
+    vi.mocked(createRegistrationFromExternalPayment).mockClear()
+    vi.mocked(enqueueGhlSync).mockClear()
+    vi.mocked(isOrgEntitled).mockClear()
+
+    // Call order: [0] ghl_sync_state select, [1] insert, [2] ghl_location_links (org-uuid-1),
+    // [3] ticket_type_product_mappings (org-uuid-DIFFERENT — stale/forged), [4] ticket_types,
+    // [5] events, [6] ghl_sync_state update (tenant_mismatch). Never reaches the entitlement
+    // check or createRegistrationFromExternalPayment.
+    const client = makeSequentialClient([
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-DIFFERENT' }, error: null },
+      { data: { name: 'General Admission' }, error: null },
+      { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
+      { data: null, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('tenant_mismatch')
+
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+    expect(enqueueGhlSync).not.toHaveBeenCalled()
+    expect(isOrgEntitled).not.toHaveBeenCalled()
+
+    expect(client.from.mock.calls.length).toBe(7)
+    const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs).toEqual(expect.objectContaining({ status: 'failed', last_error: 'tenant_mismatch' }))
+
+    expect(consoleErr).toHaveBeenCalledWith(expect.stringContaining('tenant_mismatch'))
+    consoleErr.mockRestore()
   })
 })
 
@@ -281,7 +322,7 @@ describe('POST /api/ghl/webhooks/payment — happy path', () => {
         { data: null, error: null },
         { data: { id: 'state-new' }, error: null },
         { data: { org_id: 'org-uuid-1' }, error: null },
-        { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+        { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-1' }, error: null },
         { data: { name: 'General Admission' }, error: null },
         { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
         { data: null, error: null },
@@ -317,7 +358,7 @@ describe('POST /api/ghl/webhooks/payment — happy path', () => {
         { data: null, error: null },
         { data: { id: 'state-new' }, error: null },
         { data: { org_id: 'org-uuid-1' }, error: null },
-        { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1' }, error: null },
+        { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-1' }, error: null },
         { data: { name: 'General Admission' }, error: null },
         { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
         { data: null, error: null },
@@ -348,7 +389,7 @@ describe('POST /api/ghl/webhooks/payment — amount divergence (R30 multi-seat t
       { data: null, error: null },
       { data: { id: 'state-new' }, error: null },
       { data: { org_id: 'org-uuid-1' }, error: null },
-      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', price_cents: priceCents }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', price_cents: priceCents, org_id: 'org-uuid-1' }, error: null },
       { data: { name: 'General Admission' }, error: null },
       { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
     ]
