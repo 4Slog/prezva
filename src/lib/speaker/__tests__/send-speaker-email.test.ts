@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+vi.mock('@/lib/integrations/ghl/adapter', () => ({
+  ghlAdapter: { getAccessToken: vi.fn() },
+}))
+
 import { sendSpeakerEmail } from '../send-speaker-email'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 
 function createFakeAdmin(opts: { locationId: string | null; updateSpy: (payload: Record<string, unknown>) => void }) {
   return {
@@ -31,10 +37,10 @@ describe('sendSpeakerEmail', () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
-    process.env.GHL_API_TOKEN = 'test-ghl-token'
     process.env.RESEND_API_KEY = 'test-resend-key'
     fetchMock.mockReset()
     vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(ghlAdapter.getAccessToken).mockReset().mockResolvedValue('test-ghl-token')
   })
 
   afterEach(() => {

@@ -7,7 +7,7 @@ import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { ghlPut } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import { isOrgEntitled } from '@/lib/entitlements'
 import type { Json } from '@/types/database'
@@ -303,9 +303,18 @@ export async function POST(req: NextRequest) {
         if (!config) {
           console.error(`[ghl] org ${locationLink.org_id} is GHL-linked but has no ghl_org_config row — sync skipped`)
         } else {
-          await ghlPut(getGhlToken(), `/contacts/${contactId}`, {
-            customFields: [{ id: config.fieldIds.prezvaAttendeeLink, value: entryUrl }],
-          })
+          const token = await ghlAdapter.getAccessToken(locationLink.org_id)
+          if (!token) {
+            console.error(`[ghl-payment] no GHL access token for org ${locationLink.org_id} — entryUrl not written to contact`, contactId)
+            await supabase
+              .from('ghl_sync_state')
+              .update({ last_error: `no_ghl_access_token: org ${locationLink.org_id}`, updated_at: new Date().toISOString() })
+              .eq('id', syncStateId)
+          } else {
+            await ghlPut(token, `/contacts/${contactId}`, {
+              customFields: [{ id: config.fieldIds.prezvaAttendeeLink, value: entryUrl }],
+            })
+          }
         }
       } catch (e) {
         console.error('[ghl-payment] failed to write entryUrl to contact', contactId, e)

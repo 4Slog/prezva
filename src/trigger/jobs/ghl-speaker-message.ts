@@ -2,7 +2,7 @@ import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlUpsertContact, ghlSendEmail } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 
 export const ghlSpeakerMessageTask = schemaTask({
@@ -16,7 +16,8 @@ export const ghlSpeakerMessageTask = schemaTask({
   }),
   run: async (payload) => {
     const admin = createAdminClient()
-    const token = getGhlToken()
+    const token = await ghlAdapter.getAccessToken(payload.orgId)
+    if (!token) throw new Error(`No GHL access token available for org ${payload.orgId}`)
 
     const locationId = await ghlLocationIdForOrg(admin, payload.orgId)
     if (!locationId) throw new Error(`No GHL location linked for org ${payload.orgId}`)

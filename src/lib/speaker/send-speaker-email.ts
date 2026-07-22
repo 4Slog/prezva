@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ghlUpsertContact, ghlSendEmail } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 
 export async function sendSpeakerEmail(args: {
@@ -18,7 +18,8 @@ export async function sendSpeakerEmail(args: {
   const locationId = await ghlLocationIdForOrg(admin, orgId)
 
   if (locationId) {
-    const token = getGhlToken()
+    const token = await ghlAdapter.getAccessToken(orgId)
+    if (!token) throw new Error(`No GHL access token available for org ${orgId}`)
 
     const spaceIdx = speaker.name.indexOf(' ')
     const firstName = spaceIdx === -1 ? speaker.name : speaker.name.slice(0, spaceIdx)

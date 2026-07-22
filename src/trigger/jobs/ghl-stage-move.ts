@@ -2,7 +2,7 @@ import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlOrgIdForLocation } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 
@@ -28,10 +28,18 @@ export const ghlStageMoveTask = schemaTask({
       return { skipped: true }
     }
 
+    // A ghl_sync_state row only exists for already-linked orgs — GHL-linkage
+    // is implied, so a null orgId/token here is always the "linked but
+    // unprovisioned/token-broken" case, not "not linked."
+    const orgId = syncState.location_id ? await ghlOrgIdForLocation(admin, syncState.location_id) : null
+    if (!orgId) throw new Error(`No org resolved for GHL location ${syncState.location_id ?? 'unknown'}`)
+
+    const token = await ghlAdapter.getAccessToken(orgId)
+    if (!token) throw new Error(`No GHL access token available for org ${orgId}`)
+
     let result: { applied: true; opportunityId: string } | { parked: true; syncStateId: string }
 
     if (syncState.status === 'synced' && syncState.ghl_opportunity_id) {
-      const token = getGhlToken()
       await ghlPut(token, `/opportunities/${syncState.ghl_opportunity_id}`, {
         pipelineStageId: stageId,
       })
@@ -45,22 +53,18 @@ export const ghlStageMoveTask = schemaTask({
       result = { parked: true, syncStateId: syncState.id }
     }
 
-    // A ghl_sync_state row only exists for already-linked orgs — GHL-linkage
-    // is implied, so a null config here is always the "linked but
-    // unprovisioned" case, not "not linked." Only the tag maps depend on
-    // config — the stage PUT/park above already ran unconditionally.
-    const orgId = syncState.location_id ? await ghlOrgIdForLocation(admin, syncState.location_id) : null
-    const config = orgId ? await getGhlOrgConfig(admin, orgId) : null
+    // Only the tag maps depend on config — the stage PUT/park above already
+    // ran unconditionally (it only needs the token resolved above, not config).
+    const config = await getGhlOrgConfig(admin, orgId)
 
     if (!config) {
-      console.error(`[ghl] org ${orgId ?? syncState.location_id ?? 'unknown'} is GHL-linked but has no ghl_org_config row — sync skipped`)
+      console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)
       return result
     }
 
     const tag = config.stageTags[stageId]
     if (tag && syncState.ghl_contact_id) {
       try {
-        const token = getGhlToken()
         await ghlAddContactTags(token, syncState.ghl_contact_id, [tag])
       } catch (e) {
         console.error('[ghl-stage-move] tag apply failed (non-fatal):', e)
@@ -70,7 +74,6 @@ export const ghlStageMoveTask = schemaTask({
     const superseded = config.stageSupersedesTags[stageId]
     if (superseded?.length && syncState.ghl_contact_id) {
       try {
-        const token = getGhlToken()
         await ghlRemoveContactTags(token, syncState.ghl_contact_id, superseded)
       } catch (e) {
         console.error('[ghl-stage-move] superseded tag removal failed (non-fatal):', e)

@@ -15,8 +15,8 @@ vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlRemoveContactTags: vi.fn(),
 }))
 
-vi.mock('@/lib/integrations/ghl/token', () => ({
-  getGhlToken: vi.fn(),
+vi.mock('@/lib/integrations/ghl/adapter', () => ({
+  ghlAdapter: { getAccessToken: vi.fn() },
 }))
 
 vi.mock('@/lib/certificates/eligibility', () => ({
@@ -41,6 +41,7 @@ import {
   type CeProgressCandidate,
 } from '../ce-progress-sweep'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { checkEligibility } from '@/lib/certificates/eligibility'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
@@ -94,6 +95,7 @@ beforeEach(() => {
   vi.mocked(ghlRemoveContactTags).mockReset().mockResolvedValue([])
   vi.mocked(checkEligibility).mockReset()
   vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(LOCATION_ID)
+  vi.mocked(ghlAdapter.getAccessToken).mockReset().mockResolvedValue(TOKEN)
   vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
 })
 
@@ -266,7 +268,7 @@ describe('runCeProgressSweepForEvent — failure isolation', () => {
       .mockRejectedValueOnce(new Error('GHL boom'))
       .mockResolvedValueOnce({} as any)
 
-    const result = await runCeProgressSweepForEvent(admin as any, TOKEN, EVENT_ID)
+    const result = await runCeProgressSweepForEvent(admin as any, EVENT_ID)
 
     expect(result).toEqual({ processed: 2, updated: 1 })
     expect(ghlPut).toHaveBeenCalledTimes(2)

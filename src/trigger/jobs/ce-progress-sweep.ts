@@ -2,7 +2,7 @@ import { schedules } from '@trigger.dev/sdk/v3'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
@@ -105,7 +105,6 @@ export async function processCeProgressCandidate(
 // One registration's failure is caught and logged; it never aborts the rest.
 export async function runCeProgressSweepForEvent(
   admin: SupabaseClient,
-  token: string,
   eventId: string,
 ): Promise<{ processed: number; updated: number }> {
   const { data: eventRow } = await admin.from('events').select('org_id').eq('id', eventId).maybeSingle()
@@ -114,6 +113,14 @@ export async function runCeProgressSweepForEvent(
 
   const locationId = await ghlLocationIdForOrg(admin, orgId)
   if (!locationId) return { processed: 0, updated: 0 } // org not GHL-linked — silent skip
+
+  // One broken tenant's token must not stop the sweep for every other tenant —
+  // log and skip this event only, then let the caller's loop continue.
+  const token = await ghlAdapter.getAccessToken(orgId)
+  if (!token) {
+    console.error(`[ce-progress-sweep] no GHL access token for org ${orgId} — skipping this event only`)
+    return { processed: 0, updated: 0 }
+  }
 
   const config = await getGhlOrgConfig(admin, orgId)
   if (!config) {
@@ -142,7 +149,6 @@ export const ceProgressSweepTask = schedules.task({
   cron: '30 3 * * *',
   run: async () => {
     const admin = createAdminClient()
-    const token = getGhlToken()
     const now = Date.now()
     const windowEnd = new Date(now).toISOString()
     const windowStart = new Date(now - WINDOW_MS).toISOString()
@@ -159,7 +165,7 @@ export const ceProgressSweepTask = schedules.task({
     let registrationsProcessed = 0
     let registrationsUpdated = 0
     for (const event of events) {
-      const { processed, updated } = await runCeProgressSweepForEvent(admin, token, event.id)
+      const { processed, updated } = await runCeProgressSweepForEvent(admin, event.id)
       registrationsProcessed += processed
       registrationsUpdated += updated
     }

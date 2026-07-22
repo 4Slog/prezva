@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
       try {
         const locationId = process.env.GHL_LOCATION_ID
         const path = `/payments/transactions/${encodeURIComponent(txnId)}?altId=${locationId}&altType=location`
+        // INTENTIONAL: this route stays on the single-location PIT. Its GHL transaction lookup
+        // (altId=GHL_LOCATION_ID below) is not yet per-tenant — see the Company-token batch.
+        // Do not "tidy" this into ghlAdapter.getAccessToken without fixing the altId lookup first.
         const result = await ghlGet<unknown>(getGhlToken(), path)
         // The endpoint returns a bare array, not an object and not a {data:[...]} envelope.
         const txn = Array.isArray(result) ? (result[0] as Record<string, unknown> | undefined) : undefined

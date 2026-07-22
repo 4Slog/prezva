@@ -42,7 +42,7 @@ function buildState(orgId: string, userId: string, nonce: string): string {
 beforeEach(() => {
   cookieValue = undefined
   cookieDelete.mockClear()
-  vi.mocked(ghlAdapter.handlePendingInstall).mockReset().mockResolvedValue(undefined)
+  vi.mocked(ghlAdapter.handlePendingInstall).mockReset().mockResolvedValue({ stored: true })
   vi.mocked(ghlAdapter.handleCallback).mockReset().mockResolvedValue(undefined)
   vi.mocked(requireUser).mockReset().mockResolvedValue({ id: 'user-1', email: 'user@test.com' } as any)
   vi.mocked(assertPermission).mockReset().mockResolvedValue(undefined)
@@ -65,7 +65,7 @@ describe('GET /api/oauth/callback — fully state-less arrival (marketplace cold
     expect(html).toContain('Prezva installed')
   })
 
-  it('still renders the install page even if handlePendingInstall throws (never surfaces the error to the marketplace)', async () => {
+  it('renders the failure page (not the success page) if handlePendingInstall throws unexpectedly — never surfaces the error to the marketplace, but does not claim success either', async () => {
     vi.mocked(ghlAdapter.handlePendingInstall).mockRejectedValue(new Error('token exchange failed'))
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -74,7 +74,22 @@ describe('GET /api/oauth/callback — fully state-less arrival (marketplace cold
 
     expect(res.status).toBe(200)
     expect(requireUser).not.toHaveBeenCalled()
+    const html = await res.text()
+    expect(html).not.toContain('Prezva installed')
+    expect(html).toContain('did not complete')
     consoleErr.mockRestore()
+  })
+
+  it('renders the failure page (not the success page) when handlePendingInstall reports nothing was stored', async () => {
+    vi.mocked(ghlAdapter.handlePendingInstall).mockResolvedValue({ stored: false, reason: 'no_location' })
+
+    const req = new NextRequest(`${BASE_URL}?code=raw-marketplace-code`)
+    const res = await GET(req)
+
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).not.toContain('Prezva installed')
+    expect(html).toContain('did not complete')
   })
 })
 

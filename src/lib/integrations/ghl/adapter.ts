@@ -35,6 +35,10 @@ const SCOPES = [
 export const REDIRECT_URI = 'https://prezva.app/api/oauth/callback'
 export const STATE_COOKIE = 'ghl_oauth_state'
 
+export type PendingInstallResult =
+  | { stored: true }
+  | { stored: false; reason: 'no_location' | 'encryption_unavailable' | 'exchange_failed' }
+
 interface GhlTokenResponse {
   access_token: string
   refresh_token?: string
@@ -119,21 +123,27 @@ class GhlAdapter implements IntegrationAdapter {
   // because no Prezva session/org exists yet. Exchange the code and park the
   // tokens by location — claimPendingInstall binds them to an org later, at
   // claim time. No org is touched here.
-  async handlePendingInstall(code: string, redirectUri: string): Promise<void> {
-    const tokens = await this.exchangeCode(code, redirectUri)
+  async handlePendingInstall(code: string, redirectUri: string): Promise<PendingInstallResult> {
+    let tokens: GhlTokenResponse
+    try {
+      tokens = await this.exchangeCode(code, redirectUri)
+    } catch (err) {
+      console.error('[ghl-oauth] pending install: token exchange failed:', err instanceof Error ? err.message : String(err))
+      return { stored: false, reason: 'exchange_failed' }
+    }
 
     if (!(tokens.userType === 'Location' && tokens.locationId)) {
       // Company/agency-level cold installs have no location to key a
-      // pending row on. Nothing to park; the install page still renders.
+      // pending row on. Nothing to park.
       console.log('[ghl-oauth] pending install: no location in token response — nothing stored')
-      return
+      return { stored: false, reason: 'no_location' }
     }
 
     const encryptedAccess = encryptToken(tokens.access_token)
     const encryptedRefresh = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
     if (!encryptedAccess || !encryptedRefresh) {
       console.error('[ghl-oauth] pending install: encryption unavailable — refusing to half-store tokens')
-      return
+      return { stored: false, reason: 'encryption_unavailable' }
     }
 
     const admin = createAdminClient()
@@ -147,6 +157,8 @@ class GhlAdapter implements IntegrationAdapter {
       token_expires_at: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
       scopes: SCOPES,
     }, { onConflict: 'ghl_location_id' })
+
+    return { stored: true }
   }
 
   // Consumes a pending install for `locationId` and binds it to `orgId`:
@@ -254,6 +266,7 @@ class GhlAdapter implements IntegrationAdapter {
     const encryptedRefreshToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : data.encrypted_refresh_token
 
     await admin.from('org_integrations').update({
+      status: 'connected',
       encrypted_access_token: encryptToken(tokens.access_token),
       encrypted_refresh_token: encryptedRefreshToken,
       token_expires_at: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),

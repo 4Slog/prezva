@@ -15,8 +15,8 @@ vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlRemoveContactTags: vi.fn(),
 }))
 
-vi.mock('@/lib/integrations/ghl/token', () => ({
-  getGhlToken: vi.fn(),
+vi.mock('@/lib/integrations/ghl/adapter', () => ({
+  ghlAdapter: { getAccessToken: vi.fn() },
 }))
 
 vi.mock('@/lib/integrations/ghl/location', () => ({
@@ -34,7 +34,7 @@ vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
 import { ghlStageMoveTask } from '../ghl-stage-move'
 import { createAdminClient } from '../../lib/supabase-admin'
 import { ghlPut, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlOrgIdForLocation } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import {
@@ -99,7 +99,7 @@ function buildResolver(syncState: SyncStateRow | null) {
 }
 
 beforeEach(() => {
-  vi.mocked(getGhlToken).mockReset().mockReturnValue('test-token')
+  vi.mocked(ghlAdapter.getAccessToken).mockReset().mockResolvedValue('test-token')
   vi.mocked(ghlPut).mockReset().mockResolvedValue({} as any)
   vi.mocked(ghlAddContactTags).mockReset().mockResolvedValue([])
   vi.mocked(ghlRemoveContactTags).mockReset().mockResolvedValue([])

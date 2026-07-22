@@ -2,7 +2,7 @@ import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
 import { ghlPost, ghlPut, ghlAddContactTags } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { buildEventTag, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/config'
 import { ghlOrgIdForLocation } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
@@ -25,7 +25,6 @@ export const ghlSyncTask = schemaTask({
   }),
   run: async (payload) => {
     const admin = createAdminClient()
-    const token = getGhlToken()
 
     // This job only ever runs off a ghlLocationId already validated by the
     // payment webhook — GHL-linkage is implied, so a null config here is
@@ -36,6 +35,9 @@ export const ghlSyncTask = schemaTask({
       console.error(`[ghl] org ${orgId ?? payload.ghlLocationId} is GHL-linked but has no ghl_org_config row — sync skipped`)
       return { skipped: true }
     }
+
+    const token = await ghlAdapter.getAccessToken(orgId!)
+    if (!token) throw new Error(`No GHL access token available for org ${orgId}`)
 
     const opportunityBody = {
       pipelineId:      config.pipelineId,

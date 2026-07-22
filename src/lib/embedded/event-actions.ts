@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { resolveOrgOwnerProfileId } from '@/lib/embedded/org-helpers'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlGet } from '@/lib/integrations/ghl/client'
 import { requireEntitlement } from '@/lib/entitlements'
 
@@ -351,11 +351,13 @@ export async function createTicketTypeFromEmbedProduct(
     .maybeSingle()
   if (existing) return { ticketTypeId: existing.ticket_type_id, mappingId: existing.id }
 
+  const token = await ghlAdapter.getAccessToken(orgId)
+  if (!token) return { error: 'Your GHL connection needs attention — reconnect it from Settings and try again.' }
+
   // Fetch GHL product + prices
   let product: GhlProduct
   let price: GhlPrice | undefined
   try {
-    const token = getGhlToken()
     product = await ghlGet<GhlProduct>(
       token,
       `/products/${ghlProductId}?locationId=${locationId}`,
@@ -443,7 +445,7 @@ export async function listGhlProductsForPicker(
     return { error: (e as Error).message }
   }
 
-  const { db, locationId } = ctx
+  const { db, orgId, locationId } = ctx
 
   // Fetch already-mapped price IDs for this event (to mark alreadyMapped)
   const mappedPriceIds = new Set<string>()
@@ -455,8 +457,10 @@ export async function listGhlProductsForPicker(
     for (const m of mappings ?? []) mappedPriceIds.add(m.ghl_price_id)
   }
 
+  const token = await ghlAdapter.getAccessToken(orgId)
+  if (!token) return { error: 'Your GHL connection needs attention — reconnect it from Settings and try again.' }
+
   try {
-    const token = getGhlToken()
     const productsRes = await ghlGet<GhlProductListResponse>(
       token,
       `/products/?locationId=${locationId}&limit=100`,

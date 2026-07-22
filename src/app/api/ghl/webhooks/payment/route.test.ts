@@ -14,8 +14,8 @@ vi.mock('@/lib/trigger', () => ({
 vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlPut: vi.fn(),
 }))
-vi.mock('@/lib/integrations/ghl/token', () => ({
-  getGhlToken: vi.fn(),
+vi.mock('@/lib/integrations/ghl/adapter', () => ({
+  ghlAdapter: { getAccessToken: vi.fn() },
 }))
 // Partial mock: keep the real buildStageTagMaps (config.ts calls it at module
 // load) and only stub getGhlOrgConfig, which this test controls directly —
@@ -38,7 +38,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { ghlPut } from '@/lib/integrations/ghl/client'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import {
   GHL_FIELD_KEYS,
@@ -125,7 +125,7 @@ beforeEach(() => {
     qrCode: 'qr-abc-def',
     appAccessToken: 'app-access-token-xyz',
   })
-  vi.mocked(getGhlToken).mockReturnValue('test-token')
+  vi.mocked(ghlAdapter.getAccessToken).mockReset().mockResolvedValue('test-token')
   vi.mocked(ghlPut).mockResolvedValue({} as any)
   vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   vi.mocked(isOrgEntitled).mockReset().mockResolvedValue(true)
@@ -390,6 +390,51 @@ describe('POST /api/ghl/webhooks/payment — happy path', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.entryUrl).toBe('https://prezva.app/e/test-conf-2026/enter?reg=reg-uuid-123')
+  })
+})
+
+describe('POST /api/ghl/webhooks/payment — null GHL token (entryUrl write)', () => {
+  it('null token: registration still created, last_error written, ghlPut not called, returns 200', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://prezva.app')
+    vi.mocked(ghlAdapter.getAccessToken).mockReset().mockResolvedValue(null)
+    // Other tests in this file legitimately call ghlPut; vitest doesn't auto-clear
+    // mocks between tests here, so its call count must be cleared explicitly.
+    vi.mocked(ghlPut).mockClear()
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    // Call order: [0] ghl_sync_state select (none), [1] insert, [2] ghl_location_links (found),
+    // [3] ticket_type_product_mappings (found), [4] ticket_types, [5] events,
+    // [6] ghl_sync_state update (queued_for_sync), [7] ghl_sync_state update (last_error, null token)
+    const client = makeSequentialClient([
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-1' }, error: null },
+      { data: { name: 'General Admission' }, error: null },
+      { data: { title: 'Test Conference 2026', slug: 'test-conf-2026' }, error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+    expect(json.registrationId).toBe('reg-uuid-123')
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalled()
+    expect(ghlPut).not.toHaveBeenCalled()
+
+    expect(client.from.mock.calls.length).toBe(8)
+    const lastErrorArgs = client.from.mock.results[7].value.update.mock.calls[0][0]
+    expect(lastErrorArgs).toEqual(expect.objectContaining({ last_error: 'no_ghl_access_token: org org-uuid-1' }))
+
+    expect(consoleErr).toHaveBeenCalledWith(
+      expect.stringContaining('no GHL access token for org org-uuid-1'),
+      LIVE_PAYLOAD.contact_id,
+    )
+    consoleErr.mockRestore()
   })
 })
 

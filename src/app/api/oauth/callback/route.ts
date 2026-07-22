@@ -18,6 +18,15 @@ function pendingInstallPage(): NextResponse {
   return new NextResponse(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } })
 }
 
+function pendingInstallFailedPage(): NextResponse {
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Prezva</title></head>
+<body style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 24px;">
+  <p style="font-size: 16px; color: #1f2937;">The install did not complete. Please try installing Prezva again from within the sub-account.</p>
+</body></html>`
+  return new NextResponse(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } })
+}
+
 function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a)
   const bufB = Buffer.from(b)
@@ -44,11 +53,12 @@ export async function GET(req: NextRequest) {
   // existing state-ful branch below, which still rejects it as invalid.
   if (code && !stateB64 && !cookieNonce) {
     try {
-      await ghlAdapter.handlePendingInstall(code, REDIRECT_URI)
+      const result = await ghlAdapter.handlePendingInstall(code, REDIRECT_URI)
+      return result.stored ? pendingInstallPage() : pendingInstallFailedPage()
     } catch (err: unknown) {
       console.error('[ghl-oauth] pending install failed:', err instanceof Error ? err.message : String(err))
+      return pendingInstallFailedPage()
     }
-    return pendingInstallPage()
   }
 
   const user = await requireUser()

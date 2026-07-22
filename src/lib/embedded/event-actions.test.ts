@@ -14,8 +14,8 @@ vi.mock('@/lib/embedded/session', () => ({
 vi.mock('@/lib/entitlements', () => ({
   requireEntitlement: vi.fn(),
 }))
-vi.mock('@/lib/integrations/ghl/token', () => ({
-  getGhlToken: vi.fn().mockReturnValue('test-token'),
+vi.mock('@/lib/integrations/ghl/adapter', () => ({
+  ghlAdapter: { getAccessToken: vi.fn().mockResolvedValue('test-token') },
 }))
 vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlGet: vi.fn(),
@@ -39,7 +39,7 @@ vi.mock('@/lib/supabase/admin', () => ({
 
 import { embedPublishEvent, createTicketTypeFromEmbedProduct } from './event-actions'
 import { requireEntitlement } from '@/lib/entitlements'
-import { getGhlToken } from '@/lib/integrations/ghl/token'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlGet } from '@/lib/integrations/ghl/client'
 
 const ORG_ID = 'org-1'
@@ -48,7 +48,7 @@ const EVENT_ID = 'event-1'
 beforeEach(() => {
   mockFrom.mockClear()
   vi.mocked(requireEntitlement).mockReset()
-  vi.mocked(getGhlToken).mockClear()
+  vi.mocked(ghlAdapter.getAccessToken).mockClear()
   vi.mocked(ghlGet).mockReset()
 })
 
@@ -136,7 +136,7 @@ describe('createTicketTypeFromEmbedProduct — entitlement gate', () => {
     const result = await createTicketTypeFromEmbedProduct(EVENT_ID, 'prod-1', 'price-1')
 
     expect(result).toEqual({ error: 'entitlement_required' })
-    expect(getGhlToken).not.toHaveBeenCalled()
+    expect(ghlAdapter.getAccessToken).not.toHaveBeenCalled()
     expect(ghlGet).not.toHaveBeenCalled()
   })
 })
