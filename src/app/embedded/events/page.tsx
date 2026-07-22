@@ -5,7 +5,10 @@ import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import type { EmbeddedSessionPayload } from '@/lib/embedded/session'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isOrgEntitled } from '@/lib/entitlements'
+import { getSyncHealth } from '@/lib/ghl/sync-health'
+import type { SyncHealthResult } from '@/lib/ghl/sync-health'
 import { EmbeddedEventCard } from '@/app/embedded/_components/embedded-event-card'
+import { GhlSyncHealthPill } from '@/app/embedded/_components/ghl-sync-health-pill'
 
 interface EventRow {
   id: string
@@ -36,7 +39,7 @@ interface TicketRow {
 type LoadResult =
   | { kind: 'unlinked' }
   | { kind: 'failed' }
-  | { kind: 'ok'; orgName: string | null; events: EventRow[]; ticketsByEvent: Map<string, TicketRow[]>; entitled: boolean }
+  | { kind: 'ok'; orgName: string | null; events: EventRow[]; ticketsByEvent: Map<string, TicketRow[]>; entitled: boolean; syncHealth: SyncHealthResult }
 
 export default async function EmbeddedEventsPage() {
   const cookieStore = await cookies()
@@ -69,8 +72,8 @@ export default async function EmbeddedEventsPage() {
       } else {
         const orgId = link.org_id
 
-        // Fetch org name, events, and entitlement in parallel — all scoped strictly to orgId
-        const [{ data: org }, { data: events }, entitled] = await Promise.all([
+        // Fetch org name, events, entitlement, and sync health in parallel — all scoped strictly to orgId
+        const [{ data: org }, { data: events }, entitled, syncHealth] = await Promise.all([
           db.from('organizations').select('name').eq('id', orgId).maybeSingle(),
           db
             .from('events')
@@ -78,6 +81,7 @@ export default async function EmbeddedEventsPage() {
             .eq('org_id', orgId)
             .order('start_at', { ascending: false }),
           isOrgEntitled(orgId),
+          getSyncHealth(orgId),
         ])
 
         // Fetch ticket types scoped to this org's event ids only — never global
@@ -100,7 +104,7 @@ export default async function EmbeddedEventsPage() {
           ticketsByEvent.set(tt.event_id, list)
         }
 
-        result = { kind: 'ok', orgName: org?.name ?? null, events: events ?? [], ticketsByEvent, entitled }
+        result = { kind: 'ok', orgName: org?.name ?? null, events: events ?? [], ticketsByEvent, entitled, syncHealth }
       }
     } catch {
       result = { kind: 'failed' }
@@ -125,7 +129,7 @@ export default async function EmbeddedEventsPage() {
       )
     }
 
-    const { orgName, events, ticketsByEvent, entitled } = result
+    const { orgName, events, ticketsByEvent, entitled, syncHealth } = result
 
     return (
       <div className="flex flex-1 flex-col gap-6 p-6">
@@ -137,16 +141,19 @@ export default async function EmbeddedEventsPage() {
             </h1>
             <p className="text-sm" style={{ color: 'var(--pz-muted)' }}>Events · times shown in each event&apos;s time zone</p>
           </div>
-          <Link
-            href="/embedded/events/new"
-            className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent, #fff)' }}
-          >
-            <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5z" />
-            </svg>
-            Create event
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <GhlSyncHealthPill {...syncHealth} />
+            <Link
+              href="/embedded/events/new"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent, #fff)' }}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5z" />
+              </svg>
+              Create event
+            </Link>
+          </div>
         </div>
 
         {(!events || events.length === 0) ? (

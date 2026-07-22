@@ -435,6 +435,50 @@ export async function createTicketTypeFromEmbedProduct(
   return { ticketTypeId: ticketType.id, mappingId: mapping.id }
 }
 
+// ── Sync-health acknowledge (embed lane, read-time only) ─────────────────────
+
+export async function acknowledgeSyncIssue(
+  rowId: string,
+): Promise<{ ok: true } | { error: string }> {
+  let ctx: Awaited<ReturnType<typeof resolveEmbedContext>>
+  try {
+    ctx = await resolveEmbedContext()
+  } catch (e) {
+    return { error: (e as Error).message }
+  }
+
+  const { db, orgId } = ctx
+
+  const gate = await requireEntitlement(orgId)
+  if (gate) return gate
+
+  const { data: row } = await db
+    .from('ghl_sync_state')
+    .select('id, location_id')
+    .eq('id', rowId)
+    .maybeSingle()
+  if (!row) return { error: 'Sync issue not found' }
+
+  // IDOR guard: the row's location must resolve to the caller's org — not
+  // just match the caller's own session location, since an org can have
+  // multiple linked GHL locations.
+  const { data: link } = await db
+    .from('ghl_location_links')
+    .select('org_id')
+    .eq('ghl_location_id', row.location_id)
+    .maybeSingle()
+  if (!link || link.org_id !== orgId) return { error: 'Sync issue not found' }
+
+  const { error } = await db
+    .from('ghl_sync_state')
+    .update({ acknowledged_at: new Date().toISOString() })
+    .eq('id', rowId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/embedded/events')
+  return { ok: true }
+}
+
 export async function listGhlProductsForPicker(
   eventId?: string,
 ): Promise<GhlPickerProduct[] | { error: string }> {

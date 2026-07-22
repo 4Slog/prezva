@@ -37,7 +37,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { embedPublishEvent, createTicketTypeFromEmbedProduct } from './event-actions'
+import { embedPublishEvent, createTicketTypeFromEmbedProduct, acknowledgeSyncIssue } from './event-actions'
 import { requireEntitlement } from '@/lib/entitlements'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlGet } from '@/lib/integrations/ghl/client'
@@ -57,6 +57,22 @@ function withOrgLink() {
     if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: ORG_ID }, error: null } })
     return makeChain()
   }
+}
+
+// ghl_location_links gets queried twice in acknowledgeSyncIssue's path — once by
+// resolveEmbedContext for the caller's own session location, once for the target
+// row's location — each needing a different org_id, so this branches on the
+// actual .eq() filter value instead of returning one fixed result.
+function makeLocationLinksChain(linksByLocation: Record<string, string>) {
+  const chain: any = {}
+  let filterValue: string | undefined
+  chain.select = vi.fn().mockReturnValue(chain)
+  chain.eq = vi.fn((_col: string, val: string) => { filterValue = val; return chain })
+  chain.maybeSingle = vi.fn(async () => {
+    const orgId = filterValue !== undefined ? linksByLocation[filterValue] : undefined
+    return { data: orgId ? { org_id: orgId } : null, error: null }
+  })
+  return chain
 }
 
 describe('embedPublishEvent', () => {
@@ -138,5 +154,61 @@ describe('createTicketTypeFromEmbedProduct — entitlement gate', () => {
     expect(result).toEqual({ error: 'entitlement_required' })
     expect(ghlAdapter.getAccessToken).not.toHaveBeenCalled()
     expect(ghlGet).not.toHaveBeenCalled()
+  })
+})
+
+describe('acknowledgeSyncIssue', () => {
+  const ROW_ID = 'sync-row-1'
+
+  it('acknowledges a row whose location resolves to the caller org', async () => {
+    vi.mocked(requireEntitlement).mockResolvedValue(null)
+    const syncStateChain = makeChain({
+      maybeSingle: { data: { id: ROW_ID, location_id: 'loc-1' }, error: null },
+      awaited: { data: null, error: null },
+    })
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeLocationLinksChain({ 'loc-1': ORG_ID })
+      if (table === 'ghl_sync_state') return syncStateChain
+      return makeChain()
+    }
+
+    const result = await acknowledgeSyncIssue(ROW_ID)
+
+    expect(result).toEqual({ ok: true })
+    expect(syncStateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ acknowledged_at: expect.any(String) }),
+    )
+  })
+
+  it('rejects a row whose location resolves to a different org, without writing', async () => {
+    vi.mocked(requireEntitlement).mockResolvedValue(null)
+    const syncStateChain = makeChain({
+      maybeSingle: { data: { id: ROW_ID, location_id: 'other-loc' }, error: null },
+    })
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeLocationLinksChain({ 'loc-1': ORG_ID, 'other-loc': 'other-org' })
+      if (table === 'ghl_sync_state') return syncStateChain
+      return makeChain()
+    }
+
+    const result = await acknowledgeSyncIssue(ROW_ID)
+
+    expect(result).toEqual({ error: 'Sync issue not found' })
+    expect(syncStateChain.update).not.toHaveBeenCalled()
+  })
+
+  it('returns entitlement_required without looking up the row when the org is not entitled', async () => {
+    vi.mocked(requireEntitlement).mockResolvedValue({ error: 'entitlement_required' })
+    const syncStateChain = makeChain()
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeLocationLinksChain({ 'loc-1': ORG_ID })
+      if (table === 'ghl_sync_state') return syncStateChain
+      return makeChain()
+    }
+
+    const result = await acknowledgeSyncIssue(ROW_ID)
+
+    expect(result).toEqual({ error: 'entitlement_required' })
+    expect(syncStateChain.select).not.toHaveBeenCalled()
   })
 })

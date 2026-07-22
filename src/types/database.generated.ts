@@ -1714,8 +1714,39 @@ export type Database = {
           },
         ]
       }
+      ghl_pending_installs: {
+        Row: {
+          created_at: string
+          encrypted_access_token: string
+          encrypted_refresh_token: string
+          ghl_company_id: string | null
+          ghl_location_id: string
+          scopes: string[] | null
+          token_expires_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          encrypted_access_token: string
+          encrypted_refresh_token: string
+          ghl_company_id?: string | null
+          ghl_location_id: string
+          scopes?: string[] | null
+          token_expires_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          encrypted_access_token?: string
+          encrypted_refresh_token?: string
+          ghl_company_id?: string | null
+          ghl_location_id?: string
+          scopes?: string[] | null
+          token_expires_at?: string | null
+        }
+        Relationships: []
+      }
       ghl_sync_state: {
         Row: {
+          acknowledged_at: string | null
           created_at: string
           dead_lettered: boolean
           event_type: string
@@ -1737,6 +1768,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acknowledged_at?: string | null
           created_at?: string
           dead_lettered?: boolean
           event_type: string
@@ -1758,6 +1790,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acknowledged_at?: string | null
           created_at?: string
           dead_lettered?: boolean
           event_type?: string
@@ -2697,12 +2730,14 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           email: string | null
+          entitled_until: string | null
           id: string
           is_active: boolean | null
           logo_url: string | null
           name: string
           payouts_enabled: boolean
           phone: string | null
+          plan: string
           slug: string
           state: string | null
           stripe_account_id: string | null
@@ -2722,12 +2757,14 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           email?: string | null
+          entitled_until?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
           name: string
           payouts_enabled?: boolean
           phone?: string | null
+          plan?: string
           slug: string
           state?: string | null
           stripe_account_id?: string | null
@@ -2747,12 +2784,14 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           email?: string | null
+          entitled_until?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
           name?: string
           payouts_enabled?: boolean
           phone?: string | null
+          plan?: string
           slug?: string
           state?: string | null
           stripe_account_id?: string | null
@@ -4642,6 +4681,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sso_nonces: {
+        Row: {
+          created_at: string
+          payload_hash: string
+        }
+        Insert: {
+          created_at?: string
+          payload_hash: string
+        }
+        Update: {
+          created_at?: string
+          payload_hash?: string
+        }
+        Relationships: []
       }
       staff_invites: {
         Row: {
