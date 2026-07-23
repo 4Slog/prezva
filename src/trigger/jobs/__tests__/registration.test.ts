@@ -9,9 +9,9 @@ vi.mock('../../lib/supabase-admin', () => ({
   createAdminClient: vi.fn(),
 }))
 
-const ghlLocationMock = vi.hoisted(() => vi.fn())
+const isEventGhlLinkedMock = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/integrations/ghl/location', () => ({
-  ghlLocationIdForOrg: ghlLocationMock,
+  isEventGhlLinked: isEventGhlLinkedMock,
 }))
 
 import { processWaitlist } from '../registration'
@@ -40,9 +40,8 @@ function nextWaitlistedReg(overrides: Record<string, any> = {}) {
   }
 }
 
-function buildResolver(cfg: { event: { org_id: string } | null; nextReg?: any }) {
+function buildResolver(cfg: { nextReg?: any }) {
   return (call: Recorded) => {
-    if (call.table === 'events') return { data: cfg.event, error: null }
     if (call.table === 'registrations') {
       if (call.mode === 'select') return { data: cfg.nextReg ?? null, error: null }
       if (call.mode === 'update') return { data: null, error: null }
@@ -58,7 +57,7 @@ describe('processWaitlist', () => {
     process.env.RESEND_API_KEY = 'test-resend-key'
     fetchMock.mockReset().mockResolvedValue({ ok: true, json: async () => ({ id: 'email-1' }) })
     vi.stubGlobal('fetch', fetchMock)
-    ghlLocationMock.mockReset()
+    isEventGhlLinkedMock.mockReset()
   })
 
   afterEach(() => {
@@ -66,25 +65,23 @@ describe('processWaitlist', () => {
   })
 
   it('skips promotion and email on a GHL-linked event — GHL owns the waitlist lane (R31)', async () => {
-    ghlLocationMock.mockResolvedValue('ghl-loc-1')
-    const { admin, calls } = makeFakeAdmin(
-      buildResolver({ event: { org_id: ORG_ID } }),
-    )
+    isEventGhlLinkedMock.mockResolvedValue({ linked: true, orgId: ORG_ID, locationId: 'ghl-loc-1' })
+    const { admin, calls } = makeFakeAdmin(buildResolver({}))
     vi.mocked(createAdminClient).mockReturnValue(admin as any)
 
     const result = await runProcessWaitlist({ eventId: EVENT_ID, eventTitle: 'SAUP Conf' })
 
     expect(result).toEqual({ processed: false, reason: 'ghl-linked event — GHL owns waitlist lane' })
-    expect(ghlLocationMock).toHaveBeenCalledWith(admin, ORG_ID)
+    expect(isEventGhlLinkedMock).toHaveBeenCalledWith(admin, EVENT_ID)
     expect(calls.some((c) => c.table === 'registrations' && c.mode === 'update')).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('promotes exactly one waitlisted registration and emails on a standalone (non-GHL) event', async () => {
-    ghlLocationMock.mockResolvedValue(null)
+    isEventGhlLinkedMock.mockResolvedValue({ linked: false, orgId: ORG_ID, locationId: null })
     const nextReg = nextWaitlistedReg()
     const { admin, calls } = makeFakeAdmin(
-      buildResolver({ event: { org_id: ORG_ID }, nextReg }),
+      buildResolver({ nextReg }),
     )
     vi.mocked(createAdminClient).mockReturnValue(admin as any)
 

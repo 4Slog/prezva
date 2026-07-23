@@ -2,7 +2,7 @@ import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { escapeHtml } from '../lib/escape'
 import { createAdminClient } from '../lib/supabase-admin'
-import { isEmailSuppressed } from '@/lib/email/suppression'
+import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
 export const sendCertificateEmail = schemaTask({
   id: 'send-certificate-email',
@@ -19,12 +19,6 @@ export const sendCertificateEmail = schemaTask({
   }),
   run: async (payload) => {
     const admin = createAdminClient()
-    if (await isEmailSuppressed(admin, payload.attendeeEmail)) {
-      return { sent: false, reason: 'suppressed' }
-    }
-
-    const { Resend } = await import('resend')
-    const resend = new Resend(process.env.RESEND_API_KEY)
 
     const ceParagraph = payload.ceCredits && payload.ceCredits > 0
       ? `<p style="color:#CBD5E1;font-size:15px;">This certificate represents <strong style="color:#00BFA6;">${payload.ceCredits} CE credit hour${payload.ceCredits !== 1 ? 's' : ''}</strong>. Submit it to your licensing board to claim credit.</p>`
@@ -50,39 +44,43 @@ export const sendCertificateEmail = schemaTask({
       certIdText.trim(),
     ].filter(Boolean).join('\n\n')
 
-    await resend.emails.send({
-      from:     'Prezva <noreply@prezva.app>',
-      to:       payload.attendeeEmail,
-      subject:  `${payload.eventTitle}: Your certificate is ready`,
-      replyTo:  payload.orgEmail || undefined,
-      text,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-          <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
-            <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
-              <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
-            </div>
-            <h1 style="color:#F0F4F8;font-size:20px;margin:0;">Your Certificate is Ready</h1>
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
+          <div style="background:#00BFA6;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
+            <span style="color:#0D1B2A;font-weight:900;font-size:18px;">P</span>
           </div>
-          <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;">
-            <p style="color:#CBD5E1;font-size:15px;">Hi ${escapeHtml(payload.attendeeName)},</p>
-            <p style="color:#CBD5E1;font-size:15px;">Congratulations on completing <strong style="color:#F0F4F8;">${escapeHtml(payload.eventTitle)}</strong>. Your certificate of attendance is ready to download.</p>
-            ${ceParagraph}
-            <div style="margin:24px 0;">
-              <a href="${escapeHtml(payload.certDownloadUrl)}" style="background:#00BFA6;color:#0D1B2A;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
-                Download Certificate (PDF)
-              </a>
-            </div>
-            <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
-            <p style="color:#64748B;font-size:12px;margin:0;">
-              Verify this certificate: <a href="${escapeHtml(payload.verifyUrl)}" style="color:#00BFA6;text-decoration:none;">${escapeHtml(payload.verifyUrl)}</a>
-            </p>
-            ${certIdLine}
-          </div>
+          <h1 style="color:#F0F4F8;font-size:20px;margin:0;">Your Certificate is Ready</h1>
         </div>
-      `,
+        <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;">
+          <p style="color:#CBD5E1;font-size:15px;">Hi ${escapeHtml(payload.attendeeName)},</p>
+          <p style="color:#CBD5E1;font-size:15px;">Congratulations on completing <strong style="color:#F0F4F8;">${escapeHtml(payload.eventTitle)}</strong>. Your certificate of attendance is ready to download.</p>
+          ${ceParagraph}
+          <div style="margin:24px 0;">
+            <a href="${escapeHtml(payload.certDownloadUrl)}" style="background:#00BFA6;color:#0D1B2A;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
+              Download Certificate (PDF)
+            </a>
+          </div>
+          <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
+          <p style="color:#64748B;font-size:12px;margin:0;">
+            Verify this certificate: <a href="${escapeHtml(payload.verifyUrl)}" style="color:#00BFA6;text-decoration:none;">${escapeHtml(payload.verifyUrl)}</a>
+          </p>
+          ${certIdLine}
+        </div>
+      </div>
+    `
+
+    const result = await deliverAttendeeEmail(admin, {
+      registrationId: payload.registrationId,
+      to: payload.attendeeEmail,
+      attendeeName: payload.attendeeName,
+      subject: `${payload.eventTitle}: Your certificate is ready`,
+      html,
+      text,
+      from: 'Prezva <noreply@prezva.app>',
+      replyTo: payload.orgEmail || undefined,
     })
 
-    return { sent: true }
+    return { sent: !result.suppressed, channel: result.channel }
   },
 })

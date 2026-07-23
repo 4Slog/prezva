@@ -6,9 +6,9 @@ vi.mock('@/lib/push/send', () => ({
   sendAnnouncementPush: pushMock,
 }))
 
-const ghlLocationMock = vi.hoisted(() => vi.fn())
+const isEventGhlLinkedMock = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/integrations/ghl/location', () => ({
-  ghlLocationIdForOrg: ghlLocationMock,
+  isEventGhlLinked: isEventGhlLinkedMock,
 }))
 
 import { runSendAnnouncement } from '../announcement'
@@ -73,8 +73,8 @@ describe('runSendAnnouncement', () => {
     process.env.RESEND_API_KEY = 'test-resend-key'
     fetchMock.mockReset()
     pushMock.mockReset()
-    ghlLocationMock.mockReset()
-    ghlLocationMock.mockResolvedValue(null)
+    isEventGhlLinkedMock.mockReset()
+    isEventGhlLinkedMock.mockResolvedValue({ linked: false, orgId: null, locationId: null })
     vi.stubGlobal('fetch', fetchMock)
   })
 
@@ -280,7 +280,7 @@ describe('runSendAnnouncement', () => {
   })
 
   it('hands off to GHL without sending email when the org is GHL-linked', async () => {
-    ghlLocationMock.mockResolvedValue('loc_123')
+    isEventGhlLinkedMock.mockResolvedValue({ linked: true, orgId: 'org_1', locationId: 'loc_123' })
     const claimRow = { status: 'scheduled', updated_at: STALE() }
     const resolver = buildResolver({ annRow: baseAnn({ channel: 'email' }), claimRow, event: validEvent })
     const { admin, calls } = makeFakeAdmin(resolver)

@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { escapeHtml } from '../lib/escape'
 import { sendAnnouncementPush } from '@/lib/push/send'
-import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { isEventGhlLinked } from '@/lib/integrations/ghl/location'
 import { getSuppressedEmailSet } from '@/lib/email/suppression'
 
 const CLAIM_STALE_MS = 10 * 60 * 1000
@@ -71,14 +71,13 @@ export async function runSendAnnouncement(
     const orgName    = orgInfo.name
     const orgEmail   = orgInfo.email || undefined
     const eventUrl   = eventSlug ? `https://prezva.app/e/${eventSlug}` : ''
-    const orgId      = (ev as any)?.org_id as string | undefined
 
     // GHL-linked events: GoHighLevel owns email delivery, so Prezva suppresses
     // its Resend blast and marks the announcement handed_off. For channel
     // 'both', push already fired above. sent_at is deliberately left null —
     // Prezva did not send this email.
-    const ghlLocationId = orgId ? await ghlLocationIdForOrg(supabase, orgId) : null
-    if (ghlLocationId) {
+    const { linked } = await isEventGhlLinked(supabase, ann.event_id)
+    if (linked) {
       await supabase
         .from('announcements')
         .update({ status: 'handed_off', recipient_count: 0 })

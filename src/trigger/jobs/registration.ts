@@ -1,7 +1,7 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
-import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { isEventGhlLinked } from '@/lib/integrations/ghl/location'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
@@ -236,16 +236,8 @@ export const processWaitlist = schemaTask({
 
     // R31: on GHL-linked events, GHL owns the waitlist lane — Prezva must not
     // promote anyone. Mirrors announcement.ts's org-scoped GHL-linked check.
-    // TODO: extract a shared isEventGhlLinked(admin, eventId) helper once a
-    // second event-level (not per-registration) caller needs this same check.
-    const { data: eventRow } = await supabase
-      .from('events')
-      .select('org_id')
-      .eq('id', payload.eventId)
-      .maybeSingle()
-    const orgId = (eventRow as any)?.org_id as string | undefined
-    const ghlLocationId = orgId ? await ghlLocationIdForOrg(supabase, orgId) : null
-    if (ghlLocationId) {
+    const { linked, orgId } = await isEventGhlLinked(supabase, payload.eventId)
+    if (linked) {
       console.log(`[process-waitlist] skip: event ${payload.eventId} (org ${orgId}) is GHL-linked via ghl_location_links — GHL owns the waitlist lane (R31), no Prezva promotion`)
       return { processed: false, reason: 'ghl-linked event — GHL owns waitlist lane' }
     }

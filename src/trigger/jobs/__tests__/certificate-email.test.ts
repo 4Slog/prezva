@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { makeFakeAdmin } from './fake-supabase'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 vi.mock('@trigger.dev/sdk', () => ({
   schemaTask: (opts: any) => opts,
@@ -7,6 +6,11 @@ vi.mock('@trigger.dev/sdk', () => ({
 
 vi.mock('../../lib/supabase-admin', () => ({
   createAdminClient: vi.fn(),
+}))
+
+const deliverMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/email/deliver-attendee-email', () => ({
+  deliverAttendeeEmail: deliverMock,
 }))
 
 import { sendCertificateEmail } from '../certificate-email'
@@ -38,44 +42,57 @@ function basePayload(overrides: Partial<Payload> = {}): Payload {
   }
 }
 
-describe('sendCertificateEmail suppression gate', () => {
-  const fetchMock = vi.fn()
+const FAKE_ADMIN = { marker: 'fake-admin' }
 
+describe('sendCertificateEmail', () => {
   beforeEach(() => {
-    process.env.RESEND_API_KEY = 'test-resend-key'
-    fetchMock.mockReset().mockResolvedValue({ ok: true, json: async () => ({ id: 'email-1' }) })
-    vi.stubGlobal('fetch', fetchMock)
+    ;(createAdminClient as any).mockReturnValue(FAKE_ADMIN)
+    deliverMock.mockReset()
   })
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('skips the send and returns a non-throwing skip result for a suppressed address', async () => {
-    const { admin } = makeFakeAdmin((call) => {
-      if (call.table !== 'email_suppressions') throw new Error(`unexpected table in test: ${call.table}`)
-      return { data: [{ email: 'attendee@example.com' }], error: null }
-    })
-    ;(createAdminClient as any).mockReturnValue(admin)
+  it('composes subject/html/text and routes them through deliverAttendeeEmail, reporting sent:true on a resend send', async () => {
+    deliverMock.mockResolvedValue({ channel: 'resend' })
 
     const result = await runSendCertificateEmail(basePayload())
 
-    expect(result).toEqual({ sent: false, reason: 'suppressed' })
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(result).toEqual({ sent: true, channel: 'resend' })
+    expect(deliverMock).toHaveBeenCalledTimes(1)
+    const [admin, params] = deliverMock.mock.calls[0]
+    expect(admin).toBe(FAKE_ADMIN)
+    expect(params).toMatchObject({
+      registrationId: 'reg_1',
+      to: 'attendee@example.com',
+      attendeeName: 'Jane Doe',
+      subject: 'Prezva Conf: Your certificate is ready',
+      from: 'Prezva <noreply@prezva.app>',
+      replyTo: undefined,
+    })
+    expect(params.html).toContain('Download Certificate (PDF)')
+    expect(params.text).toContain('Download Certificate (PDF)')
   })
 
-  it('sends normally for a non-suppressed address', async () => {
-    const { admin } = makeFakeAdmin((call) => {
-      if (call.table !== 'email_suppressions') throw new Error(`unexpected table in test: ${call.table}`)
-      return { data: [], error: null }
-    })
-    ;(createAdminClient as any).mockReturnValue(admin)
+  it('reports sent:true on a GHL send', async () => {
+    deliverMock.mockResolvedValue({ channel: 'ghl' })
 
     const result = await runSendCertificateEmail(basePayload())
 
-    expect(result).toEqual({ sent: true })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
-    expect(body.to).toBe('attendee@example.com')
+    expect(result).toEqual({ sent: true, channel: 'ghl' })
+  })
+
+  it('reports sent:false without throwing when the router skips a suppressed address', async () => {
+    deliverMock.mockResolvedValue({ channel: 'resend', suppressed: true })
+
+    const result = await runSendCertificateEmail(basePayload())
+
+    expect(result).toEqual({ sent: false, channel: 'resend' })
+  })
+
+  it('passes orgEmail through as replyTo when present', async () => {
+    deliverMock.mockResolvedValue({ channel: 'resend' })
+
+    await runSendCertificateEmail(basePayload({ orgEmail: 'org@example.com' }))
+
+    const [, params] = deliverMock.mock.calls[0]
+    expect(params.replyTo).toBe('org@example.com')
   })
 })
