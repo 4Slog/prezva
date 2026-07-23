@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { validateSpeakerToken } from '@/lib/speaker/speaker-actions'
 import { speakerHandoutLimiter, checkRateLimit } from '@/lib/ratelimit'
+import { getSuppressedEmailSet } from '@/lib/email/suppression'
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -140,7 +141,10 @@ async function notifyAttendeesOfHandout(
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
 
-  for (const reg of regs) {
+  const suppressedSet = await getSuppressedEmailSet(admin)
+  const eligibleRegs = regs.filter((reg) => !suppressedSet.has((reg as any).attendee_email.toLowerCase()))
+
+  for (const reg of eligibleRegs) {
     const firstName = (reg as any).attendee_name?.trim().split(/\s+/)[0] ?? 'there'
     const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
       <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">

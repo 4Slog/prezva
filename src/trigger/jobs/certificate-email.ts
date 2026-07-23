@@ -1,6 +1,8 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { escapeHtml } from '../lib/escape'
+import { createAdminClient } from '../lib/supabase-admin'
+import { isEmailSuppressed } from '@/lib/email/suppression'
 
 export const sendCertificateEmail = schemaTask({
   id: 'send-certificate-email',
@@ -16,6 +18,11 @@ export const sendCertificateEmail = schemaTask({
     orgEmail:        z.string().email().optional(),
   }),
   run: async (payload) => {
+    const admin = createAdminClient()
+    if (await isEmailSuppressed(admin, payload.attendeeEmail)) {
+      return { sent: false, reason: 'suppressed' }
+    }
+
     const { Resend } = await import('resend')
     const resend = new Resend(process.env.RESEND_API_KEY)
 

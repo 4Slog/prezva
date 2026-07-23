@@ -5,6 +5,7 @@ import { createAdminClient } from '../lib/supabase-admin'
 import { escapeHtml } from '../lib/escape'
 import { sendAnnouncementPush } from '@/lib/push/send'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
+import { getSuppressedEmailSet } from '@/lib/email/suppression'
 
 const CLAIM_STALE_MS = 10 * 60 * 1000
 
@@ -133,12 +134,7 @@ export async function runSendAnnouncement(
     )
 
     // Skip addresses that hard-bounced or filed spam complaints — protects domain reputation.
-    const { data: suppressions } = await supabase
-      .from('email_suppressions')
-      .select('email')
-    const suppressedSet = new Set(
-      (suppressions ?? []).map((s: any) => (s.email as string).toLowerCase()),
-    )
+    const suppressedSet = await getSuppressedEmailSet(supabase)
     const finalRegs = eligibleRegs.filter(
       (reg: any) => !suppressedSet.has(reg.attendee_email.toLowerCase()),
     )

@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { getSuppressedEmailSet } from '@/lib/email/suppression'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -248,12 +249,15 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
 
   if (!regs?.length) return { error: 'No confirmed registrations found' }
 
+  const suppressedSet = await getSuppressedEmailSet(supabase)
+  const eligibleRegs = regs.filter((reg) => !suppressedSet.has(reg.attendee_email.toLowerCase()))
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
 
   let sent = 0, errors = 0
-  for (const reg of regs) {
+  for (const reg of eligibleRegs) {
     const surveyUrl = `${appUrl}/survey/${surveyId}?token=${reg.qr_code}`
     try {
       await resend.emails.send({
