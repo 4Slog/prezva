@@ -31,6 +31,13 @@ export default async function EmbeddedNewEventPage() {
     redirect('/embedded/events')
   }
 
+  // organizations.timezone is NOT NULL — this org row is guaranteed to
+  // exist (link.org_id is a live FK) — 'UTC' here only guards the type,
+  // never a real fallback path.
+  const db = createAdminClient()
+  const { data: orgRow } = await db.from('organizations').select('timezone').eq('id', orgId).maybeSingle()
+  const orgTimezone = orgRow?.timezone ?? 'UTC'
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
@@ -57,7 +64,7 @@ export default async function EmbeddedNewEventPage() {
         </p>
       </div>
 
-      <CreateEventForm orgId={orgId} entitled={entitled} />
+      <CreateEventForm orgId={orgId} entitled={entitled} orgTimezone={orgTimezone} />
     </div>
   )
 }

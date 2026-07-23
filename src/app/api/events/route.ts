@@ -9,7 +9,7 @@ const CreateSchema = z.object({
   slug:        z.string().min(2).max(60).regex(/^[a-z0-9-]+$/),
   description: z.string().max(5000).optional(),
   event_type:  z.enum(['in_person', 'virtual', 'hybrid']).default('in_person'),
-  timezone:    z.string().default('America/Chicago'),
+  timezone:    z.string().min(1).optional(),
   start_at:    z.string().datetime(),
   end_at:      z.string().datetime(),
   venue_name:    z.string().optional(),
@@ -58,9 +58,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slug already taken in this org' }, { status: 409 })
     }
 
+    // Explicit submitted value always wins; otherwise derive from the org.
+    let timezone = parsed.data.timezone
+    if (!timezone) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('timezone')
+        .eq('id', parsed.data.org_id)
+        .maybeSingle()
+      timezone = org?.timezone
+    }
+    if (!timezone) {
+      return NextResponse.json({ error: 'Could not determine a timezone for this event.' }, { status: 400 })
+    }
+
     const { data: event, error } = await supabase
       .from('events')
-      .insert({ ...parsed.data, created_by: user.id })
+      .insert({ ...parsed.data, timezone, created_by: user.id })
       .select()
       .single()
 

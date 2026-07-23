@@ -6,7 +6,7 @@ import { z } from 'zod'
 const Schema = z.object({
   name: z.string().min(2).max(80),
   slug: z.string().min(2).max(40).regex(/^[a-z0-9-]+$/),
-  timezone: z.string().min(1).default('America/Chicago'),
+  timezone: z.string().min(1),
   invite_code: z.string().optional(),
 })
 

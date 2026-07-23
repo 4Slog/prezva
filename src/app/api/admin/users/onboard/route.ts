@@ -9,6 +9,7 @@ const schema = z.object({
   fullName: z.string().min(1).max(100),
   orgName: z.string().min(1).max(100),
   orgSlug: z.string().regex(/^[a-z0-9-]+$/).min(2).max(60),
+  timezone: z.string().min(1),
 })
 
 export async function POST(req: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
-  const { email, fullName, orgName, orgSlug } = parsed.data
+  const { email, fullName, orgName, orgSlug, timezone } = parsed.data
 
   // Check slug uniqueness
   const { data: existing } = await admin
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   // Create the organization
   const { data: org, error: orgErr } = await admin
     .from('organizations')
-    .insert({ name: orgName, slug: orgSlug })
+    .insert({ name: orgName, slug: orgSlug, timezone })
     .select('id')
     .single()
 

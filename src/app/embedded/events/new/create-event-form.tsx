@@ -8,6 +8,7 @@ import { GhlProductPicker } from '@/app/embedded/_components/ghl-product-picker'
 interface Props {
   orgId: string
   entitled: boolean
+  orgTimezone: string
 }
 
 type Step = 'form' | 'picker'
@@ -42,7 +43,7 @@ function Field({ label, children, required }: { label: string; children: React.R
   )
 }
 
-export function CreateEventForm({ orgId: _orgId, entitled }: Props) {
+export function CreateEventForm({ orgId: _orgId, entitled, orgTimezone }: Props) {
   const [step, setStep] = useState<Step>('form')
   const [newEventId, setNewEventId] = useState<string | null>(null)
   const [newEventSlug, setNewEventSlug] = useState<string | null>(null)
@@ -175,7 +176,10 @@ export function CreateEventForm({ orgId: _orgId, entitled }: Props) {
             </select>
           </Field>
           <Field label="Timezone" required>
-            <select name="timezone" defaultValue="America/Chicago" className={inputCls} style={inputStyle}>
+            <select name="timezone" defaultValue={orgTimezone} className={inputCls} style={inputStyle}>
+              {!TIMEZONES.some(tz => tz.value === orgTimezone) && (
+                <option value={orgTimezone}>{orgTimezone}</option>
+              )}
               {TIMEZONES.map(tz => (
                 <option key={tz.value} value={tz.value}>{tz.label}</option>
               ))}

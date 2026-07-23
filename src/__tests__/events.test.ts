@@ -126,9 +126,85 @@ describe('Events API — POST /api/events', () => {
       .mockResolvedValueOnce({ data: { role: 'owner' }, error: null }) // membership
       .mockResolvedValueOnce({ data: null, error: null })              // slug check
     mockSingle.mockResolvedValueOnce({
-      data: { id: 'evt-1', title: 'Test Event', slug: 'test-event' },
+      data: { id: 'evt-1', title: 'Test Event', slug: 'test-event', timezone: 'UTC' },
       error: null,
     })
+    const { POST } = await import('@/app/api/events/route')
+    const req = new Request('http://localhost/api/events', {
+      method: 'POST',
+      body: JSON.stringify({
+        org_id:   'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        title:    'Test Event',
+        slug:     'test-event',
+        start_at: '2026-09-01T09:00:00Z',
+        end_at:   '2026-09-01T17:00:00Z',
+        timezone: 'UTC',
+      }),
+    })
+    const res = await POST(req as Parameters<typeof POST>[0])
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    expect(json.slug).toBe('test-event')
+  })
+
+  it('derives timezone from the org when omitted', async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { role: 'owner' }, error: null })              // membership
+      .mockResolvedValueOnce({ data: null, error: null })                          // slug check
+      .mockResolvedValueOnce({ data: { timezone: 'America/Denver' }, error: null }) // org timezone lookup
+    mockSingle.mockResolvedValueOnce({
+      data: { id: 'evt-1', title: 'Test Event', slug: 'test-event', timezone: 'America/Denver' },
+      error: null,
+    })
+    const { POST } = await import('@/app/api/events/route')
+    const req = new Request('http://localhost/api/events', {
+      method: 'POST',
+      body: JSON.stringify({
+        org_id:   'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        title:    'Test Event',
+        slug:     'test-event',
+        start_at: '2026-09-01T09:00:00Z',
+        end_at:   '2026-09-01T17:00:00Z',
+        // no timezone — must be derived from the org
+      }),
+    })
+    const res = await POST(req as Parameters<typeof POST>[0])
+    expect(res.status).toBe(201)
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ timezone: 'America/Denver' }))
+  })
+
+  it('honors an explicitly submitted timezone — never looks up the org', async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { role: 'owner' }, error: null }) // membership
+      .mockResolvedValueOnce({ data: null, error: null })              // slug check
+    mockSingle.mockResolvedValueOnce({
+      data: { id: 'evt-1', title: 'Test Event', slug: 'test-event', timezone: 'Pacific/Honolulu' },
+      error: null,
+    })
+    const { POST } = await import('@/app/api/events/route')
+    const req = new Request('http://localhost/api/events', {
+      method: 'POST',
+      body: JSON.stringify({
+        org_id:   'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        title:    'Test Event',
+        slug:     'test-event',
+        start_at: '2026-09-01T09:00:00Z',
+        end_at:   '2026-09-01T17:00:00Z',
+        timezone: 'Pacific/Honolulu',
+      }),
+    })
+    const res = await POST(req as Parameters<typeof POST>[0])
+    expect(res.status).toBe(201)
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ timezone: 'Pacific/Honolulu' }))
+    // Only 2 maybeSingle calls (membership + slug) — the org lookup never ran.
+    expect(mockMaybeSingle).toHaveBeenCalledTimes(2)
+  })
+
+  it('400s when timezone is omitted and the org has none to derive from', async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { role: 'owner' }, error: null }) // membership
+      .mockResolvedValueOnce({ data: null, error: null })              // slug check
+      .mockResolvedValueOnce({ data: null, error: null })              // org lookup — nothing found
     const { POST } = await import('@/app/api/events/route')
     const req = new Request('http://localhost/api/events', {
       method: 'POST',
@@ -141,9 +217,7 @@ describe('Events API — POST /api/events', () => {
       }),
     })
     const res = await POST(req as Parameters<typeof POST>[0])
-    expect(res.status).toBe(201)
-    const json = await res.json()
-    expect(json.slug).toBe('test-event')
+    expect(res.status).toBe(400)
   })
 })
 

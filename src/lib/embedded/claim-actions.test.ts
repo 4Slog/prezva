@@ -198,7 +198,7 @@ describe('getClaimOrgs', () => {
 
 describe('claimLocation', () => {
   it('returns session_expired for a garbage claim token', async () => {
-    const result = await claimLocation('not-a-real-token', { type: 'new', name: 'Acme' })
+    const result = await claimLocation('not-a-real-token', { type: 'new', name: 'Acme', timezone: 'America/Chicago' })
     expect(result).toEqual({ error: 'session_expired' })
   })
 
@@ -206,7 +206,7 @@ describe('claimLocation', () => {
     const claimToken = await getValidClaimToken()
     embeddedSessionCookie = undefined
 
-    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme' })
+    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme', timezone: 'America/Chicago' })
     expect(result).toEqual({ error: 'session_expired' })
     expect(ghlAdapter.claimPendingInstall).not.toHaveBeenCalled()
   })
@@ -218,7 +218,7 @@ describe('claimLocation', () => {
       return makeChain()
     }
 
-    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme' })
+    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme', timezone: 'America/Chicago' })
     expect(result).toEqual({ ok: true, next: '/embedded/events' })
     expect(ghlAdapter.claimPendingInstall).not.toHaveBeenCalled()
     expect(cookieSet).toHaveBeenCalledWith(
@@ -331,14 +331,16 @@ describe('claimLocation', () => {
 
   it('happy path (new org): creates the org (no invite gate), seeds roles, adds owner membership, then binds', async () => {
     const claimToken = await getValidClaimToken()
+    let orgChain: any
     mockFromImpl = (table) => {
       if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: null, error: null } })
       if (table === 'ghl_pending_installs') return makeChain({ maybeSingle: { data: { ghl_location_id: 'loc-1' }, error: null } })
       if (table === 'organizations') {
-        return makeChain({
+        orgChain = makeChain({
           maybeSingle: { data: null, error: null }, // slug free
           single: { data: { id: 'new-org-id' }, error: null }, // insert result
         })
+        return orgChain
       }
       if (table === 'org_members') return makeChain({ awaited: { data: null, error: null } })
       return makeChain()
@@ -346,12 +348,18 @@ describe('claimLocation', () => {
     vi.mocked(seedBuiltinRoles).mockResolvedValue('owner-role-id')
     vi.mocked(ghlAdapter.claimPendingInstall).mockResolvedValue({ accessToken: 'access-xyz' })
 
-    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme Events' })
+    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme Events', timezone: 'America/Denver' })
 
     expect(result).toEqual({ ok: true, next: '/embedded/events' })
     expect(seedBuiltinRoles).toHaveBeenCalledWith('new-org-id', expect.anything())
     expect(ghlAdapter.claimPendingInstall).toHaveBeenCalledWith('loc-1', 'new-org-id')
     expect(hasPermission).not.toHaveBeenCalled()
+    // Claim org insert carries the submitted timezone — the whole point of
+    // this lane is that it no longer relies on organizations.timezone's
+    // (dropped) column default.
+    expect(orgChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Acme Events', timezone: 'America/Denver' }),
+    )
   })
 
   it('rejects an org name that is too short without touching the DB', async () => {
@@ -362,8 +370,24 @@ describe('claimLocation', () => {
       return makeChain()
     }
 
-    const result = await claimLocation(claimToken, { type: 'new', name: 'A' })
+    const result = await claimLocation(claimToken, { type: 'new', name: 'A', timezone: 'America/Chicago' })
     expect(result).toEqual({ error: 'Organization name is too short.' })
+    expect(ghlAdapter.claimPendingInstall).not.toHaveBeenCalled()
+  })
+
+  it('rejects an invalid submitted timezone without ever touching the organizations table', async () => {
+    const claimToken = await getValidClaimToken()
+    let organizationsTouched = false
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: null, error: null } })
+      if (table === 'ghl_pending_installs') return makeChain({ maybeSingle: { data: { ghl_location_id: 'loc-1' }, error: null } })
+      if (table === 'organizations') organizationsTouched = true
+      return makeChain()
+    }
+
+    const result = await claimLocation(claimToken, { type: 'new', name: 'Acme Events', timezone: 'Not/A/RealZone' })
+    expect(result).toEqual({ error: 'Please select a valid timezone.' })
+    expect(organizationsTouched).toBe(false)
     expect(ghlAdapter.claimPendingInstall).not.toHaveBeenCalled()
   })
 })

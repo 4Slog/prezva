@@ -16,7 +16,7 @@ const CreateEventSchema = z.object({
   slug:        z.string().min(2).max(60).regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers, and hyphens'),
   description: z.string().max(5000).optional(),
   event_type:  z.enum(['in_person', 'virtual', 'hybrid']).default('in_person'),
-  timezone:    z.string().min(1).default('America/Chicago'),
+  timezone:    z.string().min(1).optional(),
   start_at:    z.string().min(1).transform(v => v.includes("Z") || v.includes("+") ? v : new Date(v).toISOString()),
   end_at:      z.string().min(1).transform(v => v.includes("Z") || v.includes("+") ? v : new Date(v).toISOString()),
   // venue
@@ -101,7 +101,7 @@ export async function createEvent(formData: FormData) {
     slug:        formData.get('slug'),
     description: formData.get('description') || undefined,
     event_type:  formData.get('event_type') || 'in_person',
-    timezone:    formData.get('timezone') || 'America/Chicago',
+    timezone:    formData.get('timezone') || undefined,
     start_at:    formData.get('start_at'),
     end_at:      formData.get('end_at'),
     venue_name:    formData.get('venue_name') || undefined,
@@ -132,9 +132,21 @@ export async function createEvent(formData: FormData) {
     .maybeSingle()
   if (existing) return { error: 'An event with that slug already exists in this organization' }
 
+  // Explicit submitted value always wins; otherwise derive from the org.
+  let timezone = parsed.data.timezone
+  if (!timezone) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('timezone')
+      .eq('id', parsed.data.org_id)
+      .maybeSingle()
+    timezone = org?.timezone
+  }
+  if (!timezone) return { error: 'Could not determine a timezone for this event.' }
+
   const { data: event, error } = await supabase
     .from('events')
-    .insert({ ...parsed.data, created_by: user.id })
+    .insert({ ...parsed.data, timezone, created_by: user.id })
     .select()
     .single()
 

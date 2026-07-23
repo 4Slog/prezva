@@ -8,7 +8,7 @@ import { TemplatePicker } from '@/components/templates/TemplatePicker'
 import { Field } from '@/components/ui/Field'
 import type { EventTemplate as StarterEventTemplate } from '@/lib/templates/types'
 
-interface Org { id: string; name: string; slug: string }
+interface Org { id: string; name: string; slug: string; timezone: string }
 interface Membership {
   org_id: string
   role: string
@@ -28,6 +28,7 @@ export default function NewEventPage() {
   const [eventType, setEventType] = useState('in_person')
   const [templates, setTemplates] = useState<EventTemplate[]>([])
   const [selectedOrgId, setSelectedOrgId] = useState('')
+  const [timezone, setTimezone] = useState('')
   const [useTemplate, setUseTemplate] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [showStarterPicker, setShowStarterPicker] = useState(false)
@@ -39,7 +40,10 @@ export default function NewEventPage() {
       .then((d) => {
         const filtered = Array.isArray(d) ? d.filter((m: Membership) => ['owner', 'admin'].includes(m.role)) : []
         setOrgs(filtered)
-        if (filtered.length === 1) setSelectedOrgId(filtered[0].org_id)
+        if (filtered.length === 1) {
+          setSelectedOrgId(filtered[0].org_id)
+          setTimezone(filtered[0].organizations?.timezone ?? '')
+        }
       })
       .catch(() => {})
   }, [])
@@ -164,7 +168,14 @@ export default function NewEventPage() {
               required
               className={inputCls}
               value={selectedOrgId}
-              onChange={e => { setSelectedOrgId(e.target.value); setSelectedTemplate(''); setUseTemplate(false) }}
+              onChange={e => {
+                const orgId = e.target.value
+                setSelectedOrgId(orgId)
+                setSelectedTemplate('')
+                setUseTemplate(false)
+                const org = orgs.find(m => m.org_id === orgId)
+                setTimezone(org?.organizations?.timezone ?? '')
+              }}
             >
               <option value="">Select an organization</option>
               {orgs.map((m) => m.organizations && (
@@ -256,7 +267,10 @@ export default function NewEventPage() {
               </select>
             </Field>
             <Field label="Timezone" htmlFor="new-tz" required>
-              <select id="new-tz" name="timezone" defaultValue="America/Chicago" className={inputCls}>
+              <select id="new-tz" name="timezone" value={timezone} onChange={e => setTimezone(e.target.value)} className={inputCls}>
+                {timezone && !['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'UTC'].includes(timezone) && (
+                  <option value={timezone}>{timezone}</option>
+                )}
                 <option value="America/New_York">Eastern (ET)</option>
                 <option value="America/Chicago">Central (CT)</option>
                 <option value="America/Denver">Mountain (MT)</option>

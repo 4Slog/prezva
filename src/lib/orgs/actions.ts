@@ -22,7 +22,7 @@ const CreateOrgSchema = z.object({
     .min(2)
     .max(40)
     .regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers, and hyphens'),
-  timezone: z.string().min(1).default('America/Chicago'),
+  timezone: z.string().min(1),
 })
 
 const UpdateOrgSchema = z.object({
@@ -73,7 +73,7 @@ export async function createOrg(formData: FormData) {
   const parsed = CreateOrgSchema.safeParse({
     name: formData.get('name'),
     slug: formData.get('slug'),
-    timezone: formData.get('timezone') ?? 'America/Chicago',
+    timezone: formData.get('timezone'),
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const result = await createOrganization({

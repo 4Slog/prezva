@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   claimSignIn,
   claimSignUp,
@@ -52,6 +52,19 @@ export function ClaimFlow() {
   const [orgMode, setOrgMode] = useState<'pick' | 'create'>('create')
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
   const [newOrgName, setNewOrgName] = useState('')
+  const [newOrgTimezone, setNewOrgTimezone] = useState('')
+
+  // Hydration-safe: computed after mount, never at render, so SSR output
+  // can't mismatch a value the server has no way to know.
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a browser-only API (Intl) post-mount; cannot be computed during render without a hydration mismatch
+      setNewOrgTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    } catch {
+      // leave empty — the server rejects an invalid/missing timezone rather
+      // than silently guessing one
+    }
+  }, [])
 
   async function loadOrgs(token: string) {
     const result = await getClaimOrgs(token)
@@ -96,7 +109,7 @@ export function ClaimFlow() {
 
     const orgChoice: OrgChoice = orgMode === 'pick'
       ? { type: 'existing', orgId: selectedOrgId }
-      : { type: 'new', name: newOrgName }
+      : { type: 'new', name: newOrgName, timezone: newOrgTimezone }
 
     if (orgChoice.type === 'new' && orgChoice.name.trim().length < 2) {
       setError('Please enter an organization name.')

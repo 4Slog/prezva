@@ -228,6 +228,15 @@ export async function createEventFromTemplate(
   const startAtIso = normalizeDate(startAt)
   const endAtIso = normalizeDate(endAt)
 
+  // Template row's own timezone always wins; otherwise derive from the org
+  // the event is being created in — never a hardcoded literal.
+  let timezone = ev.timezone as string | undefined
+  if (!timezone) {
+    const { data: org } = await admin.from('organizations').select('timezone').eq('id', orgId).maybeSingle()
+    timezone = org?.timezone
+  }
+  if (!timezone) return { error: 'Could not determine a timezone for this event.' }
+
   const { data: newEvent, error: evError } = await supabase.from('events').insert({
     created_by: user.id,
     org_id: orgId,
@@ -236,7 +245,7 @@ export async function createEventFromTemplate(
     start_at: startAtIso,
     end_at: endAtIso,
     description: ev.description ?? null,
-    timezone: ev.timezone ?? 'America/New_York',
+    timezone,
     event_type: ev.event_type ?? 'in_person',
     virtual_url: ev.virtual_url ?? null,
     capacity: ev.capacity ?? null,

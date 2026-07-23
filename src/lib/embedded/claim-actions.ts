@@ -20,7 +20,7 @@ export type ClaimAuthResult =
 
 export type OrgChoice =
   | { type: 'existing'; orgId: string }
-  | { type: 'new'; name: string }
+  | { type: 'new'; name: string; timezone: string }
 
 export type ClaimLocationResult =
   | { ok: true; next: string }
@@ -188,15 +188,24 @@ async function createClaimOrg(
   admin: SupabaseClient,
   name: string,
   userId: string,
+  timezone: string,
 ): Promise<{ id: string } | { error: string }> {
   const trimmed = name.trim()
   if (trimmed.length < 2) return { error: 'Organization name is too short.' }
+
+  // No silent fallback: a garbage submitted timezone is bad input, not a
+  // choice we make for the user.
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: timezone })
+  } catch {
+    return { error: 'Please select a valid timezone.' }
+  }
 
   const slug = await generateUniqueOrgSlug(admin, toOrgSlug(trimmed))
 
   const { data: org, error: orgErr } = await admin
     .from('organizations')
-    .insert({ name: trimmed, slug, created_by: userId })
+    .insert({ name: trimmed, slug, timezone, created_by: userId })
     .select('id')
     .single()
   if (orgErr || !org) return { error: orgErr?.message ?? 'Failed to create organization' }
@@ -286,7 +295,7 @@ export async function claimLocation(claimToken: string, orgChoice: OrgChoice): P
     if (!allowed) return { error: 'forbidden' }
     orgId = orgChoice.orgId
   } else {
-    const result = await createClaimOrg(admin, orgChoice.name, claim.userId)
+    const result = await createClaimOrg(admin, orgChoice.name, claim.userId, orgChoice.timezone)
     if ('error' in result) return { error: result.error }
     orgId = result.id
   }

@@ -1,8 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createOrg } from '@/lib/orgs/actions'
 import { Field } from '@/components/ui/Field'
+
+const TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern (ET)' },
+  { value: 'America/Chicago', label: 'Central (CT)' },
+  { value: 'America/Denver', label: 'Mountain (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
+  { value: 'America/Anchorage', label: 'Alaska (AKT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii (HT)' },
+  { value: 'UTC', label: 'UTC' },
+]
 
 export default function NewOrgPage() {
   const [error, setError] = useState<string | null>(null)
@@ -11,6 +21,19 @@ export default function NewOrgPage() {
   const [orgName, setOrgName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
+  const [timezone, setTimezone] = useState(TIMEZONES[0].value)
+
+  // Hydration-safe: computed after mount, never at render, so SSR output
+  // can't mismatch the browser's actual timezone.
+  useEffect(() => {
+    try {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a browser-only API (Intl) post-mount; cannot be computed during render without a hydration mismatch
+      if (detected) setTimezone(detected)
+    } catch {
+      // leave the first-option fallback in place
+    }
+  }, [])
 
   function toSlug(name: string) {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -118,19 +141,19 @@ export default function NewOrgPage() {
           <select
             id="org-timezone"
             name="timezone"
-            defaultValue="America/Chicago"
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
             className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none"
             style={{ borderColor: 'var(--pz-border)', background: 'var(--pz-surface)', color: 'var(--pz-text)' }}
             onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--pz-teal)')}
             onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--pz-border)')}
           >
-            <option value="America/New_York">Eastern (ET)</option>
-            <option value="America/Chicago">Central (CT)</option>
-            <option value="America/Denver">Mountain (MT)</option>
-            <option value="America/Los_Angeles">Pacific (PT)</option>
-            <option value="America/Anchorage">Alaska (AKT)</option>
-            <option value="Pacific/Honolulu">Hawaii (HT)</option>
-            <option value="UTC">UTC</option>
+            {!TIMEZONES.some((tz) => tz.value === timezone) && (
+              <option value={timezone}>{timezone}</option>
+            )}
+            {TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
           </select>
         </Field>
 
