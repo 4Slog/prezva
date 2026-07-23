@@ -103,7 +103,7 @@ const EmbedCreateEventSchema = z.object({
   title:       z.string().min(2).max(120),
   description: z.string().max(5000).optional(),
   event_type:  z.enum(['in_person', 'virtual', 'hybrid']).default('in_person'),
-  timezone:    z.string().min(1).default('America/Chicago'),
+  timezone:    z.string().min(1).optional(),
   start_at:    z.string().min(1).transform(v =>
     v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
   ),
@@ -138,7 +138,7 @@ export async function createEventFromEmbed(
     title:        formData.get('title'),
     description:  formData.get('description') || undefined,
     event_type:   formData.get('event_type') || 'in_person',
-    timezone:     formData.get('timezone') || 'America/Chicago',
+    timezone:     formData.get('timezone') || undefined,
     start_at:     formData.get('start_at'),
     end_at:       formData.get('end_at'),
     venue_name:    formData.get('venue_name') || undefined,
@@ -166,10 +166,19 @@ export async function createEventFromEmbed(
     return { error: (e as Error).message }
   }
 
+  // Explicit submitted value always wins; otherwise derive from the org.
+  let timezone = parsed.data.timezone
+  if (!timezone) {
+    const { data: org } = await db.from('organizations').select('timezone').eq('id', orgId).maybeSingle()
+    timezone = org?.timezone
+  }
+  if (!timezone) return { error: 'Could not determine a timezone for this event.' }
+
   const { data: event, error } = await db
     .from('events')
     .insert({
       ...parsed.data,
+      timezone,
       org_id: orgId,
       created_by,
       slug,

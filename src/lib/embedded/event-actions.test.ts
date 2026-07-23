@@ -20,6 +20,9 @@ vi.mock('@/lib/integrations/ghl/adapter', () => ({
 vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlGet: vi.fn(),
 }))
+vi.mock('@/lib/embedded/org-helpers', () => ({
+  resolveOrgOwnerProfileId: vi.fn(),
+}))
 
 function makeChain(config: { maybeSingle?: any; awaited?: any } = {}) {
   const chain: any = {}
@@ -37,10 +40,11 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { embedPublishEvent, createTicketTypeFromEmbedProduct, acknowledgeSyncIssue } from './event-actions'
+import { embedPublishEvent, createTicketTypeFromEmbedProduct, acknowledgeSyncIssue, createEventFromEmbed } from './event-actions'
 import { requireEntitlement } from '@/lib/entitlements'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlGet } from '@/lib/integrations/ghl/client'
+import { resolveOrgOwnerProfileId } from '@/lib/embedded/org-helpers'
 
 const ORG_ID = 'org-1'
 const EVENT_ID = 'event-1'
@@ -210,5 +214,78 @@ describe('acknowledgeSyncIssue', () => {
 
     expect(result).toEqual({ error: 'entitlement_required' })
     expect(syncStateChain.select).not.toHaveBeenCalled()
+  })
+})
+
+describe('createEventFromEmbed — timezone derivation', () => {
+  function makeEventsChain(insertResult: any) {
+    const chain: any = {}
+    for (const k of ['select', 'eq', 'insert']) chain[k] = vi.fn().mockReturnValue(chain)
+    chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null }) // slug always free
+    chain.single = vi.fn().mockResolvedValue(insertResult)
+    return chain
+  }
+
+  function formData(fields: Record<string, string>) {
+    const fd = new FormData()
+    for (const [k, v] of Object.entries(fields)) fd.set(k, v)
+    return fd
+  }
+
+  const BASE_FIELDS = {
+    title: 'New Event',
+    start_at: '2026-09-01T09:00:00Z',
+    end_at: '2026-09-01T17:00:00Z',
+  }
+
+  beforeEach(() => {
+    vi.mocked(resolveOrgOwnerProfileId).mockReset().mockResolvedValue('owner-profile-id')
+  })
+
+  it('derives timezone from the org when omitted', async () => {
+    const eventsChain = makeEventsChain({ data: { id: 'evt-new', slug: 'new-event' }, error: null })
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: ORG_ID }, error: null } })
+      if (table === 'events') return eventsChain
+      if (table === 'organizations') return makeChain({ maybeSingle: { data: { timezone: 'America/Denver' }, error: null } })
+      return makeChain()
+    }
+
+    const result = await createEventFromEmbed(formData(BASE_FIELDS))
+
+    expect('error' in result).toBe(false)
+    expect(eventsChain.insert).toHaveBeenCalledWith(expect.objectContaining({ timezone: 'America/Denver' }))
+  })
+
+  it('honors an explicitly submitted timezone — never looks up the org', async () => {
+    const eventsChain = makeEventsChain({ data: { id: 'evt-new', slug: 'new-event' }, error: null })
+    let organizationsTouched = false
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: ORG_ID }, error: null } })
+      if (table === 'events') return eventsChain
+      if (table === 'organizations') { organizationsTouched = true; return makeChain() }
+      return makeChain()
+    }
+
+    const result = await createEventFromEmbed(formData({ ...BASE_FIELDS, timezone: 'Pacific/Honolulu' }))
+
+    expect('error' in result).toBe(false)
+    expect(eventsChain.insert).toHaveBeenCalledWith(expect.objectContaining({ timezone: 'Pacific/Honolulu' }))
+    expect(organizationsTouched).toBe(false)
+  })
+
+  it('errors instead of guessing when neither the form nor the org has a timezone', async () => {
+    const eventsChain = makeEventsChain({ data: null, error: null })
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: ORG_ID }, error: null } })
+      if (table === 'events') return eventsChain
+      if (table === 'organizations') return makeChain({ maybeSingle: { data: null, error: null } })
+      return makeChain()
+    }
+
+    const result = await createEventFromEmbed(formData(BASE_FIELDS))
+
+    expect(result).toEqual({ error: 'Could not determine a timezone for this event.' })
+    expect(eventsChain.insert).not.toHaveBeenCalled()
   })
 })
