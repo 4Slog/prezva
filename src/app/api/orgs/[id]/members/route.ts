@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 
 type Params = { params: Promise<{ id: string }> }
@@ -20,7 +21,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     if (!self) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const { data, error } = await supabase
+    const admin = createAdminClient()
+    const { data, error } = await admin
       .from('org_members')
       .select('id, role, created_at, profiles(id, full_name, email, avatar_url, job_title)')
       .eq('org_id', orgId)
