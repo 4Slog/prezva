@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { validateSpeakerToken } from '@/lib/speaker/speaker-actions'
 import { speakerHandoutLimiter, checkRateLimit } from '@/lib/ratelimit'
-import { getSuppressedEmailSet } from '@/lib/email/suppression'
+import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -131,20 +131,14 @@ async function notifyAttendeesOfHandout(
 
   const { data: regs } = await admin
     .from('registrations')
-    .select('attendee_email, attendee_name')
+    .select('id, attendee_email, attendee_name')
     .eq('event_id', eventId)
     .in('status', ['confirmed'])
     .limit(500)
 
   if (!regs || regs.length === 0) return
 
-  const resendKey = process.env.RESEND_API_KEY
-  if (!resendKey) return
-
-  const suppressedSet = await getSuppressedEmailSet(admin)
-  const eligibleRegs = regs.filter((reg) => !suppressedSet.has((reg as any).attendee_email.toLowerCase()))
-
-  for (const reg of eligibleRegs) {
+  for (const reg of regs) {
     const firstName = (reg as any).attendee_name?.trim().split(/\s+/)[0] ?? 'there'
     const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
       <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -158,15 +152,13 @@ async function notifyAttendeesOfHandout(
       </div>
     </div>`
 
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: `${orgName} <noreply@prezva.app>`,
-        to: (reg as any).attendee_email,
-        subject: `New materials: ${sessionTitle} — ${eventTitle}`,
-        html,
-      }),
+    await deliverAttendeeEmail(admin, {
+      registrationId: (reg as any).id,
+      to: (reg as any).attendee_email,
+      attendeeName: (reg as any).attendee_name,
+      subject: `New materials: ${sessionTitle} — ${eventTitle}`,
+      html,
+      from: `${orgName} <noreply@prezva.app>`,
     })
   }
 }

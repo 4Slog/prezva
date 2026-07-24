@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { logAudit } from '@/lib/audit/log'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
-import { getSuppressedEmailSet } from '@/lib/email/suppression'
+import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -249,20 +249,18 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
 
   if (!regs?.length) return { error: 'No confirmed registrations found' }
 
-  const suppressedSet = await getSuppressedEmailSet(supabase)
-  const eligibleRegs = regs.filter((reg) => !suppressedSet.has(reg.attendee_email.toLowerCase()))
-
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
-  const { Resend } = await import('resend')
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
 
   let sent = 0, errors = 0
-  for (const reg of eligibleRegs) {
+  for (const reg of regs) {
     const surveyUrl = `${appUrl}/survey/${surveyId}?token=${reg.qr_code}`
     try {
-      await resend.emails.send({
-        from: 'noreply@prezva.app',
+      const result = await deliverAttendeeEmail(admin, {
+        registrationId: reg.id,
         to: reg.attendee_email,
+        attendeeName: reg.attendee_name,
         subject: `Your feedback matters — ${event.title}`,
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <p>Hi ${reg.attendee_name},</p>
@@ -270,8 +268,9 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
           <p><a href="${surveyUrl}" style="background:#2DD4BF;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">Take the survey</a></p>
           <p style="font-size:12px;color:#888;">Or copy: ${surveyUrl}</p>
         </div>`,
+        from: 'noreply@prezva.app',
       })
-      sent++
+      if (!result.suppressed) sent++
     } catch { errors++ }
   }
   return { ok: true, sent, errors, total: regs.length }

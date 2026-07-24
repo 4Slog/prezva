@@ -1,9 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/auth/get-user', () => ({ requireUser: vi.fn().mockResolvedValue({ id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }) }))
 vi.mock('@/lib/auth/assert-permission', () => ({ assertPermission: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+
+const deliverMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/email/deliver-attendee-email', () => ({
+  deliverAttendeeEmail: deliverMock,
+}))
+
+const FAKE_ADMIN = { marker: 'fake-admin' }
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => FAKE_ADMIN),
+}))
 
 import { createClient } from '@/lib/supabase/server'
 import { getSurveys, createSurvey, publishSurvey, closeSurvey, sendSurveyToAllAttendees } from '@/lib/surveys/actions'
@@ -69,10 +79,8 @@ describe('Surveys', () => {
   })
 })
 
-describe('sendSurveyToAllAttendees suppression gate', () => {
-  const fetchMock = vi.fn()
-
-  function makeSupabase(cfg: { event: any; regs: any[]; suppressions: any[] }) {
+describe('sendSurveyToAllAttendees delegates to deliverAttendeeEmail', () => {
+  function makeSupabase(cfg: { event: any; regs: any[] }) {
     return {
       from(table: string) {
         if (table === 'events') {
@@ -92,46 +100,38 @@ describe('sendSurveyToAllAttendees suppression gate', () => {
           }
           return chain
         }
-        if (table === 'email_suppressions') {
-          const chain: any = {
-            select() { return chain },
-            then(res: any, rej: any) {
-              return Promise.resolve({ data: cfg.suppressions, error: null }).then(res, rej)
-            },
-          }
-          return chain
-        }
         throw new Error(`unexpected table in test: ${table}`)
       },
     }
   }
 
   beforeEach(() => {
-    process.env.RESEND_API_KEY = 'test-resend-key'
-    fetchMock.mockReset().mockResolvedValue({ ok: true, json: async () => ({ id: 'email-1' }) })
-    vi.stubGlobal('fetch', fetchMock)
+    deliverMock.mockReset()
   })
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('does NOT send to a suppressed recipient but DOES send to a non-suppressed one', async () => {
+  it('calls deliverAttendeeEmail per recipient with that registration\'s id, and tallies suppressed vs sent per the rail result', async () => {
     const supabase = makeSupabase({
       event: { id: EVT, slug: 'evt', title: 'Conf', organizations: { id: 'org_1' } },
       regs: [
         { id: 'r1', attendee_email: 'suppressed@example.com', attendee_name: 'Sup Pressed', qr_code: 'q1' },
         { id: 'r2', attendee_email: 'clean@example.com', attendee_name: 'Clean Person', qr_code: 'q2' },
       ],
-      suppressions: [{ email: 'suppressed@example.com' }],
     })
     ;(createClient as any).mockResolvedValue(supabase)
+    deliverMock.mockImplementation(async (_admin: any, params: any) =>
+      params.registrationId === 'r1' ? { channel: 'resend', suppressed: true } : { channel: 'ghl' },
+    )
 
     const result = await sendSurveyToAllAttendees(SURVEY, EVT)
 
-    expect(result).toMatchObject({ ok: true, sent: 1, errors: 0 })
-    const recipients = fetchMock.mock.calls.map((c: any[]) => JSON.parse(c[1].body).to)
-    expect(recipients).not.toContain('suppressed@example.com')
-    expect(recipients).toContain('clean@example.com')
+    expect(result).toMatchObject({ ok: true, sent: 1, errors: 0, total: 2 })
+    expect(deliverMock).toHaveBeenCalledTimes(2)
+
+    const calls = deliverMock.mock.calls
+    const r1Call = calls.find(([, p]) => p.registrationId === 'r1')
+    const r2Call = calls.find(([, p]) => p.registrationId === 'r2')
+    expect(r1Call![0]).toBe(FAKE_ADMIN)
+    expect(r1Call![1]).toMatchObject({ registrationId: 'r1', to: 'suppressed@example.com', attendeeName: 'Sup Pressed' })
+    expect(r2Call![1]).toMatchObject({ registrationId: 'r2', to: 'clean@example.com', attendeeName: 'Clean Person' })
   })
 })
