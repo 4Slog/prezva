@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
+import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
 export async function refundRegistration(registrationId: string, force?: boolean) {
   const user = await requireUser()
@@ -99,20 +100,21 @@ export async function resendConfirmation(registrationId: string) {
 
   try { await assertPermission(orgId, user.id, 'attendees.edit') } catch (e) { return catchPermission(e) }
 
-  const { Resend } = await import('resend')
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
   try {
-    await resend.emails.send({
-      from: 'noreply@prezva.app',
+    await deliverAttendeeEmail(admin, {
+      registrationId: reg.id,
       to: reg.attendee_email,
+      attendeeName: reg.attendee_name,
       subject: `Your registration for ${ev.title}`,
       html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <p>Hi ${reg.attendee_name.trim().split(/\s+/)[0]},</p>
         <p>This is your confirmation for <strong>${ev.title}</strong>.</p>
         <p><a href="${appUrl}/e/${ev.slug}/confirmation?token=${reg.qr_code}" style="background:#2DD4BF;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">View Ticket</a></p>
       </div>`,
+      from: 'noreply@prezva.app',
     })
     return { ok: true }
   } catch (err: any) {
@@ -408,10 +410,13 @@ export async function selfCancelRegistration(registrationId: string) {
       </div>
     </div>
   `
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: reg.attendee_email, subject: `${orgName}: Registration ${isPaid ? 'cancellation requested' : 'cancelled'} — ${ev.title}`, html }),
+  await deliverAttendeeEmail(admin, {
+    registrationId: reg.id,
+    to: reg.attendee_email,
+    attendeeName: reg.attendee_name,
+    subject: `${orgName}: Registration ${isPaid ? 'cancellation requested' : 'cancelled'} — ${ev.title}`,
+    html,
+    from: `${orgName} <noreply@prezva.app>`,
   })
 
   if (isPaid) {
