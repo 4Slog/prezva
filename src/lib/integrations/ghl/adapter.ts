@@ -26,6 +26,7 @@ const SCOPES = [
   'pipelines.write',
   'pipelines.create',
   'conversations.write',
+  'conversations/message.write',
   'products.readonly',
   'products/prices.readonly',
   'users.readonly',
