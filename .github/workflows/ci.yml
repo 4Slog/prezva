@@ -46,7 +46,19 @@ jobs:
           node-version: 24
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level critical
+      # Blocking gate is PRODUCTION dependencies only. A critical in a dev-only tool
+      # (e.g. the trigger.dev CLI's transitive node-tar, GHSA-23hp-3jrh-7fpw) cannot
+      # reach the deployed app or the Trigger.dev worker runtime — tar is absent from
+      # the production dependency graph — and blocking on it produced a red CI that
+      # gives no signal (same failure mode as the 2026-07-18 lint broken window).
+      # Dev-tree criticals stay VISIBLE in the non-blocking step below, never silent.
+      # Verified 2026-07-24 on pnpm 10.34.4: --prod takes 78 findings / 2 critical down
+      # to 37 findings / 0 critical and drops the tar advisory entirely.
+      - name: Audit production dependencies (blocking)
+        run: pnpm audit --audit-level critical --prod
+      - name: Audit all dependencies incl. dev (informational, non-blocking)
+        continue-on-error: true
+        run: pnpm audit --audit-level critical
       - name: Scan for secrets
         uses: trufflesecurity/trufflehog@main
         with:
