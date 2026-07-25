@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     // never resolve someone else's mapping (security review, Vuln 3 on
     // 6e465e9).
     let mappingOrgId: string | null = null
-    const { data: mapping } = await supabase
+    const { data: mapping, error: mappingErr } = await supabase
       .from('ticket_type_product_mappings')
       .select('ticket_type_id, event_id, price_cents, org_id')
       .eq('ghl_product_id', productId)
@@ -157,12 +157,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (!ticketTypeId || !eventId) {
-      console.warn(`[ghl-webhook] No ticket mapping for product=${productId} price=${priceId}`)
+      // Two rows and zero rows are different failures. maybeSingle() errors
+      // (rather than picking one) when more than one row matches — that means
+      // the same price is mapped to more than one event, a distinct, more
+      // urgent problem than "not linked at all." Never picks a row either way.
+      const lastError = mappingErr ? 'ticket_mapping_ambiguous' : 'ticket_not_mapped'
+      if (mappingErr) {
+        console.error(`[ghl-webhook] Ambiguous ticket mapping for product=${productId} price=${priceId} location=${locationId}:`, mappingErr)
+      } else {
+        console.warn(`[ghl-webhook] No ticket mapping for product=${productId} price=${priceId}`)
+      }
       await supabase
         .from('ghl_sync_state')
-        .update({ status: 'failed', last_error: 'ticket_not_mapped', updated_at: new Date().toISOString() })
+        .update({ status: 'failed', last_error: lastError, updated_at: new Date().toISOString() })
         .eq('id', syncStateId)
-      return NextResponse.json({ error: 'ticket_not_mapped' }, { status: 400 })
+      return NextResponse.json({ error: lastError }, { status: 400 })
     }
 
     // 5a-i. Tenant consistency assertion. The location filter above already

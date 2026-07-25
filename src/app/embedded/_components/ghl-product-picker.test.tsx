@@ -18,6 +18,7 @@ const PRODUCT: GhlPickerProduct = {
   currency: 'usd',
   availableQuantity: 100,
   alreadyMapped: false,
+  linkedToOtherEvent: null,
 }
 
 beforeEach(() => {

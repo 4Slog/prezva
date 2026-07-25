@@ -103,6 +103,7 @@ export async function getSyncHealth(orgId: string): Promise<SyncHealthResult> {
 const EXACT_TRANSLATIONS: Record<string, string> = {
   location_not_bound: 'This payment came from a GHL location that is not connected to any Prezva organization.',
   ticket_not_mapped: "This payment's product is not linked to any event ticket type. Link the product in the event's ticket settings.",
+  ticket_mapping_ambiguous: "This payment's price is linked to more than one event. Unlink the duplicate in one event's ticket settings, then reprocess this payment.",
   tenant_mismatch: "This payment's product is linked to an event in a different organization.",
   entitlement_blocked: 'A payment arrived while the plan was inactive, so no registration was created.',
 }

@@ -54,6 +54,9 @@ export interface GhlPickerProduct {
   currency: string
   availableQuantity: number | null
   alreadyMapped: boolean
+  // R44: a price belongs to exactly one event. Set when this price is already
+  // mapped to a DIFFERENT event in this GHL location.
+  linkedToOtherEvent: { eventId: string; eventTitle: string } | null
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -351,14 +354,33 @@ export async function createTicketTypeFromEmbedProduct(
     .maybeSingle()
   if (!eventRow) return { error: 'Event not found or access denied' }
 
-  // Idempotency: return existing mapping if already created
-  const { data: existing } = await db
+  // Location-wide lookup (R44): a price belongs to exactly one event — GHL
+  // tracks inventory at the price level, so two events sharing a price would
+  // share one seat count. Scoped by location, not just event, so a price
+  // already linked to a DIFFERENT event is caught here instead of relying on
+  // the DB unique constraint as the only backstop.
+  const { data: existingMapping } = await db
     .from('ticket_type_product_mappings')
-    .select('id, ticket_type_id')
-    .eq('event_id', eventId)
+    .select('id, ticket_type_id, event_id, ghl_price_name, ghl_product_name')
+    .eq('ghl_location_id', locationId)
     .eq('ghl_price_id', ghlPriceId)
     .maybeSingle()
-  if (existing) return { ticketTypeId: existing.ticket_type_id, mappingId: existing.id }
+
+  if (existingMapping) {
+    if (existingMapping.event_id === eventId) {
+      return { ticketTypeId: existingMapping.ticket_type_id, mappingId: existingMapping.id }
+    }
+    const { data: otherEvent } = await db
+      .from('events')
+      .select('title')
+      .eq('id', existingMapping.event_id)
+      .maybeSingle()
+    const priceName = existingMapping.ghl_price_name || existingMapping.ghl_product_name || 'This price'
+    const eventTitle = otherEvent?.title ?? 'another event'
+    return {
+      error: `${priceName} is already linked to ${eventTitle}. Each event needs its own price — GHL tracks inventory per price, so two events sharing one price would share one seat count.`,
+    }
+  }
 
   const token = await ghlAdapter.getAccessToken(orgId)
   if (!token) return { error: 'Your GHL connection needs attention — reconnect it from Settings and try again.' }
@@ -397,7 +419,9 @@ export async function createTicketTypeFromEmbedProduct(
     .from('ticket_types')
     .insert({
       event_id:        eventId,
-      name:            product.name,
+      // R44: the price is the per-event thing, so it's the correct label —
+      // fall back to the product name only when the price has none.
+      name:            price.name || product.name,
       type,
       // price.amount is dollars (verified 2026-07-09 against GHL Payments > Products);
       // Prezva stores integer cents, so *100 is correct here — do not remove.
@@ -500,14 +524,29 @@ export async function listGhlProductsForPicker(
 
   const { db, orgId, locationId } = ctx
 
-  // Fetch already-mapped price IDs for this event (to mark alreadyMapped)
-  const mappedPriceIds = new Set<string>()
-  if (eventId) {
-    const { data: mappings } = await db
-      .from('ticket_type_product_mappings')
-      .select('ghl_price_id')
-      .eq('event_id', eventId)
-    for (const m of mappings ?? []) mappedPriceIds.add(m.ghl_price_id)
+  // Location-wide lookup (R44): a price already mapped to a DIFFERENT event in
+  // this location must show as unavailable rather than "not yet linked" —
+  // otherwise the picker lets an operator create the exact duplicate this
+  // table's unique index refuses.
+  const currentEventPriceIds = new Set<string>()
+  const otherEventIdByPriceId = new Map<string, string>()
+  const { data: locationMappings } = await db
+    .from('ticket_type_product_mappings')
+    .select('ghl_price_id, event_id')
+    .eq('ghl_location_id', locationId)
+  for (const m of locationMappings ?? []) {
+    if (m.event_id === eventId) currentEventPriceIds.add(m.ghl_price_id)
+    else otherEventIdByPriceId.set(m.ghl_price_id, m.event_id)
+  }
+
+  const otherEventTitleById = new Map<string, string>()
+  const otherEventIds = [...new Set(otherEventIdByPriceId.values())]
+  if (otherEventIds.length > 0) {
+    const { data: otherEvents } = await db
+      .from('events')
+      .select('id, title')
+      .in('id', otherEventIds)
+    for (const e of otherEvents ?? []) otherEventTitleById.set(e.id, e.title)
   }
 
   const token = await ghlAdapter.getAccessToken(orgId)
@@ -536,6 +575,7 @@ export async function listGhlProductsForPicker(
                 ?? (pricesRes as GhlPriceListResponse).list
                 ?? []
             for (const price of priceList) {
+              const otherEventId = otherEventIdByPriceId.get(price._id)
               result.push({
                 productId:         product._id,
                 priceId:           price._id,
@@ -544,7 +584,10 @@ export async function listGhlProductsForPicker(
                 amount:            price.amount,
                 currency:          price.currency,
                 availableQuantity: price.trackInventory ? (price.availableQuantity ?? null) : null,
-                alreadyMapped:     mappedPriceIds.has(price._id),
+                alreadyMapped:     currentEventPriceIds.has(price._id),
+                linkedToOtherEvent: otherEventId
+                  ? { eventId: otherEventId, eventTitle: otherEventTitleById.get(otherEventId) ?? 'another event' }
+                  : null,
               })
             }
           } catch {

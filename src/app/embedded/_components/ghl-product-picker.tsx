@@ -80,7 +80,7 @@ export function GhlProductPicker({ eventId, entitled }: Props) {
   }, [eventId, applyProductsResult])
 
   async function handleLink(product: GhlPickerProduct) {
-    if (product.alreadyMapped || isPending || !entitled) return
+    if (product.alreadyMapped || product.linkedToOtherEvent || isPending || !entitled) return
     const key = product.priceId
     setLinkingId(key)
     setRowErrors(prev => ({ ...prev, [key]: '' }))
@@ -174,7 +174,7 @@ export function GhlProductPicker({ eventId, entitled }: Props) {
             style={{
               borderColor: product.alreadyMapped ? tealColor : borderColor,
               background: product.alreadyMapped ? `color-mix(in srgb, ${tealColor} 6%, ${surface})` : surface,
-              opacity: product.alreadyMapped ? 0.85 : 1,
+              opacity: product.alreadyMapped || product.linkedToOtherEvent ? 0.85 : 1,
             }}
           >
             {/* Text info */}
@@ -206,6 +206,14 @@ export function GhlProductPicker({ eventId, entitled }: Props) {
                   <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 1 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
                 </svg>
                 Linked
+              </span>
+            ) : product.linkedToOtherEvent ? (
+              <span
+                className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-right"
+                style={{ background: surface2, color: mutedColor }}
+                title={`Already linked to ${product.linkedToOtherEvent.eventTitle} — each event needs its own price`}
+              >
+                Linked to {product.linkedToOtherEvent.eventTitle}
               </span>
             ) : (
               <button

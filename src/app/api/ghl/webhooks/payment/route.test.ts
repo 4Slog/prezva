@@ -232,6 +232,41 @@ describe('POST /api/ghl/webhooks/payment — ticket mapping', () => {
   })
 })
 
+describe('POST /api/ghl/webhooks/payment — ambiguous ticket mapping', () => {
+  it('returns 400 ticket_mapping_ambiguous (distinct from ticket_not_mapped) when the mapping lookup errors on 2+ matching rows, and creates no registration', async () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    // Call order: [0] ghl_sync_state select, [1] ghl_sync_state insert, [2] ghl_location_links (found),
+    //             [3] ticket_type_product_mappings (maybeSingle errors — 2 matching rows), [4] ghl_sync_state update (failed)
+    const client = makeSequentialClient([
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: null, error: { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' } },
+      { data: null, error: null },
+    ])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toBe('ticket_mapping_ambiguous')
+
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+    expect(enqueueGhlSync).not.toHaveBeenCalled()
+
+    expect(client.from.mock.calls.length).toBe(5)
+    const finalUpdateArgs = client.from.mock.results[4].value.update.mock.calls[0][0]
+    expect(finalUpdateArgs).toEqual(expect.objectContaining({ status: 'failed', last_error: 'ticket_mapping_ambiguous' }))
+
+    expect(consoleErr).toHaveBeenCalledWith(
+      expect.stringContaining('Ambiguous ticket mapping'),
+      expect.objectContaining({ code: 'PGRST116' }),
+    )
+    consoleErr.mockRestore()
+  })
+})
+
 describe('POST /api/ghl/webhooks/payment — entitlement backstop', () => {
   it('unentitled org -> no registration created, ledger records entitlement_blocked, returns 200 (loud, not silent)', async () => {
     vi.mocked(isOrgEntitled).mockResolvedValue(false)
