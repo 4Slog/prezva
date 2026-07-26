@@ -88,10 +88,35 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
+  # This job is intentionally disabled by default (see the `if:` below).
+  # Before this change it reported SUCCESS while executing zero tests: lifecycle.spec.ts
+  # self-skips its entire describe block when SUPABASE_SERVICE_ROLE_KEY is absent, so one
+  # placeholder test registered, skipped, and the job went green — a false signal. Proven
+  # from run 30212733517: "Running 1 test using 1 worker" -> "(skipped) SUPABASE_SERVICE_ROLE_KEY
+  # not set" -> "1 skipped".
+  #
+  # Enabling this job for real requires BOTH:
+  #   1. An isolated database — a Supabase branch (priced 2026-07-26 at $0.01344/hour on org
+  #      4Slog's Org) — so the fixture writes somewhere other than the database serving prezva.app.
+  #   2. An app instance pointed at that database — E2E_BASE_URL below is hardcoded to
+  #      https://prezva.app, so an isolated database alone would put the fixture's writes
+  #      somewhere the browser under test is not looking.
+  #
+  # None of the 5 secrets this job's env block references below are currently populated in
+  # this repo — only TRIGGER_ACCESS_TOKEN and TRIGGER_SECRET_KEY exist as repo secrets, so
+  # E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  # and SUPABASE_SERVICE_ROLE_KEY are all absent, not just the service role key. fixture.ts alone
+  # needs both NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to build its admin client —
+  # so flipping this on is not "add one secret," it is five secrets plus the isolated database
+  # plus the app instance above.
+  #
+  # Setting SUPABASE_SERVICE_ROLE_KEY against production is deliberately rejected: this runner
+  # installs the full unaudited dependency tree while holding a key that bypasses every RLS policy.
   e2e-lifecycle:
     name: E2E Lifecycle
     runs-on: ubuntu-latest
     needs: [unit-tests]
+    if: ${{ vars.E2E_LIFECYCLE_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
