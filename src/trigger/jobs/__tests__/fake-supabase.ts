@@ -12,7 +12,7 @@ type Resolver = (call: Recorded) => { data: any; error: any } | Promise<{ data: 
 
 /**
  * Minimal chainable fake for supabase-js query builders, generic enough to
- * cover the .select/.update/.insert/.eq/.in/.lte/.lt/.or/.limit/.maybeSingle
+ * cover the .select/.update/.insert/.eq/.in/.lte/.lt/.gte/.gt/.or/.limit/.maybeSingle
  * chains used by the trigger jobs under test. Every terminal call (single(),
  * maybeSingle(), or bare await) is recorded and handed to a per-test resolver
  * so assertions can inspect exactly what WHERE was sent.
@@ -33,10 +33,12 @@ export function makeFakeAdmin(resolver: Resolver) {
       update(payload: any) { state.mode = 'update'; state.payload = payload; return chain },
       insert(rows: any) { state.mode = 'insert'; state.payload = rows; return chain },
       delete() { state.mode = 'delete'; return chain },
-      eq(col: string, val: any) { state.filters[col] = { eq: val }; return chain },
-      in(col: string, vals: any[]) { state.filters[col] = { in: vals }; return chain },
-      lte(col: string, val: any) { state.filters[col] = { lte: val }; return chain },
-      lt(col: string, val: any) { state.filters[col] = { lt: val }; return chain },
+      eq(col: string, val: any) { state.filters[col] = { ...state.filters[col], eq: val }; return chain },
+      in(col: string, vals: any[]) { state.filters[col] = { ...state.filters[col], in: vals }; return chain },
+      lte(col: string, val: any) { state.filters[col] = { ...state.filters[col], lte: val }; return chain },
+      lt(col: string, val: any) { state.filters[col] = { ...state.filters[col], lt: val }; return chain },
+      gte(col: string, val: any) { state.filters[col] = { ...state.filters[col], gte: val }; return chain },
+      gt(col: string, val: any) { state.filters[col] = { ...state.filters[col], gt: val }; return chain },
       or(expr: string) { state.orFilter = expr; return chain },
       limit(n: number) { state.filters.__limit = n; return chain },
       order() { return chain },
