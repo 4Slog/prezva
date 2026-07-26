@@ -1,13 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-
-// @supabase/realtime-js >= 2.106 requires a global WebSocket, which Node 21
-// (the current Trigger.dev default runtime) does not provide. None of our
-// Trigger jobs use Realtime — they only do DB reads/writes and Storage uploads
-// — so we pass a never-instantiated stub as the transport to satisfy the
-// constructor's type check without depending on `ws` or bumping the runtime.
-class NoopWebSocket {
-  constructor(_address: string | URL, _subprotocols?: string | string[]) {}
-}
+import { NoopWebSocket } from '@/lib/supabase/realtime-stub'
 
 export function createAdminClient(): SupabaseClient {
   // SUPABASE_PROJECT_URL points at the direct project (https://<ref>.supabase.co)
