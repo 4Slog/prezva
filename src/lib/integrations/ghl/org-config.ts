@@ -39,6 +39,7 @@ export type GhlFieldKey =
   | 'prezvaAttendeeLink'
   | 'prezvaCeCredits'
   | 'prezvaAttendancePct'
+  | 'prezvaEventDate'
 
 export interface GhlOrgConfig {
   pipelineId: string
@@ -53,6 +54,11 @@ const STAGE_KEYS: GhlStageKey[] = [
   'attendedSession', 'noShow', 'certificateIssued', 'followUpComplete',
 ]
 
+// prezvaEventDate is intentionally NOT listed here yet. FIELD_KEYS is the
+// runtime completeness check in getGhlOrgConfig, and orgs provisioned before
+// the field existed hold only nine keys — listing it would throw for them on
+// the sync and sweep paths. Promote it here only after every ghl_org_config
+// row has been re-provisioned. Until then the Task 5 guard covers the gap.
 const FIELD_KEYS: GhlFieldKey[] = [
   'prezvaEventId', 'prezvaRegistrationId', 'prezvaTicketType', 'prezvaPaymentStatus',
   'prezvaSource', 'prezvaLastSyncTime', 'prezvaAttendeeLink', 'prezvaCeCredits', 'prezvaAttendancePct',

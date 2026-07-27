@@ -32,7 +32,7 @@ vi.mock('@/lib/entitlements', () => ({
   isOrgEntitled: vi.fn(),
 }))
 
-import { POST } from './route'
+import { POST, eventDateInEventTz } from './route'
 import { isOrgEntitled } from '@/lib/entitlements'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
@@ -49,10 +49,12 @@ import {
 } from '@/lib/integrations/ghl/config'
 
 // Built from the legacy constants so this fixture can't drift from production values.
+// Cast: GHL_FIELD_KEYS is SAUP's real 9-key field map — it's missing prezvaEventDate
+// (10th field, GE-8) because SAUP hasn't been re-provisioned yet. Not a type escape hatch.
 const SAUP_CONFIG: GhlOrgConfig = {
   pipelineId: GHL_EVENTS_PIPELINE_ID,
   stageIds: GHL_STAGE_IDS,
-  fieldIds: GHL_FIELD_KEYS,
+  fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
 }
@@ -129,6 +131,28 @@ beforeEach(() => {
   vi.mocked(ghlPut).mockResolvedValue({} as any)
   vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   vi.mocked(isOrgEntitled).mockReset().mockResolvedValue(true)
+})
+
+describe('eventDateInEventTz', () => {
+  it('formats an instant that rolls back a day in America/New_York', () => {
+    expect(eventDateInEventTz('2026-03-15T00:00:00Z', 'America/New_York')).toBe('2026-03-14')
+  })
+
+  it('formats the same instant as its own calendar date in UTC', () => {
+    expect(eventDateInEventTz('2026-03-15T00:00:00Z', 'UTC')).toBe('2026-03-15')
+  })
+
+  it('returns null for a null startAt', () => {
+    expect(eventDateInEventTz(null, 'America/New_York')).toBeNull()
+  })
+
+  it('returns null for a null timeZone', () => {
+    expect(eventDateInEventTz('2026-03-15T00:00:00Z', null)).toBeNull()
+  })
+
+  it('returns null rather than throwing for an invalid timeZone', () => {
+    expect(eventDateInEventTz('2026-03-15T00:00:00Z', 'Not/AZone')).toBeNull()
+  })
 })
 
 describe('POST /api/ghl/webhooks/payment — auth', () => {

@@ -14,6 +14,25 @@ import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
 
+// Formats an event start timestamp as a calendar date in the event's OWN
+// timezone. An 8pm March 14 America/New_York event is March 15 in UTC, so
+// formatting in UTC would make every reminder fire a day late. Returns null
+// rather than throwing or falling back to UTC — a missing date is honest, a
+// wrong date is not.
+export function eventDateInEventTz(startAt: string | null, timeZone: string | null): string | null {
+  if (!startAt || !timeZone) return null
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(startAt))
+  } catch {
+    return null
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Verify shared secret (header X-Prezva-Webhook-Secret or ?secret= query)
@@ -125,6 +144,8 @@ export async function POST(req: NextRequest) {
     let ticketTypeTitle: string | null = null
     let eventTitle: string | null = null
     let eventSlug: string | null = null
+    let eventStartAt: string | null = null
+    let eventTimezone: string | null = null
     let mappedPriceCents: number | null = null
 
     // Filtered by ghl_location_id (not just product/price) so a forged
@@ -149,11 +170,13 @@ export async function POST(req: NextRequest) {
       // Fetch ticket title + event title for the sync task
       const [{ data: ttRow }, { data: evRow }] = await Promise.all([
         supabase.from('ticket_types').select('name').eq('id', ticketTypeId!).maybeSingle(),
-        supabase.from('events').select('title, slug').eq('id', eventId!).maybeSingle(),
+        supabase.from('events').select('title, slug, start_at, timezone').eq('id', eventId!).maybeSingle(),
       ])
       ticketTypeTitle = ttRow?.name ?? null
       eventTitle      = evRow?.title ?? null
       eventSlug       = evRow?.slug ?? null
+      eventStartAt    = evRow?.start_at ?? null
+      eventTimezone   = evRow?.timezone ?? null
     }
 
     if (!ticketTypeId || !eventId) {
@@ -320,9 +343,14 @@ export async function POST(req: NextRequest) {
               .update({ last_error: `no_ghl_access_token: org ${locationLink.org_id}`, updated_at: new Date().toISOString() })
               .eq('id', syncStateId)
           } else {
-            await ghlPut(token, `/contacts/${contactId}`, {
-              customFields: [{ id: config.fieldIds.prezvaAttendeeLink, value: entryUrl }],
-            })
+            const eventDate = eventDateInEventTz(eventStartAt, eventTimezone)
+            const customFields: Array<{ id: string; value: string }> = [
+              { id: config.fieldIds.prezvaAttendeeLink, value: entryUrl },
+            ]
+            if (eventDate && config.fieldIds.prezvaEventDate) {
+              customFields.push({ id: config.fieldIds.prezvaEventDate, value: eventDate })
+            }
+            await ghlPut(token, `/contacts/${contactId}`, { customFields })
           }
         }
       } catch (e) {

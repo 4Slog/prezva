@@ -35,10 +35,12 @@ import {
 } from '@/lib/integrations/ghl/config'
 
 // Built from the legacy constants so this fixture can't drift from production values.
+// Cast: GHL_FIELD_KEYS is SAUP's real 9-key field map — it's missing prezvaEventDate
+// (10th field, GE-8) because SAUP hasn't been re-provisioned yet. Not a type escape hatch.
 const SAUP_CONFIG: GhlOrgConfig = {
   pipelineId: GHL_EVENTS_PIPELINE_ID,
   stageIds: GHL_STAGE_IDS,
-  fieldIds: GHL_FIELD_KEYS,
+  fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
 }

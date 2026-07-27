@@ -18,7 +18,7 @@ const STAGE_DEFS: Array<{ key: GhlStageKey; name: string; position: number }> = 
 const STAGE_KEYS: GhlStageKey[] = STAGE_DEFS.map((s) => s.key)
 
 type GhlFieldModel = 'contact' | 'opportunity'
-type GhlFieldDataType = 'TEXT' | 'NUMERICAL'
+type GhlFieldDataType = 'TEXT' | 'NUMERICAL' | 'DATE'
 
 const FIELD_DEFS: Array<{ key: GhlFieldKey; name: string; model: GhlFieldModel; dataType: GhlFieldDataType }> = [
   { key: 'prezvaEventId', name: 'Prezva Event ID', model: 'opportunity', dataType: 'TEXT' },
@@ -30,6 +30,7 @@ const FIELD_DEFS: Array<{ key: GhlFieldKey; name: string; model: GhlFieldModel; 
   { key: 'prezvaCeCredits', name: 'Prezva CE Credits', model: 'opportunity', dataType: 'NUMERICAL' },
   { key: 'prezvaAttendancePct', name: 'Prezva Attendance %', model: 'opportunity', dataType: 'NUMERICAL' },
   { key: 'prezvaAttendeeLink', name: 'Prezva Attendee Link', model: 'contact', dataType: 'TEXT' },
+  { key: 'prezvaEventDate', name: 'Prezva Event Date', model: 'contact', dataType: 'DATE' },
 ]
 
 const FIELD_KEYS: GhlFieldKey[] = FIELD_DEFS.map((f) => f.key)

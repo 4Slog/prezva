@@ -44,6 +44,7 @@ const FIELD_DEFS = [
   { name: 'Prezva CE Credits', model: 'opportunity', dataType: 'NUMERICAL', key: 'prezvaCeCredits' },
   { name: 'Prezva Attendance %', model: 'opportunity', dataType: 'NUMERICAL', key: 'prezvaAttendancePct' },
   { name: 'Prezva Attendee Link', model: 'contact', dataType: 'TEXT', key: 'prezvaAttendeeLink' },
+  { name: 'Prezva Event Date', model: 'contact', dataType: 'DATE', key: 'prezvaEventDate' },
 ] as const
 
 function fullPipeline(stageNames: string[] = STAGE_NAMES) {
@@ -269,7 +270,7 @@ describe('provisionGhlOrgConfig', () => {
     expect(upsert).not.toHaveBeenCalled()
   })
 
-  it('(e) full success -> single upsert with all 17 keys and provisioned_by', async () => {
+  it('(e) full success -> single upsert with all 18 keys and provisioned_by', async () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
       if (path.includes('/customFields')) return fullCustomFields([]) as any
