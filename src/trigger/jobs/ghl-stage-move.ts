@@ -64,6 +64,16 @@ export const ghlStageMoveTask = schemaTask({
 
     const tag = config.stageTags[stageId]
     if (tag && syncState.ghl_contact_id) {
+      if (stageId === config.stageIds.checkedIn) {
+        // R52: remove-then-add so the GHL Contact Tag trigger fires for returning
+        // attendees who already carry the tag (snapshot-portable replacement for the
+        // pipeline-stage trigger, which dangles on import).
+        try {
+          await ghlRemoveContactTags(token, syncState.ghl_contact_id, [tag])
+        } catch (e) {
+          console.error('[ghl-stage-move] checked-in tag removal failed (non-fatal):', e)
+        }
+      }
       try {
         await ghlAddContactTags(token, syncState.ghl_contact_id, [tag])
       } catch (e) {

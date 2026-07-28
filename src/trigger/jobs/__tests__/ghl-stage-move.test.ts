@@ -179,6 +179,50 @@ describe('ghlStageMoveTask — superseded tag removal', () => {
   })
 })
 
+describe('ghlStageMoveTask — R52 remove-then-add on checkedIn', () => {
+  const CHECKED_IN_TAG = 'prezva-checked-in'
+
+  it('entering checkedIn removes then re-adds prezva-checked-in, remove before add', async () => {
+    const { admin } = makeFakeAdmin(buildResolver(baseSyncState()))
+    vi.mocked(createAdminClient).mockReturnValue(admin as any)
+
+    await runTask({ registrationId: REGISTRATION_ID, stageId: GHL_STAGE_IDS.checkedIn })
+
+    expect(ghlRemoveContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [CHECKED_IN_TAG])
+    expect(ghlAddContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [CHECKED_IN_TAG])
+
+    const removeOrder = vi.mocked(ghlRemoveContactTags).mock.invocationCallOrder[0]
+    const addCallIndex = vi.mocked(ghlAddContactTags).mock.calls.findIndex(
+      call => call[2].includes(CHECKED_IN_TAG),
+    )
+    const addOrder = vi.mocked(ghlAddContactTags).mock.invocationCallOrder[addCallIndex]
+    expect(removeOrder).toBeLessThan(addOrder)
+  })
+
+  it('a throwing checked-in tag removal does not prevent the add call or fail the task', async () => {
+    vi.mocked(ghlRemoveContactTags).mockRejectedValueOnce(new Error('GHL boom'))
+    const { admin } = makeFakeAdmin(buildResolver(baseSyncState()))
+    vi.mocked(createAdminClient).mockReturnValue(admin as any)
+
+    const result = await runTask({ registrationId: REGISTRATION_ID, stageId: GHL_STAGE_IDS.checkedIn })
+
+    expect(ghlAddContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [CHECKED_IN_TAG])
+    expect(result).toEqual({ applied: true, opportunityId: 'opp-1' })
+  })
+
+  it('entering attendedSession does not call ghlRemoveContactTags with its own stage tag', async () => {
+    const { admin } = makeFakeAdmin(buildResolver(baseSyncState()))
+    vi.mocked(createAdminClient).mockReturnValue(admin as any)
+
+    await runTask({ registrationId: REGISTRATION_ID, stageId: GHL_STAGE_IDS.attendedSession })
+
+    expect(ghlRemoveContactTags).not.toHaveBeenCalledWith(
+      'test-token', CONTACT_ID, ['prezva-attended'],
+    )
+    expect(ghlRemoveContactTags).toHaveBeenCalledWith('test-token', CONTACT_ID, [NO_SHOW_TAG])
+  })
+})
+
 describe('ghlStageMoveTask — missing ghl_org_config (Amendment 2, case b)', () => {
   it('still applies the stage PUT but skips tag apply/removal and logs console.error', async () => {
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
