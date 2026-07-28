@@ -6,7 +6,7 @@ import {
 import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
-import { ghlPut } from '@/lib/integrations/ghl/client'
+import { ghlPut, ghlPost } from '@/lib/integrations/ghl/client'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import { isOrgEntitled } from '@/lib/entitlements'
@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
     let eventTitle: string | null = null
     let eventSlug: string | null = null
     let eventStartAt: string | null = null
+    let eventEndAt: string | null = null
     let eventTimezone: string | null = null
     let mappedPriceCents: number | null = null
 
@@ -170,12 +171,13 @@ export async function POST(req: NextRequest) {
       // Fetch ticket title + event title for the sync task
       const [{ data: ttRow }, { data: evRow }] = await Promise.all([
         supabase.from('ticket_types').select('name').eq('id', ticketTypeId!).maybeSingle(),
-        supabase.from('events').select('title, slug, start_at, timezone').eq('id', eventId!).maybeSingle(),
+        supabase.from('events').select('title, slug, start_at, end_at, timezone').eq('id', eventId!).maybeSingle(),
       ])
       ticketTypeTitle = ttRow?.name ?? null
       eventTitle      = evRow?.title ?? null
       eventSlug       = evRow?.slug ?? null
       eventStartAt    = evRow?.start_at ?? null
+      eventEndAt      = evRow?.end_at ?? null
       eventTimezone   = evRow?.timezone ?? null
     }
 
@@ -351,6 +353,42 @@ export async function POST(req: NextRequest) {
               customFields.push({ id: config.fieldIds.prezvaEventDate, value: eventDate })
             }
             await ghlPut(token, `/contacts/${contactId}`, { customFields })
+
+            // Appointment per registration: GHL's native calendar notifications (booking
+            // confirmation, pre-event reminder, post-event follow-up) are the reminder
+            // backbone. calendarId null => org has no adopted calendar => skip silently.
+            // ignoreDateRange + ignoreFreeSlotValidation are REQUIRED: they bypass slot
+            // availability/capacity so an arbitrary-time, multi-day event appointment
+            // returns 201. endTime always from events.end_at — Follow-Up fires relative
+            // to the END. Title is the EVENT name (grid shows title only; list view has
+            // a Contact column and searches by title).
+            if (config.calendarId && contactId && eventStartAt && eventEndAt) {
+              try {
+                const appt = await ghlPost<{ id?: string; appointment?: { id?: string } }>(
+                  token,
+                  '/calendars/events/appointments',
+                  {
+                    calendarId: config.calendarId,
+                    locationId,
+                    contactId,
+                    startTime: eventStartAt,
+                    endTime: eventEndAt,
+                    title: eventTitle,
+                    ignoreDateRange: true,
+                    ignoreFreeSlotValidation: true,
+                  },
+                )
+                const apptId = appt?.id ?? appt?.appointment?.id ?? null
+                if (apptId) {
+                  await supabase
+                    .from('ghl_sync_state')
+                    .update({ ghl_appointment_id: apptId })
+                    .eq('id', syncStateId)
+                }
+              } catch (e) {
+                console.error('ghl appointment create failed (non-fatal)', e)
+              }
+            }
           }
         }
       } catch (e) {

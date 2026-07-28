@@ -43,6 +43,15 @@ describe('getGhlOrgConfig', () => {
     ])
   })
 
+  it('row without calendar_id -> resolves calendarId null, does not throw', async () => {
+    const admin = makeAdmin({ pipeline_id: 'pipe-1', stage_ids: FULL_STAGE_IDS, field_ids: FULL_FIELD_IDS })
+
+    const config = await getGhlOrgConfig(admin as any, 'org-1')
+
+    expect(config).not.toBeNull()
+    expect(config!.calendarId).toBeNull()
+  })
+
   it('row missing -> returns null', async () => {
     const admin = makeAdmin(null)
 

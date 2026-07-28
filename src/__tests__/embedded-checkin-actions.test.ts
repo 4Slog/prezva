@@ -43,6 +43,7 @@ const SAUP_CONFIG: GhlOrgConfig = {
   fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+  calendarId: null,
 }
 
 const EVENT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'

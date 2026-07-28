@@ -47,6 +47,8 @@ export interface GhlOrgConfig {
   fieldIds: Record<GhlFieldKey, string>
   stageTags: Record<string, string>
   stageSupersedesTags: Record<string, string[]>
+  // calendar_id is optional by design — null means no appointment creation, never an error.
+  calendarId: string | null
 }
 
 const STAGE_KEYS: GhlStageKey[] = [
@@ -95,7 +97,7 @@ export function buildStageTagMaps(stageIds: Record<GhlStageKey, string>): {
 export async function getGhlOrgConfig(admin: SupabaseClient, orgId: string): Promise<GhlOrgConfig | null> {
   const { data } = await admin
     .from('ghl_org_config')
-    .select('pipeline_id, stage_ids, field_ids')
+    .select('pipeline_id, stage_ids, field_ids, calendar_id')
     .eq('org_id', orgId)
     .maybeSingle()
 
@@ -124,5 +126,6 @@ export async function getGhlOrgConfig(admin: SupabaseClient, orgId: string): Pro
     fieldIds: fieldIds as Record<GhlFieldKey, string>,
     stageTags,
     stageSupersedesTags,
+    calendarId: (data.calendar_id as string | null) ?? null,
   }
 }

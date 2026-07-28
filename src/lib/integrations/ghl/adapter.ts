@@ -31,6 +31,10 @@ const SCOPES = [
   'products/prices.readonly',
   'users.readonly',
   'workflows.readonly',
+  'calendars.readonly',
+  'calendars.write',
+  'calendars/events.readonly',
+  'calendars/events.write',
 ]
 
 export const REDIRECT_URI = 'https://prezva.app/api/oauth/callback'

@@ -54,6 +54,7 @@ const SAUP_CONFIG: GhlOrgConfig = {
   fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+  calendarId: null,
 }
 
 // 1-hour session: duration = 3600s, 80% threshold = 2880s

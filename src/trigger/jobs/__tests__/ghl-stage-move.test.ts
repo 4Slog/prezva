@@ -58,6 +58,7 @@ const SAUP_CONFIG: GhlOrgConfig = {
   fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+  calendarId: null,
 }
 
 // schemaTask is mocked to identity above, so at runtime ghlStageMoveTask is the

@@ -3,6 +3,7 @@ import { ghlGet, ghlPost } from './client'
 import type { GhlStageKey, GhlFieldKey } from './org-config'
 
 const PIPELINE_NAME = 'Events'
+const CALENDAR_NAME = 'Prezva Events'
 
 const STAGE_DEFS: Array<{ key: GhlStageKey; name: string; position: number }> = [
   { key: 'registered', name: 'Registered', position: 0 },
@@ -71,6 +72,15 @@ interface GhlCustomFieldCreateResponse {
   customField?: GhlCustomField
   field?: GhlCustomField
   id?: string
+}
+
+interface GhlCalendar {
+  id: string
+  name: string
+}
+
+interface GhlCalendarsListResponse {
+  calendars: GhlCalendar[]
 }
 
 async function resolvePipeline(token: string, locationId: string): Promise<GhlPipeline> {
@@ -153,6 +163,20 @@ async function resolveFieldIds(
   return fieldIds
 }
 
+// Find-only, no create branch: calendar notification config (booking
+// confirmation, reminder, follow-up) is API-invisible — set in the GHL UI
+// only — so a provisioner-created calendar would be a dead calendar with no
+// notifications wired. The real "Prezva Events" calendar rides the snapshot
+// pre-configured; this only adopts it by name.
+async function resolveCalendarId(token: string, locationId: string): Promise<string | null> {
+  const list = await ghlGet<GhlCalendarsListResponse>(
+    token,
+    `/calendars/?locationId=${encodeURIComponent(locationId)}`,
+  )
+  const existing = list.calendars?.find((c) => c.name === CALENDAR_NAME)
+  return existing?.id ?? null
+}
+
 function assertComplete(
   orgId: string,
   stageIds: Record<GhlStageKey, string>,
@@ -184,6 +208,10 @@ export async function provisionGhlOrgConfig(
   const pipeline = await resolvePipeline(token, locationId)
   const stageIds = resolveStageIds(pipeline, orgId)
   const fieldIds = await resolveFieldIds(token, locationId, orgId)
+  // A null calendar is NOT a provisioning failure — it never joins
+  // assertComplete's all-or-throw check, and the conditional spread below
+  // means a null here can never clobber a manually seeded calendar_id on re-provision.
+  const calendarId = await resolveCalendarId(token, locationId)
 
   assertComplete(orgId, stageIds, fieldIds)
 
@@ -194,6 +222,7 @@ export async function provisionGhlOrgConfig(
       stage_ids: stageIds,
       field_ids: fieldIds,
       provisioned_by: 'oauth-provisioner',
+      ...(calendarId ? { calendar_id: calendarId } : {}),
     },
     { onConflict: 'org_id' },
   )

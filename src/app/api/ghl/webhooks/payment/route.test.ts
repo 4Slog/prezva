@@ -13,6 +13,7 @@ vi.mock('@/lib/trigger', () => ({
 }))
 vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlPut: vi.fn(),
+  ghlPost: vi.fn(),
 }))
 vi.mock('@/lib/integrations/ghl/adapter', () => ({
   ghlAdapter: { getAccessToken: vi.fn() },
@@ -37,7 +38,7 @@ import { isOrgEntitled } from '@/lib/entitlements'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
 import { enqueueGhlSync } from '@/lib/trigger'
-import { ghlPut } from '@/lib/integrations/ghl/client'
+import { ghlPut, ghlPost } from '@/lib/integrations/ghl/client'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import {
@@ -57,6 +58,8 @@ const SAUP_CONFIG: GhlOrgConfig = {
   fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+  // SAUP hasn't been re-provisioned with a calendar_id — matches production.
+  calendarId: null,
 }
 
 const CORRECT_SECRET = 'test-webhook-secret-32-chars-longg'
@@ -129,6 +132,7 @@ beforeEach(() => {
   })
   vi.mocked(ghlAdapter.getAccessToken).mockReset().mockResolvedValue('test-token')
   vi.mocked(ghlPut).mockResolvedValue({} as any)
+  vi.mocked(ghlPost).mockReset()
   vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(SAUP_CONFIG)
   vi.mocked(isOrgEntitled).mockReset().mockResolvedValue(true)
 })
@@ -639,6 +643,101 @@ describe('POST /api/ghl/webhooks/payment — amount divergence (R30 multi-seat t
       '[ghl-webhook] amount unverifiable — mapping has no price_cents:',
       expect.objectContaining({ paidCents: 22500 }),
     )
+    consoleErr.mockRestore()
+  })
+})
+
+describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
+  const EVENT_WITH_TIMES = {
+    title: 'Test Conference 2026',
+    slug: 'test-conf-2026',
+    start_at: '2026-09-01T18:00:00Z',
+    end_at: '2026-09-01T21:00:00Z',
+    timezone: 'America/New_York',
+  }
+
+  // Call order matches the happy-path fixture: [0] ghl_sync_state select, [1] insert,
+  // [2] ghl_location_links, [3] ticket_type_product_mappings, [4] ticket_types,
+  // [5] events, [6] ghl_sync_state update (queued_for_sync), and only when an
+  // appointment id comes back: [7] ghl_sync_state update (ghl_appointment_id).
+  function baseResponses() {
+    return [
+      { data: null, error: null },
+      { data: { id: 'state-new' }, error: null },
+      { data: { org_id: 'org-uuid-1' }, error: null },
+      { data: { ticket_type_id: 'tt-uuid-1', event_id: 'ev-uuid-1', org_id: 'org-uuid-1' }, error: null },
+      { data: { name: 'General Admission' }, error: null },
+      { data: EVENT_WITH_TIMES, error: null },
+      { data: null, error: null },
+    ]
+  }
+
+  it('calendarId present -> ghlPost called with the exact payload, ghl_appointment_id written', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://prezva.app')
+    vi.mocked(getGhlOrgConfig).mockResolvedValueOnce({ ...SAUP_CONFIG, calendarId: 'cal-123' })
+    vi.mocked(ghlPost).mockResolvedValueOnce({ id: 'appt-999' } as any)
+
+    const client = makeSequentialClient([...baseResponses(), { data: null, error: null }])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+
+    expect(ghlPost).toHaveBeenCalledWith(
+      'test-token',
+      '/calendars/events/appointments',
+      {
+        calendarId: 'cal-123',
+        locationId: LIVE_PAYLOAD.location.id,
+        contactId: LIVE_PAYLOAD.contact_id,
+        startTime: EVENT_WITH_TIMES.start_at,
+        endTime: EVENT_WITH_TIMES.end_at,
+        title: EVENT_WITH_TIMES.title,
+        ignoreDateRange: true,
+        ignoreFreeSlotValidation: true,
+      },
+    )
+
+    expect(client.from.mock.calls.length).toBe(8)
+    const apptUpdateArgs = client.from.mock.results[7].value.update.mock.calls[0][0]
+    expect(apptUpdateArgs).toEqual({ ghl_appointment_id: 'appt-999' })
+  })
+
+  it('calendarId null -> no appointment POST, registration flow unaffected', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://prezva.app')
+    vi.mocked(getGhlOrgConfig).mockResolvedValueOnce({ ...SAUP_CONFIG, calendarId: null })
+
+    const client = makeSequentialClient(baseResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+
+    expect(ghlPost).not.toHaveBeenCalled()
+    expect(client.from.mock.calls.length).toBe(7)
+  })
+
+  it('appointment POST throws -> registration and sync status still succeed (non-fatal)', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://prezva.app')
+    vi.mocked(getGhlOrgConfig).mockResolvedValueOnce({ ...SAUP_CONFIG, calendarId: 'cal-123' })
+    vi.mocked(ghlPost).mockRejectedValueOnce(new Error('GHL POST /calendars/events/appointments failed: 400'))
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const client = makeSequentialClient(baseResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    const res = await POST(makeRequest(CORRECT_SECRET))
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.status).toBe('accepted')
+    expect(json.registrationId).toBe('reg-uuid-123')
+
+    expect(client.from.mock.calls.length).toBe(7)
+    expect(consoleErr).toHaveBeenCalledWith('ghl appointment create failed (non-fatal)', expect.any(Error))
     consoleErr.mockRestore()
   })
 })

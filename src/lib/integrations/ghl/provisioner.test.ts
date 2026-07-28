@@ -86,6 +86,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline()] } as any
       if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
 
@@ -103,6 +104,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
       if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
     vi.mocked(ghlPost).mockImplementation(async (_token, path, body: any) => {
@@ -149,6 +151,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
       if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
     vi.mocked(ghlPost).mockImplementation(async (_token, path) => {
@@ -193,6 +196,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline()] } as any
       if (path.includes('/customFields')) return fullCustomFields(presentKeys) as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
     vi.mocked(ghlPost).mockImplementation(async (_token, path, body: any) => {
@@ -220,6 +224,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline(incompleteStageNames)] } as any
       if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
 
@@ -232,6 +237,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline()] } as any
       if (path.includes('/customFields')) return fullCustomFields([]) as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
     vi.mocked(ghlPost).mockImplementation(async (_token, path) => {
@@ -248,6 +254,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
       if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
     vi.mocked(ghlPost).mockImplementation(async (_token, path) => {
@@ -274,6 +281,7 @@ describe('provisionGhlOrgConfig', () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
       if (path.includes('/customFields')) return fullCustomFields([]) as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
       throw new Error(`unexpected ghlGet path: ${path}`)
     })
     vi.mocked(ghlPost).mockImplementation(async (_token, path, body: any) => {
@@ -307,5 +315,40 @@ describe('provisionGhlOrgConfig', () => {
       ].sort(),
     )
     expect(Object.keys(row.field_ids).sort()).toEqual(FIELD_DEFS.map((f) => f.key).sort())
+  })
+
+  it('(f1) calendar exists by name -> id captured in upsert payload', async () => {
+    vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
+      if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline()] } as any
+      if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) {
+        return { calendars: [{ id: 'cal-123', name: 'Prezva Events' }, { id: 'cal-other', name: 'Some Other Calendar' }] } as any
+      }
+      throw new Error(`unexpected ghlGet path: ${path}`)
+    })
+
+    const { admin, upsert } = makeAdmin()
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ calendar_id: 'cal-123' }),
+      { onConflict: 'org_id' },
+    )
+  })
+
+  it('(f2) calendar absent -> upsert payload has no calendar_id key, provisioning still succeeds', async () => {
+    vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
+      if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline()] } as any
+      if (path.includes('/customFields')) return fullCustomFields() as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
+      throw new Error(`unexpected ghlGet path: ${path}`)
+    })
+
+    const { admin, upsert } = makeAdmin()
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(upsert).toHaveBeenCalledTimes(1)
+    const row = upsert.mock.calls[0][0]
+    expect('calendar_id' in row).toBe(false)
   })
 })

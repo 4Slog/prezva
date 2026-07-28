@@ -52,6 +52,7 @@ const SAUP_CONFIG: GhlOrgConfig = {
   fieldIds: GHL_FIELD_KEYS as GhlOrgConfig['fieldIds'],
   stageTags: GHL_STAGE_TAGS,
   stageSupersedesTags: GHL_STAGE_SUPERSEDES_TAGS,
+  calendarId: null,
 }
 
 function makeChain(override: Record<string, any> = {}) {
