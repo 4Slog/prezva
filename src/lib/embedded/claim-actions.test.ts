@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // ── next/headers: mutable cookie jar ─────────────────────────────────────────
 let embeddedSessionCookie: string | undefined
@@ -85,6 +85,13 @@ beforeEach(() => {
   vi.mocked(ghlAdapter.claimPendingInstall).mockReset()
   vi.mocked(provisionGhlOrgConfig).mockReset().mockResolvedValue(undefined)
   vi.stubEnv('EMBEDDED_SESSION_SECRET', 'test-secret-at-least-32-bytes-long-1234')
+})
+
+afterEach(() => {
+  // Clears the NODE_ENV stub used by the CHIPS production-branch test below.
+  // EMBEDDED_SESSION_SECRET goes with it, but beforeEach re-stubs that ahead of
+  // every test, so nothing downstream sees it missing.
+  vi.unstubAllEnvs()
 })
 
 // ── sign in / sign up ─────────────────────────────────────────────────────────
@@ -221,10 +228,34 @@ describe('claimLocation', () => {
     const result = await claimLocation(claimToken, { type: 'new', name: 'Acme', timezone: 'America/Chicago' })
     expect(result).toEqual({ ok: true, next: '/embedded/events' })
     expect(ghlAdapter.claimPendingInstall).not.toHaveBeenCalled()
+    // partitioned/secure are `false` here, not `true`, because vitest runs with
+    // NODE_ENV='test' and both options are `NODE_ENV === 'production'`. This
+    // case pins the wiring (the option is passed at all, and tracks the env);
+    // the production behaviour itself is covered by the stubbed test below.
     expect(cookieSet).toHaveBeenCalledWith(
       'embedded_session',
       'minted:loc-1',
-      expect.objectContaining({ sameSite: 'none', httpOnly: true, path: '/' }),
+      expect.objectContaining({ sameSite: 'none', httpOnly: true, path: '/', secure: false, partitioned: false }),
+    )
+  })
+
+  it('sets Partitioned and Secure when NODE_ENV is production (CHIPS, O70)', async () => {
+    const claimToken = await getValidClaimToken()
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: 'org-existing' }, error: null } })
+      return makeChain()
+    }
+    vi.stubEnv('NODE_ENV', 'production')
+
+    await claimLocation(claimToken, { type: 'new', name: 'Acme', timezone: 'America/Chicago' })
+
+    // This re-mint fires at claim completion. If it drops Partitioned while the
+    // /api/embedded/sso mint keeps it, the customer is bounced back to the
+    // no-session gate the moment the claim succeeds.
+    expect(cookieSet).toHaveBeenCalledWith(
+      'embedded_session',
+      'minted:loc-1',
+      expect.objectContaining({ sameSite: 'none', secure: true, partitioned: true }),
     )
   })
 

@@ -41,7 +41,14 @@ type LoadResult =
   | { kind: 'failed' }
   | { kind: 'ok'; orgName: string | null; events: EventRow[]; ticketsByEvent: Map<string, TicketRow[]>; entitled: boolean; syncHealth: SyncHealthResult }
 
-export default async function EmbeddedEventsPage() {
+type Props = { searchParams: Promise<{ sso?: string }> }
+
+export default async function EmbeddedEventsPage({ searchParams }: Props) {
+  const { sso } = await searchParams
+  // O70 breadcrumb: set by /embedded/sso after a successful handshake. It rides
+  // the URL, so it survives the third-party-cookie blocking that eats the session.
+  const fromSso = sso === '1'
+
   const cookieStore = await cookies()
   const token = cookieStore.get(COOKIE_NAME)?.value
 
@@ -113,7 +120,7 @@ export default async function EmbeddedEventsPage() {
 
   if (result) {
     if (result.kind === 'unlinked') {
-      redirect('/embedded/claim')
+      redirect(fromSso ? '/embedded/claim?sso=1' : '/embedded/claim')
     }
 
     if (result.kind === 'failed') {
@@ -182,7 +189,24 @@ export default async function EmbeddedEventsPage() {
     )
   }
 
-  // No session: neutral no-context placeholder
+  // No session. fromSso distinguishes the two causes (O70): the SSO handshake
+  // succeeded and set a cookie the browser did not keep or that has since
+  // expired, versus a genuine non-embedded visit.
+  if (fromSso) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+        <p className="text-base font-medium text-gray-700">
+          Your Prezva session expired
+        </p>
+        <p className="text-sm text-gray-400">
+          Reload this page and GoHighLevel will sign you back in. If it keeps
+          happening, your browser may be blocking cookies for prezva.app — allow
+          them for this site and try again.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
       <p className="text-base font-medium text-gray-700">

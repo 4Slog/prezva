@@ -248,6 +248,10 @@ async function remintSession(locationId: string, email: string | null): Promise<
     httpOnly: true,
     sameSite: 'none',
     secure: process.env.NODE_ENV === 'production',
+    // CHIPS (O70) — must match the mint in /api/embedded/sso. This re-mint fires
+    // at claim completion, so omitting Partitioned here would drop the customer
+    // back to the no-session gate at the exact moment the claim succeeds.
+    partitioned: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 60 * 60,
   })

@@ -67,6 +67,12 @@ export async function POST(request: NextRequest) {
     // SameSite=None requires Secure. In local HTTP dev the cookie will be dropped
     // by the browser — test the flow using HTTPS or a tunneled URL.
     secure: process.env.NODE_ENV === 'production',
+    // CHIPS (O70). prezva.app sets this cookie from inside an app.gohighlevel.com
+    // iframe, so it is a third-party cookie. Without Partitioned, Safari drops it
+    // always (ITP) and Chrome incognito drops it by default — the embed then
+    // renders "Open this from inside GoHighLevel" to a user who is inside it.
+    // Partitioned requires Secure, so it tracks the same condition.
+    partitioned: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 60 * 60, // 1 hour, matches token expiry
   })

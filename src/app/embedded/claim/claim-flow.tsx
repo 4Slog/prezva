@@ -123,7 +123,13 @@ export function ClaimFlow() {
       setStep('org')
       return
     }
-    window.location.assign(result.next)
+    // O70: claimLocation re-mints the session cookie, so this navigation is the
+    // second place a blocked third-party cookie surfaces. Carry the same
+    // breadcrumb /embedded/sso sets, or a browser that ignores CHIPS shows the
+    // misleading "open this from inside GoHighLevel" copy the instant the
+    // claim succeeds.
+    const separator = result.next.includes('?') ? '&' : '?'
+    window.location.assign(`${result.next}${separator}sso=1`)
   }
 
   if (step === 'choose') {

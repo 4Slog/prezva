@@ -73,7 +73,13 @@ export default function EmbeddedSsoPage() {
         }
 
         const result = await res.json()
-        router.push(result.next ?? '/embedded/events')
+        const next = result.next ?? '/embedded/events'
+        // O70: a query param survives third-party-cookie blocking, so it is the
+        // one witness available in exactly the case where the cookie is not.
+        // Destination seeing sso=1 with no session => the cookie was dropped or
+        // expired, NOT "you are not embedded".
+        const separator = next.includes('?') ? '&' : '?'
+        router.push(`${next}${separator}sso=1`)
       } catch {
         setStatus('error')
         setErrorMessage('Something went wrong. Please try again.')

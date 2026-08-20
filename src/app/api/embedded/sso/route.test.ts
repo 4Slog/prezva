@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const { mockCookieSet } = vi.hoisted(() => ({ mockCookieSet: vi.fn() }))
@@ -51,6 +51,12 @@ beforeEach(() => {
   vi.mocked(claimSsoNonce).mockClear().mockResolvedValue({ ok: true })
 })
 
+afterEach(() => {
+  // Keep the NODE_ENV stub from the CHIPS production-branch test below from
+  // leaking into any other test in this file.
+  vi.unstubAllEnvs()
+})
+
 describe('POST /api/embedded/sso', () => {
   it('mints the embedded session cookie and returns 200 on a valid decrypt', async () => {
     vi.mocked(decryptSsoPayload).mockReturnValue({
@@ -66,11 +72,48 @@ describe('POST /api/embedded/sso', () => {
     expect(hashSsoPayload).toHaveBeenCalledWith('encrypted-blob')
     expect(claimSsoNonce).toHaveBeenCalledWith('hash:encrypted-blob')
     expect(mintEmbeddedSession).toHaveBeenCalledWith('loc_123', 'user@example.com')
+    // partitioned/secure are `false` here, not `true`, because vitest runs with
+    // NODE_ENV='test' and both options are `NODE_ENV === 'production'`. This
+    // case pins the wiring (the option is passed at all, and tracks the env);
+    // the production behaviour itself is covered by the stubbed test below.
     expect(mockCookieSet).toHaveBeenCalledWith(
       'embedded_session',
       'signed-jwt-token',
-      expect.objectContaining({ httpOnly: true, path: '/' }),
+      expect.objectContaining({ httpOnly: true, path: '/', sameSite: 'none', secure: false, partitioned: false }),
     )
+  })
+
+  it('sets Partitioned and Secure when NODE_ENV is production (CHIPS, O70)', async () => {
+    vi.mocked(decryptSsoPayload).mockReturnValue({
+      locationId: 'loc_123',
+      email: 'user@example.com',
+    })
+    vi.stubEnv('NODE_ENV', 'production')
+
+    await POST(makeRequest({ encryptedData: 'encrypted-blob' }))
+
+    // Without Partitioned this cookie is a plain third-party cookie set from
+    // inside the GHL iframe — Safari drops it outright and Chrome drops it in
+    // incognito, which is exactly the O70 failure.
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      'embedded_session',
+      'signed-jwt-token',
+      expect.objectContaining({ sameSite: 'none', secure: true, partitioned: true }),
+    )
+  })
+
+  it('returns next=/embedded/events — the value sso/page.tsx appends its sso=1 separator to', async () => {
+    vi.mocked(decryptSsoPayload).mockReturnValue({
+      locationId: 'loc_123',
+      email: 'user@example.com',
+    })
+
+    const res = await POST(makeRequest({ encryptedData: 'encrypted-blob' }))
+    const json = await res.json()
+
+    // sso/page.tsx picks '?' vs '&' off this string. If it ever grows a query
+    // string, that separator logic is what has to keep up.
+    expect(json.next).toBe('/embedded/events')
   })
 
   it('returns 401 replay and mints no session/cookie when the payload hash was already claimed', async () => {
