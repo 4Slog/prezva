@@ -11,9 +11,15 @@ vi.mock('@/lib/registration/actions', () => ({
 vi.mock('@/lib/trigger', () => ({
   enqueueGhlSync: vi.fn(),
 }))
+// R56: this file runs the REAL postRegistrationWriteback, so every client export
+// the writeback imports must be stubbed here. The writeback's outer catch swallows
+// a TypeError from an undefined import — omitting the tag helpers would leave this
+// suite green while the tag silently never fires in production.
 vi.mock('@/lib/integrations/ghl/client', () => ({
   ghlPut: vi.fn(),
   ghlPost: vi.fn(),
+  ghlAddContactTags: vi.fn(),
+  ghlRemoveContactTags: vi.fn(),
 }))
 vi.mock('@/lib/integrations/ghl/adapter', () => ({
   ghlAdapter: { getAccessToken: vi.fn() },
@@ -128,8 +134,15 @@ function makeSequentialClient(responses: Array<{ data: unknown; error?: unknown 
       chain.eq     = vi.fn().mockReturnValue(chain)
       chain.insert = vi.fn().mockReturnValue(chain)
       chain.update = vi.fn().mockReturnValue(chain)
+      // R56: the link-ready claim ends `.is(...).select('id')` and awaits the
+      // chain itself rather than maybeSingle/single. Without `is` the claim throws
+      // a TypeError into the writeback's outer catch, which silently aborts the
+      // rest of the writeback — the appointment POST included. `then` makes the
+      // chain awaitable as a terminal, matching PostgREST.
+      chain.is     = vi.fn().mockReturnValue(chain)
       chain.maybeSingle = vi.fn().mockResolvedValue(resp)
       chain.single      = vi.fn().mockResolvedValue(resp)
+      chain.then = (resolve: (v: unknown) => unknown) => resolve(resp)
       return chain
     }),
   }
@@ -557,7 +570,10 @@ describe('POST /api/ghl/webhooks/payment — amount divergence (R30 multi-seat t
     const json = await res.json()
     expect(json.status).toBe('accepted')
 
-    expect(client.from.mock.calls.length).toBe(7)
+    // 8, not 7: R56 adds the link-ready claim UPDATE inside the writeback,
+    // which runs after the queued_for_sync update. Index 6 is unchanged — the
+    // claim lands at index 7, after the assertion below reads index 6.
+    expect(client.from.mock.calls.length).toBe(8)
     const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
     expect(finalUpdateArgs.status).toBe('queued_for_sync')
     expect(finalUpdateArgs.last_error).toBeUndefined()
@@ -621,7 +637,10 @@ describe('POST /api/ghl/webhooks/payment — amount divergence (R30 multi-seat t
     const json = await res.json()
     expect(json.status).toBe('accepted')
 
-    expect(client.from.mock.calls.length).toBe(7)
+    // 8, not 7: R56 adds the link-ready claim UPDATE inside the writeback,
+    // which runs after the queued_for_sync update. Index 6 is unchanged — the
+    // claim lands at index 7, after the assertion below reads index 6.
+    expect(client.from.mock.calls.length).toBe(8)
     const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
     expect(finalUpdateArgs.status).toBe('queued_for_sync')
     expect(finalUpdateArgs.last_error).toBeUndefined()
@@ -637,7 +656,10 @@ describe('POST /api/ghl/webhooks/payment — amount divergence (R30 multi-seat t
     const res = await POST(makeRequest(CORRECT_SECRET, bodyWithTotal(112.5)))
     expect(res.status).toBe(200)
 
-    expect(client.from.mock.calls.length).toBe(7)
+    // 8, not 7: R56 adds the link-ready claim UPDATE inside the writeback,
+    // which runs after the queued_for_sync update. Index 6 is unchanged — the
+    // claim lands at index 7, after the assertion below reads index 6.
+    expect(client.from.mock.calls.length).toBe(8)
     const finalUpdateArgs = client.from.mock.results[6].value.update.mock.calls[0][0]
     expect(finalUpdateArgs.last_error).toBeUndefined()
   })
@@ -721,10 +743,11 @@ describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
       },
     )
 
-    // 9, not 8: the R55 Batch 2 idempotency guard adds a ghl_appointment_id
-    // read before the POST. Index 8 (was 7) is the id write that follows.
-    expect(client.from.mock.calls.length).toBe(9)
-    const apptUpdateArgs = client.from.mock.results[8].value.update.mock.calls[0][0]
+    // 10, not 9: the R55 Batch 2 idempotency guard adds a ghl_appointment_id
+    // read before the POST, and R56 adds the link-ready claim UPDATE before that.
+    // Index 9 (was 8) is the id write that follows.
+    expect(client.from.mock.calls.length).toBe(10)
+    const apptUpdateArgs = client.from.mock.results[9].value.update.mock.calls[0][0]
     expect(apptUpdateArgs).toEqual({ ghl_appointment_id: 'appt-999' })
   })
 
@@ -741,7 +764,10 @@ describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
     expect(json.status).toBe('accepted')
 
     expect(ghlPost).not.toHaveBeenCalled()
-    expect(client.from.mock.calls.length).toBe(7)
+    // 8, not 7: R56 adds the link-ready claim UPDATE inside the writeback,
+    // which runs after the queued_for_sync update. Index 6 is unchanged — the
+    // claim lands at index 7, after the assertion below reads index 6.
+    expect(client.from.mock.calls.length).toBe(8)
   })
 
   it('appointment POST throws -> registration and sync status still succeed (non-fatal)', async () => {
@@ -759,8 +785,9 @@ describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
     expect(json.status).toBe('accepted')
     expect(json.registrationId).toBe('reg-uuid-123')
 
-    // 8, not 7: the guard's ghl_appointment_id read runs before the POST that throws.
-    expect(client.from.mock.calls.length).toBe(8)
+    // 9, not 8: the guard's ghl_appointment_id read runs before the POST that
+    // throws, and R56's link-ready claim UPDATE runs before that guard.
+    expect(client.from.mock.calls.length).toBe(9)
     expect(consoleErr).toHaveBeenCalledWith('ghl appointment create failed (non-fatal)', expect.any(Error))
     consoleErr.mockRestore()
   })

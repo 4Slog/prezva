@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { ghlPut, ghlPost } from '@/lib/integrations/ghl/client'
+import { ghlPut, ghlPost, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
-import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import { getGhlOrgConfig, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/org-config'
 
 // Lifted out of the payment webhook route (R55 Batch 2) so the workflow
 // transport and the app-webhook transport run ONE implementation rather than
@@ -83,6 +83,42 @@ export async function postRegistrationWriteback(
       customFields.push({ id: config.fieldIds.prezvaEventDate, value: eventDate })
     }
     await ghlPut(token, `/contacts/${contactId}`, { customFields })
+
+    // R56: signal "the door link is written and fresh" as an EVENT, not a state.
+    // A tag-added event can only happen after the PUT above, so the GHL confirmation
+    // workflow needs no clear-then-set and no field-emptiness check (O72). Remove
+    // before add so it fires for a returning attendee who already carries the tag —
+    // the R52 pattern, proven live 2026-07-28.
+    //
+    // The claim is an ATOMIC conditional UPDATE, not a read-then-write: during the
+    // transition both transports fire for the same order, and the routes' dedup only
+    // covers synced/queued_for_sync, so re-entry on pending/failed/waitlisted reaches
+    // here with a valid entryUrl. Read-then-write loses that race; this cannot.
+    //
+    // Claim BEFORE firing, deliberately. If the tag call then fails, no tag exists and
+    // the workflow's watchdog branch sends the holding email — the designed safety net.
+    // Claiming after a successful fire would instead risk two confirmation emails.
+    const { data: claimed } = await supabase
+      .from('ghl_sync_state')
+      .update({ link_tag_fired_at: new Date().toISOString() })
+      .eq('id', syncStateId)
+      .is('link_tag_fired_at', null)
+      .select('id')
+
+    if (claimed && claimed.length > 0) {
+      try {
+        await ghlRemoveContactTags(token, contactId, [GHL_LIFECYCLE_TAGS.linkReady])
+      } catch (e) {
+        console.error(`${tag} link-ready tag removal failed (non-fatal)`, e)
+      }
+      try {
+        await ghlAddContactTags(token, contactId, [GHL_LIFECYCLE_TAGS.linkReady])
+      } catch (e) {
+        console.error(`${tag} link-ready tag apply failed (non-fatal)`, e)
+      }
+    } else {
+      console.log(`${tag} link-ready already fired for sync state ${syncStateId} — skipping`)
+    }
 
     // Appointment per registration: GHL's native calendar notifications (booking
     // confirmation, pre-event reminder, post-event follow-up) are the reminder

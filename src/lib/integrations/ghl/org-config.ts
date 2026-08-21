@@ -17,6 +17,11 @@ export const GHL_LIFECYCLE_TAGS = {
   noShow:       `${GHL_TAG_PREFIX}-no-show`,
   certIssued:   `${GHL_TAG_PREFIX}-cert-issued`,
   ceIncomplete: `${GHL_TAG_PREFIX}-ce-incomplete`,
+  // R56: fired by postRegistrationWriteback, NOT by a pipeline stage. Deliberately
+  // absent from buildStageTagMaps — putting it in a stage map would make
+  // ghl-stage-move apply it too, which would re-fire the confirmation email on
+  // every stage transition.
+  linkReady:    `${GHL_TAG_PREFIX}-link-ready`,
 } as const
 
 export type GhlStageKey =
