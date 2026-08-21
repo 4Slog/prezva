@@ -6,32 +6,15 @@ import {
 import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
-import { ghlPut, ghlPost } from '@/lib/integrations/ghl/client'
-import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
-import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import { postRegistrationWriteback, eventDateInEventTz } from '@/lib/ghl/post-registration-writeback'
 import { isOrgEntitled } from '@/lib/entitlements'
 import type { Json } from '@/types/database'
 
 export const runtime = 'nodejs'
 
-// Formats an event start timestamp as a calendar date in the event's OWN
-// timezone. An 8pm March 14 America/New_York event is March 15 in UTC, so
-// formatting in UTC would make every reminder fire a day late. Returns null
-// rather than throwing or falling back to UTC — a missing date is honest, a
-// wrong date is not.
-export function eventDateInEventTz(startAt: string | null, timeZone: string | null): string | null {
-  if (!startAt || !timeZone) return null
-  try {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(startAt))
-  } catch {
-    return null
-  }
-}
+// Re-exported for the existing route tests, which import it from here. The
+// implementation moved to the shared writeback module (R55 Batch 2).
+export { eventDateInEventTz }
 
 export async function POST(req: NextRequest) {
   try {
@@ -112,7 +95,13 @@ export async function POST(req: NextRequest) {
       .eq('external_event_id', ghlOrderId)
       .maybeSingle()
 
-    if (existingState?.status === 'synced') {
+    // 'queued_for_sync' counts as already-processed too (R55 Batch 2). The route
+    // writes that status itself; only the Trigger task later flips it to
+    // 'synced'. Treating just 'synced' as done left a live window in which a
+    // redelivery re-ran the whole chain — and during the transition the app
+    // webhook and this workflow webhook both fire for the same order, so a
+    // second arrival inside that window is the normal case, not the rare one.
+    if (existingState?.status === 'synced' || existingState?.status === 'queued_for_sync') {
       return NextResponse.json({ status: 'already_processed' })
     }
 
@@ -349,71 +338,22 @@ export async function POST(req: NextRequest) {
     // proceeds. Non-fatal: a GHL hiccup must never fail an otherwise-accepted
     // registration.
     if (entryUrl && contactId) {
-      try {
-        // locationLink was already validated truthy at step 4 — GHL-linkage
-        // is implied, so a null config here is always the "linked but
-        // unprovisioned" case, not "not linked."
-        const config = await getGhlOrgConfig(supabase, locationLink.org_id)
-        if (!config) {
-          console.error(`[ghl] org ${locationLink.org_id} is GHL-linked but has no ghl_org_config row — sync skipped`)
-        } else {
-          const token = await ghlAdapter.getAccessToken(locationLink.org_id)
-          if (!token) {
-            console.error(`[ghl-payment] no GHL access token for org ${locationLink.org_id} — entryUrl not written to contact`, contactId)
-            await supabase
-              .from('ghl_sync_state')
-              .update({ last_error: `no_ghl_access_token: org ${locationLink.org_id}`, updated_at: new Date().toISOString() })
-              .eq('id', syncStateId)
-          } else {
-            const eventDate = eventDateInEventTz(eventStartAt, eventTimezone)
-            const customFields: Array<{ id: string; value: string }> = [
-              { id: config.fieldIds.prezvaAttendeeLink, value: entryUrl },
-            ]
-            if (eventDate && config.fieldIds.prezvaEventDate) {
-              customFields.push({ id: config.fieldIds.prezvaEventDate, value: eventDate })
-            }
-            await ghlPut(token, `/contacts/${contactId}`, { customFields })
-
-            // Appointment per registration: GHL's native calendar notifications (booking
-            // confirmation, pre-event reminder, post-event follow-up) are the reminder
-            // backbone. calendarId null => org has no adopted calendar => skip silently.
-            // ignoreDateRange + ignoreFreeSlotValidation are REQUIRED: they bypass slot
-            // availability/capacity so an arbitrary-time, multi-day event appointment
-            // returns 201. endTime always from events.end_at — Follow-Up fires relative
-            // to the END. Title is the EVENT name (grid shows title only; list view has
-            // a Contact column and searches by title).
-            if (config.calendarId && contactId && eventStartAt && eventEndAt) {
-              try {
-                const appt = await ghlPost<{ id?: string; appointment?: { id?: string } }>(
-                  token,
-                  '/calendars/events/appointments',
-                  {
-                    calendarId: config.calendarId,
-                    locationId,
-                    contactId,
-                    startTime: eventStartAt,
-                    endTime: eventEndAt,
-                    title: eventTitle,
-                    ignoreDateRange: true,
-                    ignoreFreeSlotValidation: true,
-                  },
-                )
-                const apptId = appt?.id ?? appt?.appointment?.id ?? null
-                if (apptId) {
-                  await supabase
-                    .from('ghl_sync_state')
-                    .update({ ghl_appointment_id: apptId })
-                    .eq('id', syncStateId)
-                }
-              } catch (e) {
-                console.error('ghl appointment create failed (non-fatal)', e)
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.error('[ghl-payment] failed to write entryUrl to contact', contactId, e)
-      }
+      // Shared with the app-webhook transport (R55 Batch 2) — one implementation,
+      // including the appointment idempotency guard. locationLink was already
+      // validated truthy at step 4, so GHL linkage is implied here.
+      await postRegistrationWriteback({
+        supabase,
+        orgId: locationLink.org_id,
+        syncStateId,
+        locationId,
+        contactId,
+        entryUrl,
+        eventTitle,
+        eventStartAt,
+        eventEndAt,
+        eventTimezone,
+        logTag: '[ghl-payment]',
+      })
     }
 
     return NextResponse.json({ status: 'accepted', registrationId: result.registrationId, entryUrl })

@@ -721,8 +721,10 @@ describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
       },
     )
 
-    expect(client.from.mock.calls.length).toBe(8)
-    const apptUpdateArgs = client.from.mock.results[7].value.update.mock.calls[0][0]
+    // 9, not 8: the R55 Batch 2 idempotency guard adds a ghl_appointment_id
+    // read before the POST. Index 8 (was 7) is the id write that follows.
+    expect(client.from.mock.calls.length).toBe(9)
+    const apptUpdateArgs = client.from.mock.results[8].value.update.mock.calls[0][0]
     expect(apptUpdateArgs).toEqual({ ghl_appointment_id: 'appt-999' })
   })
 
@@ -757,7 +759,8 @@ describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
     expect(json.status).toBe('accepted')
     expect(json.registrationId).toBe('reg-uuid-123')
 
-    expect(client.from.mock.calls.length).toBe(7)
+    // 8, not 7: the guard's ghl_appointment_id read runs before the POST that throws.
+    expect(client.from.mock.calls.length).toBe(8)
     expect(consoleErr).toHaveBeenCalledWith('ghl appointment create failed (non-fatal)', expect.any(Error))
     consoleErr.mockRestore()
   })

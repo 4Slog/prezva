@@ -15,6 +15,12 @@ export interface SanitizedPaymentInput {
   productId: string
   priceId: string
   amountPaidCents: number
+  // Seat quantity from the app-webhook payload (items[0].qty). Carried through
+  // for observability ONLY — nothing acts on it yet. The multi-seat tripwire
+  // (R30) still infers seat count from amount divergence; retiring that in
+  // favour of this field is a separate decision that needs live data first.
+  // Undefined for the workflow transport, which does not send a quantity.
+  seatQty?: number
 }
 
 type ParseOk = { ok: true; data: SanitizedPaymentInput }
@@ -30,6 +36,7 @@ export function parsePaymentWebhookInput(raw: {
   productId: string | undefined
   priceId: string | undefined
   amountPaidCents: unknown
+  seatQty?: unknown
 }): ParseOk | ParseErr {
   const err = (code: string, status = 400): ParseErr => ({
     ok: false,
@@ -76,8 +83,20 @@ export function parsePaymentWebhookInput(raw: {
   }
   const amountPaidCents = amt
 
+  // seatQty is observational, so it is normalized but never a rejection reason:
+  // a malformed quantity must not fail an otherwise-valid paid registration.
+  const rawQty = raw.seatQty
+  const seatQty =
+    typeof rawQty === 'number' && Number.isFinite(rawQty) && rawQty > 0
+      ? Math.floor(rawQty)
+      : undefined
+
   return {
     ok: true,
-    data: { ghlOrderId, locationId, contactId, attendeeEmail, attendeeName, attendeePhone, productId, priceId, amountPaidCents },
+    data: {
+      ghlOrderId, locationId, contactId, attendeeEmail, attendeeName, attendeePhone,
+      productId, priceId, amountPaidCents,
+      ...(seatQty !== undefined ? { seatQty } : {}),
+    },
   }
 }

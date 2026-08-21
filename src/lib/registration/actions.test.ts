@@ -46,7 +46,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: adminFrom })),
 }))
 
-import { startRegistration } from './actions'
+import { startRegistration, createRegistrationFromExternalPayment } from './actions'
 import { isOrgEntitled } from '@/lib/entitlements'
 
 const ORG_ID = 'org-1'
@@ -136,5 +136,94 @@ describe('startRegistration — lane-scoped entitlement gate (GE-8 hardening)', 
 
     expect(result).toEqual({ error: 'Ticket type not found or unavailable' })
     expect(isOrgEntitled).not.toHaveBeenCalled()
+  })
+})
+
+// ── createRegistrationFromExternalPayment: idempotency (R55 Batch 2) ──────────
+
+describe('createRegistrationFromExternalPayment — external_order_id idempotency', () => {
+  // Sequential chain over the registrations table: the function does a read,
+  // then an insert, then (on a unique violation) a second read.
+  function sequence(steps: Array<{ maybeSingle?: any; single?: any }>) {
+    let i = 0
+    const calls: any[] = []
+    adminFromImpl = () => {
+      const step = steps[i++] ?? {}
+      const chain: any = {}
+      for (const k of ['select', 'eq', 'in', 'insert', 'update', 'delete']) chain[k] = vi.fn().mockReturnValue(chain)
+      chain.maybeSingle = vi.fn().mockResolvedValue(step.maybeSingle ?? { data: null, error: null })
+      chain.single = vi.fn().mockResolvedValue(step.single ?? { data: null, error: null })
+      calls.push(chain)
+      return chain
+    }
+    return calls
+  }
+
+  const PARAMS = {
+    eventId: EVENT_ID,
+    ticketTypeId: TICKET_ID,
+    attendeeEmail: 'a@test.com',
+    attendeeName: 'A Tester',
+    attendeePhone: null,
+    amountPaidCents: 22500,
+    currency: 'USD',
+    externalSource: 'ghl_payment',
+    externalOrderId: 'order-abc',
+    paymentGateway: 'stripe',
+  }
+
+  beforeEach(() => {
+    adminFrom.mockClear()
+  })
+
+  it('returns the existing registration on the read fast path without inserting', async () => {
+    const calls = sequence([
+      { maybeSingle: { data: { id: 'reg-existing', qr_code: 'qr-1', app_access_token: 'tok-1' }, error: null } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(PARAMS)
+
+    expect(result).toEqual({ success: true, registrationId: 'reg-existing', qrCode: 'qr-1', appAccessToken: 'tok-1' })
+    expect(calls[0].insert).not.toHaveBeenCalled()
+  })
+
+  // The read above is a fast path, not a lock. Two concurrent deliveries — which
+  // is now the normal case, with 12 GHL retries and two transports live — can
+  // both miss it and both insert. The UNIQUE constraint is the real guard, and a
+  // duplicate must resolve to the winning row, not to a 500 that GHL retries.
+  it('resolves a 23505 unique violation to the winning row instead of failing', async () => {
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } } },
+      { maybeSingle: { data: { id: 'reg-winner', qr_code: 'qr-w', app_access_token: 'tok-w' }, error: null } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(PARAMS)
+
+    expect(result).toEqual({ success: true, registrationId: 'reg-winner', qrCode: 'qr-w', appAccessToken: 'tok-w' })
+  })
+
+  it('reports honestly when a 23505 fires but no matching row can be found', async () => {
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: { code: '23505', message: 'some other unique constraint' } } },
+      { maybeSingle: { data: null, error: null } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(PARAMS)
+
+    // Never invents a success it cannot substantiate.
+    expect(result).toEqual({ success: false, error: 'some other unique constraint' })
+  })
+
+  it('still reports capacity rejection as waitlisted, not as a duplicate', async () => {
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: { code: 'P0001', message: 'Event is at capacity' } } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(PARAMS)
+
+    expect(result).toEqual({ success: false, error: 'Event is at capacity', waitlisted: true })
   })
 })

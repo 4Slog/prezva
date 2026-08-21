@@ -546,6 +546,33 @@ export async function createRegistrationFromExternalPayment(
     if (error.message?.toLowerCase().includes('capacity') || error.code === 'P0001') {
       return { success: false, error: 'Event is at capacity', waitlisted: true }
     }
+
+    // Lost the race on external_order_id (R55 Batch 2). The read above is a
+    // fast path, not a lock — two concurrent deliveries can both miss it and
+    // both insert. The UNIQUE constraint on registrations.external_order_id is
+    // the real guard, and 23505 here means the OTHER delivery won and a real
+    // registration exists. Return it, exactly as the read path would have.
+    //
+    // This matters more than it used to: GHL app webhooks retry any non-2xx up
+    // to 12 times, and during the transition both transports fire per order.
+    // Reporting a duplicate as a failure would 500, which GHL then retries —
+    // turning a benign race into a retry storm against a row that is already
+    // correct.
+    if (error.code === '23505') {
+      const { data: raced } = await supabase
+        .from('registrations')
+        .select('id, qr_code, app_access_token')
+        .eq('external_order_id', params.externalOrderId)
+        .maybeSingle()
+
+      if (raced) {
+        return { success: true, registrationId: raced.id, qrCode: raced.qr_code, appAccessToken: raced.app_access_token }
+      }
+      // A 23505 on some other constraint, or the row vanished between the
+      // conflict and this read — fall through and report honestly rather than
+      // inventing a success.
+    }
+
     return { success: false, error: error.message }
   }
 
