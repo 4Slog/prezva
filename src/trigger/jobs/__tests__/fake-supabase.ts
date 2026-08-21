@@ -6,16 +6,18 @@ export type Recorded = {
   filters: Record<string, any>
   orFilter?: string
   payload?: any
+  columns?: string
 }
 
 type Resolver = (call: Recorded) => { data: any; error: any } | Promise<{ data: any; error: any }>
 
 /**
  * Minimal chainable fake for supabase-js query builders, generic enough to
- * cover the .select/.update/.insert/.eq/.in/.lte/.lt/.gte/.gt/.or/.limit/.maybeSingle
+ * cover the .select/.update/.insert/.eq/.neq/.in/.lte/.lt/.gte/.gt/.or/.limit/.maybeSingle
  * chains used by the trigger jobs under test. Every terminal call (single(),
  * maybeSingle(), or bare await) is recorded and handed to a per-test resolver
- * so assertions can inspect exactly what WHERE was sent.
+ * so assertions can inspect exactly what WHERE — and which projection — was
+ * sent.
  */
 export function makeFakeAdmin(resolver: Resolver) {
   const calls: Recorded[] = []
@@ -29,11 +31,12 @@ export function makeFakeAdmin(resolver: Resolver) {
     }
 
     const chain: any = {
-      select() { return chain },
+      select(columns?: string) { state.columns = columns; return chain },
       update(payload: any) { state.mode = 'update'; state.payload = payload; return chain },
       insert(rows: any) { state.mode = 'insert'; state.payload = rows; return chain },
       delete() { state.mode = 'delete'; return chain },
       eq(col: string, val: any) { state.filters[col] = { ...state.filters[col], eq: val }; return chain },
+      neq(col: string, val: any) { state.filters[col] = { ...state.filters[col], neq: val }; return chain },
       in(col: string, vals: any[]) { state.filters[col] = { ...state.filters[col], in: vals }; return chain },
       lte(col: string, val: any) { state.filters[col] = { ...state.filters[col], lte: val }; return chain },
       lt(col: string, val: any) { state.filters[col] = { ...state.filters[col], lt: val }; return chain },

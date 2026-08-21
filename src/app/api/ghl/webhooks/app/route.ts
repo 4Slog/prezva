@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
     // 6. Cross-transport idempotency on the shared triple.
     const { data: existingState } = await supabase
       .from('ghl_sync_state')
-      .select('id, status, dead_lettered')
+      .select('id, status, dead_lettered, retries')
       .eq('source', SYNC_SOURCE)
       .eq('event_type', SYNC_EVENT_TYPE)
       .eq('external_event_id', ghlOrderId)
@@ -358,6 +358,9 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', syncStateId)
 
+    // Second arg is the attempt generation: the retries count this request read
+    // off the row. Two transports racing share it (so their enqueues collapse);
+    // a re-drive after a failed run reads a higher one and is let through.
     await enqueueGhlSync({
       registrationId:  result.registrationId,
       ghlLocationId:   locationId,
@@ -371,7 +374,7 @@ export async function POST(req: NextRequest) {
       amountPaidCents,
       paymentStatus:   'paid',
       syncStateId,
-    })
+    }, existingState?.retries ?? 0)
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
     const entryUrl = appUrl && eventSlug

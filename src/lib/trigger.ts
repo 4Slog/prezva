@@ -134,7 +134,22 @@ export async function enqueueSpeakerInviteEmail(payload: SpeakerInvitePayload) {
 
 type GhlSyncPayload = Parameters<typeof ghlSyncTask.trigger>[0]
 
-export async function enqueueGhlSync(payload: GhlSyncPayload) {
+/**
+ * `attempt` is the sync row's `retries` count as the caller read it, and it is
+ * what makes the idempotency key safe to use at all.
+ *
+ * Keying on the row id alone collapses the transport race — which is the point
+ * — but it also swallows a legitimate re-drive: Trigger.dev returns the cached
+ * run for a live key whatever that run's outcome was, so once a run has failed,
+ * the second transport's enqueue would return the failed run instead of
+ * starting a new one. The routes stamp `queued_for_sync` before enqueuing and
+ * treat that status as already-processed, so the row would sit there forever
+ * with nothing in flight. Folding `retries` in fixes that without weakening the
+ * race collapse: two transports racing read the same count and share a key,
+ * while a re-drive after a failure reads an incremented count and gets a fresh
+ * one.
+ */
+export async function enqueueGhlSync(payload: GhlSyncPayload, attempt = 0) {
   if (!process.env.TRIGGER_SECRET_KEY) {
     console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping GHL sync job')
     return null
@@ -143,6 +158,17 @@ export async function enqueueGhlSync(payload: GhlSyncPayload) {
     const handle = await tasks.trigger<typeof ghlSyncTask>(
       'sync-ghl-registration',
       payload,
+      {
+        // Both GHL webhook transports (workflow POST and Ed25519-signed app
+        // webhook) fire for one order and share a single ghl_sync_state row, so
+        // its id is the key both enqueues land on and the second collapses into
+        // the first run instead of racing it into a duplicate opportunity POST.
+        // Scoped by task name because a bare string key is global project-wide.
+        idempotencyKey: `sync-ghl-registration:${payload.syncStateId}:${attempt}`,
+        // Long enough to outlive any plausible gap between the two transports;
+        // the attempt suffix, not the clock, is what lets a re-drive through.
+        idempotencyKeyTTL: '1h',
+      },
     )
     return handle
   } catch (err) {
