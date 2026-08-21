@@ -1,0 +1,29 @@
+-- R55 Batch 1: per-location webhook secret, delivered to GHL as a Custom Value
+-- so the snapshot's workflow webhook action can carry it as a merge tag
+-- ({{ custom_values.prezva_webhook_secret }}) instead of one global shared
+-- secret across every tenant.
+--
+-- HASH AT REST, NEVER PLAINTEXT, NEVER ENCRYPTION. We only ever need to answer
+-- "does the secret on this request equal the one we minted?" — that is a
+-- comparison, not a recovery. Storing sha256(secret) means a database read can
+-- never yield a working credential for anyone's location. The plaintext exists
+-- exactly twice: in memory during provisioning, and inside the tenant's own GHL
+-- Custom Value. Deliberate consequence: the plaintext is unrecoverable from
+-- here, so a lost/absent Custom Value forces a fresh mint rather than a re-write
+-- of the old value (see resolveWebhookSecret's mint discipline).
+--
+-- Nullable by design and additive-only: every existing row keeps a null hash,
+-- and a null hash is what routes the verifier to the legacy global env secret.
+-- Rows fill in as orgs re-provision, and each one that fills in becomes a
+-- one-way door — once a hash is stored, the global secret is REJECTED for that
+-- location. That is what makes the global fallback sunset itself.
+--
+-- NO GRANT/REVOKE HERE, deliberately. 0130 already put this table in the
+-- service-role-only posture: RLS enabled, four `to service_role` policies, and
+-- `revoke all on public.ghl_org_config from anon, authenticated` at the TABLE
+-- level. A new column inherits that. Per 0134's post-mortem of 0133, a
+-- column-level REVOKE cannot carve columns out of a table-level GRANT (Postgres
+-- unions the two), so adding one here would be the same live no-op — and worse,
+-- it would read as protection that isn't there.
+alter table public.ghl_org_config
+  add column if not exists webhook_secret_hash text;

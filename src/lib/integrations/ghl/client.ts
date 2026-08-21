@@ -25,7 +25,10 @@ export async function ghlPost<T>(token: string, path: string, body: object): Pro
     headers: headers(token),
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`GHL POST ${path} failed: ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`GHL POST ${path} failed: ${res.status} — ${errBody}`)
+  }
   return res.json() as Promise<T>
 }
 
@@ -35,7 +38,10 @@ export async function ghlPut<T>(token: string, path: string, body: object): Prom
     headers: headers(token),
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`GHL PUT ${path} failed: ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`GHL PUT ${path} failed: ${res.status} — ${errBody}`)
+  }
   return res.json() as Promise<T>
 }
 
@@ -45,8 +51,74 @@ export async function ghlDelete<T>(token: string, path: string, body?: object): 
     headers: headers(token),
     ...(body ? { body: JSON.stringify(body) } : {}),
   })
-  if (!res.ok) throw new Error(`GHL DELETE ${path} failed: ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`GHL DELETE ${path} failed: ${res.status} — ${errBody}`)
+  }
   return res.json() as Promise<T>
+}
+
+// ── Custom Values (R55) ───────────────────────────────────────────────────────
+// Location-scoped key/value pairs that GHL exposes to workflows as merge tags.
+// The snapshot ships a webhook action referencing
+// {{ custom_values.prezva_webhook_secret }}; the provisioner writes the value
+// per location, which is what makes the webhook secret per-tenant.
+//
+// fieldKey is GHL's auto-slug of the display name and comes back on
+// create/update — it is the merge tag the snapshot must match, so callers
+// assert it rather than assuming the slug.
+
+export interface GhlCustomValue {
+  id: string
+  name: string
+  fieldKey: string
+  value: string
+  locationId?: string
+}
+
+interface GhlCustomValuesListResponse {
+  customValues?: GhlCustomValue[]
+}
+
+interface GhlCustomValueMutateResponse {
+  customValue?: GhlCustomValue
+}
+
+export async function ghlListCustomValues(token: string, locationId: string): Promise<GhlCustomValue[]> {
+  const res = await ghlGet<GhlCustomValuesListResponse>(
+    token,
+    `/locations/${encodeURIComponent(locationId)}/customValues`,
+  )
+  return res.customValues ?? []
+}
+
+export async function ghlCreateCustomValue(
+  token: string,
+  locationId: string,
+  name: string,
+  value: string,
+): Promise<GhlCustomValue | null> {
+  const res = await ghlPost<GhlCustomValueMutateResponse>(
+    token,
+    `/locations/${encodeURIComponent(locationId)}/customValues`,
+    { name, value },
+  )
+  return res.customValue ?? null
+}
+
+export async function ghlUpdateCustomValue(
+  token: string,
+  locationId: string,
+  id: string,
+  name: string,
+  value: string,
+): Promise<GhlCustomValue | null> {
+  const res = await ghlPut<GhlCustomValueMutateResponse>(
+    token,
+    `/locations/${encodeURIComponent(locationId)}/customValues/${encodeURIComponent(id)}`,
+    { name, value },
+  )
+  return res.customValue ?? null
 }
 
 export async function ghlUpsertContact(

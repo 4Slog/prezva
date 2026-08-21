@@ -9,19 +9,46 @@ export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify shared secret (header X-Prezva-Webhook-Secret or ?secret= query)
-    if (!verifyWebhookSecret(req)) {
-      return new NextResponse(null, { status: 401 })
-    }
+    // Lazily constructed (R55). Verification needs a client, but only when the
+    // payload actually carries a location claim — and today's live refund
+    // workflow carries none. Constructing eagerly would touch the DB layer on
+    // every early-return path (unresolved order id, txn-lookup fall-through)
+    // that deliberately does no DB work at all.
+    let db: ReturnType<typeof createAdminClient> | null = null
+    const getDb = () => (db ??= createAdminClient())
 
-    // 2. Parse body.
+    // 1. Parse the body FIRST (R55) — the location claim that selects which
+    // secret applies lives in the body. Untrusted until step 2 authenticates.
     let rawBody: string
     let body: Record<string, unknown>
     try {
       rawBody = await req.text()
       body = JSON.parse(rawBody) as Record<string, unknown>
     } catch {
+      // No parse, no location claim, no per-location secret to check against.
+      // Authenticate globally before answering so garbage from an unauthorized
+      // caller gets the same 401 as a bad secret rather than a distinguishing 400.
+      const unparsed = await verifyWebhookSecret(req)
+      if (!unparsed.ok) return new NextResponse(null, { status: 401 })
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
+    }
+
+    // 2. Verify. The refund workflow does not send a location claim yet — it
+    // will once the workflow-edit pass lands — so today this resolves to
+    // undefined and falls back to the global secret. That is the intended
+    // transition behavior, not an oversight: refund keeps working untouched
+    // while payment migrates, and starts verifying per-location the moment the
+    // workflow begins sending location_id, with no code change here.
+    const claimedLocationId =
+      (typeof body.location_id === 'string' ? body.location_id : undefined) ??
+      ((body.location as Record<string, unknown> | undefined)?.id as string | undefined)
+
+    const auth = await verifyWebhookSecret(
+      req,
+      claimedLocationId ? { admin: getDb(), locationId: claimedLocationId } : undefined,
+    )
+    if (!auth.ok) {
+      return new NextResponse(null, { status: 401 })
     }
 
     // 3. Resolve the GHL order id. First candidate: the GHL Payments API transaction
@@ -105,7 +132,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, reason: 'unresolved_order_id' })
     }
 
-    const supabase = createAdminClient()
+    const supabase = getDb()
 
     // 4. Look up the registration by external_order_id.
     const { data: reg } = await supabase

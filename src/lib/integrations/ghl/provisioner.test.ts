@@ -1,12 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('./client', () => ({
   ghlGet: vi.fn(),
   ghlPost: vi.fn(),
+  ghlListCustomValues: vi.fn(),
+  ghlCreateCustomValue: vi.fn(),
+  ghlUpdateCustomValue: vi.fn(),
 }))
 
-import { ghlGet, ghlPost } from './client'
+import {
+  ghlGet,
+  ghlPost,
+  ghlListCustomValues,
+  ghlCreateCustomValue,
+  ghlUpdateCustomValue,
+} from './client'
 import { provisionGhlOrgConfig } from './provisioner'
+
+const WEBHOOK_SECRET_NAME = 'Prezva Webhook Secret'
+const WEBHOOK_FIELD_KEY = '{{ custom_values.prezva_webhook_secret }}'
+const EXISTING_HASH = 'existing-stored-hash'
+
+function existingSecretValue(fieldKey: string = WEBHOOK_FIELD_KEY) {
+  return { id: 'cv-secret', name: WEBHOOK_SECRET_NAME, fieldKey, value: 'whatever', locationId: 'loc-1' }
+}
 
 const LOCATION_ID = 'loc-1'
 const ORG_ID = 'org-1'
@@ -70,9 +87,20 @@ function fullCustomFields(presentKeys: string[] = FIELD_DEFS.map((f) => f.key)) 
   }
 }
 
-function makeAdmin() {
+// The same from() serves both the webhook-secret hash read (select/eq/
+// maybeSingle) and the final config write (upsert). storedHash defaults to a
+// value so the default path is "hash + custom value both present" — i.e. no
+// mint, no writes — which keeps every pre-R55 test in this file untouched.
+function makeAdmin(opts: { storedHash?: string | null } = {}) {
+  const storedHash = opts.storedHash === undefined ? EXISTING_HASH : opts.storedHash
   const upsert = vi.fn().mockResolvedValue({ data: null, error: null })
-  const from = vi.fn(() => ({ upsert }))
+  const from = vi.fn(() => {
+    const chain: Record<string, unknown> = { upsert }
+    chain.select = vi.fn().mockReturnValue(chain)
+    chain.eq = vi.fn().mockReturnValue(chain)
+    chain.maybeSingle = vi.fn().mockResolvedValue({ data: { webhook_secret_hash: storedHash }, error: null })
+    return chain
+  })
   return { admin: { from }, upsert, from }
 }
 
@@ -80,6 +108,10 @@ describe('provisionGhlOrgConfig', () => {
   beforeEach(() => {
     vi.mocked(ghlGet).mockReset()
     vi.mocked(ghlPost).mockReset()
+    // Default: the secret Custom Value already exists in GHL.
+    vi.mocked(ghlListCustomValues).mockReset().mockResolvedValue([existingSecretValue()])
+    vi.mocked(ghlCreateCustomValue).mockReset().mockResolvedValue(existingSecretValue())
+    vi.mocked(ghlUpdateCustomValue).mockReset().mockResolvedValue(existingSecretValue())
   })
 
   it('(a) pipeline exists -> reused, not created', async () => {
@@ -350,5 +382,127 @@ describe('provisionGhlOrgConfig', () => {
     expect(upsert).toHaveBeenCalledTimes(1)
     const row = upsert.mock.calls[0][0]
     expect('calendar_id' in row).toBe(false)
+  })
+})
+
+// ── R55: webhook secret mint discipline ───────────────────────────────────────
+
+describe('provisionGhlOrgConfig — webhook secret (R55)', () => {
+  const HAPPY_GHL_GET = async (_token: string, path: string) => {
+    if (path.startsWith('/opportunities/pipelines')) return { pipelines: [fullPipeline()] } as any
+    if (path.includes('/customFields')) return fullCustomFields() as any
+    if (path.startsWith('/calendars/')) return { calendars: [] } as any
+    throw new Error(`unexpected ghlGet path: ${path}`)
+  }
+
+  beforeEach(() => {
+    vi.mocked(ghlGet).mockReset().mockImplementation(HAPPY_GHL_GET as any)
+    vi.mocked(ghlPost).mockReset()
+    vi.mocked(ghlListCustomValues).mockReset().mockResolvedValue([existingSecretValue()])
+    vi.mocked(ghlCreateCustomValue).mockReset().mockResolvedValue(existingSecretValue())
+    vi.mocked(ghlUpdateCustomValue).mockReset().mockResolvedValue(existingSecretValue())
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  // The load-bearing case: re-provisioning is routine (OAuth callback AND
+  // embedded claim both call this), so a mint here would silently invalidate
+  // the live workflow's secret on every re-run.
+  it('hash present AND custom value present -> no mint, no create, no update', async () => {
+    const { admin, upsert } = makeAdmin({ storedHash: EXISTING_HASH })
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(ghlCreateCustomValue).not.toHaveBeenCalled()
+    expect(ghlUpdateCustomValue).not.toHaveBeenCalled()
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ webhook_secret_hash: EXISTING_HASH }),
+      { onConflict: 'org_id' },
+    )
+  })
+
+  it('custom value absent -> mints, CREATEs the value, stores a fresh sha256 hash', async () => {
+    vi.mocked(ghlListCustomValues).mockResolvedValue([])
+    const { admin, upsert } = makeAdmin({ storedHash: null })
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(ghlUpdateCustomValue).not.toHaveBeenCalled()
+    expect(ghlCreateCustomValue).toHaveBeenCalledWith(
+      TOKEN, LOCATION_ID, WEBHOOK_SECRET_NAME, expect.stringMatching(/^[0-9a-f]{64}$/),
+    )
+
+    const mintedSecret = vi.mocked(ghlCreateCustomValue).mock.calls[0][3]
+    const row = upsert.mock.calls[0][0]
+    // The stored value is the HASH of the minted secret — never the secret.
+    expect(row.webhook_secret_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(row.webhook_secret_hash).not.toBe(mintedSecret)
+  })
+
+  it('custom value present but hash absent -> mints fresh and UPDATEs the existing value by id', async () => {
+    vi.mocked(ghlListCustomValues).mockResolvedValue([existingSecretValue()])
+    const { admin, upsert } = makeAdmin({ storedHash: null })
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(ghlCreateCustomValue).not.toHaveBeenCalled()
+    expect(ghlUpdateCustomValue).toHaveBeenCalledWith(
+      TOKEN, LOCATION_ID, 'cv-secret', WEBHOOK_SECRET_NAME, expect.stringMatching(/^[0-9a-f]{64}$/),
+    )
+    expect(upsert.mock.calls[0][0].webhook_secret_hash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('matches an existing value by fieldKey slug even when the display name was changed', async () => {
+    vi.mocked(ghlListCustomValues).mockResolvedValue([
+      { id: 'cv-renamed', name: 'Renamed By A Human', fieldKey: WEBHOOK_FIELD_KEY, value: 'x' },
+    ])
+    const { admin } = makeAdmin({ storedHash: EXISTING_HASH })
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    // Found via the slug, so treated as present: no duplicate create.
+    expect(ghlCreateCustomValue).not.toHaveBeenCalled()
+  })
+
+  it('fieldKey mismatch logs loudly but does NOT throw — provisioning still completes', async () => {
+    vi.mocked(ghlListCustomValues).mockResolvedValue([])
+    vi.mocked(ghlCreateCustomValue).mockResolvedValue({
+      id: 'cv-new', name: WEBHOOK_SECRET_NAME, fieldKey: '{{ custom_values.something_else }}', value: 'x',
+    })
+    const { admin, upsert } = makeAdmin({ storedHash: null })
+
+    await expect(provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)).resolves.toBeUndefined()
+
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('fieldKey'))
+    expect(upsert).toHaveBeenCalledTimes(1)
+  })
+
+  it('accepts a fieldKey that differs only in brace whitespace', async () => {
+    vi.mocked(ghlListCustomValues).mockResolvedValue([])
+    vi.mocked(ghlCreateCustomValue).mockResolvedValue({
+      id: 'cv-new', name: WEBHOOK_SECRET_NAME, fieldKey: '{{custom_values.prezva_webhook_secret}}', value: 'x',
+    })
+    const { admin } = makeAdmin({ storedHash: null })
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  // Non-fatal by design: a GHL outage must not cost the org its pipeline and
+  // field IDs, and must not clobber a hash that is already stored.
+  it('a GHL failure leaves webhook_secret_hash out of the payload entirely, and provisioning still succeeds', async () => {
+    vi.mocked(ghlListCustomValues).mockRejectedValue(new Error('GHL 503'))
+    const { admin, upsert } = makeAdmin({ storedHash: EXISTING_HASH })
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(upsert).toHaveBeenCalledTimes(1)
+    const row = upsert.mock.calls[0][0]
+    expect('webhook_secret_hash' in row).toBe(false)
+    expect(row.pipeline_id).toBe('pipe-existing')
   })
 })

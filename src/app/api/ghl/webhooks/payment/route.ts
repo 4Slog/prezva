@@ -35,18 +35,27 @@ export function eventDateInEventTz(startAt: string | null, timeZone: string | nu
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify shared secret (header X-Prezva-Webhook-Secret or ?secret= query)
-    if (!verifyWebhookSecret(req)) {
-      return new NextResponse(null, { status: 401 })
-    }
+    // Hoisted above verification (R55): the per-location secret lookup needs it
+    // before anything else does. Same client is reused for the rest of the handler.
+    const supabase = createAdminClient()
 
-    // 2. Parse body
+    // 1. Parse the body FIRST (R55). Per-location secret verification needs the
+    // location claim, and the claim is in the body — so the body must be read
+    // before the credential can be chosen. The body is still untrusted at this
+    // point; nothing below acts on it until step 2 authenticates.
     let rawBody: string
     let body: Record<string, unknown>
     try {
       rawBody = await req.text()
       body = JSON.parse(rawBody) as Record<string, unknown>
     } catch {
+      // An unparseable body has no location claim, so there is no per-location
+      // secret to check it against. Verify globally anyway before answering:
+      // returning 400 to an unauthenticated caller would let anyone probe this
+      // endpoint's existence with garbage, and would tell a caller holding no
+      // valid secret something different from what a bad secret gets.
+      const unparsed = await verifyWebhookSecret(req)
+      if (!unparsed.ok) return new NextResponse(null, { status: 401 })
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
     }
 
@@ -55,6 +64,19 @@ export async function POST(req: NextRequest) {
     const firstItem = lineItems[0] as Record<string, unknown> | undefined
     const meta = firstItem?.meta as Record<string, unknown> | undefined
     const location = body.location as Record<string, unknown> | undefined
+
+    // 2. Verify the shared secret, per-location when this location has its own
+    // (stored hash => the global secret is rejected for it), global otherwise.
+    // The claimed location only selects WHICH secret must match — a forged
+    // location id cannot authenticate anything, it just picks a hash the caller
+    // then has to satisfy.
+    const auth = await verifyWebhookSecret(req, {
+      admin: supabase,
+      locationId: location?.id as string | undefined,
+    })
+    if (!auth.ok) {
+      return new NextResponse(null, { status: 401 })
+    }
 
     const currency       = (order?.currency_code as string | undefined) ?? 'USD'
     const paymentGateway = (order?.payment_gateway as string | undefined) ?? 'unknown'
@@ -80,8 +102,6 @@ export async function POST(req: NextRequest) {
     if (!ghlOrderId || !locationId || !contactId || !productId || !priceId) {
       return NextResponse.json({ error: 'missing_required_fields' }, { status: 400 })
     }
-
-    const supabase = createAdminClient()
 
     // 3. Idempotency check via ghl_sync_state
     const { data: existingState } = await supabase

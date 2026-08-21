@@ -32,8 +32,22 @@ vi.mock('@/lib/integrations/ghl/org-config', async (importOriginal) => {
 vi.mock('@/lib/entitlements', () => ({
   isOrgEntitled: vi.fn(),
 }))
+// R55: the verifier is mocked here so its two DB reads (ghl_location_links ->
+// ghl_org_config) do not consume slots in the sequential admin.from() queue
+// below — every existing response array and index-based assertion in this file
+// stays valid. The default implementation reproduces the pre-R55 global-secret
+// behaviour exactly, so the 401/200 cases below are unchanged.
+// The verifier's own security properties (per-location match, and the one-way
+// door that REJECTS the global secret for a hashed location) are covered
+// against real crypto in src/lib/ghl/webhook-auth.test.ts. What this file
+// asserts is the route's side of the contract: that the location claim is
+// parsed out of the body and handed to the verifier.
+vi.mock('@/lib/ghl/webhook-auth', () => ({
+  verifyWebhookSecret: vi.fn(),
+}))
 
 import { POST, eventDateInEventTz } from './route'
+import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { isOrgEntitled } from '@/lib/entitlements'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
@@ -123,6 +137,13 @@ function makeSequentialClient(responses: Array<{ data: unknown; error?: unknown 
 
 beforeEach(() => {
   vi.stubEnv('GHL_WEBHOOK_SECRET', CORRECT_SECRET)
+  // Mirrors the real global-secret path: header must equal CORRECT_SECRET.
+  vi.mocked(verifyWebhookSecret).mockReset().mockImplementation(async (req) => {
+    const provided = req.headers.get('x-prezva-webhook-secret')
+    return provided === CORRECT_SECRET
+      ? { ok: true as const, via: 'global' as const }
+      : { ok: false as const, via: null }
+  })
   vi.mocked(enqueueGhlSync).mockResolvedValue(null as any)
   vi.mocked(createRegistrationFromExternalPayment).mockResolvedValue({
     success: true,
@@ -739,5 +760,65 @@ describe('POST /api/ghl/webhooks/payment — appointment creation', () => {
     expect(client.from.mock.calls.length).toBe(7)
     expect(consoleErr).toHaveBeenCalledWith('ghl appointment create failed (non-fatal)', expect.any(Error))
     consoleErr.mockRestore()
+  })
+})
+
+// ── R55: verification reorder ─────────────────────────────────────────────────
+
+describe('R55 verification reorder', () => {
+  it('parses the body first and hands the claimed location id to the verifier', async () => {
+    vi.mocked(createAdminClient).mockReturnValue(
+      makeSequentialClient([{ data: { status: 'synced' }, error: null }]) as any,
+    )
+
+    await POST(makeRequest(CORRECT_SECRET))
+
+    expect(verifyWebhookSecret).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ locationId: '4KrDX2FYA2XZ68q88rFS' }),
+    )
+  })
+
+  it('passes an undefined location when the payload carries no location object', async () => {
+    vi.mocked(createAdminClient).mockReturnValue(makeSequentialClient([]) as any)
+    const { location: _omitted, ...noLocation } = LIVE_PAYLOAD
+
+    await POST(makeRequest(CORRECT_SECRET, noLocation))
+
+    expect(verifyWebhookSecret).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ locationId: undefined }),
+    )
+  })
+
+  // An unparseable body carries no location claim, so it cannot be verified
+  // per-location — but it must still be authenticated before the route reveals
+  // anything. Otherwise garbage from an unauthorized caller gets a 400 while a
+  // bad secret gets a 401, which distinguishes the two for a prober.
+  it('returns 401 (not 400) for an unparseable body from an unauthorized caller', async () => {
+    const res = await POST(
+      new NextRequest(BASE_URL, {
+        method: 'POST',
+        body: 'not json at all',
+        headers: { 'content-type': 'application/json', 'X-Prezva-Webhook-Secret': 'wrong-secret' },
+      }),
+    )
+
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 invalid_json for an unparseable body from an authorized caller', async () => {
+    const res = await POST(
+      new NextRequest(BASE_URL, {
+        method: 'POST',
+        body: 'not json at all',
+        headers: { 'content-type': 'application/json', 'X-Prezva-Webhook-Secret': CORRECT_SECRET },
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'invalid_json' })
+    // Verified with no options — there is no location claim to route on.
+    expect(verifyWebhookSecret).toHaveBeenCalledWith(expect.anything())
   })
 })

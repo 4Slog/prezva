@@ -14,8 +14,17 @@ vi.mock('@/lib/integrations/ghl/client', () => ({
 vi.mock('@/lib/integrations/ghl/token', () => ({
   getGhlToken: vi.fn(() => 'test-ghl-token'),
 }))
+// R55: mocked so the verifier's own DB reads stay out of this file's `chains`
+// indexing — every existing chains[0]/chains[1] assertion stays valid. The
+// default implementation reproduces the pre-R55 global-secret behaviour, so the
+// auth cases below are unchanged. Real per-location crypto and the one-way door
+// are covered in src/lib/ghl/webhook-auth.test.ts.
+vi.mock('@/lib/ghl/webhook-auth', () => ({
+  verifyWebhookSecret: vi.fn(),
+}))
 
 import { POST } from './route'
+import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueWaitlistProcessing } from '@/lib/trigger'
 import { ghlGet } from '@/lib/integrations/ghl/client'
@@ -89,6 +98,12 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv('GHL_WEBHOOK_SECRET', CORRECT_SECRET)
   vi.stubEnv('GHL_LOCATION_ID', GHL_LOCATION_ID)
+  vi.mocked(verifyWebhookSecret).mockReset().mockImplementation(async (req) => {
+    const provided = req.headers.get('x-prezva-webhook-secret')
+    return provided === CORRECT_SECRET
+      ? { ok: true as const, via: 'global' as const }
+      : { ok: false as const, via: null }
+  })
   vi.mocked(enqueueWaitlistProcessing).mockResolvedValue(null as any)
   vi.mocked(getGhlToken).mockReturnValue('test-ghl-token')
 })
@@ -472,5 +487,73 @@ describe('POST /api/ghl/webhooks/refund — units (GHL sends dollars, Prezva sto
       eventTitle: 'Test Conference 2026',
       eventSlug: 'test-conf-2026',
     })
+  })
+})
+
+// ── R55: verification reorder + location claim ────────────────────────────────
+
+describe('R55 verification reorder (refund)', () => {
+  it('routes to per-location verify when the payload carries a top-level location_id', async () => {
+    const { client } = makeSequentialClient([{ data: null, error: null }])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    await POST(makeRequest(CORRECT_SECRET, { ...REFUND_PAYLOAD, location_id: 'loc-from-workflow' }))
+
+    expect(verifyWebhookSecret).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ locationId: 'loc-from-workflow' }),
+    )
+  })
+
+  it('also accepts the nested location.id shape', async () => {
+    const { client } = makeSequentialClient([{ data: null, error: null }])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    await POST(makeRequest(CORRECT_SECRET, { ...REFUND_PAYLOAD, location: { id: 'loc-nested' } }))
+
+    expect(verifyWebhookSecret).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ locationId: 'loc-nested' }),
+    )
+  })
+
+  // Today's live refund workflow sends no location claim. That must keep
+  // working on the global secret until the workflow-edit pass lands — this is
+  // the transition behaviour, asserted so it cannot regress silently.
+  it('verifies with no options at all when the payload carries neither location shape', async () => {
+    const { client } = makeSequentialClient([{ data: null, error: null }])
+    vi.mocked(createAdminClient).mockReturnValue(client as any)
+
+    await POST(makeRequest(CORRECT_SECRET))
+
+    // undefined options, not { locationId: undefined } — with no claim there is
+    // nothing to resolve, so the verifier is not handed a client at all and the
+    // secret-hash lookup never runs.
+    expect(verifyWebhookSecret).toHaveBeenCalledWith(expect.anything(), undefined)
+  })
+
+  it('returns 401 (not 400) for an unparseable body from an unauthorized caller', async () => {
+    const res = await POST(
+      new NextRequest(BASE_URL, {
+        method: 'POST',
+        body: '<<<not json>>>',
+        headers: { 'content-type': 'application/json', 'X-Prezva-Webhook-Secret': 'wrong-secret' },
+      }),
+    )
+
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 invalid_json for an unparseable body from an authorized caller', async () => {
+    const res = await POST(
+      new NextRequest(BASE_URL, {
+        method: 'POST',
+        body: '<<<not json>>>',
+        headers: { 'content-type': 'application/json', 'X-Prezva-Webhook-Secret': CORRECT_SECRET },
+      }),
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'invalid_json' })
   })
 })
