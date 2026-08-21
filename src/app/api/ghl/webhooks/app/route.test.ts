@@ -55,7 +55,9 @@ const COMPLETED_ORDER = {
   contactId: CONTACT_ID,
   amount: 225,
   currency: 'USD',
-  paymentGateway: 'stripe',
+  // No paymentGateway key: the verbatim capture below proves GHL does not send
+  // one. Keeping a fabricated 'stripe' here would misinform the next reader the
+  // same way the fabricated `name` key did.
   contactSnapshot: {
     email: 'test@prezva.app',
     firstName: 'Test',
@@ -66,34 +68,86 @@ const COMPLETED_ORDER = {
   ],
 }
 
-// PROVISIONAL RECONSTRUCTION — NOT the verbatim capture.
-// The live order that exposed this bug is 6a87abee7ec1ad578d6029c4 ("Cross
-// Test1"). The verbatim OrderStatusUpdate JSON was not available when this was
-// written, so the fields below encode only what the bug report established:
-// contactSnapshot has firstName + lastName and no name/full_name/phone; amount
-// is 225 for a $225 order; items[0].qty is 1. The location/contact/product/price
-// ids are this file's own constants, NOT the real order's.
+// VERBATIM LIVE CAPTURE — GHL webhook delivery 26324bfe-8859-43b0-adb9-d32e706c6a96,
+// order 6a87abee7ec1ad578d6029c4 ("Cross Test1"), the cross-transport order that
+// exposed the attendeeName bug. Copied byte-for-byte from the GHL dashboard
+// delivery log; do NOT trim it to the fields the route happens to read. Its value
+// is precisely the fields nobody thought to look at — that is the class of bug
+// this fixture exists to catch, and the reason a hand-built fixture let the
+// original defect ship green.
 //
-// Replace this wholesale with the byte-for-byte dashboard capture. Until then it
-// pins the regression but cannot catch a shape surprise in a field nobody
-// thought to look at — which is precisely the class of bug that caused this one.
+// Two shape facts this capture establishes, neither of which was guessable:
+//   - contactSnapshot has firstName + lastName and NO name/full_name/phone
+//   - there is NO paymentGateway key anywhere; the gateway lives nowhere in the
+//     payload (`source` describes the payment link, not the processor)
 const LIVE_CROSS_TEST1_ORDER = {
   type: 'OrderStatusUpdate',
-  status: 'completed',
+  locationId: '4KrDX2FYA2XZ68q88rFS',
+  versionId: '6a049dcb8d20f974bd95d587',
+  appId: '6a049dcb8d20f974bd95d587',
   _id: '6a87abee7ec1ad578d6029c4',
-  locationId: LOCATION_ID,
-  contactId: CONTACT_ID,
-  amount: 225,
+  altId: '4KrDX2FYA2XZ68q88rFS',
+  altType: 'location',
+  status: 'completed',
+  taxSummary: [],
+  fulfillmentStatus: 'unfulfilled',
+  contactId: 'vx2nqEZJYkRIau7Jyf7r',
   currency: 'USD',
-  paymentGateway: 'stripe',
+  amount: 225,
+  liveMode: false,
+  amountSummary: {
+    subtotal: 225,
+    discount: 0,
+    tax: 0,
+    shipping: 0,
+    additionalCharge: 0,
+  },
+  source: {
+    type: 'payment_link',
+    subType: 'payments_dashboard',
+    id: '6a45286aa655fa0b802a22d2',
+    name: 'SAUP AICP TEST — DELETE ME',
+  },
+  createdAt: '2026-08-21T01:37:50.761Z',
+  updatedAt: '2026-08-21T01:37:55.204Z',
   contactSnapshot: {
-    email: 'cross.test1@prezva.app',
+    id: 'vx2nqEZJYkRIau7Jyf7r',
+    locationId: '4KrDX2FYA2XZ68q88rFS',
     firstName: 'Cross',
     lastName: 'Test1',
+    email: 'sowu.paul+crosstest1@gmail.com',
+    additionalEmails: [],
+    additionalPhones: [],
+    source: 'payment_link',
+    tags: [],
+    country: 'US',
+    dateAdded: '2026-08-21T01:37:50.151Z',
+    customFields: [],
   },
   items: [
-    { qty: 1, price: { _id: PRICE_ID }, product: { _id: PRODUCT_ID } },
+    {
+      name: 'AICP Member — SAUP CE Conference 2026 - AICP Member Rate',
+      qty: 1,
+      product: {
+        _id: '6a441c7d1904696397774e2f',
+        name: 'AICP Member — SAUP CE Conference 2026',
+        description: 'AICP Member registration for SAUP Annual CE Conference 2026',
+        availableInStore: false,
+        taxes: [],
+        variants: [],
+      },
+      price: {
+        _id: '6a441c7e0b00c58183984676',
+        name: 'AICP Member Rate',
+        type: 'one_time',
+        currency: 'USD',
+        amount: 225,
+        variantOptionIds: [],
+      },
+    },
   ],
+  timestamp: '2026-08-21T01:37:55.900Z',
+  webhookId: '26324bfe-8859-43b0-adb9-d32e706c6a96',
 }
 
 const EVENT_ROW = {
@@ -650,5 +704,33 @@ describe('POST /api/ghl/webhooks/app — contactSnapshot name mapping', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ status: 'bad_shape' })
     expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+  })
+})
+
+// ── Finding from the verbatim capture ─────────────────────────────────────────
+// The live payload has NO paymentGateway key. `source` describes the payment
+// LINK (type: 'payment_link', subType: 'payments_dashboard'), not the processor
+// that moved the money, so there is nothing in the app-webhook envelope to read
+// a gateway from. The route therefore records 'unknown' for every app-transport
+// order — where the workflow transport read order.payment_gateway and recorded
+// 'stripe'.
+//
+// Pinned rather than fixed: inventing 'stripe' here would be a guess written
+// into a payments column. Resolving it properly needs either a GHL transaction
+// lookup or a decision that 'unknown' is acceptable for this transport — a
+// separate call, not a silent default. This test exists so the gap is visible
+// and so a future fix has something to flip.
+describe('POST /api/ghl/webhooks/app — known gap: payment gateway', () => {
+  it('records paymentGateway "unknown" because the live payload carries no gateway field', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    expect('paymentGateway' in LIVE_CROSS_TEST1_ORDER).toBe(false)
+
+    await POST(makeRequest(LIVE_CROSS_TEST1_ORDER))
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentGateway: 'unknown' }),
+    )
   })
 })
