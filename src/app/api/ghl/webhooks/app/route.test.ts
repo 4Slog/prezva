@@ -40,7 +40,13 @@ const PRODUCT_ID = '6a297ae626cf1c71c33a69b2'
 const PRICE_ID = '6a297aed1c08dd454db138dd'
 const ORG_ID = 'org-uuid-1'
 
-// G27 flat app-webhook shape — ids at the top level, no order.line_items.meta nesting.
+// G27 flat app-webhook shape — ids at the top level, no order.line_items.meta
+// nesting. contactSnapshot carries firstName + lastName and NO name/full_name
+// key, and no phone key at all: that is what GHL actually sends, proven by the
+// live cross-transport order. The earlier fixture here used `name` and a phone,
+// which is why the route's name mapping passed tests while rejecting every real
+// payload as bad_shape. A fixture that does not match production is worse than
+// no fixture — it manufactures confidence.
 const COMPLETED_ORDER = {
   type: 'OrderStatusUpdate',
   status: 'completed',
@@ -52,8 +58,38 @@ const COMPLETED_ORDER = {
   paymentGateway: 'stripe',
   contactSnapshot: {
     email: 'test@prezva.app',
-    name: 'Test Attendee',
-    phone: '+14045550000',
+    firstName: 'Test',
+    lastName: 'Attendee',
+  },
+  items: [
+    { qty: 1, price: { _id: PRICE_ID }, product: { _id: PRODUCT_ID } },
+  ],
+}
+
+// PROVISIONAL RECONSTRUCTION — NOT the verbatim capture.
+// The live order that exposed this bug is 6a87abee7ec1ad578d6029c4 ("Cross
+// Test1"). The verbatim OrderStatusUpdate JSON was not available when this was
+// written, so the fields below encode only what the bug report established:
+// contactSnapshot has firstName + lastName and no name/full_name/phone; amount
+// is 225 for a $225 order; items[0].qty is 1. The location/contact/product/price
+// ids are this file's own constants, NOT the real order's.
+//
+// Replace this wholesale with the byte-for-byte dashboard capture. Until then it
+// pins the regression but cannot catch a shape surprise in a field nobody
+// thought to look at — which is precisely the class of bug that caused this one.
+const LIVE_CROSS_TEST1_ORDER = {
+  type: 'OrderStatusUpdate',
+  status: 'completed',
+  _id: '6a87abee7ec1ad578d6029c4',
+  locationId: LOCATION_ID,
+  contactId: CONTACT_ID,
+  amount: 225,
+  currency: 'USD',
+  paymentGateway: 'stripe',
+  contactSnapshot: {
+    email: 'cross.test1@prezva.app',
+    firstName: 'Cross',
+    lastName: 'Test1',
   },
   items: [
     { qty: 1, price: { _id: PRICE_ID }, product: { _id: PRODUCT_ID } },
@@ -468,5 +504,151 @@ describe('POST /api/ghl/webhooks/app — payload mapping', () => {
     )
     // Still exactly one registration: quantity is not yet acted on (R30 stands).
     expect(createRegistrationFromExternalPayment).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ── Regression: attendeeName from contactSnapshot firstName/lastName ──────────
+// The live cross-transport order 200'd as bad_shape and created nothing, because
+// the route read contactSnapshot.name ?? full_name — keys the real payload does
+// not have. The sanitizer then rejected the empty name (invalid_name), correctly.
+describe('POST /api/ghl/webhooks/app — contactSnapshot name mapping', () => {
+  it('parses the live Cross Test1 order and joins firstName + lastName', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(makeRequest(LIVE_CROSS_TEST1_ORDER))
+    const json = await res.json()
+
+    // Reaches 'accepted', not 'bad_shape' — the whole point of the fix.
+    expect(res.status).toBe(200)
+    expect(json.status).toBe('accepted')
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attendeeName: 'Cross Test1',
+        // No phone key in the payload at all — optional, so it lands as null
+        // rather than failing the parse.
+        attendeePhone: null,
+        amountPaidCents: 22500,
+        externalOrderId: '6a87abee7ec1ad578d6029c4',
+      }),
+    )
+  })
+
+  it('logs seatQty 1 and the confirmed-dollars evidence line for the live order', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    await POST(makeRequest(LIVE_CROSS_TEST1_ORDER))
+
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('order received'),
+      expect.objectContaining({ seatQty: 1 }),
+    )
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('amount unit check'),
+      expect.objectContaining({ rawAmount: 225, convertedCents: 22500 }),
+    )
+  })
+
+  it('ignores the same live order as OrderCreate/pending without touching the DB', async () => {
+    const { client } = makeSequentialClient([])
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(
+      makeRequest({ ...LIVE_CROSS_TEST1_ORDER, type: 'OrderCreate', status: 'pending' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ignored_pending' })
+    expect(client.from).not.toHaveBeenCalled()
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+  })
+
+  it('accepts a contact with only a firstName', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    await POST(makeRequest({
+      ...LIVE_CROSS_TEST1_ORDER,
+      contactSnapshot: { email: 'solo@prezva.app', firstName: 'Cher' },
+    }))
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ attendeeName: 'Cher' }),
+    )
+  })
+
+  it('accepts a contact with only a lastName', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    await POST(makeRequest({
+      ...LIVE_CROSS_TEST1_ORDER,
+      contactSnapshot: { email: 'solo@prezva.app', lastName: 'Prince' },
+    }))
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ attendeeName: 'Prince' }),
+    )
+  })
+
+  it('trims whitespace-padded parts rather than emitting a double space', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    await POST(makeRequest({
+      ...LIVE_CROSS_TEST1_ORDER,
+      contactSnapshot: { email: 'pad@prezva.app', firstName: '  Cross  ', lastName: '  Test1  ' },
+    }))
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ attendeeName: 'Cross Test1' }),
+    )
+  })
+
+  it('falls back to a singular name key when no parts are present', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    await POST(makeRequest({
+      ...LIVE_CROSS_TEST1_ORDER,
+      contactSnapshot: { email: 'fb@prezva.app', name: 'Legacy Shape' },
+    }))
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ attendeeName: 'Legacy Shape' }),
+    )
+  })
+
+  it('falls back to full_name when neither parts nor name are present', async () => {
+    const { client } = makeSequentialClient(happyResponses())
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    await POST(makeRequest({
+      ...LIVE_CROSS_TEST1_ORDER,
+      contactSnapshot: { email: 'fb2@prezva.app', full_name: 'Workflow Shape' },
+    }))
+
+    expect(createRegistrationFromExternalPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ attendeeName: 'Workflow Shape' }),
+    )
+  })
+
+  // Rejecting is correct here: a placeholder name would ride onto a real badge
+  // and a real certificate. bad_shape is 200 so GHL stops retrying a payload
+  // that will never improve.
+  it('returns bad_shape when no usable name exists in any shape', async () => {
+    const { client } = makeSequentialClient([])
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(makeRequest({
+      ...LIVE_CROSS_TEST1_ORDER,
+      contactSnapshot: { email: 'nameless@prezva.app' },
+    }))
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'bad_shape' })
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
   })
 })

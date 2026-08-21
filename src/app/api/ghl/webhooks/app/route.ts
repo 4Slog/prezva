@@ -47,6 +47,26 @@ interface GhlAppOrderItem {
   product?: { _id?: unknown }
 }
 
+// The real app-webhook contactSnapshot carries firstName + lastName and has NO
+// name or full_name key — the workflow payload's `full_name` does not exist on
+// this transport. Reading only those keys produced an empty name, which the
+// sanitizer correctly rejects as invalid_name, so every live order 200'd as
+// bad_shape and silently created nothing (proven on order 6a87abee7ec1ad578d6029c4).
+//
+// Parts first, then the singular-key fallbacks, because the parts are what GHL
+// actually sends. Handles one part present (a contact with no surname is
+// ordinary), and returns undefined when nothing usable is there — deliberately
+// letting the sanitizer reject rather than inventing a placeholder name that
+// would land on a real badge and a real certificate.
+function attendeeNameFrom(snapshot: Record<string, unknown>): string | undefined {
+  const first = typeof snapshot.firstName === 'string' ? snapshot.firstName.trim() : ''
+  const last = typeof snapshot.lastName === 'string' ? snapshot.lastName.trim() : ''
+  const joined = [first, last].filter(Boolean).join(' ')
+  if (joined) return joined
+
+  return (snapshot.name ?? snapshot.full_name) as string | undefined
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Raw body, read exactly once. Ed25519 signs the bytes on the wire, so
@@ -110,13 +130,13 @@ export async function POST(req: NextRequest) {
     const currency = typeof body.currency === 'string' ? body.currency : 'USD'
     const paymentGateway = typeof body.paymentGateway === 'string' ? body.paymentGateway : 'unknown'
 
-    // AMOUNT UNIT IS UNCONFIRMED (H17-adjacent). Presumed dollars, like the
-    // workflow payload, so the same x100 conversion applies — but presumed is
-    // not known. The log below prints the raw amount beside the mapping's
-    // price_cents so the live rehearsal read settles the unit from evidence
-    // before any money logic is allowed to depend on it. If GHL turns out to
-    // send minor units, this conversion is a silent 100x error and the parser
-    // will accept it happily (it only checks finite and >= 0).
+    // AMOUNT UNIT CONFIRMED DOLLARS by the live cross-transport order
+    // (6a87abee7ec1ad578d6029c4 sent amount: 225 for a $225 order), so the x100
+    // conversion matches the workflow transport and is now evidence-backed
+    // rather than presumed. The side-by-side log below is retained as a standing
+    // canary: if GHL ever switches to minor units the parser would accept it
+    // silently (it only checks finite and >= 0), and that line is the only place
+    // the change would be visible.
     const rawAmount = body.amount
     const amountPaidCents = Math.round(Number(rawAmount) * 100)
 
@@ -127,7 +147,7 @@ export async function POST(req: NextRequest) {
       locationId:      typeof body.locationId === 'string' ? body.locationId : undefined,
       contactId:       typeof body.contactId === 'string' ? body.contactId : undefined,
       attendeeEmail:   contactSnapshot.email as string | undefined,
-      attendeeName:    (contactSnapshot.name ?? contactSnapshot.full_name) as string | undefined,
+      attendeeName:    attendeeNameFrom(contactSnapshot),
       attendeePhone:   contactSnapshot.phone as string | undefined,
       productId:       firstItem?.product?._id as string | undefined,
       priceId:         firstItem?.price?._id as string | undefined,
@@ -258,7 +278,7 @@ export async function POST(req: NextRequest) {
     // side by side: if the presumed-dollars reading is right these differ by
     // exactly 100x, and if GHL sends minor units they will match. Info level so
     // it survives in production logs for the rehearsal read.
-    console.log(`${LOG} amount unit check (UNCONFIRMED — do not trust for money logic yet)`, {
+    console.log(`${LOG} amount unit check (dollars confirmed — canary against a future unit change)`, {
       ghlOrderId,
       rawAmount,
       convertedCents: amountPaidCents,
