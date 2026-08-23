@@ -2,30 +2,17 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { ghlPut, ghlPost, ghlAddContactTags, ghlRemoveContactTags } from '@/lib/integrations/ghl/client'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { getGhlOrgConfig, GHL_LIFECYCLE_TAGS } from '@/lib/integrations/ghl/org-config'
+import { eventDateInEventTz } from './event-date'
 
 // Lifted out of the payment webhook route (R55 Batch 2) so the workflow
 // transport and the app-webhook transport run ONE implementation rather than
 // two copies that drift. Every value it needs is an explicit parameter — it
 // closes over nothing — which is what makes it callable from a second route.
 
-// Formats an event start timestamp as a calendar date in the event's OWN
-// timezone. An 8pm March 14 America/New_York event is March 15 in UTC, so
-// formatting in UTC would make every reminder fire a day late. Returns null
-// rather than throwing or falling back to UTC — a missing date is honest, a
-// wrong date is not.
-export function eventDateInEventTz(startAt: string | null, timeZone: string | null): string | null {
-  if (!startAt || !timeZone) return null
-  try {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(startAt))
-  } catch {
-    return null
-  }
-}
+// eventDateInEventTz now lives in ./event-date alongside its completion-date
+// sibling. Re-exported here, unchanged, so every existing import — including
+// the payment route's own re-export — keeps working without a call-site edit.
+export { eventDateInEventTz }
 
 export interface PostRegistrationWritebackParams {
   supabase: SupabaseClient

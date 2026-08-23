@@ -38,7 +38,19 @@ const STAGE_KEYS: GhlStageKey[] = STAGE_DEFS.map((s) => s.key)
 type GhlFieldModel = 'contact' | 'opportunity'
 type GhlFieldDataType = 'TEXT' | 'NUMERICAL' | 'DATE'
 
-const FIELD_DEFS: Array<{ key: GhlFieldKey; name: string; model: GhlFieldModel; dataType: GhlFieldDataType }> = [
+// expectFieldKey is set only on fields a GHL certificate template or workflow
+// merges BY SLUG. GHL auto-slugs the display name and the result is not always
+// predictable — "Prezva Attendance %" slugged to `opportunity.prezva_attendance_`,
+// not `_pct` (see config.ts), which is why that field is referenced by ID only.
+// A merge tag has no ID escape hatch, so for those fields the slug GHL actually
+// returns is the only authority and we check it rather than assume it.
+const FIELD_DEFS: Array<{
+  key: GhlFieldKey
+  name: string
+  model: GhlFieldModel
+  dataType: GhlFieldDataType
+  expectFieldKey?: string
+}> = [
   { key: 'prezvaEventId', name: 'Prezva Event ID', model: 'opportunity', dataType: 'TEXT' },
   { key: 'prezvaRegistrationId', name: 'Prezva Registration ID', model: 'opportunity', dataType: 'TEXT' },
   { key: 'prezvaTicketType', name: 'Prezva Ticket Type', model: 'opportunity', dataType: 'TEXT' },
@@ -49,6 +61,24 @@ const FIELD_DEFS: Array<{ key: GhlFieldKey; name: string; model: GhlFieldModel; 
   { key: 'prezvaAttendancePct', name: 'Prezva Attendance %', model: 'opportunity', dataType: 'NUMERICAL' },
   { key: 'prezvaAttendeeLink', name: 'Prezva Attendee Link', model: 'contact', dataType: 'TEXT' },
   { key: 'prezvaEventDate', name: 'Prezva Event Date', model: 'contact', dataType: 'DATE' },
+  // Certificate merge fields. TEXT, not DATE, for the completion date: the
+  // rendered output stays under our control instead of depending on GHL's
+  // undocumented date serializer. Both are merged by slug in the certificate
+  // template, hence expectFieldKey.
+  {
+    key: 'prezvaEventName',
+    name: 'Prezva Event Name',
+    model: 'contact',
+    dataType: 'TEXT',
+    expectFieldKey: 'contact.prezva_event_name',
+  },
+  {
+    key: 'prezvaCompletionDate',
+    name: 'Prezva Completion Date',
+    model: 'contact',
+    dataType: 'TEXT',
+    expectFieldKey: 'contact.prezva_completion_date',
+  },
 ]
 
 const FIELD_KEYS: GhlFieldKey[] = FIELD_DEFS.map((f) => f.key)
@@ -79,6 +109,10 @@ interface GhlCustomField {
   name: string
   model: string
   dataType: string
+  // GHL's auto-slug of the display name, returned on both list and create.
+  // Optional because an older/partial response may omit it — an absent slug is
+  // "unverifiable", never "mismatched".
+  fieldKey?: string
 }
 
 interface GhlCustomFieldsListResponse {
@@ -144,6 +178,20 @@ function resolveStageIds(pipeline: GhlPipeline, orgId: string): Record<GhlStageK
   return stageIds
 }
 
+// Loud but NOT fatal, exactly like assertWebhookSecretFieldKey below and for
+// the same reason: a slug mismatch means one merge tag in the certificate
+// template renders empty — degraded, not broken — while throwing would abort
+// the whole provisioning upsert and lose the pipeline and field IDs too, which
+// is strictly worse. The log carries the ACTUAL slug so the template can be
+// corrected by hand.
+function assertFieldKey(orgId: string, def: { name: string; expectFieldKey?: string }, field: GhlCustomField): void {
+  if (!def.expectFieldKey || !field.fieldKey) return
+  if (field.fieldKey === def.expectFieldKey) return
+  console.error(
+    `[ghl-provision] org ${orgId}: field "${def.name}" has fieldKey "${field.fieldKey}", expected "${def.expectFieldKey}" — the certificate template's merge tag will not resolve; update the template to the actual slug`,
+  )
+}
+
 async function resolveFieldIds(
   token: string,
   locationId: string,
@@ -159,6 +207,7 @@ async function resolveFieldIds(
   for (const def of FIELD_DEFS) {
     const existing = existingFields.find((f) => f.name === def.name && f.model === def.model)
     if (existing) {
+      assertFieldKey(orgId, def, existing)
       fieldIds[def.key] = existing.id
       continue
     }
@@ -174,6 +223,7 @@ async function resolveFieldIds(
         `[ghl-provision] org ${orgId}: create field "${def.name}" returned no id — refusing to half-fire`,
       )
     }
+    assertFieldKey(orgId, def, field)
     fieldIds[def.key] = field.id
   }
 
@@ -299,7 +349,7 @@ function assertComplete(
   }
 }
 
-// GE-8 Batch 3: find-or-create the "Events" pipeline (8 stages) and the 9
+// GE-8 Batch 3: find-or-create the "Events" pipeline (8 stages) and the 12
 // Prezva custom fields for one location, then upsert the resolved IDs into
 // ghl_org_config. Detect-by-name throughout so a re-run resolves the same
 // IDs instead of duplicating pipelines/fields. Never upserts a partial map —

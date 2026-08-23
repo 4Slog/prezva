@@ -8,7 +8,11 @@ import { enqueueCertificateEmail, enqueueGhlStageMove } from '@/lib/trigger'
 import { logAudit } from '@/lib/audit/log'
 import { createNotification } from '@/lib/notifications/notification-actions'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
-import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
+import { ghlPut } from '@/lib/integrations/ghl/client'
+import { eventCompletionDateInEventTz } from '@/lib/ghl/event-date'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
   // Admin client: template management bypasses RLS for server-side cert generation
@@ -48,6 +52,69 @@ export async function getIssuedCertificate(registrationId: string) {
   return data
 }
 
+// Writes the two certificate merge fields onto the attendee's GHL contact.
+// Module-local and fully non-throwing on the GHL leg: a GHL failure must never
+// fail certificate issuance on our side.
+//
+// Both writes are guarded on truthiness of their own field id, so an org
+// provisioned before this batch — whose field_ids map simply lacks these keys —
+// degrades to writing nothing rather than throwing. Same reason prezvaEventDate
+// is absent from FIELD_KEYS in org-config.ts.
+//
+// A null completionDate (missing end_at or timezone) omits the field entirely
+// rather than merging an empty string: the formatter returns null instead of
+// guessing, and a field that was never written is recoverable, a field written
+// blank looks deliberate.
+async function writeCertificateMergeFields(
+  admin: SupabaseClient,
+  orgId: string,
+  registrationId: string,
+  fieldIds: GhlOrgConfig['fieldIds'],
+  eventTitle: string | null,
+  completionDate: string | null,
+): Promise<void> {
+  // Guards first, before any I/O: an org provisioned before this batch has
+  // nothing to write, and should touch neither the database nor GHL.
+  const customFields: Array<{ id: string; value: string }> = []
+  if (eventTitle && fieldIds.prezvaEventName) {
+    customFields.push({ id: fieldIds.prezvaEventName, value: eventTitle })
+  }
+  if (completionDate && fieldIds.prezvaCompletionDate) {
+    customFields.push({ id: fieldIds.prezvaCompletionDate, value: completionDate })
+  }
+  if (customFields.length === 0) return
+
+  const { data: syncState } = await admin
+    .from('ghl_sync_state')
+    .select('id, ghl_contact_id')
+    .eq('internal_registration_id', registrationId)
+    .maybeSingle()
+
+  // No sync state or no contact means this registration never reached GHL —
+  // nothing to merge into, and not an error.
+  if (!syncState?.ghl_contact_id) return
+
+  try {
+    const token = await ghlAdapter.getAccessToken(orgId)
+    if (!token) throw new Error(`no GHL access token for org ${orgId}`)
+    await ghlPut(token, `/contacts/${syncState.ghl_contact_id}`, { customFields })
+  } catch (e) {
+    console.error('[certificates] certificate merge-field write failed (non-fatal):', e)
+    // Record it on the ledger, not just in a server log. The GHL internal
+    // notification tells the organizer to open the Prezva tab and check the
+    // sync health indicator; a failure that never reaches ghl_sync_state makes
+    // that instruction a dead end. Same pattern as the writeback's
+    // no_ghl_access_token write.
+    await admin
+      .from('ghl_sync_state')
+      .update({
+        last_error: `cert_fields_write_failed: ${e instanceof Error ? e.message : String(e)}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', syncState.id)
+  }
+}
+
 export async function issueOrGetCertificate(
   registrationId: string,
 ): Promise<{ data?: any; skipped?: true; error?: string }> {
@@ -63,7 +130,7 @@ export async function issueOrGetCertificate(
 
   const { data: reg } = await admin
     .from('registrations')
-    .select('event_id, user_id, attendee_name, attendee_email, events(org_id, title, slug)')
+    .select('event_id, user_id, attendee_name, attendee_email, events(org_id, title, slug, end_at, timezone)')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -96,6 +163,40 @@ export async function issueOrGetCertificate(
     if (locationId) {
       const config = await getGhlOrgConfig(admin, orgId)
       if (config) {
+        // ORDERING IS LOAD-BEARING. Entering the certificateIssued stage applies
+        // the prezva-cert-issued tag (buildStageTagMaps, applied by
+        // trigger/jobs/ghl-stage-move.ts), and that tag is what triggers the GHL
+        // workflow that renders the certificate. The tag cannot be applied
+        // before the job runs, and the job cannot run before the enqueue below —
+        // so awaiting the write first is a structural guarantee that the merge
+        // fields are set before anything reads them. No wait, no retry, no sleep.
+        // R56 fixed this same class of bug one surface over.
+        //
+        // A failure here is NOT a no-op. Today's template holds hardcoded text,
+        // so a failed write currently renders a wrong-but-populated certificate;
+        // once the template merges tokens, it renders a VISIBLY EMPTY one. We
+        // still let the stage move fire — a stalled pipeline with no retry path
+        // strands the attendee entirely, which is worse — and the failure is
+        // recorded on ghl_sync_state so it surfaces in the sync health indicator.
+        //
+        // The enqueue sits OUTSIDE this try/catch on purpose: it must fire even
+        // if the sync-state read or the ledger write itself throws.
+        try {
+          await writeCertificateMergeFields(
+            admin,
+            orgId,
+            registrationId,
+            config.fieldIds,
+            (reg.events as any)?.title ?? null,
+            eventCompletionDateInEventTz(
+              (reg.events as any)?.end_at ?? null,
+              (reg.events as any)?.timezone ?? null,
+            ),
+          )
+        } catch (e) {
+          console.error('[certificates] certificate merge-field write failed (non-fatal):', e)
+        }
+
         await enqueueGhlStageMove({ registrationId, stageId: config.stageIds.certificateIssued })
       } else {
         console.error(`[ghl] org ${orgId} is GHL-linked but has no ghl_org_config row — sync skipped`)

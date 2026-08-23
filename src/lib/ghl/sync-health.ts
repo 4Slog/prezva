@@ -96,8 +96,9 @@ export async function getSyncHealth(orgId: string): Promise<SyncHealthResult> {
 
 // ── Translation ──────────────────────────────────────────────────────────────
 // Organizer-facing copy for known last_error forms written by the payment
-// webhook (src/app/api/ghl/webhooks/payment/route.ts) and the sync job
-// (src/trigger/jobs/ghl-sync.ts). Anything unmatched falls back to the raw
+// webhook (src/app/api/ghl/webhooks/payment/route.ts), the sync job
+// (src/trigger/jobs/ghl-sync.ts) and certificate issuance
+// (src/lib/certificates/actions.ts). Anything unmatched falls back to the raw
 // text rather than hiding it.
 
 const EXACT_TRANSLATIONS: Record<string, string> = {
@@ -112,6 +113,7 @@ const PREFIX_TRANSLATIONS: Array<[prefix: string, message: string]> = [
   ['amount_divergence', 'The amount paid was higher than the ticket price - this may be a multi-seat purchase, which creates only one registration.'],
   ['amount_unverifiable', 'The payment could not be checked against a ticket price.'],
   ['no_ghl_access_token', 'The GHL connection needs attention - a contact update could not be delivered.'],
+  ['cert_fields_write_failed', "The certificate was issued, but the event name and completion date could not be written to GHL - the certificate GHL sends may show blank fields."],
 ]
 
 const WAITLISTED_NO_ERROR = 'A payment was received but the ticket was at capacity - the buyer holds no registration.'

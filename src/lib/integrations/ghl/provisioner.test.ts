@@ -62,6 +62,8 @@ const FIELD_DEFS = [
   { name: 'Prezva Attendance %', model: 'opportunity', dataType: 'NUMERICAL', key: 'prezvaAttendancePct' },
   { name: 'Prezva Attendee Link', model: 'contact', dataType: 'TEXT', key: 'prezvaAttendeeLink' },
   { name: 'Prezva Event Date', model: 'contact', dataType: 'DATE', key: 'prezvaEventDate' },
+  { name: 'Prezva Event Name', model: 'contact', dataType: 'TEXT', key: 'prezvaEventName' },
+  { name: 'Prezva Completion Date', model: 'contact', dataType: 'TEXT', key: 'prezvaCompletionDate' },
 ] as const
 
 function fullPipeline(stageNames: string[] = STAGE_NAMES) {
@@ -309,7 +311,7 @@ describe('provisionGhlOrgConfig', () => {
     expect(upsert).not.toHaveBeenCalled()
   })
 
-  it('(e) full success -> single upsert with all 18 keys and provisioned_by', async () => {
+  it('(e) full success -> single upsert with all 20 keys and provisioned_by', async () => {
     vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
       if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
       if (path.includes('/customFields')) return fullCustomFields([]) as any
@@ -504,5 +506,120 @@ describe('provisionGhlOrgConfig — webhook secret (R55)', () => {
     const row = upsert.mock.calls[0][0]
     expect('webhook_secret_hash' in row).toBe(false)
     expect(row.pipeline_id).toBe('pipe-existing')
+  })
+})
+
+// R57: the certificate merge fields are referenced BY SLUG in the GHL
+// certificate template, and GHL's auto-slug is the only authority on what that
+// slug is — "Prezva Attendance %" slugged to `opportunity.prezva_attendance_`,
+// not `_pct`. The provisioner therefore checks the returned fieldKey instead of
+// predicting it, loudly but non-fatally.
+describe('provisionGhlOrgConfig — certificate merge-field slugs (R57)', () => {
+  const CERT_DEFS = [
+    { key: 'prezvaEventName', name: 'Prezva Event Name', expected: 'contact.prezva_event_name' },
+    { key: 'prezvaCompletionDate', name: 'Prezva Completion Date', expected: 'contact.prezva_completion_date' },
+  ]
+
+  beforeEach(() => {
+    vi.mocked(ghlGet).mockReset()
+    vi.mocked(ghlPost).mockReset()
+    vi.mocked(ghlListCustomValues).mockReset().mockResolvedValue([existingSecretValue()])
+    vi.mocked(ghlCreateCustomValue).mockReset().mockResolvedValue(existingSecretValue())
+    vi.mocked(ghlUpdateCustomValue).mockReset().mockResolvedValue(existingSecretValue())
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  // fieldKeyFor lets a test hand back a deliberately wrong slug for one field.
+  function mockCreateWith(fieldKeyFor: (key: string) => string | undefined) {
+    vi.mocked(ghlGet).mockImplementation(async (_token, path) => {
+      if (path.startsWith('/opportunities/pipelines')) return { pipelines: [] } as any
+      if (path.includes('/customFields')) return fullCustomFields([]) as any
+      if (path.startsWith('/calendars/')) return { calendars: [] } as any
+      throw new Error(`unexpected ghlGet path: ${path}`)
+    })
+    vi.mocked(ghlPost).mockImplementation(async (_token, path, body: any) => {
+      if (path === '/opportunities/pipelines') {
+        return {
+          id: 'pipe-full',
+          name: 'Events',
+          stages: STAGE_NAMES.map((name, i) => ({ id: `s-${STAGE_KEY_BY_NAME[name]}`, name, position: i })),
+        } as any
+      }
+      if (path === `/locations/${LOCATION_ID}/customFields`) {
+        const def = FIELD_DEFS.find((d) => d.name === body.name)!
+        return {
+          customField: {
+            id: `f-${def.key}`,
+            name: def.name,
+            model: def.model,
+            dataType: def.dataType,
+            fieldKey: fieldKeyFor(def.key),
+          },
+        } as any
+      }
+      throw new Error(`unexpected ghlPost path: ${path}`)
+    })
+  }
+
+  it('creates both certificate fields as contact TEXT fields', async () => {
+    mockCreateWith((key) => CERT_DEFS.find((d) => d.key === key)?.expected)
+    const { admin, upsert } = makeAdmin()
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    for (const def of CERT_DEFS) {
+      expect(ghlPost).toHaveBeenCalledWith(
+        TOKEN,
+        `/locations/${LOCATION_ID}/customFields`,
+        { name: def.name, dataType: 'TEXT', model: 'contact' },
+      )
+    }
+    const [row] = upsert.mock.calls[0]
+    expect(row.field_ids.prezvaEventName).toBe('f-prezvaEventName')
+    expect(row.field_ids.prezvaCompletionDate).toBe('f-prezvaCompletionDate')
+  })
+
+  it('stays silent when GHL returns the expected slugs', async () => {
+    mockCreateWith((key) => CERT_DEFS.find((d) => d.key === key)?.expected)
+    const { admin } = makeAdmin()
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    const slugComplaints = vi.mocked(console.error).mock.calls
+      .filter(([msg]) => typeof msg === 'string' && msg.includes('fieldKey'))
+    expect(slugComplaints).toHaveLength(0)
+  })
+
+  it('logs the ACTUAL slug and still stores the id when GHL slugs it differently', async () => {
+    // The Attendance % scenario, one field over.
+    mockCreateWith((key) => (key === 'prezvaCompletionDate' ? 'contact.prezva_completion_' : undefined))
+    const { admin, upsert } = makeAdmin()
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('contact.prezva_completion_'),
+    )
+    // Non-fatal: the upsert still lands, so a slug mismatch never costs us the
+    // pipeline and field IDs.
+    expect(upsert).toHaveBeenCalledTimes(1)
+    const [row] = upsert.mock.calls[0]
+    expect(row.field_ids.prezvaCompletionDate).toBe('f-prezvaCompletionDate')
+  })
+
+  it('does not complain when GHL omits fieldKey — absent is unverifiable, not wrong', async () => {
+    mockCreateWith(() => undefined)
+    const { admin, upsert } = makeAdmin()
+
+    await provisionGhlOrgConfig(admin as any, TOKEN, ORG_ID, LOCATION_ID)
+
+    const slugComplaints = vi.mocked(console.error).mock.calls
+      .filter(([msg]) => typeof msg === 'string' && msg.includes('fieldKey'))
+    expect(slugComplaints).toHaveLength(0)
+    expect(upsert).toHaveBeenCalledTimes(1)
   })
 })
