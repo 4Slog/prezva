@@ -46,6 +46,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type CertificateIssueSource = 'dashboard' | 'embed'
 
+// The merge-field write has four outcomes and only ONE of them may stamp.
+// Collapsing them to a boolean is what made an earlier cut of this batch stamp
+// on 'no-contact' and 'nothing-to-write'.
+type MergeFieldWriteOutcome = 'written' | 'nothing-to-write' | 'no-contact' | 'failed'
+
 // end_at and timezone are load-bearing, not incidental: they are the two inputs
 // to eventCompletionDateInEventTz, and the embed's old select omitted both. A
 // straight copy of the dashboard's GHL block into the embed file would have
@@ -99,11 +104,21 @@ export async function getOrCreateDefaultTemplate(orgId: string): Promise<string 
 //
 // R61: the body above is unchanged from the dashboard copy this was moved from.
 // The one addition is the RETURN VALUE, which the ghl_synced_at stamp needs and
-// which a void function could not provide. `true` also covers the two
-// legitimate no-ops — nothing to write, and no GHL contact — because neither is
-// a failure and neither becomes writable by retrying; leaving them unstamped
-// would re-run the GHL half on every certificate download forever. Only the
-// catch returns false.
+// which a void function could not provide.
+//
+// Four outcomes rather than a boolean, because only 'written' may stamp. The
+// two no-op outcomes are conditions that can later become true on their own —
+// the app webhook binds ghl_contact_id, or the org gets re-provisioned with the
+// certificate field ids — so stamping either would freeze a certificate in a
+// state it was about to grow out of, and the merge fields would never be
+// written. Leaving them unstamped is a cheap self-terminating poll: both guards
+// return before the token fetch, so it costs a few reads and no PUT, and it
+// stops the moment the condition it tests flips.
+//
+// 'failed' is the expensive one — a merge PUT that keeps failing pays a real
+// token fetch and a real PUT on every call. It must not stamp either, and
+// bounding its retry needs schema (an attempt counter or backoff marker):
+// filed as O82, deliberately not solved here.
 async function writeCertificateMergeFields(
   admin: SupabaseClient,
   orgId: string,
@@ -111,7 +126,7 @@ async function writeCertificateMergeFields(
   fieldIds: GhlOrgConfig['fieldIds'],
   eventTitle: string | null,
   completionDate: string | null,
-): Promise<boolean> {
+): Promise<MergeFieldWriteOutcome> {
   // Guards first, before any I/O: an org provisioned before this batch has
   // nothing to write, and should touch neither the database nor GHL.
   const customFields: Array<{ id: string; value: string }> = []
@@ -121,7 +136,7 @@ async function writeCertificateMergeFields(
   if (completionDate && fieldIds.prezvaCompletionDate) {
     customFields.push({ id: fieldIds.prezvaCompletionDate, value: completionDate })
   }
-  if (customFields.length === 0) return true
+  if (customFields.length === 0) return 'nothing-to-write'
 
   const { data: syncState } = await admin
     .from('ghl_sync_state')
@@ -131,13 +146,13 @@ async function writeCertificateMergeFields(
 
   // No sync state or no contact means this registration never reached GHL —
   // nothing to merge into, and not an error.
-  if (!syncState?.ghl_contact_id) return true
+  if (!syncState?.ghl_contact_id) return 'no-contact'
 
   try {
     const token = await ghlAdapter.getAccessToken(orgId)
     if (!token) throw new Error(`no GHL access token for org ${orgId}`)
     await ghlPut(token, `/contacts/${syncState.ghl_contact_id}`, { customFields })
-    return true
+    return 'written'
   } catch (e) {
     console.error('[certificates] certificate merge-field write failed (non-fatal):', e)
     // Record it on the ledger, not just in a server log. The GHL internal
@@ -152,15 +167,15 @@ async function writeCertificateMergeFields(
         updated_at: new Date().toISOString(),
       })
       .eq('id', syncState.id)
-    return false
+    return 'failed'
   }
 }
 
 // The GHL half of issuance, shared by first issuance and by the repair path.
 //
 // Returns true ONLY on a genuine write success: the org is GHL-linked, it has a
-// ghl_org_config row, the merge write did not fail, and the stage-move enqueue
-// completed. That return is the SOLE input to the ghl_synced_at stamp, and the
+// ghl_org_config row, the merge write actually WROTE (not merely "did not
+// fail" — see MergeFieldWriteOutcome), and the stage-move enqueue completed. That return is the SOLE input to the ghl_synced_at stamp, and the
 // stamp is what removes a certificate from the repair path permanently — so
 // every other outcome returns false and leaves the certificate repairable. That
 // is the safe direction: a missed repair costs one more pass, a wrong stamp
@@ -211,9 +226,9 @@ async function runGhlCertificateSync(
     //
     // The enqueue sits OUTSIDE this try/catch on purpose: it must fire even
     // if the sync-state read or the ledger write itself throws.
-    let mergeOk = false
+    let outcome: MergeFieldWriteOutcome = 'failed'
     try {
-      mergeOk = await writeCertificateMergeFields(
+      outcome = await writeCertificateMergeFields(
         admin,
         orgId,
         registrationId,
@@ -223,7 +238,7 @@ async function runGhlCertificateSync(
       )
     } catch (e) {
       console.error('[certificates] certificate merge-field write failed (non-fatal):', e)
-      mergeOk = false
+      outcome = 'failed'
     }
 
     const handle = await enqueueGhlStageMove({ registrationId, stageId: config.stageIds.certificateIssued })
@@ -238,7 +253,7 @@ async function runGhlCertificateSync(
     // forever, while the opportunity never reaches certificateIssued and the
     // prezva-cert-issued tag that renders the certificate never fires — the
     // exact failure the ghl_synced_at column comment forbids.
-    return mergeOk && handle !== null
+    return outcome === 'written' && handle !== null
   } catch (e) {
     console.error('[certificates] enqueueGhlStageMove failed:', e)
     return false

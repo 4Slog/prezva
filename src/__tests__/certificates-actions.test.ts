@@ -518,6 +518,42 @@ describe('issueOrGetCertificate — GHL repair path', () => {
     expect(certChain.update).not.toHaveBeenCalled()
   })
 
+  // Both tests below run with a HEALTHY enqueue and a successful-looking GHL
+  // leg, which is exactly the shape under which an earlier cut of this batch
+  // DID stamp. Neither outcome wrote anything to the contact, and both are
+  // conditions that flip on their own later — so stamping would strand the
+  // certificate with its merge fields permanently unwritten.
+
+  it("writes NO stamp when the org has no certificate field ids to write", async () => {
+    // SAUP_CONFIG models an org provisioned before the cert fields existed.
+    // Re-provisioning it later must still be able to fill these fields in.
+    vi.mocked(getGhlOrgConfig).mockResolvedValue(SAUP_CONFIG)
+    const { certChain } = setupRepair()
+
+    const result = await issueOrGetCertificate(REG_ID)
+
+    expect(ghlPut).not.toHaveBeenCalled()
+    // The guards return before any I/O, so the ledger is never even read.
+    expect(mockFrom).not.toHaveBeenCalledWith('ghl_sync_state')
+    expect(certChain.update).not.toHaveBeenCalled()
+    expect(result.data.ghl_synced_at).toBeNull()
+  })
+
+  it("writes NO stamp when the registration has no GHL contact yet", async () => {
+    // internal_registration_id and ghl_contact_id are bound together by one
+    // UPDATE in the app webhook. A certificate issued before that lands has no
+    // contact to merge into YET — stamping here would mean the merge fields are
+    // never written once the webhook finally binds it. Costs a few reads and no
+    // PUT per call, and self-terminates the moment the contact exists.
+    const { certChain } = setupRepair({ syncState: null })
+
+    const result = await issueOrGetCertificate(REG_ID)
+
+    expect(ghlPut).not.toHaveBeenCalled()
+    expect(certChain.update).not.toHaveBeenCalled()
+    expect(result.data.ghl_synced_at).toBeNull()
+  })
+
   // enqueueGhlStageMove never throws — it returns null when TRIGGER_SECRET_KEY
   // is unset and on a Trigger.dev outage. A stamp keyed on "did not throw"
   // would mark this certificate synced while the stage move was silently
