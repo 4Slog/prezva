@@ -1,5 +1,5 @@
 {
-  "_comment": "7-event golden dataset. UUIDs are fixed — never regenerate. Org IDs from orgs.json.",
+  "_comment": "8-event dataset: 7 golden fixtures + 1 permanent E2E anchor (E9, prezva-e2e-evergreen). UUIDs are fixed — never regenerate. Org IDs from orgs.json. Ref E8 is intentionally unused so _ref numbers stay aligned with UUID event-index.",
   "_uuid_scheme": "entity-prefix (01=event,02=track,03=room,04=ticket,05=speaker,06=session,07=formfield) + seq-hex + event-index",
   "events": [
     {
@@ -1359,6 +1359,42 @@
       "speakers": [],
       "sessions": [],
       "form_fields": []
+    },
+    {
+      "_ref": "E9",
+      "_comment": "E2E anchor. e2e/constants.ts SLUGS.published points here. Dated 2030 so it never ages out — its predecessor ended 2026-08-22 and reddened CI for two days. Do not re-date or remove.",
+      "id": "01000009-0009-4001-8001-000000000000",
+      "org_id": "44444444-4444-4444-8444-444444444401",
+      "title": "Prezva E2E Evergreen Fixture — DO NOT DELETE",
+      "slug": "prezva-e2e-evergreen",
+      "status": "published",
+      "event_type": "virtual",
+      "timezone": "America/New_York",
+      "is_discoverable": false,
+      "start_at": "2030-06-04T10:00:00-04:00",
+      "end_at": "2030-06-06T17:00:00-04:00",
+      "capacity": 500,
+      "certificate_enabled": false,
+      "ticket_types": [
+        {
+          "id": "04000020-0009-4001-8001-000000000000",
+          "name": "Virtual Pass",
+          "type": "free",
+          "price_cents": 0,
+          "delivery_method": "virtual",
+          "is_active": true,
+          "sort_order": 0
+        },
+        {
+          "id": "04000021-0009-4001-8001-000000000000",
+          "name": "General Admission",
+          "type": "paid",
+          "price_cents": 7500,
+          "delivery_method": "virtual",
+          "is_active": true,
+          "sort_order": 1
+        }
+      ]
     }
   ]
 }
