@@ -5,7 +5,7 @@ import { SLUGS } from './constants'
 // Real end-to-end registration is proven in lifecycle.spec.ts against a disposable event.
 test.describe('Anonymous registration surface — read-only', () => {
   test('public event page loads with register CTA', async ({ page }) => {
-    // Use SLUGS.published (upcoming event) — live events have registration closed
+    // SLUGS.published is the evergreen fixture (see constants.ts). Registration is open by construction.
     const resp = await page.goto(`/e/${SLUGS.published}`)
     expect(resp?.status()).toBe(200)
     // CTA is a link to /register — tolerant of any label
