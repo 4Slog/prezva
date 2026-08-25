@@ -154,8 +154,17 @@ describe('issueOrGetCertificate — GHL stage move', () => {
     })
   })
 
-  it('does not fire enqueueGhlStageMove when a certificate already exists', async () => {
-    const existingCert = { id: 'cert-existing', registration_id: REG_ID }
+  // R61: this is the "existing cert + already stamped -> ZERO GHL calls" case.
+  // The fixture now carries ghl_synced_at, which is what the test's name always
+  // meant. Without it the certificate is an UNSTAMPED one at a GHL-linked org,
+  // which the repair path is supposed to pick up — so the old fixture would
+  // have asserted the absence of exactly the behaviour R61 adds.
+  it('does not fire enqueueGhlStageMove when a certificate already exists and is stamped', async () => {
+    const existingCert = {
+      id: 'cert-existing',
+      registration_id: REG_ID,
+      ghl_synced_at: '2026-08-25T12:00:00.000Z',
+    }
     mockFromImpl = (t) => {
       if (t === 'issued_certificates') {
         return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: existingCert }) })
@@ -167,6 +176,11 @@ describe('issueOrGetCertificate — GHL stage move', () => {
 
     expect(result.data).toEqual(existingCert)
     expect(checkEligibility).not.toHaveBeenCalled()
+    // ZERO GHL calls — not merely no stage move. A stamped certificate must not
+    // even look up whether its org is linked; this is the hot download path.
+    expect(ghlLocationIdForOrg).not.toHaveBeenCalled()
+    expect(getGhlOrgConfig).not.toHaveBeenCalled()
+    expect(ghlPut).not.toHaveBeenCalled()
     expect(enqueueGhlStageMove).not.toHaveBeenCalled()
   })
 })
@@ -358,5 +372,196 @@ describe('issueOrGetCertificate — certificate merge fields', () => {
     expect(result.data).toEqual(mockNewCert)
     expect(ghlPut).not.toHaveBeenCalled()
     expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+  })
+})
+// R61: the repair path. Certificates issued through the embed door never ran
+// the GHL half at all, and a dashboard certificate whose merge write failed is
+// in the same state. ghl_synced_at NULL is the marker for both, and finding it
+// on an existing certificate re-runs the GHL half exactly once.
+//
+// The stamp assertions below read the ACTUAL update payload rather than just
+// asserting that update() was called. These tests mock Supabase, so a payload
+// written to the wrong column — or a stamp written on a failure — would sail
+// past a bare "was it called" assertion while hiding the certificate from
+// repair permanently in production.
+describe('issueOrGetCertificate — GHL repair path', () => {
+  const EXISTING_UNSTAMPED = {
+    id: 'cert-existing',
+    registration_id: REG_ID,
+    ghl_synced_at: null,
+  }
+
+  // Returns the issued_certificates chain so the stamp can be asserted on it.
+  // Each table gets ONE cached chain, so the existing-cert read and the stamp
+  // update land on the same object — and so the ghl_sync_state ledger update
+  // stays on a DIFFERENT object and can never be mistaken for the stamp.
+  function setupRepair(opts: { syncState?: { id: string; ghl_contact_id: string | null } | null } = {}) {
+    const syncState = opts.syncState === undefined
+      ? { id: SYNC_STATE_ID, ghl_contact_id: CONTACT_ID }
+      : opts.syncState
+
+    const certChain = makeChain({
+      maybeSingle: vi.fn().mockResolvedValue({ data: EXISTING_UNSTAMPED }),
+    })
+    const syncStateChain = makeChain({
+      maybeSingle: vi.fn().mockResolvedValue({ data: syncState }),
+    })
+    const regChain = makeChain({
+      maybeSingle: vi.fn().mockResolvedValue({ data: mockReg }),
+    })
+
+    mockFromImpl = (t) => {
+      if (t === 'issued_certificates') return certChain
+      if (t === 'registrations') return regChain
+      if (t === 'ghl_sync_state') return syncStateChain
+      return makeChain()
+    }
+    return { certChain, syncStateChain }
+  }
+
+  function stampPayloadOf(certChain: Record<string, any>) {
+    expect(certChain.update).toHaveBeenCalledTimes(1)
+    return vi.mocked(certChain.update).mock.calls[0][0] as Record<string, unknown>
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(ghlLocationIdForOrg).mockResolvedValue(LOCATION_ID)
+    vi.mocked(getGhlOrgConfig).mockResolvedValue(CONFIG_WITH_CERT_FIELDS)
+    vi.mocked(ghlAdapter.getAccessToken).mockResolvedValue('test-token')
+    vi.mocked(ghlPut).mockResolvedValue({} as never)
+    // A HEALTHY Trigger.dev: enqueueGhlStageMove resolves to a real handle.
+    // The module factory's default is null, which is what a dropped enqueue
+    // looks like — and null must never produce a stamp. See the last test here.
+    vi.mocked(enqueueGhlStageMove).mockResolvedValue({ id: 'run_1' } as never)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  it('runs the GHL half and writes the stamp for an unstamped certificate at a linked org', async () => {
+    const { certChain } = setupRepair()
+
+    const result = await issueOrGetCertificate(REG_ID)
+
+    // The same certificate is returned — repair is not re-issuance — but with
+    // the stamp it just earned, so a caller reading ghl_synced_at off the
+    // result cannot see the pre-repair NULL and repair it a second time.
+    expect(result.data).toMatchObject({
+      id: EXISTING_UNSTAMPED.id,
+      registration_id: REG_ID,
+    })
+    expect(typeof result.data.ghl_synced_at).toBe('string')
+    // Repair must NOT re-run eligibility: the certificate was already earned.
+    expect(checkEligibility).not.toHaveBeenCalled()
+
+    expect(ghlPut).toHaveBeenCalledTimes(1)
+    expect(ghlPut).toHaveBeenCalledWith('test-token', `/contacts/${CONTACT_ID}`, {
+      customFields: [
+        { id: CERT_FIELD_IDS.prezvaEventName, value: 'Test Event' },
+        { id: CERT_FIELD_IDS.prezvaCompletionDate, value: EXPECTED_COMPLETION_DATE },
+      ],
+    })
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    expect(enqueueGhlStageMove).toHaveBeenCalledWith({
+      registrationId: REG_ID,
+      stageId: GHL_STAGE_IDS.certificateIssued,
+    })
+
+    // Payload, not just the call: exactly one column, and a real timestamp.
+    const payload = stampPayloadOf(certChain)
+    expect(Object.keys(payload)).toEqual(['ghl_synced_at'])
+    expect(typeof payload.ghl_synced_at).toBe('string')
+    expect(Number.isNaN(Date.parse(payload.ghl_synced_at as string))).toBe(false)
+    expect(certChain.eq).toHaveBeenCalledWith('id', EXISTING_UNSTAMPED.id)
+  })
+
+  it('makes no GHL calls and writes no stamp for an unstamped certificate at a standalone org', async () => {
+    vi.mocked(ghlLocationIdForOrg).mockResolvedValue(null)
+    const { certChain } = setupRepair()
+
+    const result = await issueOrGetCertificate(REG_ID)
+
+    expect(result.data).toEqual(EXISTING_UNSTAMPED)
+    // A standalone org has nothing to sync. It must not attempt repair work on
+    // every call, and it must never be stamped — there is nothing to stamp for.
+    expect(getGhlOrgConfig).not.toHaveBeenCalled()
+    expect(ghlPut).not.toHaveBeenCalled()
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+    expect(certChain.update).not.toHaveBeenCalled()
+  })
+
+  it('writes NO stamp when the merge write fails, leaving the certificate repairable', async () => {
+    const { certChain, syncStateChain } = setupRepair()
+    vi.mocked(ghlPut).mockRejectedValue(new Error('GHL 500'))
+
+    const result = await issueOrGetCertificate(REG_ID)
+
+    expect(result.data).toEqual(EXISTING_UNSTAMPED)
+    // The stage move still fires — stranding the attendee is worse.
+    expect(enqueueGhlStageMove).toHaveBeenCalledTimes(1)
+    // The ledger records the failure...
+    expect(syncStateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ last_error: expect.stringContaining('cert_fields_write_failed') }),
+    )
+    // ...and the certificate is NOT stamped. A stamp here would hide this
+    // certificate from every future repair pass, permanently.
+    expect(certChain.update).not.toHaveBeenCalled()
+  })
+
+  it('writes NO stamp when the org is linked but has no ghl_org_config row', async () => {
+    vi.mocked(getGhlOrgConfig).mockResolvedValue(null)
+    const { certChain } = setupRepair()
+
+    await issueOrGetCertificate(REG_ID)
+
+    expect(ghlPut).not.toHaveBeenCalled()
+    expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+    expect(certChain.update).not.toHaveBeenCalled()
+  })
+
+  // enqueueGhlStageMove never throws — it returns null when TRIGGER_SECRET_KEY
+  // is unset and on a Trigger.dev outage. A stamp keyed on "did not throw"
+  // would mark this certificate synced while the stage move was silently
+  // dropped, hiding it from repair forever with the GHL half half-done.
+  it('writes NO stamp when the merge write succeeds but the stage-move enqueue is silently dropped', async () => {
+    const { certChain } = setupRepair()
+    vi.mocked(enqueueGhlStageMove).mockResolvedValue(null as never)
+
+    const result = await issueOrGetCertificate(REG_ID)
+
+    // The merge write itself did land...
+    expect(ghlPut).toHaveBeenCalledTimes(1)
+    // ...but the certificate stays unstamped, and therefore repairable.
+    expect(certChain.update).not.toHaveBeenCalled()
+    expect(result.data.ghl_synced_at).toBeNull()
+  })
+
+  it('stamps a genuine success on FIRST issuance, not only on repair', async () => {
+    vi.mocked(checkEligibility).mockResolvedValue({
+      eligible: true, sessionsAttended: 2, sessionsTotal: 2, ceCredits: 1,
+    })
+    const certChain = makeChain({
+      maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      single: vi.fn().mockResolvedValue({ data: mockNewCert, error: null }),
+    })
+    mockFromImpl = (t) => {
+      if (t === 'issued_certificates') return certChain
+      if (t === 'certificate_templates') {
+        return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: TEMPLATE_ID } }) })
+      }
+      if (t === 'registrations') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockReg }) })
+      if (t === 'ghl_sync_state') {
+        return makeChain({
+          maybeSingle: vi.fn().mockResolvedValue({ data: { id: SYNC_STATE_ID, ghl_contact_id: CONTACT_ID } }),
+        })
+      }
+      return makeChain()
+    }
+
+    await issueOrGetCertificate(REG_ID)
+
+    const payload = stampPayloadOf(certChain)
+    expect(Object.keys(payload)).toEqual(['ghl_synced_at'])
+    expect(Number.isNaN(Date.parse(payload.ghl_synced_at as string))).toBe(false)
+    expect(certChain.eq).toHaveBeenCalledWith('id', mockNewCert.id)
   })
 })

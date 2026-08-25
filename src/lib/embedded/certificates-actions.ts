@@ -3,10 +3,7 @@
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
-import { checkEligibility } from '@/lib/certificates/eligibility'
-import { getIssuedCertificate, getOrCreateDefaultTemplate } from '@/lib/certificates/actions'
-import { logAudit } from '@/lib/audit/log'
-import { createNotification } from '@/lib/notifications/notification-actions'
+import { issueCertificateCore } from '@/lib/certificates/issue-core'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -94,45 +91,16 @@ export async function embedIssueOrGetCertificate(
 
   if (!reg || reg.event_id !== eventId) return { error: 'Registration not found' }
 
-  const existing = await getIssuedCertificate(registrationId)
-  if (existing) return { data: existing }
-
-  const eligibility = await checkEligibility(registrationId)
-  if (!eligibility.eligible) return { skipped: true, error: eligibility.reason ?? 'Not eligible' }
-
-  const templateId = await getOrCreateDefaultTemplate(orgId)
-  if (!templateId) return { error: 'No certificate template configured' }
-
-  const { data: cert, error } = await db
-    .from('issued_certificates')
-    .insert({
-      registration_id: registrationId,
-      event_id: eventId,
-      template_id: templateId,
-      ce_credit_hours: eligibility.ceCredits,
-      sessions_attended: eligibility.sessionsAttended,
-    })
-    .select('*')
-    .single()
-
-  if (error) return { error: error.message }
-
-  await logAudit(db, orgId, null, 'certificate.issue', 'issued_certificates', cert.id, {
-    registrationId,
-    via: 'embed',
-  })
-
-  if ((reg as any).user_id) {
-    void createNotification(
-      (reg as any).user_id,
-      'certificate',
-      'Your certificate is ready',
-      `Certificate for ${(reg.events as any)?.title ?? 'your event'}`,
-      '/me/wallet',
-    )
-  }
-
-  return { data: cert }
+  // All three guards above — embed session, event ownership, and the
+  // registration/event FK — stay HERE, at the door. issueCertificateCore
+  // authorizes nothing, deliberately; read its header before moving any of
+  // this into it.
+  //
+  // Everything past this point is now identical to the dashboard door by
+  // construction rather than by inspection. That is the entire point of R61:
+  // this door carried its own copy of the issuance logic, and that copy never
+  // wrote to GHL and never emailed the attendee.
+  return issueCertificateCore(db, registrationId, 'embed')
 }
 
 // ── Bulk issue ────────────────────────────────────────────────────────────────
