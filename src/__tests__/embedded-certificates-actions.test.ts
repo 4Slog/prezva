@@ -25,7 +25,7 @@ vi.mock('@/lib/trigger', () => ({
 vi.mock('@/lib/audit/log', () => ({
   logAudit: vi.fn().mockResolvedValue(undefined),
 }))
-vi.mock('@/lib/notifications/notification-actions', () => ({
+vi.mock('@/lib/notifications/create-notification', () => ({
   createNotification: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('@/lib/integrations/ghl/location', () => ({

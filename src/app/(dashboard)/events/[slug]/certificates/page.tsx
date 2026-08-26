@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import BulkIssueButton from './bulk-issue-button'
@@ -52,6 +53,30 @@ export default async function CertificatesPage({ params }: Props) {
     }
   }
 
+  // R62: the size of what the bulk button will queue. Confirmed registrations,
+  // NOT eligible attendees — eligibility is decided per registration inside the
+  // background sweep, and this count is only ever shown as a confirmed count.
+  // head+exact so it costs a count, not a row fetch.
+  //
+  // ADMIN CLIENT, NOT `supabase`. The RLS policy on registrations
+  // (registrations_select, migration 0096) requires attendees.view, but this
+  // button is gated on certificates.manage — two independent permission keys.
+  // A role holding only certificates.manage would read count 0 through the
+  // session client with NO error, the modal would offer to "queue 0 confirmed
+  // attendees", and the sweep — which runs service-role and sees every row —
+  // would then issue to all of them. The organizer would have confirmed a
+  // no-op and triggered a mass issuance. The count shown must come from the
+  // same vantage point as the work it describes.
+  //
+  // Safe because the page has already established the viewer is a member of
+  // this event's org (org_members check above); this widens the count only,
+  // and reveals nothing beyond a single integer the button is authorized for.
+  const { count: confirmedCount } = await createAdminClient()
+    .from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', (event as any).id)
+    .eq('status', 'confirmed')
+
   const minPct = (event as any).certificate_min_session_attendance_pct ?? 60
 
   return (
@@ -66,7 +91,7 @@ export default async function CertificatesPage({ params }: Props) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <BulkIssueButton eventId={(event as any).id} eligibleCount={0} permissions={permissions} />
+          <BulkIssueButton eventId={(event as any).id} confirmedCount={confirmedCount ?? 0} permissions={permissions} />
           <button
             style={{
               background: 'var(--pz-teal)',

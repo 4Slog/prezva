@@ -31,7 +31,7 @@ export default async function EmbedCertificatesPage({ params }: Props) {
     redirect('/embedded/events')
   }
 
-  const { event, templates, issuedCountsByTemplate, totalIssued } = data
+  const { event, templates, issuedCountsByTemplate, totalIssued, confirmedCount } = data
   const minPct = (event as any)?.certificate_min_session_attendance_pct ?? 60
 
   return (
@@ -53,7 +53,7 @@ export default async function EmbedCertificatesPage({ params }: Props) {
           )}
           <BulkIssueButton
             eventId={eventId}
-            eligibleCount={0}
+            confirmedCount={confirmedCount}
             permissions={[]}
             embed
             embedAction={embedBulkIssueCertificates}

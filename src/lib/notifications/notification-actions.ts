@@ -1,6 +1,5 @@
 'use server'
 
-import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 
@@ -55,13 +54,5 @@ export async function markAllRead() {
   return { ok: true }
 }
 
-export async function createNotification(
-  userId: string,
-  type: string,
-  title: string,
-  body?: string,
-  url?: string,
-) {
-  const admin = createAdminClient()
-  await admin.from('user_notifications').insert({ user_id: userId, type, title, body, url })
-}
+// createNotification moved to ./create-notification — it is admin-only and must
+// stay importable from runtimes that have no next/headers. See that file.

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { issueCertificateCore } from '@/lib/certificates/issue-core'
+import { enqueueCertificateIssueSweep } from '@/lib/trigger'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -70,7 +71,22 @@ export async function embedGetCertificatesData(eventId: string) {
 
   const totalIssued = (issuedRows ?? []).length
 
-  return { event, templates: templates ?? [], issuedCountsByTemplate, totalIssued }
+  // R62: the size of what the bulk button will queue. Confirmed registrations,
+  // NOT eligible attendees. It rides along on this loader rather than getting
+  // its own action so the embed page pays one resolveEmbedContext, not two.
+  const { count: confirmedCount } = await db
+    .from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', eventId)
+    .eq('status', 'confirmed')
+
+  return {
+    event,
+    templates: templates ?? [],
+    issuedCountsByTemplate,
+    totalIssued,
+    confirmedCount: confirmedCount ?? 0,
+  }
 }
 
 // ── Single issue ──────────────────────────────────────────────────────────────
@@ -105,29 +121,38 @@ export async function embedIssueOrGetCertificate(
 
 // ── Bulk issue ────────────────────────────────────────────────────────────────
 
+// R62. The embed bulk door. Same change as the dashboard's: authorize, count,
+// enqueue. It no longer loops, and it no longer calls
+// embedIssueOrGetCertificate — the sweep runs issueCertificateCore directly,
+// once per candidate, in the background.
+//
+// Authorization is UNCHANGED and stays here: resolveEmbedContext (signed embed
+// session -> linked org) plus assertEventOwnership. Both guards run BEFORE the
+// enqueue, because the sweep itself has no principal to check.
+export type EmbedBulkIssueResult = { queued: number } | { error: string }
+
 export async function embedBulkIssueCertificates(
   eventId: string,
-): Promise<{ issued: number; skipped: number; failed: number }> {
+): Promise<EmbedBulkIssueResult> {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
 
-  const { data: regs } = await db
+  // head + exact — see the identical count in src/lib/certificates/bulk-issue.ts.
+  const { count } = await db
     .from('registrations')
-    .select('id')
+    .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId)
-    .in('status', ['confirmed'])
+    .eq('status', 'confirmed')
 
-  let issued = 0, skipped = 0, failed = 0
-  for (const reg of (regs ?? []) as { id: string }[]) {
-    const result = await embedIssueOrGetCertificate(eventId, reg.id)
-    if ('skipped' in result && result.skipped) {
-      skipped++
-    } else if ('error' in result && result.error) {
-      failed++
-    } else {
-      issued++
-    }
-  }
+  const queued = count ?? 0
 
-  return { issued, skipped, failed }
+  const handle = await enqueueCertificateIssueSweep({ eventId, via: 'embed' })
+
+  // Null handle means TRIGGER_SECRET_KEY is unset or Trigger.dev is down — the
+  // helper swallows both into null and never throws. Returning { queued } here
+  // would report a background run that does not exist. See the identical guard
+  // in src/lib/certificates/bulk-issue.ts.
+  if (!handle) return { error: 'queue-unavailable' }
+
+  return { queued }
 }

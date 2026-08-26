@@ -13,7 +13,7 @@ import {
   createAssetFromUrl,
 } from '@/lib/video/mux'
 import { createRoom } from '@/lib/video/livekit'
-import { createNotification } from '@/lib/notifications/notification-actions'
+import { createNotification } from '@/lib/notifications/create-notification'
 
 export async function enableSessionLivestream(sessionId: string, eventSlug: string) {
   let access: Awaited<ReturnType<typeof requireEventOrgAccess>>

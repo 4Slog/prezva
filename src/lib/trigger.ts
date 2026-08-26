@@ -13,6 +13,7 @@ import type { sendSpeakerInviteEmail } from '@/trigger/jobs/speaker-invite'
 import type { ghlSyncTask } from '@/trigger/jobs/ghl-sync'
 import type { ghlStageMoveTask } from '@/trigger/jobs/ghl-stage-move'
 import type { ghlSpeakerMessageTask } from '@/trigger/jobs/ghl-speaker-message'
+import type { certificateIssueSweepTask } from '@/trigger/jobs/certificate-issue-sweep'
 
 type ConfirmationPayload = Parameters<typeof sendConfirmationEmail.trigger>[0]
 type WaitlistPayload     = Parameters<typeof processWaitlist.trigger>[0]
@@ -211,6 +212,25 @@ export async function enqueueGhlSpeakerMessage(payload: GhlSpeakerMessagePayload
     return handle
   } catch (err) {
     console.error('[trigger] Failed to enqueue GHL speaker message:', err)
+    return null
+  }
+}
+
+type CertificateIssueSweepPayload = Parameters<typeof certificateIssueSweepTask.trigger>[0]
+
+export async function enqueueCertificateIssueSweep(payload: CertificateIssueSweepPayload) {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    console.warn('[trigger] TRIGGER_SECRET_KEY not set — skipping certificate issue sweep')
+    return null
+  }
+  try {
+    const handle = await tasks.trigger<typeof certificateIssueSweepTask>(
+      'certificate-issue-sweep',
+      payload,
+    )
+    return handle
+  } catch (err) {
+    console.error('[trigger] Failed to enqueue certificate issue sweep:', err)
     return null
   }
 }
