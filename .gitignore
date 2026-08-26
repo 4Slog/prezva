@@ -48,3 +48,6 @@ docs/production-secrets.md
 supabase/.temp/
 CLAUDE_WORKFLOW.md
 scripts/testing/
+
+# Trigger.dev CLI build output (deploy/dry-run scratch)
+.trigger/
