@@ -435,7 +435,7 @@ export type Database = {
       }
       audit_logs: {
         Row: {
-          action: Database["public"]["Enums"]["audit_action"]
+          action: string
           created_at: string | null
           event_id: string | null
           id: string
@@ -449,7 +449,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          action: Database["public"]["Enums"]["audit_action"]
+          action: string
           created_at?: string | null
           event_id?: string | null
           id?: string
@@ -463,7 +463,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          action?: Database["public"]["Enums"]["audit_action"]
+          action?: string
           created_at?: string | null
           event_id?: string | null
           id?: string
@@ -1410,6 +1410,7 @@ export type Database = {
           end_at: string
           event_type: Database["public"]["Enums"]["event_type"] | null
           ghl_creator_email: string | null
+          ghl_event_id: string | null
           id: string
           is_discoverable: boolean
           leaderboard_point_config: Json | null
@@ -1430,7 +1431,7 @@ export type Database = {
           start_at: string
           status: Database["public"]["Enums"]["event_status"] | null
           tags: string[] | null
-          timezone: string | null
+          timezone: string
           title: string
           updated_at: string | null
           venue_address: string | null
@@ -1463,6 +1464,7 @@ export type Database = {
           end_at: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
           ghl_creator_email?: string | null
+          ghl_event_id?: string | null
           id?: string
           is_discoverable?: boolean
           leaderboard_point_config?: Json | null
@@ -1483,7 +1485,7 @@ export type Database = {
           start_at: string
           status?: Database["public"]["Enums"]["event_status"] | null
           tags?: string[] | null
-          timezone?: string | null
+          timezone: string
           title: string
           updated_at?: string | null
           venue_address?: string | null
@@ -1516,6 +1518,7 @@ export type Database = {
           end_at?: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
           ghl_creator_email?: string | null
+          ghl_event_id?: string | null
           id?: string
           is_discoverable?: boolean
           leaderboard_point_config?: Json | null
@@ -1536,7 +1539,7 @@ export type Database = {
           start_at?: string
           status?: Database["public"]["Enums"]["event_status"] | null
           tags?: string[] | null
-          timezone?: string | null
+          timezone?: string
           title?: string
           updated_at?: string | null
           venue_address?: string | null
@@ -1678,6 +1681,7 @@ export type Database = {
       }
       ghl_org_config: {
         Row: {
+          calendar_id: string | null
           created_at: string
           field_ids: Json
           org_id: string
@@ -1685,8 +1689,10 @@ export type Database = {
           provisioned_by: string
           stage_ids: Json
           updated_at: string
+          webhook_secret_hash: string | null
         }
         Insert: {
+          calendar_id?: string | null
           created_at?: string
           field_ids: Json
           org_id: string
@@ -1694,8 +1700,10 @@ export type Database = {
           provisioned_by?: string
           stage_ids: Json
           updated_at?: string
+          webhook_secret_hash?: string | null
         }
         Update: {
+          calendar_id?: string | null
           created_at?: string
           field_ids?: Json
           org_id?: string
@@ -1703,6 +1711,7 @@ export type Database = {
           provisioned_by?: string
           stage_ids?: Json
           updated_at?: string
+          webhook_secret_hash?: string | null
         }
         Relationships: [
           {
@@ -1751,6 +1760,7 @@ export type Database = {
           dead_lettered: boolean
           event_type: string
           external_event_id: string
+          ghl_appointment_id: string | null
           ghl_contact_id: string | null
           ghl_opportunity_id: string | null
           id: string
@@ -1758,6 +1768,7 @@ export type Database = {
           last_error: string | null
           last_pushed_attendance_pct: number | null
           last_pushed_ce_credits: number | null
+          link_tag_fired_at: string | null
           location_id: string
           payload_hash: string
           pending_stage_id: string | null
@@ -1773,6 +1784,7 @@ export type Database = {
           dead_lettered?: boolean
           event_type: string
           external_event_id: string
+          ghl_appointment_id?: string | null
           ghl_contact_id?: string | null
           ghl_opportunity_id?: string | null
           id?: string
@@ -1780,6 +1792,7 @@ export type Database = {
           last_error?: string | null
           last_pushed_attendance_pct?: number | null
           last_pushed_ce_credits?: number | null
+          link_tag_fired_at?: string | null
           location_id: string
           payload_hash: string
           pending_stage_id?: string | null
@@ -1795,6 +1808,7 @@ export type Database = {
           dead_lettered?: boolean
           event_type?: string
           external_event_id?: string
+          ghl_appointment_id?: string | null
           ghl_contact_id?: string | null
           ghl_opportunity_id?: string | null
           id?: string
@@ -1802,6 +1816,7 @@ export type Database = {
           last_error?: string | null
           last_pushed_attendance_pct?: number | null
           last_pushed_ce_credits?: number | null
+          link_tag_fired_at?: string | null
           location_id?: string
           payload_hash?: string
           pending_stage_id?: string | null
@@ -2129,6 +2144,7 @@ export type Database = {
           created_at: string
           emailed_at: string | null
           event_id: string
+          ghl_synced_at: string | null
           id: string
           pdf_generated_at: string | null
           pdf_url: string | null
@@ -2142,6 +2158,7 @@ export type Database = {
           created_at?: string
           emailed_at?: string | null
           event_id: string
+          ghl_synced_at?: string | null
           id?: string
           pdf_generated_at?: string | null
           pdf_url?: string | null
@@ -2155,6 +2172,7 @@ export type Database = {
           created_at?: string
           emailed_at?: string | null
           event_id?: string
+          ghl_synced_at?: string | null
           id?: string
           pdf_generated_at?: string | null
           pdf_url?: string | null
@@ -2743,7 +2761,7 @@ export type Database = {
           stripe_account_id: string | null
           stripe_customer_id: string | null
           suspended: boolean
-          timezone: string | null
+          timezone: string
           updated_at: string | null
           website: string | null
         }
@@ -2770,7 +2788,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_customer_id?: string | null
           suspended?: boolean
-          timezone?: string | null
+          timezone: string
           updated_at?: string | null
           website?: string | null
         }
@@ -2797,7 +2815,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_customer_id?: string | null
           suspended?: boolean
-          timezone?: string | null
+          timezone?: string
           updated_at?: string | null
           website?: string | null
         }
@@ -3236,6 +3254,8 @@ export type Database = {
           discount_code_id: string | null
           event_id: string
           external_order_id: string | null
+          ghl_attendee_id: string | null
+          ghl_order_id: string | null
           id: string
           notes: string | null
           paid_offline_at: string | null
@@ -3281,6 +3301,8 @@ export type Database = {
           discount_code_id?: string | null
           event_id: string
           external_order_id?: string | null
+          ghl_attendee_id?: string | null
+          ghl_order_id?: string | null
           id?: string
           notes?: string | null
           paid_offline_at?: string | null
@@ -3326,6 +3348,8 @@ export type Database = {
           discount_code_id?: string | null
           event_id?: string
           external_order_id?: string | null
+          ghl_attendee_id?: string | null
+          ghl_order_id?: string | null
           id?: string
           notes?: string | null
           paid_offline_at?: string | null
@@ -5692,12 +5716,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5721,11 +5745,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5746,11 +5770,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5771,11 +5795,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5788,11 +5812,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
