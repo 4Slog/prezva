@@ -194,7 +194,7 @@ describe('createRegistrationFromExternalPayment — external_order_id idempotenc
   it('resolves a 23505 unique violation to the winning row instead of failing', async () => {
     sequence([
       { maybeSingle: { data: null, error: null } },
-      { single: { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } } },
+      { single: { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "registrations_external_order_id_key"' } } },
       { maybeSingle: { data: { id: 'reg-winner', qr_code: 'qr-w', app_access_token: 'tok-w' }, error: null } },
     ])
 
@@ -225,5 +225,203 @@ describe('createRegistrationFromExternalPayment — external_order_id idempotenc
     const result = await createRegistrationFromExternalPayment(PARAMS)
 
     expect(result).toEqual({ success: false, error: 'Event is at capacity', waitlisted: true })
+  })
+})
+
+// ── createRegistrationFromExternalPayment: the GHL Events lane (R65 / batch 1) ──
+//
+// One GHL Events order can carry several attendees. external_order_id is UNIQUE,
+// so deduping that order on the order id matches the FIRST attendee's row and hands
+// attendee two attendee one's registration back as success:true — a silent, paid,
+// wrong-person booking. These tests exist to keep that from coming back.
+
+describe('createRegistrationFromExternalPayment — ghl_attendee_id lane', () => {
+  function sequence(steps: Array<{ maybeSingle?: any; single?: any }>) {
+    let i = 0
+    const calls: any[] = []
+    adminFromImpl = () => {
+      const step = steps[i++] ?? {}
+      const chain: any = {}
+      for (const k of ['select', 'eq', 'in', 'insert', 'update', 'delete']) chain[k] = vi.fn().mockReturnValue(chain)
+      chain.maybeSingle = vi.fn().mockResolvedValue(step.maybeSingle ?? { data: null, error: null })
+      chain.single = vi.fn().mockResolvedValue(step.single ?? { data: null, error: null })
+      calls.push(chain)
+      return chain
+    }
+    return calls
+  }
+
+  const SHARED_ORDER = 'ghl-order-shared-1'
+
+  function eventsParams(over: Record<string, unknown> = {}) {
+    return {
+      eventId: EVENT_ID,
+      ticketTypeId: TICKET_ID,
+      attendeeEmail: 'seat-one@test.com',
+      attendeeName: 'Seat One',
+      attendeePhone: null,
+      amountPaidCents: 19900,
+      currency: 'USD',
+      externalSource: 'ghl_events',
+      externalOrderId: SHARED_ORDER,
+      paymentGateway: 'ghl_events',
+      ghlAttendeeId: 'attendee-1',
+      ghlOrderId: SHARED_ORDER,
+      ...over,
+    }
+  }
+
+  beforeEach(() => { adminFrom.mockClear() })
+
+  it('dedupes on ghl_attendee_id, not external_order_id', async () => {
+    const calls = sequence([
+      { maybeSingle: { data: { id: 'reg-existing', qr_code: 'qr-1', app_access_token: 'tok-1' }, error: null } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(eventsParams())
+
+    expect(result).toEqual({ success: true, registrationId: 'reg-existing', qrCode: 'qr-1', appAccessToken: 'tok-1' })
+    expect(calls[0].eq).toHaveBeenCalledWith('ghl_attendee_id', 'attendee-1')
+    expect(calls[0].eq).not.toHaveBeenCalledWith('external_order_id', SHARED_ORDER)
+    expect(calls[0].insert).not.toHaveBeenCalled()
+  })
+
+  it('writes ghl_attendee_id and ghl_order_id and leaves external_order_id null', async () => {
+    const calls = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'reg-1', qr_code: 'qr-1', app_access_token: 'tok-1' }, error: null } },
+    ])
+
+    await createRegistrationFromExternalPayment(eventsParams())
+
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({
+      ghl_attendee_id: 'attendee-1',
+      ghl_order_id: SHARED_ORDER,
+      // The UNIQUE column must stay empty or seat two is rejected outright.
+      external_order_id: null,
+    })
+  })
+
+  // THE DEFECT THIS BATCH EXISTS TO PREVENT.
+  it('creates a SEPARATE registration for a second attendee on the same order', async () => {
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'reg-seat-one', qr_code: 'qr-1', app_access_token: 'tok-1' }, error: null } },
+    ])
+    const first = await createRegistrationFromExternalPayment(eventsParams())
+
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'reg-seat-two', qr_code: 'qr-2', app_access_token: 'tok-2' }, error: null } },
+    ])
+    const second = await createRegistrationFromExternalPayment(eventsParams({
+      ghlAttendeeId: 'attendee-2',
+      attendeeEmail: 'seat-two@test.com',
+      attendeeName: 'Seat Two',
+    }))
+
+    expect(first).toMatchObject({ success: true, registrationId: 'reg-seat-one' })
+    expect(second).toMatchObject({ success: true, registrationId: 'reg-seat-two' })
+    // Order-id deduping would have made these the same row.
+    expect((second as any).registrationId).not.toBe((first as any).registrationId)
+  })
+
+  // Same order, same email. Never tested before this batch: a buyer registering
+  // two people can reuse their own address, and the event/email unique key stops
+  // the second insert. It must fail under its own name, NOT resolve to seat one.
+  it('returns duplicate_attendee_email_on_event for a second seat sharing an email', async () => {
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'reg-seat-one', qr_code: 'qr-1', app_access_token: 'tok-1' }, error: null } },
+    ])
+    const first = await createRegistrationFromExternalPayment(eventsParams())
+    expect(first).toMatchObject({ success: true, registrationId: 'reg-seat-one' })
+
+    const calls = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "registrations_event_email_unique"',
+        details: 'Key (event_id, lower(attendee_email))=(evt, seat-one@test.com) already exists.',
+      } } },
+    ])
+    const second = await createRegistrationFromExternalPayment(eventsParams({
+      ghlAttendeeId: 'attendee-2',
+      attendeeName: 'Seat Two',
+    }))
+
+    expect(second).toEqual({ success: false, error: 'duplicate_attendee_email_on_event' })
+    // The specific danger: handing back seat one's registration as a success.
+    expect(second).not.toMatchObject({ registrationId: 'reg-seat-one' })
+    expect((second as any).registrationId).toBeUndefined()
+    // And it must not go looking for a row to return, either.
+    expect(calls.length).toBe(2)
+  })
+
+  it('also names the composite event/email/ticket key rather than re-reading', async () => {
+    const calls = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "registrations_no_duplicate_idx"',
+      } } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(eventsParams({ ghlAttendeeId: 'attendee-2' }))
+
+    expect(result).toEqual({ success: false, error: 'duplicate_attendee_email_on_event' })
+    expect(calls.length).toBe(2)
+  })
+
+  it('resolves a 23505 on the attendee key itself to the winning row', async () => {
+    const calls = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "registrations_ghl_attendee_id_key"',
+      } } },
+      { maybeSingle: { data: { id: 'reg-winner', qr_code: 'qr-w', app_access_token: 'tok-w' }, error: null } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(eventsParams())
+
+    expect(result).toEqual({ success: true, registrationId: 'reg-winner', qrCode: 'qr-w', appAccessToken: 'tok-w' })
+    expect(calls[2].eq).toHaveBeenCalledWith('ghl_attendee_id', 'attendee-1')
+  })
+
+  // On the Events lane the order-id key is NOT this call's dedupe key, so a
+  // violation of it is not a row this call may claim.
+  it('does not claim a row when a non-dedupe constraint fires', async () => {
+    sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "registrations_external_order_id_key"',
+      } } },
+    ])
+
+    const result = await createRegistrationFromExternalPayment(eventsParams())
+
+    expect(result).toMatchObject({ success: false })
+    expect((result as any).registrationId).toBeUndefined()
+  })
+
+  // The pre-existing lane must be untouched by all of the above.
+  it('leaves the external_order_id path behaving exactly as before when ghlAttendeeId is absent', async () => {
+    const calls = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'reg-legacy', qr_code: 'qr-l', app_access_token: 'tok-l' }, error: null } },
+    ])
+
+    const { ghlAttendeeId: _a, ghlOrderId: _o, ...legacy } = eventsParams()
+    const result = await createRegistrationFromExternalPayment(legacy as any)
+
+    expect(result).toEqual({ success: true, registrationId: 'reg-legacy', qrCode: 'qr-l', appAccessToken: 'tok-l' })
+    expect(calls[0].eq).toHaveBeenCalledWith('external_order_id', SHARED_ORDER)
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({
+      external_order_id: SHARED_ORDER,
+      ghl_attendee_id: null,
+      ghl_order_id: null,
+    })
   })
 })
