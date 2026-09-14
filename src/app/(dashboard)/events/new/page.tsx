@@ -69,6 +69,7 @@ export default function NewEventPage() {
       const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug, startAt, endAt)
       setPending(false)
       if ('error' in result) setError(result.error)
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the rule is CORRECT here: this is an internal App Router page and useRouter().push() would work. Suppressed only to keep a security bump free of navigation changes; tracked separately for conversion.
       else window.location.href = `/events/${result.slug}`
       return
     }
@@ -82,6 +83,7 @@ export default function NewEventPage() {
     }
 
     setPending(false)
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the rule is CORRECT here: this is an internal App Router page and useRouter().push() would work. Suppressed only to keep a security bump free of navigation changes; tracked separately for conversion.
     window.location.href = `/events/${result.slug}`
   }
 

@@ -129,6 +129,11 @@ export function ClaimFlow() {
     // misleading "open this from inside GoHighLevel" copy the instant the
     // claim succeeds.
     const separator = result.next.includes('?') ? '&' : '?'
+    // The rule below reads only the static text before the first interpolation,
+    // and here that prefix is empty — result.next is not statically known. The
+    // full navigation is deliberate for the reason above, so this is not
+    // convertible to useRouter().push().
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`${result.next}${separator}sso=1`)
   }
 

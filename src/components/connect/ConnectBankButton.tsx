@@ -107,6 +107,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
 
   async function handleConnect() {
     setPending(true)
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- navigates to an API route that 302s to Stripe Connect. The Next router cannot follow a redirect off-origin, so a full document navigation is required. Not convertible.
     window.location.href = `/api/connect/onboard?org_id=${orgId}`
   }
 
@@ -119,6 +120,7 @@ export function ConnectBankButton({ orgId, initialStatus }: ConnectBankButtonPro
 
   async function handleCompleteInStripe() {
     setLinkPending(true)
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- navigates to an API route that 302s to Stripe Connect. The Next router cannot follow a redirect off-origin, so a full document navigation is required. Not convertible.
     window.location.href = `/api/connect/onboard?org_id=${orgId}`
   }
 
