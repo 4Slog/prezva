@@ -5,6 +5,7 @@ import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { postRegistrationWriteback } from '@/lib/ghl/post-registration-writeback'
 import {
   ghlDollarStringToCents,
+  perSeatCents,
   resolveOrCreateEventFromGhl,
   resolveOrCreateTicketTypeForGhlEvent,
 } from '@/lib/ghl/events-bridge'
@@ -200,9 +201,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'attendee_identity_missing' })
     }
 
-    let amountPaidCents: number
+    let orderTotalCents: number
     try {
-      amountPaidCents = ghlDollarStringToCents(
+      orderTotalCents = ghlDollarStringToCents(
         (customData.order_total ?? body.order_total) as string | number | null | undefined,
       )
     } catch (e) {
@@ -213,6 +214,31 @@ export async function POST(req: NextRequest) {
     }
 
     const ghlOrderId = str(customData.order_id) ?? str(body.order_id)
+
+    // order_total is ORDER-scoped on the Events workflow lane and repeated verbatim
+    // on every seat's call, so the figure that belongs on THIS registration is the
+    // per-seat share (R76). The order-level total stays recoverable by grouping
+    // registrations on ghl_order_id.
+    const amountPaidCents = perSeatCents(orderTotalCents, customData.ticket_count)
+
+    // Mirrors perSeatCents' usable-count contract deliberately: an unchanged
+    // amount cannot be distinguished from a legitimate one-seat order, so the raw
+    // value has to be asked directly. Without a seat count the seat is booked at
+    // the whole order total, which over-states a multi-seat order — bad, but far
+    // better than refusing a registration GHL has already collected money for. It
+    // is the one condition here that silently inflates money, so it stays loud.
+    const seatCount =
+      typeof customData.ticket_count === 'number'
+        ? customData.ticket_count
+        : typeof customData.ticket_count === 'string'
+          ? Number.parseInt(customData.ticket_count.trim(), 10)
+          : Number.NaN
+    if (orderTotalCents > 0 && !(Number.isInteger(seatCount) && seatCount >= 1)) {
+      console.warn(`${LOG} ticket_count missing — storing order total on this seat`, {
+        attendeeId,
+        ghlOrderId,
+      })
+    }
 
     // 8. Create the registration, deduped on the ATTENDEE id.
     const result = await createRegistrationFromExternalPayment({

@@ -119,6 +119,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'ignored_unhandled_type' })
     }
 
+    // 4b. Events orders stand down here (R76). GHL's native Events module posts its
+    // orders to this app webhook too, but the payload cannot carry a registration:
+    // it has no attendee_id for a guest seat, no per-seat email, and none of the
+    // event's start/end/timezone — proven 2026-09-22 against order
+    // 6ab27f2c4abfc6e2004c1e3f, whose two seats arrive as source.meta.guests[] with
+    // nothing but ticket/contact ids. Events registrations therefore arrive
+    // per-attendee on /api/ghl/webhooks/event-registration, which is the only
+    // transport that sees a seat.
+    //
+    // Placed BEFORE the ledger: writing a ghl_sync_state row for an order this
+    // route will never register would leave a permanent `failed` row shadowing the
+    // real per-seat rows the Events route writes, and would make the sync-health
+    // pill report a failure that is actually correct behaviour. Store orders are
+    // untouched — only source.type === 'events_management' diverts.
+    //
+    // source is an OBJECT on the app transport (jsonb_typeof-verified), but it is
+    // read defensively as a possible JSON string so a serialization change on GHL's
+    // side cannot silently resume creating Events registrations here.
+    let orderSource: Record<string, unknown> | null = null
+    if (typeof body.source === 'string') {
+      try {
+        const parsedSource: unknown = JSON.parse(body.source)
+        if (parsedSource && typeof parsedSource === 'object') {
+          orderSource = parsedSource as Record<string, unknown>
+        }
+      } catch {
+        // Not JSON, so it carries no type claim — treated as no source at all and
+        // the order falls through to the normal Store path.
+      }
+    } else if (body.source && typeof body.source === 'object') {
+      orderSource = body.source as Record<string, unknown>
+    }
+
+    if (orderSource?.type === 'events_management') {
+      console.log(
+        `${LOG} Events order ignored — Events registrations arrive on /webhooks/event-registration (R76)`,
+        { orderId: body._id ?? null, sourceId: orderSource.id ?? null },
+      )
+      return NextResponse.json({ status: 'ignored_events_order' })
+    }
+
     // 5. Flat payload extraction (G27 shape). Unlike the workflow payload there
     // is no order.line_items[0].meta nesting — the ids sit at the top level and
     // on items[].price/product. Everything below this point consumes flat

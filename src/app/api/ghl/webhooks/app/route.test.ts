@@ -734,3 +734,114 @@ describe('POST /api/ghl/webhooks/app — known gap: payment gateway', () => {
     )
   })
 })
+
+// ── Events orders (R76) ───────────────────────────────────────────────────────
+// GHL's native Events module posts its orders to this app webhook as well as
+// firing the per-attendee Events workflow. This route must stand down for them:
+// the app payload has no attendee_id for a guest seat, no per-seat email, and
+// none of the event's start/end/timezone, so it cannot build a registration.
+//
+// The source.meta tree below is the REAL one, copied from the kept evidence row
+// for order 6ab27f2c4abfc6e2004c1e3f (ghl_sync_state row
+// c1889ed8-2416-41be-8822-7c8f4d9d4016): two seats present only as guests[]
+// entries carrying ticket/contact ids, with the attendeeId belonging to the ORDER
+// rather than to either seat. That is the whole proof that this transport cannot
+// see a seat.
+const EVENTS_ORDER_SOURCE = {
+  id: '6a8f6c2080afb0df7d0d43cf',
+  name: 'ZZ PREZVA RECON — CE Conference',
+  type: 'events_management',
+  meta: {
+    origin: 'crm_events_preview',
+    attendeeId: '6ab27edc5e23a06ba2dc9f86',
+    fingerprint: '033e290b-b5c5-43a8-98d3-7153b0ed9bc3',
+    checkoutType: 'default',
+    multiAttendee: true,
+    guests: [
+      {
+        ticketId: '6a8f6c7880afb0df7d0d4796',
+        contactId: '2xsToWQm6wgi9X4s9UIN',
+        isPrimary: true,
+        submissionId: '6ab27edc5e23a06ba2dc9f66',
+      },
+      {
+        ticketId: '6a8f6c7880afb0df7d0d4796',
+        contactId: 'UekQIZWvUmsFO2IrkgDz',
+        isPrimary: false,
+        submissionId: '6ab27edc5e23a06ba2dc9f7d',
+      },
+    ],
+  },
+}
+
+const EVENTS_ORDER = {
+  ...COMPLETED_ORDER,
+  _id: '6ab27f2c4abfc6e2004c1e3f',
+  amount: 398,
+  source: EVENTS_ORDER_SOURCE,
+}
+
+describe('POST /api/ghl/webhooks/app — Events orders (R76)', () => {
+  it('ignores a completed Events order with 200 and touches nothing', async () => {
+    const { client } = makeSequentialClient([])
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(makeRequest(EVENTS_ORDER))
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ignored_events_order' })
+    // No ledger row: a ghl_sync_state row here would shadow the per-seat rows the
+    // Events route writes and make sync-health report a failure that is correct
+    // behaviour.
+    expect(client.from).not.toHaveBeenCalled()
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+    // R65: nothing on the Events path enqueues an outbound sync.
+    expect(enqueueGhlSync).not.toHaveBeenCalled()
+  })
+
+  // Defensive: source is an OBJECT on this transport today (jsonb_typeof-verified),
+  // but a serialization change on GHL's side must not silently resume creating
+  // Events registrations here.
+  it('ignores an Events order whose source arrives as a JSON string', async () => {
+    const { client } = makeSequentialClient([])
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(
+      makeRequest({ ...EVENTS_ORDER, source: JSON.stringify(EVENTS_ORDER_SOURCE) }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ignored_events_order' })
+    expect(client.from).not.toHaveBeenCalled()
+    expect(createRegistrationFromExternalPayment).not.toHaveBeenCalled()
+    expect(enqueueGhlSync).not.toHaveBeenCalled()
+  })
+
+  // Ordering proof: the stand-down sits AFTER authentication, so it can never be
+  // used as an unauthenticated 200.
+  it('still rejects an unsigned Events order with 401 — signature runs first', async () => {
+    const { client } = makeSequentialClient([])
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(makeRequest(EVENTS_ORDER, { sign: false }))
+
+    expect(res.status).toBe(401)
+    expect(client.from).not.toHaveBeenCalled()
+  })
+
+  // Ordering proof: the event-type policy still runs first, so a pending Events
+  // order reports why it was ignored (not yet paid) rather than being absorbed
+  // into the Events bucket.
+  it('still reports ignored_pending for an Events OrderCreate — policy runs first', async () => {
+    const { client } = makeSequentialClient([])
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const res = await POST(
+      makeRequest({ ...EVENTS_ORDER, type: 'OrderCreate', status: 'pending' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: 'ignored_pending' })
+    expect(client.from).not.toHaveBeenCalled()
+  })
+})

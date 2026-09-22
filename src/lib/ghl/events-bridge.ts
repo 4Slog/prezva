@@ -38,6 +38,41 @@ export function ghlDollarStringToCents(value: string | number | null | undefined
   return Math.round(dollars * 100)
 }
 
+/**
+ * Per-seat share of an ORDER-scoped total, in cents.
+ *
+ * On the GHL Events WORKFLOW path `order_total` is scoped to the ORDER and repeated
+ * verbatim on every attendee's call — a 2-seat $398 order fires the workflow twice
+ * and sends "398" both times. Storing that figure on each seat double-counts the
+ * order across registrations.amount_paid_cents, and the error compounds with seat
+ * count. Dividing here keeps each seat's row honest; the ORDER-level total stays
+ * recoverable at any time by grouping registrations on ghl_order_id, so splitting
+ * it costs nothing.
+ *
+ * The unit is in the name for the same reason `ghlDollarStringToCents` and
+ * `formatGhlDollars` carry theirs: a bare `perSeat(total, n)` cannot be read as
+ * right or wrong at the call site.
+ *
+ * Never throws, and never refuses a seat. An absent or unusable ticket_count yields
+ * the total unchanged — one seat booked at the full order price is visible and
+ * correctable, whereas dropping a registration GHL has already been paid for is
+ * not. The caller warns on that path rather than failing.
+ */
+export function perSeatCents(orderTotalCents: number, ticketCountRaw: unknown): number {
+  const ticketCount =
+    typeof ticketCountRaw === 'number'
+      ? ticketCountRaw
+      : typeof ticketCountRaw === 'string'
+        ? Number.parseInt(ticketCountRaw.trim(), 10)
+        : Number.NaN
+
+  // Number.isInteger is false for NaN and for both Infinities, so this one check
+  // covers finite, integral and parsed-at-all.
+  if (!Number.isInteger(ticketCount) || ticketCount < 1) return orderTotalCents
+
+  return Math.round(orderTotalCents / ticketCount)
+}
+
 // ── Event ─────────────────────────────────────────────────────────────────────
 
 export type ResolveEventResult =

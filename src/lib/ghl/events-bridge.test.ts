@@ -7,6 +7,7 @@ vi.mock('@/lib/embedded/org-helpers', () => ({
 
 import {
   ghlDollarStringToCents,
+  perSeatCents,
   resolveOrCreateEventFromGhl,
   resolveOrCreateTicketTypeForGhlEvent,
 } from './events-bridge'
@@ -69,6 +70,63 @@ describe('ghlDollarStringToCents', () => {
   it('rounds a float artefact to the nearest cent', () => {
     expect(ghlDollarStringToCents('0.1')).toBe(10)
     expect(ghlDollarStringToCents(19.99)).toBe(1999)
+  })
+})
+
+// ── perSeatCents ──────────────────────────────────────────────────────────────
+
+describe('perSeatCents', () => {
+  // The bug this exists to prevent: on the Events WORKFLOW path a 2-seat $398
+  // order calls the webhook twice and sends order_total "398" BOTH times, so
+  // storing it verbatim books $796 across two seats.
+  it('splits an order-scoped total across the seats on the order', () => {
+    expect(perSeatCents(39800, 2)).toBe(19900)
+  })
+
+  // GHL custom values arrive as strings far more often than as numbers.
+  it('accepts the seat count as a numeric string', () => {
+    expect(perSeatCents(39800, '2')).toBe(19900)
+  })
+
+  it('splits a free order without inventing money', () => {
+    expect(perSeatCents(0, 2)).toBe(0)
+  })
+
+  // Deliberately lossy: 3 x 333 = 999, one cent short of 1000. The order total
+  // stays exact and recoverable by grouping on ghl_order_id, so the rounding is
+  // confined to the per-seat view rather than corrupting the order.
+  it('rounds to the nearest cent when the split is uneven', () => {
+    expect(perSeatCents(1000, 3)).toBe(333)
+  })
+
+  it('leaves a single-seat order untouched', () => {
+    expect(perSeatCents(19900, 1)).toBe(19900)
+  })
+
+  // Every case below returns the total UNCHANGED rather than throwing or zeroing.
+  // A seat booked at the full order price is visible and correctable; a refused
+  // registration for an order GHL has already been paid for is not. The route
+  // warns on this path.
+  it('returns the total unchanged when ticket_count is absent', () => {
+    expect(perSeatCents(39800, undefined)).toBe(39800)
+  })
+
+  it('returns the total unchanged for a zero seat count', () => {
+    expect(perSeatCents(39800, '0')).toBe(39800)
+  })
+
+  // Guards the divide: a negative count would flip the sign on amount_paid_cents.
+  it('returns the total unchanged for a negative seat count', () => {
+    expect(perSeatCents(39800, '-1')).toBe(39800)
+  })
+
+  it('returns the total unchanged for a non-numeric seat count', () => {
+    expect(perSeatCents(39800, 'abc')).toBe(39800)
+  })
+
+  // A fractional seat count is nonsense, not a rounding opportunity.
+  it('returns the total unchanged for a fractional seat count', () => {
+    expect(perSeatCents(39800, 2.5)).toBe(39800)
   })
 })
 
