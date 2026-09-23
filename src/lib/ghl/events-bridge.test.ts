@@ -490,13 +490,161 @@ describe('resolveOrCreateTicketTypeForGhlEvent', () => {
     expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID })).toBeNull()
   })
 
-  it('returns null for a named create the database will not yield a row for', async () => {
-    const { db } = sequence([
-      { maybeSingle: { data: null, error: null } },
-      { single: { data: null, error: { code: '08006', message: 'connection failure' } } },
-      { maybeSingle: { data: null, error: null } },
+  // UPDATED for O95/D1. This used to pass three empty steps and assert null, which
+  // was exactly the regression: a usable name whose create failed had nowhere left
+  // to go. Null is now legitimate only when ALL SIX routes yield nothing, so the
+  // steps are spelled out in full and the call count is asserted — otherwise the
+  // test would keep passing off `sequence`'s empty defaults and prove nothing.
+  it('returns null for a named create only when every route, named and fallback, yields nothing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },                                    // named read
+      { single: { data: null, error: { code: '08006', message: 'connection failure' } } }, // named create
+      { maybeSingle: { data: null, error: null } },                                    // named re-read
+      { maybeSingle: { data: null, error: null } },                                    // fallback read
+      { single: { data: null, error: { code: '08006', message: 'connection failure' } } }, // fallback create
+      { maybeSingle: { data: null, error: null } },                                    // fallback re-read
     ])
 
     expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Early Bird' })).toBeNull()
+    expect(calls).toHaveLength(6)
+    expect(err).toHaveBeenCalled()
+    warn.mockRestore()
+    err.mockRestore()
+  })
+
+  // ── O95/D1: R67 — a ticket name is a LABEL, never a gate ────────────────────
+
+  // THE regression this fix exists for. Before O95 a usable name whose insert failed
+  // returned null, the route turned that into ticket_type_unresolvable, and a seat
+  // GHL had already been paid for was REFUSED over a caption. The named routes are
+  // exhausted first, then the shared fallback row catches the seat.
+  it('falls through to an existing fallback row when a usable name cannot be created', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },                                     // 'Early Bird' read misses
+      { single: { data: null, error: { code: '23514', message: 'check violation' } } }, // its create fails
+      { maybeSingle: { data: null, error: null } },                                     // its re-read misses
+      { maybeSingle: { data: { id: 'tt-fallback' }, error: null } },                    // fallback read hits
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Early Bird' })
+
+    expect(id).toBe('tt-fallback')
+    expect(calls).toHaveLength(4)
+    // The named routes are tried FIRST and in full — the tier is never merged into
+    // the generic row while its own row was still obtainable.
+    expect(calls[0].ilike).toHaveBeenCalledWith('name', 'Early Bird')
+    expect(calls[2].ilike).toHaveBeenCalledWith('name', 'Early Bird')
+    expect(calls[3].ilike).toHaveBeenCalledWith('name', 'GHL Registration')
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('creates the fallback when a usable name cannot be created and no fallback exists yet', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },                                     // 'Early Bird' read misses
+      { single: { data: null, error: { code: '23514', message: 'check violation' } } }, // its create fails
+      { maybeSingle: { data: null, error: null } },                                     // its re-read misses
+      { maybeSingle: { data: null, error: null } },                                     // fallback read misses
+      { single: { data: { id: 'tt-fallback-new' }, error: null } },                     // fallback create
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Early Bird' })
+
+    expect(id).toBe('tt-fallback-new')
+    expect(calls).toHaveLength(5)
+    expect(calls[4].insert.mock.calls[0][0]).toMatchObject({ name: 'GHL Registration' })
+    warn.mockRestore()
+  })
+
+  // ── O95/D3: ilike wildcards ─────────────────────────────────────────────────
+
+  // `%` and `_` are LIKE wildcards, and supabase-js appends the pattern verbatim,
+  // so an unescaped name matches rows it should not: "VIP_Plus" would find
+  // "VIP-Plus" and hang the seat off the wrong tier.
+  it('escapes % and _ in the named read so the match stays exact', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: { id: 'tt-vip' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'VIP_Plus 50%' })
+
+    expect(calls[0].ilike).toHaveBeenCalledWith('name', 'VIP\\_Plus 50\\%')
+  })
+
+  // The backslash goes first or it would re-escape the escapes just added.
+  it('escapes a backslash before the wildcards it escapes', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: { id: 'tt-odd' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'A\\_B' })
+
+    expect(calls[0].ilike).toHaveBeenCalledWith('name', 'A\\\\\\_B')
+  })
+
+  // The escaping belongs to the QUERY, not to the row. A stored name carrying
+  // backslashes would come back wrong on every later read and in the organizer's UI.
+  it('stores the raw name even when the read pattern was escaped', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'tt-pct' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: '50% Off' })
+
+    expect(calls[0].ilike).toHaveBeenCalledWith('name', '50\\% Off')
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({ name: '50% Off' })
+  })
+
+  it('escapes the fallback read too', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: { id: 'tt-fallback' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: null })
+
+    // No wildcards in the literal fallback name, so escaping is a no-op on it — what
+    // is asserted is that the fallback read goes through the same escaped helper.
+    expect(calls[0].ilike).toHaveBeenCalledWith('name', 'GHL Registration')
+  })
+
+  // ── O95/D2: ghl_managed ─────────────────────────────────────────────────────
+
+  // 0147's partial unique index on (event_id, lower(name)) is WHERE ghl_managed, so
+  // an insert that forgets the flag is a row outside the constraint — the duplicate
+  // this whole migration exists to stop. Both inserts the resolver can make are
+  // asserted here.
+  it('sets ghl_managed on the named insert', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'tt-named' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Early Bird' })
+
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({
+      event_id:    EVENT_ID,
+      name:        'Early Bird',
+      ghl_managed: true,
+    })
+  })
+
+  it('sets ghl_managed on the fallback insert', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'tt-fallback' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: undefined })
+
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({
+      event_id:    EVENT_ID,
+      name:        'GHL Registration',
+      ghl_managed: true,
+    })
   })
 })

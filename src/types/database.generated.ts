@@ -5091,6 +5091,7 @@ export type Database = {
           early_bird_ends_at: string | null
           early_bird_price_cents: number | null
           event_id: string
+          ghl_managed: boolean
           id: string
           invite_only: boolean
           is_active: boolean | null
@@ -5120,6 +5121,7 @@ export type Database = {
           early_bird_ends_at?: string | null
           early_bird_price_cents?: number | null
           event_id: string
+          ghl_managed?: boolean
           id?: string
           invite_only?: boolean
           is_active?: boolean | null
@@ -5149,6 +5151,7 @@ export type Database = {
           early_bird_ends_at?: string | null
           early_bird_price_cents?: number | null
           event_id?: string
+          ghl_managed?: boolean
           id?: string
           invite_only?: boolean
           is_active?: boolean | null
