@@ -215,6 +215,20 @@ export async function resolveOrCreateEventFromGhl(
 // ── Ticket type ───────────────────────────────────────────────────────────────
 
 /**
+ * Is this GHL ticket name fit to become a ticket_types.name of its own?
+ *
+ * The rules and the reasoning live on resolveOrCreateTicketTypeForGhlEvent below;
+ * this is just the predicate. Returns the usable name, or null to fall back.
+ */
+function usableTicketTypeName(wanted: string | undefined): string | null {
+  if (!wanted) return null
+  if (wanted.includes(',')) return null
+  if (wanted.length > 100) return null
+  if (wanted.toLowerCase() === FALLBACK_TICKET_TYPE_NAME.toLowerCase()) return null
+  return wanted
+}
+
+/**
  * Resolves the ticket_types row a GHL Events registration hangs off.
  *
  * registrations.ticket_type_id is NOT NULL, so this has to produce an id for a
@@ -223,6 +237,26 @@ export async function resolveOrCreateEventFromGhl(
  * ticket name was blank or unrecognised would lose a paid seat over a caption.
  * So an unusable name falls back to a shared "GHL Registration" type rather than
  * failing.
+ *
+ * A USABLE name is kept: it names the type we create, so an R66 auto-created event
+ * ends up with the tiers GHL actually sold instead of collapsing every one of them
+ * into a single generic row. A name is usable when, trimmed, it is non-empty,
+ * contains NO COMMA, is at most 100 characters, and is not the fallback name.
+ *
+ * The comma rule is the one that needs explaining. GHL's only ticket-name merge
+ * field is "Event . Ticket . Names" — PLURAL, and comma-joined across the whole
+ * ORDER. A mixed-tier order therefore delivers one string, "Early Bird, Standard",
+ * to every seat on it. Minting a type from that would create a permanent ticket
+ * type named after two tiers at once and hang both attendees off it, which is
+ * worse than an honest generic label. A comma means the payload is describing an
+ * order rather than a tier, so the name is not trustworthy and the seat falls back.
+ * (Over 100 characters is the same failure wearing a different hat: a runaway merge
+ * field, not a tier.)
+ *
+ * A usable name goes STRAIGHT to create, deliberately skipping the fallback read.
+ * Otherwise a single "GHL Registration" row — minted the one time an order arrived
+ * with an unusable name — would capture every later tier on that event and quietly
+ * undo all of this.
  *
  * Returns null ONLY when the database itself would not yield a row — not a naming
  * problem, and the caller should record it as an infrastructure failure rather than
@@ -249,20 +283,39 @@ export async function resolveOrCreateTicketTypeForGhlEvent(params: {
     if (data) return data.id
   }
 
-  const { data: fallback } = await db
-    .from('ticket_types')
-    .select('id')
-    .eq('event_id', eventId)
-    .ilike('name', FALLBACK_TICKET_TYPE_NAME)
-    .limit(1)
-    .maybeSingle()
-  if (fallback) return fallback.id
+  const usable = usableTicketTypeName(wanted)
+
+  if (!usable) {
+    // Only worth a line when GHL sent something and we threw it away. A missing
+    // name is routine; a rejected one is a payload we may want to look at.
+    if (wanted) {
+      console.warn(
+        '[ghl-events] ticket type fell back to',
+        FALLBACK_TICKET_TYPE_NAME,
+        'for event',
+        eventId,
+        '— unusable ticket name:',
+        JSON.stringify(wanted),
+      )
+    }
+
+    const { data: fallback } = await db
+      .from('ticket_types')
+      .select('id')
+      .eq('event_id', eventId)
+      .ilike('name', FALLBACK_TICKET_TYPE_NAME)
+      .limit(1)
+      .maybeSingle()
+    if (fallback) return fallback.id
+  }
+
+  const attemptedName = usable ?? FALLBACK_TICKET_TYPE_NAME
 
   const { data: created, error } = await db
     .from('ticket_types')
     .insert({
       event_id:   eventId,
-      name:       FALLBACK_TICKET_TYPE_NAME,
+      name:       attemptedName,
       type:       'paid',
       is_visible: false,
       is_active:  true,
@@ -272,13 +325,15 @@ export async function resolveOrCreateTicketTypeForGhlEvent(params: {
 
   if (created) return created.id
 
-  // Losing a race to create the fallback is the expected failure here, and the
-  // winner's row is exactly the one this call wanted.
+  // Losing a race to create is the expected failure here, and the winner's row is
+  // exactly the one this call wanted — but only if we look for the SAME name we
+  // attempted. A concurrent seat on the same tier creates THAT tier's row, not the
+  // fallback's, so re-reading the fallback would miss it and lose the seat.
   const { data: raced } = await db
     .from('ticket_types')
     .select('id')
     .eq('event_id', eventId)
-    .ilike('name', FALLBACK_TICKET_TYPE_NAME)
+    .ilike('name', attemptedName)
     .limit(1)
     .maybeSingle()
   if (raced) return raced.id

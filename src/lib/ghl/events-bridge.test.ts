@@ -258,10 +258,81 @@ describe('resolveOrCreateTicketTypeForGhlEvent', () => {
     expect(calls[0].insert).not.toHaveBeenCalled()
   })
 
+  // O94: GHL sends the tier name and we used to throw it away, so every tier on an
+  // R66 auto-created event collapsed into one generic "GHL Registration" row.
+  it('creates the type under the name GHL sent when the event has no types yet', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },                // named lookup misses
+      { single: { data: { id: 'tt-early-bird' }, error: null } },  // create
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({
+      db, eventId: EVENT_ID, name: 'ZZ PREZVA RECON Early Bird',
+    })
+
+    expect(id).toBe('tt-early-bird')
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({
+      event_id:   EVENT_ID,
+      name:       'ZZ PREZVA RECON Early Bird',
+      type:       'paid',
+      is_visible: false,
+      is_active:  true,
+    })
+  })
+
+  it('trims the name before creating with it', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'tt-vip' }, error: null } },
+    ])
+
+    await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: '  VIP  ' })
+
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({ name: 'VIP' })
+  })
+
+  // The case-insensitivity lives in the ilike, so what matters here is that the
+  // lookup runs against the supplied name and nothing is created behind it.
+  it('matches an existing type whose capitalisation differs instead of creating a second', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: { id: 'tt-vip' }, error: null } },
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'vip' })
+
+    expect(id).toBe('tt-vip')
+    expect(calls[0].ilike).toHaveBeenCalledWith('name', 'vip')
+    expect(calls[0].insert).not.toHaveBeenCalled()
+    expect(calls).toHaveLength(1)
+  })
+
+  // THE guard on this fix. GHL's only ticket-name merge field is "Event . Ticket .
+  // Names" — plural, comma-joined across the ORDER — so a mixed-tier order would
+  // otherwise mint a permanent type literally named after two tiers.
+  it('falls back and warns on a comma-joined multi-tier name', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },              // named lookup misses
+      { maybeSingle: { data: null, error: null } },              // fallback lookup misses
+      { single: { data: { id: 'tt-fallback' }, error: null } },  // fallback create
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({
+      db, eventId: EVENT_ID, name: 'Early Bird, Standard',
+    })
+
+    expect(id).toBe('tt-fallback')
+    expect(calls[2].insert.mock.calls[0][0]).toMatchObject({ name: 'GHL Registration' })
+    expect(warn).toHaveBeenCalled()
+    expect(JSON.stringify(warn.mock.calls[0])).toContain('Early Bird, Standard')
+    warn.mockRestore()
+  })
+
   // registrations.ticket_type_id is NOT NULL, and a ticket type is a LABEL on this
   // lane, not a gate. GHL has already been paid; losing the seat over a blank
   // caption is strictly worse than an unlabelled registration.
   it('falls back to the GHL Registration type when the name is missing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const { db, calls } = sequence([
       { maybeSingle: { data: null, error: null } },              // fallback lookup
       { single: { data: { id: 'tt-fallback' }, error: null } },  // fallback create
@@ -274,6 +345,9 @@ describe('resolveOrCreateTicketTypeForGhlEvent', () => {
       event_id: EVENT_ID,
       name: 'GHL Registration',
     })
+    // A missing name is routine, not a payload worth a line in the logs.
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
   })
 
   it('falls back on an empty or whitespace name rather than refusing', async () => {
@@ -284,15 +358,87 @@ describe('resolveOrCreateTicketTypeForGhlEvent', () => {
     expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: '   ' })).toBe('tt-fallback')
   })
 
-  it('falls back when the named type does not exist on the event', async () => {
-    const { db } = sequence([
+  // A runaway merge field, not a tier.
+  it('falls back and warns on a name longer than 100 characters', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'tt-fallback' }, error: null } },
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({
+      db, eventId: EVENT_ID, name: 'A'.repeat(101),
+    })
+
+    expect(id).toBe('tt-fallback')
+    expect(calls[2].insert.mock.calls[0][0]).toMatchObject({ name: 'GHL Registration' })
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('accepts a name of exactly 100 characters', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: { id: 'tt-long' }, error: null } },
+    ])
+
+    const name = 'A'.repeat(100)
+    expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name })).toBe('tt-long')
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({ name })
+  })
+
+  // "GHL Registration" arriving as the payload's own ticket name must not mint a
+  // second type alongside the fallback — it IS the fallback.
+  it('creates a single fallback row when the name already is the fallback, in any case', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { db, calls } = sequence([
       { maybeSingle: { data: null, error: null } },              // named lookup misses
-      { maybeSingle: { data: { id: 'tt-fallback' }, error: null } }, // fallback exists
+      { maybeSingle: { data: null, error: null } },              // fallback lookup misses
+      { single: { data: { id: 'tt-fallback' }, error: null } },
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({
+      db, eventId: EVENT_ID, name: 'ghl registration',
+    })
+
+    expect(id).toBe('tt-fallback')
+    const inserts = calls.filter((c: any) => c.insert.mock.calls.length > 0)
+    expect(inserts).toHaveLength(1)
+    expect(inserts[0].insert.mock.calls[0][0]).toMatchObject({ name: 'GHL Registration' })
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  // UPDATED for O94: a usable name that matches nothing now MINTS that type. It
+  // used to return the event's fallback row instead, which is the defect.
+  it('creates the named type when it does not yet exist on the event', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },                       // named lookup misses
+      { single: { data: { id: 'tt-nonexistent-tier' }, error: null } },   // create
     ])
 
     const id = await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Nonexistent Tier' })
 
-    expect(id).toBe('tt-fallback')
+    expect(id).toBe('tt-nonexistent-tier')
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({ name: 'Nonexistent Tier' })
+  })
+
+  // A usable name skips the fallback read entirely. Were it read first, one
+  // "GHL Registration" row on the event would capture every later tier forever —
+  // the fix would work exactly once and then stop. Two db.from() calls, no more,
+  // is what proves the read was skipped.
+  it('mints its own type for a usable name even when a fallback row exists on the event', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },              // 'Standard' lookup misses
+      { single: { data: { id: 'tt-standard' }, error: null } },  // straight to create
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Standard' })
+
+    expect(id).toBe('tt-standard')
+    expect(calls).toHaveLength(2)
+    expect(calls[1].insert.mock.calls[0][0]).toMatchObject({ name: 'Standard' })
   })
 
   it('reuses an existing fallback instead of creating a second one', async () => {
@@ -316,6 +462,22 @@ describe('resolveOrCreateTicketTypeForGhlEvent', () => {
     expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID })).toBe('tt-winner')
   })
 
+  // A concurrent seat of the SAME tier creates that tier's row, not the fallback's,
+  // so the recovery read has to use the name we attempted or it finds nothing.
+  it('resolves a 23505 on a named create by re-reading the attempted name', async () => {
+    const { db, calls } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: { code: '23505', message: 'duplicate' } } },
+      { maybeSingle: { data: { id: 'tt-race-winner' }, error: null } },
+    ])
+
+    const id = await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Early Bird' })
+
+    expect(id).toBe('tt-race-winner')
+    expect(calls[2].ilike).toHaveBeenCalledWith('name', 'Early Bird')
+    expect(calls[2].ilike).not.toHaveBeenCalledWith('name', 'GHL Registration')
+  })
+
   // Null here means the DATABASE would not yield a row — not that the name was
   // bad. The caller records it as infrastructure failure, not a rejected attendee.
   it('returns null only when even the fallback cannot be produced', async () => {
@@ -326,5 +488,15 @@ describe('resolveOrCreateTicketTypeForGhlEvent', () => {
     ])
 
     expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID })).toBeNull()
+  })
+
+  it('returns null for a named create the database will not yield a row for', async () => {
+    const { db } = sequence([
+      { maybeSingle: { data: null, error: null } },
+      { single: { data: null, error: { code: '08006', message: 'connection failure' } } },
+      { maybeSingle: { data: null, error: null } },
+    ])
+
+    expect(await resolveOrCreateTicketTypeForGhlEvent({ db, eventId: EVENT_ID, name: 'Early Bird' })).toBeNull()
   })
 })
