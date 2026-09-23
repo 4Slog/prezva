@@ -7,6 +7,9 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { Field } from '@/components/ui/Field'
+import { isoToZonedInput } from '@/lib/datetime/zoned-input'
+import { SettingsSectionForm } from './settings-section-form'
+import { TimezoneOptions } from '@/components/events/TimezoneOptions'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -60,11 +63,9 @@ export default async function EventSettingsPage({ params }: Props) {
       {/* General */}
       <section className="pz-card p-6 mb-6">
         <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">General</h2>
-        <form
-          action={async (fd: FormData) => {
-            'use server'
-            await updateEvent(event.id, fd)
-          }}
+        <SettingsSectionForm
+          action={updateEvent.bind(null, event.id, 'general')}
+          resetKey={[event.title, event.description, event.start_at, event.end_at, event.timezone].join('|')}
           className="flex flex-col gap-4"
         >
           <Field label="Event name" htmlFor="cfg-title" required>
@@ -79,7 +80,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 id="cfg-start"
                 type="datetime-local"
                 name="start_at"
-                defaultValue={event.start_at.slice(0, 16)}
+                defaultValue={isoToZonedInput(event.start_at, event.timezone)}
                 required
                 className={inputCls}
               />
@@ -89,7 +90,7 @@ export default async function EventSettingsPage({ params }: Props) {
                 id="cfg-end"
                 type="datetime-local"
                 name="end_at"
-                defaultValue={event.end_at.slice(0, 16)}
+                defaultValue={isoToZonedInput(event.end_at, event.timezone)}
                 required
                 className={inputCls}
               />
@@ -97,11 +98,7 @@ export default async function EventSettingsPage({ params }: Props) {
           </div>
           <Field label="Timezone" htmlFor="cfg-tz">
             <select id="cfg-tz" name="timezone" defaultValue={event.timezone} className={inputCls}>
-              <option value="America/New_York">Eastern (ET)</option>
-              <option value="America/Chicago">Central (CT)</option>
-              <option value="America/Denver">Mountain (MT)</option>
-              <option value="America/Los_Angeles">Pacific (PT)</option>
-              <option value="UTC">UTC</option>
+              <TimezoneOptions current={event.timezone} />
             </select>
           </Field>
           {!isStaff && (
@@ -113,17 +110,15 @@ export default async function EventSettingsPage({ params }: Props) {
               Save changes
             </button>
           )}
-        </form>
+        </SettingsSectionForm>
       </section>
 
       {/* Venue */}
       <section className="pz-card p-6 mb-6">
         <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Venue</h2>
-        <form
-          action={async (fd: FormData) => {
-            'use server'
-            await updateEvent(event.id, fd)
-          }}
+        <SettingsSectionForm
+          action={updateEvent.bind(null, event.id, 'venue')}
+          resetKey={[event.venue_name, event.venue_address, event.venue_city, event.venue_state].join('|')}
           className="flex flex-col gap-4"
         >
           <Field label="Venue name" htmlFor="cfg-venue">
@@ -149,7 +144,7 @@ export default async function EventSettingsPage({ params }: Props) {
               Save venue
             </button>
           )}
-        </form>
+        </SettingsSectionForm>
       </section>
 
       {/* Discovery */}
@@ -242,11 +237,12 @@ export default async function EventSettingsPage({ params }: Props) {
       {/* Registration settings */}
       <section className="pz-card p-6 mb-6">
         <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-4">Registration</h2>
-        <form
-          action={async (fd: FormData) => {
-            'use server'
-            await updateEvent(event.id, fd)
-          }}
+        <SettingsSectionForm
+          action={updateEvent.bind(null, event.id, 'registration')}
+          resetKey={[
+            event.capacity, event.waitlist_enabled, event.require_approval, event.allow_public_attendee_list,
+            (event as any).registration_invite_code, (event as any).registration_domain_restrict,
+          ].join('|')}
           className="flex flex-col gap-4"
         >
           <Field label="Max capacity" htmlFor="cfg-cap">
@@ -315,7 +311,7 @@ export default async function EventSettingsPage({ params }: Props) {
               Save settings
             </button>
           )}
-        </form>
+        </SettingsSectionForm>
       </section>
 
       {/* Sprint 22: Certificate settings */}
@@ -372,11 +368,9 @@ async function CertificateSettingsSection({
     <section className="pz-card p-6 mb-6">
       <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Certificates</h2>
       <p className="text-xs text-[var(--pz-muted)] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
-      <form
-        action={async (fd: FormData) => {
-          'use server'
-          await updateEvent(event.id, fd)
-        }}
+      <SettingsSectionForm
+        action={updateEvent.bind(null, event.id, 'certificates')}
+        resetKey={[event.certificate_enabled, event.certificate_min_session_attendance_pct, event.certificate_template_id].join('|')}
         className="flex flex-col gap-4"
       >
         <label className="flex items-center gap-2 cursor-pointer">
@@ -423,7 +417,7 @@ async function CertificateSettingsSection({
         >
           Save certificate settings
         </button>
-      </form>
+      </SettingsSectionForm>
     </section>
   )
 }

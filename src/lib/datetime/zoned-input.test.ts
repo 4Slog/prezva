@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isoToZonedInput, zonedInputToIso, requireEventTimezone } from './zoned-input'
+import { isoToZonedInput, zonedInputToIso, requireEventTimezone, inputToInstant, resolveEditedInstant } from './zoned-input'
 
 const NY = 'America/New_York'
 
@@ -136,5 +136,66 @@ describe('invalid zone', () => {
     expect(() => requireEventTimezone(null)).toThrow(RangeError)
     expect(() => requireEventTimezone('')).toThrow(RangeError)
     expect(() => requireEventTimezone('Not/AZone')).toThrow(RangeError)
+  })
+})
+
+describe('inputToInstant', () => {
+  it('passes a Z instant through unchanged (GHL-style)', () => {
+    expect(inputToInstant('2026-09-23T19:00:00.000Z', NY)).toBe('2026-09-23T19:00:00.000Z')
+  })
+
+  it('passes a +00:00 instant through unchanged', () => {
+    expect(inputToInstant('2026-09-23T19:00:00+00:00', NY)).toBe('2026-09-23T19:00:00+00:00')
+  })
+
+  it('passes a -04:00 instant through unchanged, whatever the zone', () => {
+    expect(inputToInstant('2026-09-23T15:00:00-04:00', 'America/Los_Angeles')).toBe('2026-09-23T15:00:00-04:00')
+  })
+
+  it('reads a naive wall clock in the given zone', () => {
+    expect(inputToInstant('2026-09-23T15:00', NY)).toBe('2026-09-23T19:00:00.000Z')
+    expect(inputToInstant('2026-09-23T15:00', 'America/Chicago')).toBe('2026-09-23T20:00:00.000Z')
+  })
+
+  it('throws on a bad zone, even for a zone-carrying value', () => {
+    expect(() => inputToInstant('2026-09-23T15:00', 'Mars/Olympus')).toThrow(RangeError)
+    expect(() => inputToInstant('2026-09-23T19:00:00Z', 'Mars/Olympus')).toThrow(RangeError)
+    expect(() => inputToInstant('2026-09-23T19:00:00Z', '')).toThrow(RangeError)
+  })
+
+  it('throws on bad input', () => {
+    expect(() => inputToInstant('', NY)).toThrow(RangeError)
+    expect(() => inputToInstant('tomorrow at 3', NY)).toThrow(RangeError)
+    expect(() => inputToInstant('2026-02-30T10:00', NY)).toThrow(RangeError)
+  })
+})
+
+describe('resolveEditedInstant', () => {
+  const stored = '2026-09-23T19:00:00+00:00' // 15:00 New York
+
+  it('an untouched time keeps the stored instant exactly when the zone changes', () => {
+    expect(resolveEditedInstant('2026-09-23T15:00', stored, NY, 'America/Los_Angeles')).toBe(stored)
+  })
+
+  it('an untouched time submitted with :00 seconds is still untouched', () => {
+    expect(resolveEditedInstant('2026-09-23T15:00:00', stored, NY, 'America/Los_Angeles')).toBe(stored)
+  })
+
+  it('an untouched time keeps the stored instant when the zone is unchanged', () => {
+    expect(resolveEditedInstant('2026-09-23T15:00', stored, NY, NY)).toBe(stored)
+  })
+
+  it('an edited time is read in the target zone', () => {
+    expect(resolveEditedInstant('2026-09-23T16:00', stored, NY, NY)).toBe('2026-09-23T20:00:00.000Z')
+    expect(resolveEditedInstant('2026-09-23T16:00', stored, NY, 'America/Los_Angeles')).toBe('2026-09-23T23:00:00.000Z')
+  })
+
+  it('a zone-carrying value passes through', () => {
+    expect(resolveEditedInstant('2026-10-01T12:00:00Z', stored, NY, 'America/Los_Angeles')).toBe('2026-10-01T12:00:00Z')
+  })
+
+  it('throws on malformed input or zone', () => {
+    expect(() => resolveEditedInstant('garbage', stored, NY, NY)).toThrow(RangeError)
+    expect(() => resolveEditedInstant('2026-09-23T16:00', stored, NY, 'Not/AZone')).toThrow(RangeError)
   })
 })

@@ -40,7 +40,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { embedPublishEvent, createTicketTypeFromEmbedProduct, acknowledgeSyncIssue, createEventFromEmbed } from './event-actions'
+import { embedPublishEvent, createTicketTypeFromEmbedProduct, acknowledgeSyncIssue, createEventFromEmbed, embedUpdateEvent } from './event-actions'
 import { requireEntitlement } from '@/lib/entitlements'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlGet } from '@/lib/integrations/ghl/client'
@@ -420,5 +420,88 @@ describe('createEventFromEmbed — timezone derivation', () => {
 
     expect(result).toEqual({ error: 'Could not determine a timezone for this event.' })
     expect(eventsChain.insert).not.toHaveBeenCalled()
+  })
+})
+
+describe('createEventFromEmbed — times read in the chosen timezone (D5)', () => {
+  function run(fields: Record<string, string>) {
+    const eventsChain: any = {}
+    for (const k of ['select', 'eq', 'insert']) eventsChain[k] = vi.fn().mockReturnValue(eventsChain)
+    eventsChain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    eventsChain.single = vi.fn().mockResolvedValue({ data: { id: 'evt-new', slug: 'new-event' }, error: null })
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: ORG_ID }, error: null } })
+      if (table === 'events') return eventsChain
+      return makeChain()
+    }
+    const fd = new FormData()
+    for (const [k, v] of Object.entries({ title: 'New Event', ...fields })) fd.set(k, v)
+    return { eventsChain, result: createEventFromEmbed(fd) }
+  }
+
+  beforeEach(() => {
+    vi.mocked(resolveOrgOwnerProfileId).mockReset().mockResolvedValue('owner-profile-id')
+  })
+
+  it('stores 15:00 America/New_York as 19:00Z', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/New_York', start_at: '2026-09-23T15:00', end_at: '2026-09-23T17:00' })
+    expect('error' in (await result)).toBe(false)
+    expect(eventsChain.insert).toHaveBeenCalledWith(expect.objectContaining({ start_at: '2026-09-23T19:00:00.000Z', end_at: '2026-09-23T21:00:00.000Z' }))
+  })
+
+  it('stores 15:00 America/Chicago as 20:00Z', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/Chicago', start_at: '2026-09-23T15:00', end_at: '2026-09-23T17:00' })
+    await result
+    expect(eventsChain.insert).toHaveBeenCalledWith(expect.objectContaining({ start_at: '2026-09-23T20:00:00.000Z', end_at: '2026-09-23T22:00:00.000Z' }))
+  })
+
+  it('passes a Z value through unchanged', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/New_York', start_at: '2026-10-15T13:00:00Z', end_at: '2026-10-16T21:00:00Z' })
+    await result
+    expect(eventsChain.insert).toHaveBeenCalledWith(expect.objectContaining({ start_at: '2026-10-15T13:00:00Z', end_at: '2026-10-16T21:00:00Z' }))
+  })
+
+  it('refuses an end before the start after conversion', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/New_York', start_at: '2026-09-23T15:00', end_at: '2026-09-23T18:00:00Z' })
+    expect(await result).toEqual({ error: 'End time must be after start time' })
+    expect(eventsChain.insert).not.toHaveBeenCalled()
+  })
+})
+
+describe('embedUpdateEvent — a timezone change never moves the event (Paul)', () => {
+  const STORED = { id: EVENT_ID, start_at: '2026-09-23T19:00:00+00:00', end_at: '2026-09-23T21:00:00+00:00', timezone: 'America/New_York' }
+
+  function run(fields: Record<string, string>) {
+    const eventsChain = makeChain({ maybeSingle: { data: STORED, error: null } })
+    mockFromImpl = (table) => {
+      if (table === 'ghl_location_links') return makeChain({ maybeSingle: { data: { org_id: ORG_ID }, error: null } })
+      if (table === 'events') return eventsChain
+      return makeChain()
+    }
+    const fd = new FormData()
+    for (const [k, v] of Object.entries({ title: 'Event', ...fields })) fd.set(k, v)
+    return { eventsChain, result: embedUpdateEvent(EVENT_ID, fd) }
+  }
+
+  it('timezone only (times untouched): 19:00Z stays 19:00Z when New York → Los Angeles', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/Los_Angeles', start_at: '2026-09-23T15:00', end_at: '2026-09-23T17:00' })
+    expect(await result).toEqual({ ok: true })
+    expect(eventsChain.update).toHaveBeenCalledWith(expect.objectContaining({
+      timezone: 'America/Los_Angeles', start_at: STORED.start_at, end_at: STORED.end_at,
+    }))
+  })
+
+  it('edits the time AND changes the zone: the typed time is read in the new zone', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/Los_Angeles', start_at: '2026-09-23T13:00', end_at: '2026-09-23T15:00' })
+    await result
+    expect(eventsChain.update).toHaveBeenCalledWith(expect.objectContaining({
+      start_at: '2026-09-23T20:00:00.000Z', end_at: '2026-09-23T22:00:00.000Z',
+    }))
+  })
+
+  it('refuses an end before the start', async () => {
+    const { eventsChain, result } = run({ timezone: 'America/New_York', start_at: '2026-09-23T15:00', end_at: '2026-09-23T14:00' })
+    expect(await result).toEqual({ error: 'End time must be after start time' })
+    expect(eventsChain.update).not.toHaveBeenCalled()
   })
 })

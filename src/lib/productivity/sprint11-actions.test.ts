@@ -182,3 +182,87 @@ describe('importAgendaFromCsv — event timezone (O107)', () => {
     expect(mockSessionsInsert).not.toHaveBeenCalled()
   })
 })
+
+// ── Template create reads the typed times in the chosen timezone (D5) ─────────
+describe('createEventFromTemplate — times in the chosen timezone', () => {
+  function useTemplate(templateTimezone?: string) {
+    adminFromImpl = () => makeAdminChain()
+    mockAdminSingle.mockResolvedValueOnce({
+      data: { org_id: 'org-1', template_data: { event: templateTimezone ? { timezone: templateTimezone } : {} } },
+      error: null,
+    })
+    mockEventInsertSingle.mockResolvedValueOnce({ data: { id: 'evt-new' }, error: null })
+  }
+
+  it('the form timezone wins: 15:00 America/New_York → 19:00Z', async () => {
+    useTemplate('Pacific/Honolulu')
+    const { createEventFromTemplate } = await import('./sprint11-actions')
+    await createEventFromTemplate('tpl-1', 'org-1', 'New', 'new', '2026-09-23T15:00', '2026-09-23T17:00', 'America/New_York')
+    expect(mockEventsInsert).toHaveBeenCalledWith(expect.objectContaining({
+      timezone: 'America/New_York', start_at: '2026-09-23T19:00:00.000Z', end_at: '2026-09-23T21:00:00.000Z',
+    }))
+  })
+
+  it('15:00 America/Chicago → 20:00Z', async () => {
+    useTemplate()
+    const { createEventFromTemplate } = await import('./sprint11-actions')
+    await createEventFromTemplate('tpl-1', 'org-1', 'New', 'new', '2026-09-23T15:00', '2026-09-23T17:00', 'America/Chicago')
+    expect(mockEventsInsert).toHaveBeenCalledWith(expect.objectContaining({ start_at: '2026-09-23T20:00:00.000Z' }))
+  })
+
+  it("falls back to the template's timezone when the form sends none", async () => {
+    useTemplate('America/Chicago')
+    const { createEventFromTemplate } = await import('./sprint11-actions')
+    await createEventFromTemplate('tpl-1', 'org-1', 'New', 'new', '2026-09-23T15:00', '2026-09-23T17:00')
+    expect(mockEventsInsert).toHaveBeenCalledWith(expect.objectContaining({ timezone: 'America/Chicago', start_at: '2026-09-23T20:00:00.000Z' }))
+  })
+
+  it('refuses an end before the start after conversion', async () => {
+    useTemplate()
+    const { createEventFromTemplate } = await import('./sprint11-actions')
+    const res = await createEventFromTemplate('tpl-1', 'org-1', 'New', 'new', '2026-09-23T15:00', '2026-09-23T18:00:00Z', 'America/New_York')
+    expect(res).toEqual({ error: 'End time must be after start time' })
+    expect(mockEventsInsert).not.toHaveBeenCalled()
+  })
+})
+
+// ── O113: CSV import checks agenda.manage and only writes allow-listed fields ─
+describe('importAgendaFromCsv — permission and field allow-list (O113)', () => {
+  const mockSessionsInsert = vi.fn()
+  beforeEach(() => {
+    mockSessionsInsert.mockReset().mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: [{ id: 's-1' }], error: null }),
+    })
+    mockServerFrom.mockImplementation(((table: string) => {
+      if (table === 'events') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { org_id: 'org-1', timezone: 'America/New_York' }, error: null }),
+        }
+      }
+      return { insert: mockSessionsInsert }
+    }) as any)
+  })
+
+  it('refuses a user without agenda.manage, before inserting', async () => {
+    mockAssertPermission.mockRejectedValueOnce(new Error("You don't have permission to manage the agenda."))
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    const res = await importAgendaFromCsv('evt-1', [{ Title: 'X' }], { Title: 'title' })
+    expect(mockAssertPermission).toHaveBeenCalledWith('org-1', 'user-1', 'agenda.manage')
+    expect(res).toEqual({ imported: 0, error: "You don't have permission to manage the agenda." })
+    expect(mockSessionsInsert).not.toHaveBeenCalled()
+  })
+
+  it('ignores a mapped event_id or is_published; event_id is always the argument', async () => {
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    const res = await importAgendaFromCsv(
+      'evt-1',
+      [{ Title: 'Keynote', Evt: 'evt-OTHER', Pub: 'true', Desc: 'Hello', Seats: '50', Spk: 'Ada' }],
+      { Title: 'title', Evt: 'event_id', Pub: 'is_published', Desc: 'description', Seats: 'capacity', Spk: 'speaker' },
+    )
+    expect(res).toEqual({ imported: 1 })
+    const [row] = mockSessionsInsert.mock.calls[0][0]
+    expect(row).toEqual({ title: 'Keynote', description: 'Hello', capacity: 50, session_type: 'talk', event_id: 'evt-1' })
+  })
+})

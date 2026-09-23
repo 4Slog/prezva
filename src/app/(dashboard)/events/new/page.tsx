@@ -66,7 +66,8 @@ export default function NewEventPage() {
       const endAt = fd.get('end_at') as string
       if (!title || !slug) { setError('Title and slug are required'); setPending(false); return }
       if (!startAt || !endAt) { setError('Start and end date/time are required'); setPending(false); return }
-      const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug, startAt, endAt)
+      const formTimezone = (fd.get('timezone') as string | null) || undefined
+      const result = await createEventFromTemplate(selectedTemplate, selectedOrgId, title, slug, startAt, endAt, formTimezone)
       setPending(false)
       if ('error' in result) setError(result.error)
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the rule is CORRECT here: this is an internal App Router page and useRouter().push() would work. Suppressed only to keep a security bump free of navigation changes; tracked separately for conversion.

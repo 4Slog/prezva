@@ -115,3 +115,41 @@ export function zonedInputToIso(local: string, timeZone: string): string {
   }
   return new Date(utcMs).toISOString()
 }
+
+/**
+ * A form value → UTC instant. A value that already names its zone (a trailing Z or
+ * a ±hh:mm offset, e.g. a GHL-sourced ISO string) is an instant and is returned
+ * unchanged; a naive "YYYY-MM-DDTHH:mm[:ss]" is a wall clock read in `timeZone`.
+ * Throws on anything else, or an invalid zone.
+ */
+export function inputToInstant(value: string, timeZone: string): string {
+  formatterFor(timeZone)
+  if (typeof value === 'string' && INSTANT_RE.test(value.trim())) {
+    if (Number.isNaN(Date.parse(value.trim().replace(' ', 'T')))) {
+      throw new RangeError(`Unparseable instant: ${JSON.stringify(value)}`)
+    }
+    return value
+  }
+  return zonedInputToIso(value, timeZone)
+}
+
+/**
+ * The instant to store when an edit form re-submits a time it displayed with
+ * isoToZonedInput(storedIso, storedTimeZone). An untouched wall clock keeps the
+ * stored instant exactly, even when the event's zone changes (the real moment
+ * stays fixed; only its display moves). An edited wall clock is read in
+ * `targetTimeZone`. A zone-carrying value passes through.
+ */
+export function resolveEditedInstant(
+  submitted: string,
+  storedIso: string,
+  storedTimeZone: string,
+  targetTimeZone: string,
+): string {
+  if (typeof submitted === 'string' && !INSTANT_RE.test(submitted.trim())) {
+    // A browser may submit the displayed "HH:mm" as "HH:mm:00".
+    const wall = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00$/.test(submitted) ? submitted.slice(0, 16) : submitted
+    if (wall === isoToZonedInput(storedIso, storedTimeZone)) return storedIso
+  }
+  return inputToInstant(submitted, targetTimeZone)
+}

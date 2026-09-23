@@ -9,6 +9,7 @@ import { resolveOrgOwnerProfileId } from '@/lib/embedded/org-helpers'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlGet } from '@/lib/integrations/ghl/client'
 import { requireEntitlement } from '@/lib/entitlements'
+import { resolveCreateTimes, resolveUpdateTimes } from '@/lib/events/event-times'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -107,20 +108,15 @@ const EmbedCreateEventSchema = z.object({
   description: z.string().max(5000).optional(),
   event_type:  z.enum(['in_person', 'virtual', 'hybrid']).default('in_person'),
   timezone:    z.string().min(1).optional(),
-  start_at:    z.string().min(1).transform(v =>
-    v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
-  ),
-  end_at:      z.string().min(1).transform(v =>
-    v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
-  ),
+  // Wall clocks in the event's timezone (or zone-carrying instants); converted once
+  // the timezone is resolved — see resolveCreateTimes.
+  start_at:    z.string().min(1),
+  end_at:      z.string().min(1),
   venue_name:    z.string().max(120).optional(),
   venue_address: z.string().max(200).optional(),
   venue_city:    z.string().max(80).optional(),
   venue_state:   z.string().max(80).optional(),
   virtual_url:   z.string().url().optional().or(z.literal('')),
-}).refine(d => new Date(d.end_at) > new Date(d.start_at), {
-  message: 'End time must be after start time',
-  path: ['end_at'],
 })
 
 // ── Server Actions ────────────────────────────────────────────────────────────
@@ -177,10 +173,15 @@ export async function createEventFromEmbed(
   }
   if (!timezone) return { error: 'Could not determine a timezone for this event.' }
 
+  // D5: the typed times are wall clocks in the event's timezone.
+  const times = resolveCreateTimes(parsed.data.start_at, parsed.data.end_at, timezone)
+  if ('error' in times) return { error: times.error }
+
   const { data: event, error } = await db
     .from('events')
     .insert({
       ...parsed.data,
+      ...times,
       timezone,
       org_id: orgId,
       created_by,
@@ -201,20 +202,14 @@ const EmbedUpdateEventSchema = z.object({
   description:  z.string().max(5000).optional(),
   event_type:   z.enum(['in_person', 'virtual', 'hybrid']).optional(),
   timezone:     z.string().min(1).optional(),
-  start_at:     z.string().min(1).transform(v =>
-    v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
-  ).optional(),
-  end_at:       z.string().min(1).transform(v =>
-    v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString(),
-  ).optional(),
+  // Converted against the stored event by resolveUpdateTimes.
+  start_at:     z.string().min(1).optional(),
+  end_at:       z.string().min(1).optional(),
   venue_name:    z.string().max(120).optional(),
   venue_address: z.string().max(200).optional(),
   venue_city:    z.string().max(80).optional(),
   venue_state:   z.string().max(80).optional(),
   virtual_url:   z.string().url().optional().or(z.literal('')),
-}).refine(d => !d.start_at || !d.end_at || new Date(d.end_at) > new Date(d.start_at), {
-  message: 'End time must be after start time',
-  path: ['end_at'],
 })
 
 export async function embedUpdateEvent(
@@ -233,7 +228,7 @@ export async function embedUpdateEvent(
   // IDOR guard: event must belong to this org
   const { data: existing } = await db
     .from('events')
-    .select('id')
+    .select('id, start_at, end_at, timezone')
     .eq('id', eventId)
     .eq('org_id', orgId)
     .maybeSingle()
@@ -256,9 +251,15 @@ export async function embedUpdateEvent(
   const parsed = EmbedUpdateEventSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  // Build update object from only the keys present in parsed.data
+  // Untouched times keep their instant on a timezone change; edited ones are read
+  // in the submitted zone (else the stored one).
+  const { start_at, end_at, timezone, ...rest } = parsed.data
+  const times = resolveUpdateTimes({ start_at, end_at, timezone }, existing)
+  if ('error' in times) return { error: times.error }
+
+  // Build update object from only the keys present
   const updateObj: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(parsed.data)) {
+  for (const [k, v] of Object.entries({ ...rest, ...times })) {
     if (v !== undefined) updateObj[k] = v
   }
 

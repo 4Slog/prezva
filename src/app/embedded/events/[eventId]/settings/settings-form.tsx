@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { embedUpdateEvent } from '@/lib/embedded/event-actions'
+import { isoToZonedInput } from '@/lib/datetime/zoned-input'
+import { TimezoneOptions } from '@/components/events/TimezoneOptions'
 
 interface EventData {
   id: string
@@ -22,14 +25,6 @@ interface Props {
   eventId: string
   event: EventData
 }
-
-const TIMEZONES = [
-  { value: 'America/New_York',    label: 'Eastern (ET)' },
-  { value: 'America/Chicago',     label: 'Central (CT)' },
-  { value: 'America/Denver',      label: 'Mountain (MT)' },
-  { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
-  { value: 'UTC',                 label: 'UTC' },
-]
 
 const inputCls = [
   'w-full rounded-lg border px-3 py-2 text-sm transition-colors',
@@ -53,9 +48,14 @@ function Field({ label, children, required }: { label: string; children: React.R
   )
 }
 
-function toDatetimeLocal(iso: string | null | undefined): string {
-  if (!iso) return ''
-  return new Date(iso).toISOString().slice(0, 16)
+// D5: the inputs show the event's own wall clock, not UTC or the viewer's zone.
+function toZonedInput(iso: string | null | undefined, timeZone: string | null): string {
+  if (!iso || !timeZone) return ''
+  try {
+    return isoToZonedInput(iso, timeZone)
+  } catch {
+    return ''
+  }
 }
 
 export function EventSettingsForm({ eventId, event }: Props) {
@@ -63,6 +63,11 @@ export function EventSettingsForm({ eventId, event }: Props) {
   const [error, setError]   = useState<string | null>(null)
   const [saved, setSaved]   = useState(false)
   const [pending, setPending] = useState(false)
+  const router = useRouter()
+  // Remounts the time inputs when the stored values change after a save, so an
+  // untouched start re-displays in a newly chosen zone instead of keeping the
+  // old wall clock (which a second save would then read as an edit).
+  const timesKey = [event.start_at, event.end_at, event.timezone].join('|')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -76,6 +81,7 @@ export function EventSettingsForm({ eventId, event }: Props) {
         setError(result.error)
       } else {
         setSaved(true)
+        router.refresh()
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error')
@@ -133,14 +139,13 @@ export function EventSettingsForm({ eventId, event }: Props) {
           </Field>
           <Field label="Timezone" required>
             <select
+              key={timesKey}
               name="timezone"
-              defaultValue={event.timezone ?? 'America/Chicago'}
+              defaultValue={event.timezone ?? undefined}
               className={inputCls}
               style={inputStyle}
             >
-              {TIMEZONES.map(tz => (
-                <option key={tz.value} value={tz.value}>{tz.label}</option>
-              ))}
+              <TimezoneOptions current={event.timezone} />
             </select>
           </Field>
         </div>
@@ -154,13 +159,13 @@ export function EventSettingsForm({ eventId, event }: Props) {
         <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--pz-muted)' }}>
           Date & time
         </h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div key={timesKey} className="grid grid-cols-2 gap-4">
           <Field label="Start" required>
             <input
               type="datetime-local"
               name="start_at"
               required
-              defaultValue={toDatetimeLocal(event.start_at)}
+              defaultValue={toZonedInput(event.start_at, event.timezone)}
               className={inputCls}
               style={inputStyle}
             />
@@ -170,7 +175,7 @@ export function EventSettingsForm({ eventId, event }: Props) {
               type="datetime-local"
               name="end_at"
               required
-              defaultValue={toDatetimeLocal(event.end_at)}
+              defaultValue={toZonedInput(event.end_at, event.timezone)}
               className={inputCls}
               style={inputStyle}
             />

@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { requireEventTimezone, zonedInputToIso } from '@/lib/datetime/zoned-input'
+import { resolveCreateTimes } from '@/lib/events/event-times'
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -52,17 +53,29 @@ function csvTimeToIsoOrThrow(val: string, timeZone: string): string | null {
   return zonedInputToIso(wall, timeZone)
 }
 
+// The columns the agenda CSV mapper (SESSION_FIELDS in the agenda client) may write.
+// track / room / speaker are offered by the mapper but not imported. Any other
+// mapped name — event_id, is_published, … — is ignored.
+const CSV_IMPORT_FIELDS = new Set(['title', 'description', 'starts_at', 'ends_at', 'session_type', 'capacity'])
+
 export async function importAgendaFromCsv(eventId: string, rows: Record<string, string>[], columnMap: Record<string, string>) {
+  const user = await requireUser()
   const supabase = await createClient()
 
-  const { data: event } = await supabase.from('events').select('timezone').eq('id', eventId).single()
+  const { data: event } = await supabase.from('events').select('org_id, timezone').eq('id', eventId).single()
   if (!event) return { imported: 0, error: 'Event not found' }
+  try {
+    await assertPermission((event as { org_id: string }).org_id, user.id, 'agenda.manage')
+  } catch (e) {
+    return { imported: 0, ...catchPermission(e) }
+  }
   const timeZone = requireEventTimezone((event as { timezone?: unknown }).timezone)
 
   const badTimes: string[] = []
   const sessions = rows.map(row => {
-    const mapped: Record<string, unknown> = { event_id: eventId }
+    const mapped: Record<string, unknown> = {}
     for (const [csvCol, field] of Object.entries(columnMap)) {
+      if (!CSV_IMPORT_FIELDS.has(field)) continue
       const val = row[csvCol]?.trim()
       if (!val) continue
       if (field === 'starts_at' || field === 'ends_at') {
@@ -71,13 +84,14 @@ export async function importAgendaFromCsv(eventId: string, rows: Record<string, 
         mapped[field] = iso
       } else if (field === 'capacity') {
         mapped[field] = parseInt(val) || null
-      } else if (field !== 'speaker' && field !== 'track' && field !== 'room') {
+      } else {
         mapped[field] = val
       }
     }
     if (!mapped.title) return null
     if (!mapped.session_type) mapped.session_type = 'talk'
-    return mapped
+    // Always the argument's event, never a CSV value.
+    return { ...mapped, event_id: eventId }
   }).filter(Boolean)
 
   if (badTimes.length > 0) return { imported: 0, error: `Unrecognised date/time: "${badTimes[0]}"` }
@@ -252,6 +266,7 @@ export async function createEventFromTemplate(
   slug: string,
   startAt: string,
   endAt: string,
+  formTimezone?: string,
 ) {
   const supabase = await createClient()
   const user = await requireUser()
@@ -265,19 +280,20 @@ export async function createEventFromTemplate(
   const td = (tpl as any).template_data
   const ev = td.event ?? {}
 
-  // Mirror createEvent's datetime-local → ISO conversion (src/lib/events/actions.ts:20-21)
-  const normalizeDate = (v: string) => (v.includes('Z') || v.includes('+') ? v : new Date(v).toISOString())
-  const startAtIso = normalizeDate(startAt)
-  const endAtIso = normalizeDate(endAt)
-
-  // Template row's own timezone always wins; otherwise derive from the org
-  // the event is being created in — never a hardcoded literal.
-  let timezone = ev.timezone as string | undefined
+  // The create form's timezone wins, then the template row's, then the org's —
+  // never a hardcoded literal.
+  let timezone = formTimezone || (ev.timezone as string | undefined)
   if (!timezone) {
     const { data: org } = await admin.from('organizations').select('timezone').eq('id', orgId).maybeSingle()
     timezone = org?.timezone
   }
   if (!timezone) return { error: 'Could not determine a timezone for this event.' }
+
+  // D5: the typed times are wall clocks in the event's timezone.
+  const times = resolveCreateTimes(startAt, endAt, timezone)
+  if ('error' in times) return { error: times.error }
+  const startAtIso = times.start_at
+  const endAtIso = times.end_at
 
   const { data: newEvent, error: evError } = await supabase.from('events').insert({
     created_by: user.id,
