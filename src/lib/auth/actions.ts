@@ -20,7 +20,9 @@ export async function signUp(_prevState: unknown, formData: FormData): Promise<{
     password,
     options: {
       data: { full_name: fullName },
-      ...(next ? { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(next)}` } : {}),
+      // The confirm-signup template links to /auth/confirm with next={{ .RedirectTo }};
+      // with no next, Supabase falls back to site_url, which /auth/confirm treats as no destination.
+      ...(next ? { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${next}` } : {}),
     },
   })
 
@@ -35,8 +37,11 @@ export async function sendMagicLink(_prevState: unknown, formData: FormData): Pr
   if (!email || !email.includes('@')) return { error: 'Please enter a valid email address.' }
   const rawNext = formData.get('next')
   const next = typeof rawNext === 'string' && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\') ? rawNext : null
-  const emailRedirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo } })
+  // Same carriage as signUp: the magic-link template links to /auth/confirm with next={{ .RedirectTo }}.
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, ...(next ? { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${next}` } : {}) },
+  })
   if (error) return { error: error.message }
   return { success: 'Check your email for your sign-in link.' }
 }
