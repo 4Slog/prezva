@@ -55,6 +55,19 @@ describe('resolveNext', () => {
     expect(resolveNext('https://', ORIGIN)).toBeNull()
   })
 
+  it('treats /auth/callback as no destination (switch-window links)', () => {
+    expect(resolveNext('/auth/callback', ORIGIN)).toBeNull()
+    expect(resolveNext('/auth/callback?next=/me', ORIGIN)).toBeNull()
+    expect(resolveNext('/auth/callback/', ORIGIN)).toBeNull()
+    expect(resolveNext('https://prezva.app/auth/callback?next=%2Fme', ORIGIN)).toBeNull()
+    expect(resolveNext('https://prezva.app/auth/callback', ORIGIN)).toBeNull()
+  })
+
+  it('does not catch paths that merely share the /auth/callback prefix', () => {
+    expect(resolveNext('/auth/callbackfoo', ORIGIN)).toBe('/auth/callbackfoo')
+    expect(resolveNext('https://prezva.app/auth/callbackfoo', ORIGIN)).toBe('/auth/callbackfoo')
+  })
+
   it('never returns an absolute URL', () => {
     for (const input of ['https://prezva.app/me', '/me', 'https://prezva.app/a?b=https://evil.com']) {
       const out = resolveNext(input, ORIGIN)

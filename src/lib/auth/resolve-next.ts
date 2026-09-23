@@ -14,11 +14,22 @@ function isSafeRelativePath(path: string): boolean {
   return path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/\\')
 }
 
+function isAuthCallback(path: string): boolean {
+  return path === '/auth/callback' || path.startsWith('/auth/callback?') || path.startsWith('/auth/callback/')
+}
+
+function accept(path: string): string | null {
+  if (!isSafeRelativePath(path)) return null
+  // Links requested under the old code carry next=APP_URL/auth/callback?next=...; the callback without a code shows auth_callback_failed to a signed-in user.
+  if (isAuthCallback(path)) return null
+  return path
+}
+
 export function resolveNext(nextParam: string | null, origin: string): string | null {
   if (!nextParam) return null
 
   if (nextParam.startsWith('/')) {
-    return isSafeRelativePath(nextParam) ? nextParam : null
+    return accept(nextParam)
   }
 
   let url: URL
@@ -32,5 +43,5 @@ export function resolveNext(nextParam: string | null, origin: string): string | 
   const path = `${url.pathname}${url.search}${url.hash}`
   // The bare site_url fallback: Supabase had no destination to carry.
   if (path === '/') return null
-  return isSafeRelativePath(path) ? path : null
+  return accept(path)
 }
