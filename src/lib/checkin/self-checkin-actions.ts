@@ -3,6 +3,7 @@
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import { logAudit } from '@/lib/audit/log'
 import { checkRateLimit, pinLookupLimiter } from '@/lib/ratelimit'
 import { enqueueGhlStageMove } from '@/lib/trigger'
@@ -116,8 +117,13 @@ export async function selfCheckInRegistration(
     .eq('id', registrationId)
     .maybeSingle()
 
-  // Ownership guard — generic error to avoid leaking registration existence
-  if (!reg || (reg as any).user_id !== user.id) return { success: false, error: 'Registration not found.' }
+  // Ownership guard — generic error to avoid leaking registration existence. The
+  // shared rule (O102) also accepts a confirmed reg matched by verified email when
+  // registrations.user_id isn't linked yet.
+  if (!reg) return { success: false, error: 'Registration not found.' }
+  const owns = (reg as any).user_id === user.id ||
+    (await resolveOwnedRegistration({ type: 'user', userId: user.id }, (reg as any).event_id))?.id === (reg as any).id
+  if (!owns) return { success: false, error: 'Registration not found.' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'This registration has been cancelled.' }
   if ((reg as any).status !== 'confirmed') return { success: false, error: 'Your registration is not confirmed.' }
 

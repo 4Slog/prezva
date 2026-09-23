@@ -12,6 +12,8 @@ import { enqueueGhlStageMove } from '@/lib/trigger'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-token'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 
 export interface CheckInResult {
   success: boolean
@@ -399,16 +401,28 @@ async function recordSessionCheckIn(
 }
 
 export async function checkInToSession(
-  registrationId: string,
+  eventSlug: string,
   sessionId: string,
-  method: string = 'self',
 ): Promise<{ ok: boolean; alreadyCheckedIn?: boolean; error?: string }> {
-  // Callable from the client (SessionCheckInButton), so it can never record an
-  // override or a staff identity.
-  if (method !== 'self' && method !== 'qr_scan' && method !== 'manual') {
-    return { ok: false, error: 'Invalid check-in method' }
+  // Attendee self check-in from the agenda (O102). Callable from the client, so it
+  // takes no registration id and no method: the registration is the one the caller
+  // is proven to own, and the row is always 'self' with no staff identity.
+  if (typeof eventSlug !== 'string' || !eventSlug || typeof sessionId !== 'string' || !sessionId) {
+    return { ok: false, error: 'Invalid check-in' }
   }
-  return recordSessionCheckIn(registrationId, sessionId, method, null)
+
+  const { data: event } = await createAdminClient()
+    .from('events')
+    .select('id')
+    .eq('slug', eventSlug)
+    .maybeSingle()
+  if (!event) return { ok: false, error: 'Event not found' }
+
+  const identity = await getSessionIdentity(eventSlug)
+  const owned = await resolveOwnedRegistration(identity, event.id)
+  if (!owned) return { ok: false, error: 'Sign in to check in' }
+
+  return recordSessionCheckIn(owned.id, sessionId, 'self', null)
 }
 
 type SessionRegRow = {

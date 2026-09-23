@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/session-types'
 import { z } from 'zod'
+import { requireEventTimezone } from '@/lib/datetime/zoned-input'
 import type { Session, Track, Room, Speaker, OrgSessionType } from '@/lib/agenda/actions'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ export async function embedGetAgendaData(eventId: string) {
 
   return {
     orgId,
-    timezone: (eventResult.data as any)?.timezone ?? 'UTC',
+    timezone: requireEventTimezone((eventResult.data as any)?.timezone),
     sessions,
     tracks: (tracksResult.data ?? []) as Track[],
     rooms: (roomsResult.data ?? []) as Room[],

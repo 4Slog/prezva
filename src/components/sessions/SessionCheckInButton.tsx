@@ -6,12 +6,12 @@ import { checkInToSession } from '@/lib/checkin/actions'
 type Status = 'idle' | 'loading' | 'done' | 'already'
 
 interface Props {
-  registrationId: string
+  eventSlug: string
   sessionId: string
   sessionStartsAt: string
 }
 
-export default function SessionCheckInButton({ registrationId, sessionId, sessionStartsAt }: Props) {
+export default function SessionCheckInButton({ eventSlug, sessionId, sessionStartsAt }: Props) {
   const [status, setStatus] = useState<Status>('idle')
 
   if (new Date(sessionStartsAt) > new Date()) return null
@@ -34,7 +34,7 @@ export default function SessionCheckInButton({ registrationId, sessionId, sessio
 
   async function handleClick() {
     setStatus('loading')
-    const result = await checkInToSession(registrationId, sessionId, 'self')
+    const result = await checkInToSession(eventSlug, sessionId)
     if (result.ok) {
       setStatus(result.alreadyCheckedIn ? 'already' : 'done')
     } else {

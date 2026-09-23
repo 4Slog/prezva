@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import SelfCheckInWithPin from '@/components/checkin/SelfCheckInWithPin'
 
 type Props = { params: Promise<{ sessionToken: string }> }
@@ -25,13 +26,8 @@ export default async function SessionSelfCheckInPage({ params }: Props) {
   let registrationId: string | undefined
 
   if (user) {
-    const { data: reg } = await admin
-      .from('registrations')
-      .select('id')
-      .eq('event_id', event.id)
-      .eq('user_id', user.id)
-      .eq('status', 'confirmed')
-      .maybeSingle()
+    // Same ownership rule selfCheckInRegistration enforces (user_id, else verified email).
+    const reg = await resolveOwnedRegistration({ type: 'user', userId: user.id }, event.id)
     registrationId = reg?.id ?? undefined
   }
 

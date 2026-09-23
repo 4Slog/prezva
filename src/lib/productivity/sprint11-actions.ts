@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { requireEventTimezone, zonedInputToIso } from '@/lib/datetime/zoned-input'
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -18,16 +19,56 @@ export async function previewAgendaCsv(eventId: string, rows: Record<string, str
   })
 }
 
+// A time that names its zone is an instant and is kept: a trailing Z or offset, or a
+// zone word the engine honours when parsing (UTC, GMT±hhmm, US abbreviations).
+const HAS_ZONE = /(\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?\s*(Z|[+-]\d{2}(:?\d{2})?)$)|\b(UTC|GMT|[ECMP][SD]T)\b/i
+const ISO_WALL_CLOCK = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(:\d{2})?)$/
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+// D5: a CSV time with no zone is a wall clock in the EVENT's timezone, not the
+// server's. Returns null for a value that isn't a date at all.
+function csvTimeToIso(val: string, timeZone: string): string | null {
+  try {
+    return csvTimeToIsoOrThrow(val, timeZone)
+  } catch {
+    return null // e.g. 2026-02-30, which the zone helper rejects
+  }
+}
+
+function csvTimeToIsoOrThrow(val: string, timeZone: string): string | null {
+  if (HAS_ZONE.test(val)) {
+    const ms = Date.parse(val)
+    return Number.isNaN(ms) ? null : new Date(ms).toISOString()
+  }
+  const iso = ISO_WALL_CLOCK.exec(val)
+  if (iso) return zonedInputToIso(`${iso[1]}T${iso[2]}`, timeZone)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return zonedInputToIso(`${val}T00:00`, timeZone)
+  // Other spellings ("9/23/2026 3:00 PM"): let the engine read the wall clock, then
+  // take its fields back out. A zone-less string parses as server-local, so the
+  // local getters return exactly the fields written, whatever the server's zone.
+  const d = new Date(val)
+  if (Number.isNaN(d.getTime())) return null
+  const wall = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
+  return zonedInputToIso(wall, timeZone)
+}
+
 export async function importAgendaFromCsv(eventId: string, rows: Record<string, string>[], columnMap: Record<string, string>) {
   const supabase = await createClient()
 
+  const { data: event } = await supabase.from('events').select('timezone').eq('id', eventId).single()
+  if (!event) return { imported: 0, error: 'Event not found' }
+  const timeZone = requireEventTimezone((event as { timezone?: unknown }).timezone)
+
+  const badTimes: string[] = []
   const sessions = rows.map(row => {
     const mapped: Record<string, unknown> = { event_id: eventId }
     for (const [csvCol, field] of Object.entries(columnMap)) {
       const val = row[csvCol]?.trim()
       if (!val) continue
       if (field === 'starts_at' || field === 'ends_at') {
-        mapped[field] = new Date(val).toISOString()
+        const iso = csvTimeToIso(val, timeZone)
+        if (!iso) { badTimes.push(val); continue }
+        mapped[field] = iso
       } else if (field === 'capacity') {
         mapped[field] = parseInt(val) || null
       } else if (field !== 'speaker' && field !== 'track' && field !== 'room') {
@@ -39,6 +80,7 @@ export async function importAgendaFromCsv(eventId: string, rows: Record<string, 
     return mapped
   }).filter(Boolean)
 
+  if (badTimes.length > 0) return { imported: 0, error: `Unrecognised date/time: "${badTimes[0]}"` }
   if (sessions.length === 0) return { imported: 0, error: 'No valid sessions found' }
 
   const { data, error } = await supabase.from('sessions').insert(sessions as any[]).select('id')

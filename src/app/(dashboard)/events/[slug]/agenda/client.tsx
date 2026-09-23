@@ -870,6 +870,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
           </h2>
           <SessionForm
             eventId={eventId}
+            timezone={timezone}
             tracks={tracksState}
             rooms={roomsState}
             speakers={speakers}

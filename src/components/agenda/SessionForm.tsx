@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Track, Room, Speaker, Session, OrgSessionType } from '@/lib/agenda/actions'
 import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/session-types'
 import { Field } from '@/components/ui/Field'
+import { isoToZonedInput, zonedInputToIso } from '@/lib/datetime/zoned-input'
 
 interface SessionSponsor {
   id: string
@@ -12,6 +13,8 @@ interface SessionSponsor {
 
 interface SessionFormProps {
   eventId: string
+  /** The EVENT's IANA zone (D5): the inputs show and save wall-clock times in it. */
+  timezone: string
   tracks: Track[]
   rooms: Room[]
   speakers: Speaker[]
@@ -32,15 +35,15 @@ const SPEAKER_ROLES = [
   { value: 'introducer', label: 'Introducer' },
 ]
 
-function fmt(iso: string) { return iso ? iso.slice(0, 16) : '' }
-function toIso(local: string) { return local ? new Date(local).toISOString() : '' }
+export function SessionForm({ timezone, tracks, rooms, speakers, sponsors = [], sessions = [], session, customTypes = [], onSave, onCancel }: SessionFormProps) {
+  const fmt = (iso: string) => (iso ? isoToZonedInput(iso, timezone) : '')
+  const toIso = (local: string) => (local ? zonedInputToIso(local, timezone) : '')
 
-export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions = [], session, customTypes = [], onSave, onCancel }: SessionFormProps) {
   const [title, setTitle] = useState(session?.title ?? '')
   const [description, setDescription] = useState(session?.description ?? '')
   const [type, setType] = useState(session?.session_type ?? 'talk')
-  const [startsAt, setStartsAt] = useState(fmt(session?.starts_at ?? ''))
-  const [endsAt, setEndsAt] = useState(fmt(session?.ends_at ?? ''))
+  const [startsAt, setStartsAt] = useState(() => fmt(session?.starts_at ?? ''))
+  const [endsAt, setEndsAt] = useState(() => fmt(session?.ends_at ?? ''))
   const [trackId, setTrackId] = useState(session?.track_id ?? '')
   const [roomId, setRoomId] = useState(session?.room_id ?? '')
   const [sponsoredById, setSponsoredById] = useState(session?.sponsored_by_id ?? '')
@@ -55,10 +58,17 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Detect room conflicts when room + times are set
-  const conflict = roomId && startsAt && endsAt
-    ? sessions.find(s => s.id !== session?.id && s.room_id === roomId && new Date(s.starts_at) < new Date(toIso(endsAt)) && new Date(s.ends_at) > new Date(toIso(startsAt)))
-    : null
+  // Detect room conflicts when room + times are set. The inputs are event-zone wall
+  // clocks; a half-typed value that isn't a full date yet just skips the check.
+  const conflict = (() => {
+    if (!roomId || !startsAt || !endsAt) return null
+    try {
+      const start = new Date(toIso(startsAt)), end = new Date(toIso(endsAt))
+      return sessions.find(s => s.id !== session?.id && s.room_id === roomId && new Date(s.starts_at) < end && new Date(s.ends_at) > start) ?? null
+    } catch {
+      return null
+    }
+  })()
   const conflictRoom = conflict ? rooms.find(r => r.id === conflict.room_id) : null
 
   function toggleSpeaker(id: string) {
@@ -151,6 +161,7 @@ export function SessionForm({ tracks, rooms, speakers, sponsors = [], sessions =
         <Field label="Ends At" htmlFor="sess-end" required>
           <input id="sess-end" type="datetime-local" className={inputCls} value={endsAt} onChange={e => setEndsAt(e.target.value)} />
         </Field>
+        <p className="col-span-2 -mt-1 text-xs text-[var(--pz-muted)]">Times are in {timezone}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

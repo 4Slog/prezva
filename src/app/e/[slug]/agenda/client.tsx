@@ -388,8 +388,8 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
                     {userId && (isActive || isEnded) && (
                       <MarkAttendanceButton sessionId={s.id} eventId={eventId} userId={userId} />
                     )}
-                    {registrationId && (
-                      <SessionCheckInButton registrationId={registrationId} sessionId={s.id} sessionStartsAt={s.starts_at} />
+                    {registrationId && eventSlug && (
+                      <SessionCheckInButton eventSlug={eventSlug} sessionId={s.id} sessionStartsAt={s.starts_at} />
                     )}
                     {eventSlug && isEnded && (
                       <a

@@ -391,9 +391,9 @@ describe('orgCheckInToSession', () => {
   })
 })
 
-// ── checkInToSession — GHL stage move (door 2) ──────────────────────────────────
+// ── orgCheckInToSession — GHL stage move (door 2) ──────────────────────────────────
 
-describe('checkInToSession — GHL stage move', () => {
+describe('orgCheckInToSession — GHL stage move (session door)', () => {
   const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
   const confirmedReg = { id: REG_ID, event_id: EVENT_ID, status: 'confirmed', attendee_name: 'Alice', attendee_email: 'alice@test.com', ticket_types: { name: 'General' }, events: { org_id: ORG_ID } }
 

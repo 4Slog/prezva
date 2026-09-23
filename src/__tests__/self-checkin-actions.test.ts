@@ -36,7 +36,11 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
+// O102: the room-QR path shares the ownership rule; the rule itself is tested in m3a-session-scan.
+vi.mock('@/lib/auth/owned-registration', () => ({ resolveOwnedRegistration: vi.fn().mockResolvedValue(null) }))
+
 import { selfCheckInByToken, selfCheckInRegistration, selfCheckInByEmailPin } from '@/lib/checkin/self-checkin-actions'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
@@ -196,5 +200,43 @@ describe('selfCheckInByEmailPin — GHL stage move', () => {
     const result = await selfCheckInByEmailPin(EVENT_ID, null, 'alice@test.com', PIN)
     expect(result.success).toBe(true)
     expect(enqueueGhlStageMove).not.toHaveBeenCalled()
+  })
+})
+
+// ── selfCheckInRegistration — ownership via the shared resolver (O102) ─────────
+
+describe('selfCheckInRegistration — ownership (O102)', () => {
+  const REG_ID = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const SESSION_ID = 'd1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const unlinkedReg = {
+    id: REG_ID, user_id: null, attendee_name: 'Alice', status: 'confirmed', event_id: 'event-1',
+    events: { id: 'event-1', title: 'Test Event', start_at: new Date().toISOString(), timezone: 'UTC', org_id: ORG_ID },
+  }
+  let insert: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    vi.mocked(resolveOwnedRegistration).mockReset().mockResolvedValue(null)
+    vi.mocked(ghlLocationIdForOrg).mockReset().mockResolvedValue(null)
+    insert = vi.fn().mockReturnValue({ error: null })
+    mockFromImpl = (t) => {
+      if (t === 'registrations') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: unlinkedReg, error: null }) })
+      if (t === 'check_ins') return makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }), insert })
+      return makeChain()
+    }
+  })
+
+  it('accepts a reg not linked by user_id when the resolver matches it by verified email', async () => {
+    vi.mocked(resolveOwnedRegistration).mockResolvedValue({ id: REG_ID })
+    const result = await selfCheckInRegistration(REG_ID, SESSION_ID)
+    expect(result.success).toBe(true)
+    expect(resolveOwnedRegistration).toHaveBeenCalledWith({ type: 'user', userId: USER_ID }, 'event-1')
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ registration_id: REG_ID, method: 'self', checked_in_by: null }))
+  })
+
+  it("refuses someone else's reg (resolver finds none, or a different one) and writes nothing", async () => {
+    expect(await selfCheckInRegistration(REG_ID, SESSION_ID)).toEqual({ success: false, error: 'Registration not found.' })
+    vi.mocked(resolveOwnedRegistration).mockResolvedValue({ id: 'some-other-reg' })
+    expect(await selfCheckInRegistration(REG_ID, SESSION_ID)).toEqual({ success: false, error: 'Registration not found.' })
+    expect(insert).not.toHaveBeenCalled()
   })
 })

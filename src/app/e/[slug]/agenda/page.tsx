@@ -5,6 +5,7 @@ import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import AgendaClient from './client'
+import { requireEventTimezone } from '@/lib/datetime/zoned-input'
 
 export default async function PublicAgendaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -56,7 +57,7 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
-        <AgendaClient sessions={sessions} eventId={event.id} userId={userId} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={(event as any).timezone ?? 'UTC'} registrationId={registrationId} />
+        <AgendaClient sessions={sessions} eventId={event.id} userId={userId} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={requireEventTimezone((event as any).timezone)} registrationId={registrationId} />
       </div>
     </div>
   )

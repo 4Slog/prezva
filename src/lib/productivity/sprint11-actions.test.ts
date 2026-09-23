@@ -109,3 +109,76 @@ describe('createEventFromTemplate — timezone derivation', () => {
     expect(mockEventsInsert).not.toHaveBeenCalled()
   })
 })
+
+// ── O107: CSV agenda import reads zone-less times in the EVENT's timezone ─────
+describe('importAgendaFromCsv — event timezone (O107)', () => {
+  const mockSessionsInsert = vi.fn()
+  function useEventTimezone(timezone: string | null) {
+    mockSessionsInsert.mockReset().mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: [{ id: 's-1' }], error: null }),
+    })
+    mockServerFrom.mockImplementation(((table: string) => {
+      if (table === 'events') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { timezone }, error: null }),
+        }
+      }
+      return { insert: mockSessionsInsert }
+    }) as any)
+  }
+  const map = { Title: 'title', Start: 'starts_at', End: 'ends_at' }
+
+  it('converts a naive ISO wall clock in the event zone (15:00 New York → 19:00Z)', async () => {
+    useEventTimezone('America/New_York')
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    const res = await importAgendaFromCsv('evt-1', [{ Title: 'Keynote', Start: '2026-09-23T15:00', End: '2026-09-23 17:00' }], map)
+    expect(res).toEqual({ imported: 1 })
+    const [row] = mockSessionsInsert.mock.calls[0][0]
+    expect(row.starts_at).toBe('2026-09-23T19:00:00.000Z')
+    expect(row.ends_at).toBe('2026-09-23T21:00:00.000Z')
+  })
+
+  it('converts a US-style naive time in the event zone too', async () => {
+    useEventTimezone('America/Chicago')
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    await importAgendaFromCsv('evt-1', [{ Title: 'Panel', Start: '9/23/2026 3:00 PM', End: '9/23/2026 4:00 PM' }], map)
+    const [row] = mockSessionsInsert.mock.calls[0][0]
+    expect(row.starts_at).toBe('2026-09-23T20:00:00.000Z')
+    expect(row.ends_at).toBe('2026-09-23T21:00:00.000Z')
+  })
+
+  it('keeps a value that already carries Z or an offset as the same instant', async () => {
+    useEventTimezone('America/New_York')
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    await importAgendaFromCsv('evt-1', [{ Title: 'Remote', Start: '2026-09-23T15:00:00Z', End: '2026-09-23T15:00:00-07:00' }], map)
+    const [row] = mockSessionsInsert.mock.calls[0][0]
+    expect(row.starts_at).toBe('2026-09-23T15:00:00.000Z')
+    expect(row.ends_at).toBe('2026-09-23T22:00:00.000Z')
+  })
+
+  it('keeps a value whose zone is a word the engine honours (EST, GMT-0400)', async () => {
+    useEventTimezone('America/Los_Angeles')
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    await importAgendaFromCsv('evt-1', [{ Title: 'East', Start: '9/23/2026 3:00 PM EDT', End: 'Wed Sep 23 2026 16:00:00 GMT-0400 (Eastern Daylight Time)' }], map)
+    const [row] = mockSessionsInsert.mock.calls[0][0]
+    expect(row.starts_at).toBe('2026-09-23T19:00:00.000Z')
+    expect(row.ends_at).toBe('2026-09-23T20:00:00.000Z')
+  })
+
+  it('refuses an unreadable time instead of inserting', async () => {
+    useEventTimezone('America/New_York')
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    const res = await importAgendaFromCsv('evt-1', [{ Title: 'Bad', Start: '2026-02-30T10:00', End: 'soon' }], map)
+    expect(res).toEqual({ imported: 0, error: 'Unrecognised date/time: "2026-02-30T10:00"' })
+    expect(mockSessionsInsert).not.toHaveBeenCalled()
+  })
+
+  it('fails loud when the event has no timezone', async () => {
+    useEventTimezone(null)
+    const { importAgendaFromCsv } = await import('./sprint11-actions')
+    await expect(importAgendaFromCsv('evt-1', [{ Title: 'X', Start: '2026-09-23T15:00', End: '2026-09-23T16:00' }], map)).rejects.toThrow(RangeError)
+    expect(mockSessionsInsert).not.toHaveBeenCalled()
+  })
+})

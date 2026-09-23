@@ -55,7 +55,10 @@ function table(name: string) {
   }
   return q
 }
-const fakeClient = { from: (t: string) => table(t) }
+// O102: the attendee path resolves identity itself; auth.getUser feeds the email fallback.
+const mockGetUser = vi.fn()
+const fakeClient = { from: (t: string) => table(t), auth: { getUser: mockGetUser } }
+vi.mock('@/lib/auth/session-identity', () => ({ getSessionIdentity: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(() => Promise.resolve(fakeClient)) }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: vi.fn(() => fakeClient) }))
 
@@ -63,6 +66,7 @@ import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-to
 import { orgCheckInToSession, orgOverrideSessionCheckIn, checkInToSession } from '@/lib/checkin/actions'
 import { embedScanIntoSession, embedManualMarkSession, embedOverrideSessionCheckIn } from '@/lib/embedded/checkin-actions'
 import { verifyEmbeddedSession } from '@/lib/embedded/session'
+import { getSessionIdentity, type SessionIdentity } from '@/lib/auth/session-identity'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import {
@@ -111,12 +115,14 @@ function embedAs(email?: string) {
 
 beforeEach(() => {
   embedAs()
+  vi.mocked(getSessionIdentity).mockReset().mockResolvedValue({ type: 'anonymous' })
+  mockGetUser.mockReset().mockResolvedValue({ data: { user: null } })
   vi.mocked(enqueueGhlStageMove).mockClear()
   vi.mocked(getGhlOrgConfig).mockReset().mockResolvedValue(CONFIG)
   db = {
     events: [
-      { id: EVENT, org_id: ORG, title: 'Here Event' },
-      { id: OTHER_EVENT, org_id: OTHER_ORG, title: 'Secret Other Event' },
+      { id: EVENT, org_id: ORG, title: 'Here Event', slug: 'here-event' },
+      { id: OTHER_EVENT, org_id: OTHER_ORG, title: 'Secret Other Event', slug: 'other-event' },
     ],
     ghl_location_links: [{ ghl_location_id: 'loc_1', org_id: ORG }],
     sessions: [{ id: SESSION, event_id: EVENT }],
@@ -223,17 +229,96 @@ describe('orgCheckInToSession (dashboard)', () => {
   })
 })
 
-describe('checkInToSession (client-callable)', () => {
-  it('cannot record an override', async () => {
-    const result = await checkInToSession('r-prezva', SESSION, 'override')
-    expect(result.ok).toBe(false)
+describe('checkInToSession (client-callable, O102)', () => {
+  const ATTENDEE_ID = '0a1b2c3d-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+  const as = (identity: SessionIdentity, email?: string) => {
+    vi.mocked(getSessionIdentity).mockResolvedValue(identity)
+    mockGetUser.mockResolvedValue({ data: { user: email ? { id: ATTENDEE_ID, email } : null } })
+  }
+
+  it('refuses an anonymous caller and writes nothing', async () => {
+    const result = await checkInToSession('here-event', SESSION)
+    expect(result).toEqual({ ok: false, error: 'Sign in to check in' })
+    expect(sessionRows()).toHaveLength(0)
+    expect(getSessionIdentity).toHaveBeenCalledWith('here-event')
+  })
+
+  it('checks in a full-auth caller by user_id, as self with no staff id', async () => {
+    db.registrations.find(r => r.id === 'r-prezva')!.user_id = ATTENDEE_ID
+    as({ type: 'user', userId: ATTENDEE_ID })
+    const result = await checkInToSession('here-event', SESSION)
+    expect(result).toEqual({ ok: true, alreadyCheckedIn: false })
+    expect(sessionRows()).toEqual([expect.objectContaining({ registration_id: 'r-prezva', method: 'self', checked_in_by: null })])
+    expect(mockGetUser).not.toHaveBeenCalled() // user_id hit: no email fallback needed
+  })
+
+  it('falls back to the verified auth email (case-insensitive) when user_id is not linked', async () => {
+    as({ type: 'user', userId: ATTENDEE_ID }, 'R-Prezva@Test.com')
+    const result = await checkInToSession('here-event', SESSION)
+    expect(result.ok).toBe(true)
+    expect(sessionRows()).toEqual([expect.objectContaining({ registration_id: 'r-prezva', method: 'self' })])
+  })
+
+  it('refuses a full-auth caller who owns no registration here', async () => {
+    as({ type: 'user', userId: ATTENDEE_ID }, 'stranger@test.com')
+    expect(await checkInToSession('here-event', SESSION)).toEqual({ ok: false, error: 'Sign in to check in' })
     expect(sessionRows()).toHaveLength(0)
   })
 
-  it('never stores a staff id', async () => {
-    const result = await checkInToSession('r-prezva', SESSION, 'self')
+  it('accepts a claim-level caller whose registration is on this event', async () => {
+    as({ type: 'registration', registrationId: 'r-ghl', eventId: EVENT })
+    const result = await checkInToSession('here-event', SESSION)
     expect(result.ok).toBe(true)
-    expect(sessionRows()).toEqual([expect.objectContaining({ method: 'self', checked_in_by: null })])
+    expect(sessionRows()).toEqual([expect.objectContaining({ registration_id: 'r-ghl', method: 'self', checked_in_by: null })])
+  })
+
+  it('refuses a claim-level caller whose registration is on ANOTHER event', async () => {
+    as({ type: 'registration', registrationId: 'r-other', eventId: OTHER_EVENT })
+    expect(await checkInToSession('here-event', SESSION)).toEqual({ ok: false, error: 'Sign in to check in' })
+    expect(sessionRows()).toHaveLength(0)
+  })
+
+  it('refuses a registration that is not confirmed (claim-level and full-auth)', async () => {
+    as({ type: 'registration', registrationId: 'r-pending', eventId: EVENT })
+    expect((await checkInToSession('here-event', SESSION)).ok).toBe(false)
+    db.registrations.find(r => r.id === 'r-waitlisted')!.user_id = ATTENDEE_ID
+    as({ type: 'user', userId: ATTENDEE_ID }, 'r-waitlisted@test.com')
+    expect((await checkInToSession('here-event', SESSION)).ok).toBe(false)
+    expect(sessionRows()).toHaveLength(0)
+  })
+
+  it('ignores any extra client arguments: the row is always self, never override or a staff method', async () => {
+    as({ type: 'registration', registrationId: 'r-ghl', eventId: EVENT })
+    // A tampered client can still send extra positional args; they must be ignored.
+    const call = checkInToSession as unknown as (...a: unknown[]) => ReturnType<typeof checkInToSession>
+    expect((await call('here-event', SESSION, 'override', 'r-other')).ok).toBe(true)
+    expect(sessionRows()).toEqual([expect.objectContaining({ registration_id: 'r-ghl', method: 'self', checked_in_by: null })])
+  })
+
+  it('refuses a session from another event even for an owned registration', async () => {
+    db.sessions.push({ id: 'sess-other', event_id: OTHER_EVENT })
+    as({ type: 'registration', registrationId: 'r-ghl', eventId: EVENT })
+    expect((await checkInToSession('here-event', 'sess-other')).ok).toBe(false)
+    expect(db.check_ins).toHaveLength(0)
+  })
+
+  it('refuses an unknown event slug', async () => {
+    expect(await checkInToSession('no-such-event', SESSION)).toEqual({ ok: false, error: 'Event not found' })
+    expect(getSessionIdentity).not.toHaveBeenCalled()
+  })
+
+  it('staff path unchanged: orgCheckInToSession still records the staff id and method', async () => {
+    const result = await orgCheckInToSession(EVENT, SESSION, 'r-prezva', 'manual')
+    expect(result.success).toBe(true)
+    expect(sessionRows()).toEqual([expect.objectContaining({ registration_id: 'r-prezva', method: 'manual', checked_in_by: STAFF_ID })])
+    expect(getSessionIdentity).not.toHaveBeenCalled()
+  })
+
+  it('staff path unchanged: an embed manual mark still writes as embed', async () => {
+    const result = await embedManualMarkSession(EVENT, SESSION, 'r-prezva')
+    expect(result.success).toBe(true)
+    expect(sessionRows()).toEqual([expect.objectContaining({ registration_id: 'r-prezva', method: 'manual', checked_in_source: 'embed' })])
+    expect(getSessionIdentity).not.toHaveBeenCalled()
   })
 })
 

@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import { checkRateLimit, myQrLimiter } from '@/lib/ratelimit'
 import QRDisplay from './qr-display'
 import Link from 'next/link'
@@ -55,39 +55,10 @@ export default async function MyQRPage({ params, searchParams }: Props) {
   const identity = await getSessionIdentity(slug)
   let reg: RegRow | null = null
 
-  if (identity.type === 'user') {
-    const { data: byUid } = await admin
-      .from('registrations')
-      .select(REG_COLS)
-      .eq('event_id', event.id)
-      .eq('user_id', identity.userId)
-      .eq('status', 'confirmed')
-      .maybeSingle()
-    reg = (byUid as RegRow | null) ?? null
-
-    if (!reg) {
-      const sessionClient = await createClient()
-      const { data: { user } } = await sessionClient.auth.getUser()
-      const userEmail = user?.email?.toLowerCase()
-      if (userEmail) {
-        const { data: byEmail } = await admin
-          .from('registrations')
-          .select(REG_COLS)
-          .eq('event_id', event.id)
-          .eq('attendee_email', userEmail)
-          .eq('status', 'confirmed')
-          .maybeSingle()
-        reg = (byEmail as RegRow | null) ?? null
-      }
-    }
-  } else if (identity.type === 'registration' && identity.eventId === event.id) {
-    const { data } = await admin
-      .from('registrations')
-      .select(REG_COLS)
-      .eq('id', identity.registrationId)
-      .eq('status', 'confirmed')
-      .maybeSingle()
-    reg = (data as RegRow | null) ?? null
+  // (a) and (b): the shared ownership rule.
+  const claimMatches = identity.type === 'registration' && identity.eventId === event.id
+  if (identity.type === 'user' || claimMatches) {
+    reg = await resolveOwnedRegistration<RegRow>(identity, event.id, REG_COLS)
   } else if (email && pin) {
     const { data } = await admin
       .from('registrations')

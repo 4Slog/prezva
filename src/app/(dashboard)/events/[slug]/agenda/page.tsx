@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { getAgenda, getOrgSessionTypes } from '@/lib/agenda/actions'
 import { getSponsors } from '@/lib/sponsors/actions'
 import { AgendaClient } from './client'
+import { requireEventTimezone } from '@/lib/datetime/zoned-input'
 
 interface Props { params: Promise<{ slug: string }> }
 
@@ -41,7 +42,7 @@ export default async function AgendaPage({ params }: Props) {
       <AgendaClient
         eventId={(event as any).id}
         orgId={(event as any).org_id}
-        timezone={(event as any).timezone ?? 'UTC'}
+        timezone={requireEventTimezone((event as any).timezone)}
         initialSessions={sessions}
         tracks={tracks}
         rooms={rooms}
