@@ -596,6 +596,7 @@ export type Database = {
         Row: {
           checked_in_at: string | null
           checked_in_by: string | null
+          checked_in_by_email: string | null
           checked_in_source: string
           device_id: string | null
           event_id: string
@@ -608,6 +609,7 @@ export type Database = {
         Insert: {
           checked_in_at?: string | null
           checked_in_by?: string | null
+          checked_in_by_email?: string | null
           checked_in_source?: string
           device_id?: string | null
           event_id: string
@@ -620,6 +622,7 @@ export type Database = {
         Update: {
           checked_in_at?: string | null
           checked_in_by?: string | null
+          checked_in_by_email?: string | null
           checked_in_source?: string
           device_id?: string | null
           event_id?: string
@@ -5670,7 +5673,7 @@ export type Database = {
         | "register"
         | "payment"
         | "export"
-      checkin_method: "qr_scan" | "manual" | "kiosk" | "self"
+      checkin_method: "qr_scan" | "manual" | "kiosk" | "self" | "override"
       event_status:
         | "draft"
         | "published"
@@ -5851,7 +5854,7 @@ export const Constants = {
         "payment",
         "export",
       ],
-      checkin_method: ["qr_scan", "manual", "kiosk", "self"],
+      checkin_method: ["qr_scan", "manual", "kiosk", "self", "override"],
       event_status: [
         "draft",
         "published",

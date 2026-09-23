@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
+import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-token'
 
 export interface CheckInResult {
   success: boolean
@@ -24,6 +25,8 @@ export interface CheckInResult {
   }
   error?: string
   points_awarded?: number
+  // Set on a refused GHL ticket scan (R79): staff may record an override (R81).
+  canOverride?: boolean
 }
 
 export interface CheckInStats {
@@ -322,10 +325,16 @@ export async function processOfflineQueue(raw: unknown) {
   return { processed, total: entries.length, errors, failedQrCodes }
 }
 
-export async function checkInToSession(
+type SessionCheckInMethod = 'self' | 'qr_scan' | 'manual' | 'override'
+
+// Core session write. Not exported: checkedInBy is a staff identity and 'override'
+// is a staff-only record (R81), so only server code that has already authorised
+// the caller may supply them.
+async function recordSessionCheckIn(
   registrationId: string,
   sessionId: string,
-  method: string = 'self',
+  method: SessionCheckInMethod,
+  checkedInBy: string | null,
 ): Promise<{ ok: boolean; alreadyCheckedIn?: boolean; error?: string }> {
   const supabase = createAdminClient()
 
@@ -336,7 +345,7 @@ export async function checkInToSession(
     .maybeSingle()
 
   if (!reg) return { ok: false, error: 'Registration not found' }
-  if (reg.status !== 'confirmed' && reg.status !== 'checked_in') {
+  if (reg.status !== 'confirmed') {
     return { ok: false, error: 'Registration is not confirmed' }
   }
 
@@ -364,6 +373,7 @@ export async function checkInToSession(
     event_id: reg.event_id,
     session_id: sessionId,
     method,
+    checked_in_by: checkedInBy,
     checked_in_at: new Date().toISOString(),
     synced_at: new Date().toISOString(),
   })
@@ -388,7 +398,52 @@ export async function checkInToSession(
   return { ok: true, alreadyCheckedIn: false }
 }
 
-// ── Org-authed session check-in (wraps the admin checkInToSession with auth guard) ─
+export async function checkInToSession(
+  registrationId: string,
+  sessionId: string,
+  method: string = 'self',
+): Promise<{ ok: boolean; alreadyCheckedIn?: boolean; error?: string }> {
+  // Callable from the client (SessionCheckInButton), so it can never record an
+  // override or a staff identity.
+  if (method !== 'self' && method !== 'qr_scan' && method !== 'manual') {
+    return { ok: false, error: 'Invalid check-in method' }
+  }
+  return recordSessionCheckIn(registrationId, sessionId, method, null)
+}
+
+type SessionRegRow = {
+  id: string
+  attendee_name: string
+  attendee_email: string
+  status: string
+  ticket_types: { name: string } | null
+}
+
+const SESSION_REG_SELECT = 'id, attendee_name, attendee_email, status, ticket_types(name)'
+
+async function finishStaffSessionCheckIn(
+  reg: SessionRegRow,
+  sessionId: string,
+  method: 'qr_scan' | 'manual' | 'override',
+  staffUserId: string,
+): Promise<CheckInResult> {
+  if (reg.status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
+  if (reg.status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  const result = await recordSessionCheckIn(reg.id, sessionId, method, staffUserId)
+  if (!result.ok) return { success: false, error: result.error }
+  return {
+    success: true,
+    registration: {
+      id: reg.id,
+      attendee_name: reg.attendee_name,
+      attendee_email: reg.attendee_email,
+      ticket_name: reg.ticket_types?.name ?? '',
+      already_checked_in: !!result.alreadyCheckedIn,
+    },
+  }
+}
+
+// ── Org-authed session check-in (wraps the admin session write with auth guard) ─
 export async function orgCheckInToSession(
   eventId: string,
   sessionId: string,
@@ -400,53 +455,63 @@ export async function orgCheckInToSession(
   const event = await getEventOrg(supabase, eventId)
   try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
 
-  let registrationId: string
   if (method === 'qr_scan') {
+    const token = parseScanToken(qrCodeOrRegId)
+    if (token.kind === 'ghl') {
+      // R79: event-scoped. A token registered on another event is indistinguishable
+      // from an unknown one here — never reveal which event it belongs to.
+      const { data: reg } = await supabase
+        .from('registrations')
+        .select(SESSION_REG_SELECT)
+        .eq('event_id', eventId)
+        .eq('ghl_attendee_id', token.attendeeId)
+        .maybeSingle()
+      if (!reg) return { success: false, error: GHL_TICKET_NOT_REGISTERED, canOverride: true }
+      return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, user.id)
+    }
+    // A2: Prezva's own QR — and anything unrecognised — takes the qr_code lookup
+    // exactly as before (manual-add and transfer codes are not 32-hex).
+    const qrCode = token.kind === 'prezva' ? token.qrCode : qrCodeOrRegId.toLowerCase()
     const { data: reg } = await supabase
       .from('registrations')
-      .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+      .select(SESSION_REG_SELECT)
       .eq('event_id', eventId)
-      .eq('qr_code', qrCodeOrRegId.toLowerCase())
+      .eq('qr_code', qrCode)
       .single()
     if (!reg) return { success: false, error: 'QR code not found for this event' }
-    if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-    if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
-    registrationId = (reg as any).id
-    const result = await checkInToSession(registrationId, sessionId, method)
-    if (!result.ok) return { success: false, error: result.error }
-    return {
-      success: true,
-      registration: {
-        id: (reg as any).id,
-        attendee_name: (reg as any).attendee_name,
-        attendee_email: (reg as any).attendee_email,
-        ticket_name: (reg as any).ticket_types?.name ?? '',
-        already_checked_in: !!result.alreadyCheckedIn,
-      },
-    }
-  } else {
-    const { data: reg } = await supabase
-      .from('registrations')
-      .select('id, attendee_name, attendee_email, status, ticket_types(name)')
-      .eq('id', qrCodeOrRegId)
-      .eq('event_id', eventId)
-      .single()
-    if (!reg) return { success: false, error: 'Attendee not found' }
-    if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-    if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
-    const result = await checkInToSession((reg as any).id, sessionId, method)
-    if (!result.ok) return { success: false, error: result.error }
-    return {
-      success: true,
-      registration: {
-        id: (reg as any).id,
-        attendee_name: (reg as any).attendee_name,
-        attendee_email: (reg as any).attendee_email,
-        ticket_name: (reg as any).ticket_types?.name ?? '',
-        already_checked_in: !!result.alreadyCheckedIn,
-      },
-    }
+    return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, user.id)
   }
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select(SESSION_REG_SELECT)
+    .eq('id', qrCodeOrRegId)
+    .eq('event_id', eventId)
+    .single()
+  if (!reg) return { success: false, error: 'Attendee not found' }
+  return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, user.id)
+}
+
+// R81: staff check-in after a refused scan. Recorded as method 'override' with the
+// staff member stored, so it is distinguishable from a scan or a plain Mark in.
+export async function orgOverrideSessionCheckIn(
+  eventId: string,
+  sessionId: string,
+  registrationId: string,
+): Promise<CheckInResult> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  const event = await getEventOrg(supabase, eventId)
+  try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
+
+  const { data: reg } = await supabase
+    .from('registrations')
+    .select(SESSION_REG_SELECT)
+    .eq('id', registrationId)
+    .eq('event_id', eventId)
+    .maybeSingle()
+  if (!reg) return { success: false, error: 'Attendee not found' }
+  return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, 'override', user.id)
 }
 
 export interface SessionAttendeeRow {

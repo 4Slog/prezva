@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { getGhlOrgConfig, type GhlStageKey } from '@/lib/integrations/ghl/org-config'
+import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-token'
 
 export type { CheckInResult, CheckInStats, RecentCheckIn, SessionAttendeeRow } from '@/lib/checkin/actions'
 
@@ -25,7 +26,46 @@ async function resolveEmbedContext() {
     .eq('ghl_location_id', session.location_id)
     .maybeSingle()
   if (!link) throw new Error('Location not linked to any organization')
-  return { db, orgId: link.org_id }
+  const staffEmail = session.user_email?.trim().toLowerCase() || null
+  return { db, orgId: link.org_id, staffEmail }
+}
+
+// R81: who did an embedded session check-in. The embed session carries no Prezva
+// user id, only the GHL user's email (signed SSO payload, or the authenticated
+// Prezva email on the claim path). The email is always recorded; when it belongs
+// to a Prezva profile that is a member of the event's org, that profile id is
+// recorded too. A missing email or a failed lookup never blocks a check-in.
+async function resolveEmbedStaff(
+  db: ReturnType<typeof createAdminClient>,
+  orgId: string,
+  staffEmail: string | null,
+): Promise<{ checked_in_by: string | null; checked_in_by_email: string | null }> {
+  if (!staffEmail) return { checked_in_by: null, checked_in_by_email: null }
+  try {
+    // ilike for case-insensitivity; the exact compare below neutralises any
+    // wildcard PostgREST still honours (it rewrites '*' to '%').
+    const pattern = staffEmail.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+    const { data: profiles } = await db
+      .from('profiles')
+      .select('id, email')
+      .ilike('email', pattern)
+      .limit(20)
+    const ids = (profiles ?? [])
+      .filter(p => p.email?.trim().toLowerCase() === staffEmail)
+      .map(p => p.id)
+    if (ids.length === 0) return { checked_in_by: null, checked_in_by_email: staffEmail }
+    const { data: members } = await db
+      .from('org_members')
+      .select('user_id')
+      .eq('org_id', orgId)
+      .in('user_id', ids)
+    const memberIds = [...new Set((members ?? []).map(m => m.user_id))]
+    // Two member profiles sharing one email is ambiguous — record the email only.
+    return { checked_in_by: memberIds.length === 1 ? memberIds[0] : null, checked_in_by_email: staffEmail }
+  } catch (e) {
+    console.error('[embed-checkin] staff lookup failed (email still recorded):', e)
+    return { checked_in_by: null, checked_in_by_email: staffEmail }
+  }
 }
 
 async function assertEventOwnership(
@@ -413,26 +453,59 @@ async function assertSessionOwnership(
 
 // ── Session check-in actions ──────────────────────────────────────────────────
 
+type SessionScanReg = {
+  id: string
+  attendee_name: string
+  attendee_email: string
+  status: string
+  ticket_types: { name: string } | null
+}
+
+// R80: session scanners are confirmed-only, with the dashboard's wording.
+function sessionStatusError(status: string): string | null {
+  if (status === 'cancelled') return 'Registration is cancelled'
+  if (status === 'refunded') return 'Registration was refunded'
+  if (status !== 'confirmed') return 'Registration is not confirmed'
+  return null
+}
+
 export async function embedScanIntoSession(
   eventId: string,
   sessionId: string,
   qrCode: string,
   deviceId = 'embed',
 ): Promise<CheckInResult> {
-  const { db, orgId } = await resolveEmbedContext()
+  const { db, orgId, staffEmail } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
   await assertSessionOwnership(db, eventId, sessionId)
 
-  const { data: reg, error: regErr } = await db
-    .from('registrations')
-    .select('id, attendee_name, attendee_email, status, ticket_types(name)')
-    .eq('event_id', eventId)
-    .eq('qr_code', qrCode.toLowerCase())
-    .single()
-
-  if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  const token = parseScanToken(qrCode)
+  let reg: SessionScanReg
+  if (token.kind === 'ghl') {
+    // R79: event-scoped. A token registered on another event is indistinguishable
+    // from an unknown one here — never reveal which event it belongs to.
+    const { data } = await db
+      .from('registrations')
+      .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+      .eq('event_id', eventId)
+      .eq('ghl_attendee_id', token.attendeeId)
+      .maybeSingle()
+    if (!data) return { success: false, error: GHL_TICKET_NOT_REGISTERED, canOverride: true }
+    reg = data as unknown as SessionScanReg
+  } else {
+    // A2: Prezva's own QR — and anything unrecognised — takes the qr_code lookup
+    // exactly as before (manual-add and transfer codes are not 32-hex).
+    const { data, error: regErr } = await db
+      .from('registrations')
+      .select('id, attendee_name, attendee_email, status, ticket_types(name)')
+      .eq('event_id', eventId)
+      .eq('qr_code', token.kind === 'prezva' ? token.qrCode : qrCode.toLowerCase())
+      .single()
+    if (regErr || !data) return { success: false, error: 'QR code not found for this event' }
+    reg = data as unknown as SessionScanReg
+  }
+  const statusError = sessionStatusError(reg.status)
+  if (statusError) return { success: false, error: statusError }
 
   const { data: existing } = await db
     .from('check_ins')
@@ -458,8 +531,8 @@ export async function embedScanIntoSession(
   const { error: ciErr } = await db.from('check_ins').insert({
     event_id: eventId,
     session_id: sessionId,
-    registration_id: (reg as any).id,
-    checked_in_by: null,
+    registration_id: reg.id,
+    ...(await resolveEmbedStaff(db, orgId, staffEmail)),
     checked_in_source: 'embed',
     method: 'qr_scan',
     device_id: deviceId,
@@ -488,67 +561,80 @@ export async function embedManualMarkSession(
   registrationId: string,
   deviceId = 'embed',
 ): Promise<CheckInResult> {
-  const { db, orgId } = await resolveEmbedContext()
+  return embedMarkSession(eventId, sessionId, registrationId, 'manual', deviceId)
+}
+
+// R81: staff check-in after a refused scan, recorded as method 'override' with the
+// staff email (and member profile id when it resolves).
+export async function embedOverrideSessionCheckIn(
+  eventId: string,
+  sessionId: string,
+  registrationId: string,
+  deviceId = 'embed',
+): Promise<CheckInResult> {
+  return embedMarkSession(eventId, sessionId, registrationId, 'override', deviceId)
+}
+
+async function embedMarkSession(
+  eventId: string,
+  sessionId: string,
+  registrationId: string,
+  method: 'manual' | 'override',
+  deviceId: string,
+): Promise<CheckInResult> {
+  const { db, orgId, staffEmail } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
   await assertSessionOwnership(db, eventId, sessionId)
 
-  const { data: reg } = await db
+  const { data } = await db
     .from('registrations')
     .select('id, attendee_name, attendee_email, status, ticket_types(name)')
     .eq('id', registrationId)
     .eq('event_id', eventId)
     .single()
 
-  if (!reg) return { success: false, error: 'Attendee not found' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  if (!data) return { success: false, error: 'Attendee not found' }
+  const reg = data as unknown as SessionScanReg
+  const statusError = sessionStatusError(reg.status)
+  if (statusError) return { success: false, error: statusError }
+
+  const registration = {
+    id: reg.id,
+    attendee_name: reg.attendee_name,
+    attendee_email: reg.attendee_email,
+    ticket_name: reg.ticket_types?.name ?? '',
+  }
 
   const { data: existing } = await db
     .from('check_ins')
     .select('id, checked_in_at')
-    .eq('registration_id', registrationId)
+    .eq('registration_id', reg.id)
     .eq('session_id', sessionId)
     .maybeSingle()
 
   if (existing) {
     return {
       success: true,
-      registration: {
-        id: (reg as any).id,
-        attendee_name: (reg as any).attendee_name,
-        attendee_email: (reg as any).attendee_email,
-        ticket_name: (reg as any).ticket_types?.name ?? '',
-        already_checked_in: true,
-        check_in_time: (existing as any).checked_in_at,
-      },
+      registration: { ...registration, already_checked_in: true, check_in_time: existing.checked_in_at ?? undefined },
     }
   }
 
   const { error } = await db.from('check_ins').insert({
     event_id: eventId,
     session_id: sessionId,
-    registration_id: registrationId,
-    checked_in_by: null,
+    registration_id: reg.id,
+    ...(await resolveEmbedStaff(db, orgId, staffEmail)),
     checked_in_source: 'embed',
-    method: 'manual',
+    method,
     device_id: deviceId,
     synced_at: new Date().toISOString(),
   })
 
   if (error) return { success: false, error: error.message }
 
-  await fireGhlStageMove(db, registrationId, orgId, 'attendedSession')
+  await fireGhlStageMove(db, reg.id, orgId, 'attendedSession')
 
-  return {
-    success: true,
-    registration: {
-      id: (reg as any).id,
-      attendee_name: (reg as any).attendee_name,
-      attendee_email: (reg as any).attendee_email,
-      ticket_name: (reg as any).ticket_types?.name ?? '',
-      already_checked_in: false,
-    },
-  }
+  return { success: true, registration: { ...registration, already_checked_in: false } }
 }
 
 export async function embedGetSessionCheckInAttendees(

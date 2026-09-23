@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Check, AlertTriangle, X, Copy, CheckCheck } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
-import { embedScanIntoSession, embedManualMarkSession } from '@/lib/embedded/checkin-actions'
+import { embedScanIntoSession, embedManualMarkSession, embedOverrideSessionCheckIn } from '@/lib/embedded/checkin-actions'
 import type { CheckInResult, SessionAttendeeRow } from '@/lib/embedded/checkin-actions'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
@@ -29,9 +29,19 @@ export default function EmbedSessionCheckInClient({
   const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
   const [scanning, setScanning] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [overrideMode, setOverrideMode] = useState(false)
+  const [lastWasOverride, setLastWasOverride] = useState(false)
+  const [search, setSearch] = useState('')
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const checkedInCount = attendees.filter(a => a.checked_in).length
+  const query = search.trim().toLowerCase()
+  const visibleAttendees = query
+    ? attendees.filter(a =>
+        a.attendee_name.toLowerCase().includes(query) ||
+        a.attendee_email.toLowerCase().includes(query))
+    : attendees
 
   function applyCheckIn(registrationId: string, checkedInAt: string) {
     setAttendees(prev =>
@@ -43,18 +53,39 @@ export default function EmbedSessionCheckInClient({
     )
   }
 
-  function showResult(result: CheckInResult) {
+  function showResult(result: CheckInResult, viaOverride = false) {
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
     setLastResult(result)
-    resultTimerRef.current = setTimeout(() => setLastResult(null), 3000)
+    setLastWasOverride(viaOverride)
+    // A refused GHL ticket stays up until staff act on it or dismiss it (R81).
+    if (!result.canOverride) {
+      resultTimerRef.current = setTimeout(() => setLastResult(null), 3000)
+    }
   }
+
+  function dismissResult() {
+    if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
+    setLastResult(null)
+  }
+
+  function startOverride() {
+    dismissResult()
+    setOverrideMode(true)
+    setSearch('')
+    setTab('attendees')
+  }
+
+  useEffect(() => {
+    if (overrideMode && tab === 'attendees') searchRef.current?.focus()
+  }, [overrideMode, tab])
 
   useEffect(() => () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current) }, [])
 
   const handleQRScan = useCallback(async (code: string) => {
     if (scanning) return
     setScanning(true)
-    const result = await embedScanIntoSession(eventId, sessionId, code.toLowerCase())
+    // The server parses the token (Prezva QR or GHL ticket) — send it as decoded.
+    const result = await embedScanIntoSession(eventId, sessionId, code)
     showResult(result)
     if (result.success && result.registration && !result.registration.already_checked_in) {
       applyCheckIn(result.registration.id, new Date().toISOString())
@@ -64,6 +95,15 @@ export default function EmbedSessionCheckInClient({
 
   async function handleManualToggle(registrationId: string, currentlyCheckedIn: boolean) {
     if (currentlyCheckedIn) return
+    if (overrideMode) {
+      const result = await embedOverrideSessionCheckIn(eventId, sessionId, registrationId)
+      showResult(result, true)
+      if (result.success && result.registration) {
+        applyCheckIn(registrationId, new Date().toISOString())
+        setOverrideMode(false)
+      }
+      return
+    }
     const result = await embedManualMarkSession(eventId, sessionId, registrationId)
     showResult(result)
     if (result.success && result.registration) {
@@ -98,7 +138,7 @@ export default function EmbedSessionCheckInClient({
         {tabs.map(t => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => { setTab(t.id); if (t.id !== 'attendees') setOverrideMode(false) }}
             className={
               'flex-1 py-2 text-sm font-medium rounded-md transition-colors ' +
               (tab === t.id
@@ -128,11 +168,26 @@ export default function EmbedSessionCheckInClient({
               </span>
             ) : (
               <span className="flex items-center gap-1">
-                <Check size={14} /> {lastResult.registration.attendee_name} checked in
+                <Check size={14} /> {lastResult.registration.attendee_name} checked in{lastWasOverride ? ' (override)' : ''}
               </span>
             )
           ) : (
-            <span className="flex items-center gap-1"><X size={14} /> {lastResult.error}</span>
+            <span className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1"><X size={14} /> {lastResult.error}</span>
+              {lastResult.canOverride && (
+                <span className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={startOverride}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-red-600 text-white"
+                  >
+                    Override…
+                  </button>
+                  <button onClick={dismissResult} aria-label="Dismiss" className="p-1">
+                    <X size={14} />
+                  </button>
+                </span>
+              )}
+            </span>
           )}
         </div>
       )}
@@ -149,12 +204,35 @@ export default function EmbedSessionCheckInClient({
 
       {tab === 'attendees' && (
         <div className="space-y-2">
+          {overrideMode && (
+            <div className="flex items-center justify-between gap-2 p-3 rounded-lg text-sm bg-red-50 border border-red-200 text-red-800">
+              <span>Override: tap the attendee to check them in.</span>
+              <button onClick={() => setOverrideMode(false)} className="text-xs underline flex-shrink-0">
+                Cancel
+              </button>
+            </div>
+          )}
+          <input
+            ref={searchRef}
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search name or email"
+            aria-label="Search attendees by name or email"
+            className="w-full px-3 py-2 rounded-lg text-sm"
+            style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-border)', color: 'var(--pz-text)' }}
+          />
           {attendees.length === 0 && (
             <p className="text-sm text-center py-8" style={{ color: 'var(--pz-muted)' }}>
               No confirmed registrations yet.
             </p>
           )}
-          {attendees.map(a => (
+          {attendees.length > 0 && visibleAttendees.length === 0 && (
+            <p className="text-sm text-center py-8" style={{ color: 'var(--pz-muted)' }}>
+              No attendees match.
+            </p>
+          )}
+          {visibleAttendees.map(a => (
             <div
               key={a.registration_id}
               className="flex items-center justify-between p-3 rounded-lg"
@@ -181,7 +259,7 @@ export default function EmbedSessionCheckInClient({
                     : { background: 'var(--pz-teal)', color: 'var(--pz-on-accent)', border: 'none', cursor: 'pointer' }
                 }
               >
-                {a.checked_in ? <><CheckCheck size={12} /> Checked in</> : 'Mark in'}
+                {a.checked_in ? <><CheckCheck size={12} /> Checked in</> : overrideMode ? 'Override' : 'Mark in'}
               </button>
             </div>
           ))}
