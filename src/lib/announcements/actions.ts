@@ -101,7 +101,7 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
     .single()
 
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'announcement.create', 'announcements', data.id, { channel: parsed.data.channel, recipientCount })
+  await logAudit(supabase, null, user.id, 'announcement.create', 'announcements', data.id, { channel: parsed.data.channel, recipientCount }, { eventId })
 
   if (!isScheduled) {
     if (parsed.data.channel === 'push') {
@@ -133,7 +133,7 @@ export async function deleteAnnouncement(announcementId: string, eventId: string
     .delete()
     .eq('id', announcementId)
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'announcement.delete', 'announcements', announcementId)
+  await logAudit(supabase, null, user.id, 'announcement.delete', 'announcements', announcementId, undefined, { eventId })
   revalidatePath('/dashboard')
   return { success: true }
 }

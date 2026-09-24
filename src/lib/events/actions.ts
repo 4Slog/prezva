@@ -376,7 +376,7 @@ export async function transitionEventStatus(
   if (error) return { error: error.message }
 
   if (newStatus === 'published' || newStatus === 'cancelled') {
-    await logAudit(supabase, null, user.id, `event.${newStatus}`, 'event', eventId, { previousStatus: event.status })
+    await logAudit(supabase, null, user.id, `event.${newStatus}`, 'event', eventId, { previousStatus: event.status }, { eventId })
   }
 
   if (newStatus === 'ended') {

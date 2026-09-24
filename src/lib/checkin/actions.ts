@@ -154,7 +154,7 @@ async function recordDoorQrCheckIn(
   }
 
   await logAudit(supabase, null, staffUserId, 'checkin.scan', 'registrations', (reg as any).id,
-    offline ? { method: 'qr_scan', source: 'offline_sync' } : { method: 'qr_scan' })
+    offline ? { method: 'qr_scan', source: 'offline_sync' } : { method: 'qr_scan' }, { eventId })
 
   let points_awarded = 0
   if ((reg as any).user_id) {
@@ -230,7 +230,7 @@ export async function checkInBySearch(
 
   if (error) return { success: false, error: error.message }
 
-  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual' })
+  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual' }, { eventId })
 
   let points_awarded = 0
   if ((reg as any).user_id) {

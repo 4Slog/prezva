@@ -358,7 +358,7 @@ export async function issueCertificateCore(
   await logAudit(admin, orgId, null, 'certificate.issue', 'issued_certificates', cert.id, {
     registrationId,
     via: source,
-  })
+  }, { eventId: reg.event_id })
 
   const synced = await runGhlCertificateSync(
     admin,

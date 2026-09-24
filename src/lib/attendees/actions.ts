@@ -188,7 +188,7 @@ export async function manualAddAttendee(raw: unknown) {
     .select().single()
 
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'attendee.add', 'registration', data.id, { eventId, email: attendeeEmail })
+  await logAudit(supabase, null, user.id, 'attendee.add', 'registration', data.id, { eventId, email: attendeeEmail }, { eventId })
   revalidatePath('/events')
   return { data }
 }
@@ -222,7 +222,7 @@ export async function removeAttendee(registrationId: string) {
   const { error } = await supabase
     .from('registrations').update({ status: 'cancelled' }).eq('id', registrationId)
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'attendee.cancel', 'registration', registrationId)
+  await logAudit(supabase, null, user.id, 'attendee.cancel', 'registration', registrationId, undefined, { eventId: (reg as any).event_id })
   revalidatePath('/events')
   return { success: true }
 }

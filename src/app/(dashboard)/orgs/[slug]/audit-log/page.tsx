@@ -1,4 +1,6 @@
+import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
+import { hasPermission } from '@/lib/auth/assert-permission'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
@@ -6,25 +8,32 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function OrgAuditLogPage({ params }: Props) {
   const { slug } = await params
-  await requireUser()
+  const user = await requireUser()
 
   // Admin client: audit log requires elevated read access across all org events
   const admin = createAdminClient()
   const { data: org } = await admin.from('organizations').select('id, name').eq('slug', slug).maybeSingle()
+  if (!org) notFound()
 
-  const { data: logs } = org ? await admin
+  // The reads below bypass RLS, so this gate is the only thing between any
+  // signed-in user and any org's audit trail (O120). hasPermission fails
+  // closed for a non-member (OrgAccessError) and for a member without the key;
+  // both get the same not-found, so the page does not confirm the org exists.
+  if (!(await hasPermission(org.id, user.id, 'org.audit_log'))) notFound()
+
+  const { data: logs } = await admin
     .from('audit_logs')
     .select('id, action, table_name, event_id, created_at, user_id, events(title, slug)')
     .eq('org_id', org.id)
     .order('created_at', { ascending: false })
-    .limit(200) : { data: [] }
+    .limit(200)
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem 1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--pz-text)', marginBottom: 4 }}>Audit Log</h1>
-          <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>All admin actions across {org?.name ?? slug}</p>
+          <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>All admin actions across {org.name}</p>
         </div>
       </div>
 

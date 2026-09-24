@@ -87,7 +87,7 @@ export async function selfCheckInByToken(token: string): Promise<SelfCheckInResu
 
   await logAudit(admin as any, null, null, 'checkin.self', 'registrations', (reg as any).id, {
     method: 'magic_link'
-  })
+  }, { eventId: (reg as any).event_id })
 
   return {
     success: true,
@@ -204,7 +204,7 @@ export async function selfCheckInRegistration(
 
   await logAudit(admin as any, null, null, 'checkin.self', 'registrations', registrationId, {
     method: 'self', session_id: sessionId ?? undefined,
-  })
+  }, { eventId: (reg as any).event_id })
 
   return { success: true, already_checked_in: false, attendee_name: (reg as any).attendee_name, event_title: event?.title, points_awarded }
 }
@@ -324,7 +324,7 @@ export async function selfCheckInByEmailPin(
 
   await logAudit(admin as any, null, null, 'checkin.self', 'registrations', (reg as any).id, {
     method: 'email_pin', session_id: sessionId ?? undefined,
-  })
+  }, { eventId })
 
   return { success: true, already_checked_in: false, attendee_name: (reg as any).attendee_name, event_title: event?.title, points_awarded }
 }

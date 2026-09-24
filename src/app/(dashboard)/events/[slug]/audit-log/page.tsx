@@ -1,4 +1,6 @@
+import { notFound } from 'next/navigation'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
+import { hasPermission } from '@/lib/auth/assert-permission'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
@@ -6,7 +8,11 @@ type Props = { params: Promise<{ slug: string }> }
 
 export default async function EventAuditLogPage({ params }: Props) {
   const { slug } = await params
-  const { event } = await requireEventOrgAccess(slug)
+  // Membership (not-found for a non-member), then the permission itself: the
+  // read below bypasses RLS, so membership alone would show every staff role
+  // the event's audit trail (O120).
+  const { user, event } = await requireEventOrgAccess(slug)
+  if (!(await hasPermission(event.org_id, user.id, 'event.audit_log'))) notFound()
   const admin = createAdminClient()
 
   const { data: logs } = await admin

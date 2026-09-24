@@ -56,7 +56,7 @@ export async function createSurvey(eventId: string, formData: FormData) {
     .from('surveys').insert({ event_id: eventId, created_by: user.id, title: parsed.data.title, description: parsed.data.description ?? null, status: 'draft' })
     .select().single()
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'survey.create', 'surveys', data.id, { title: parsed.data.title })
+  await logAudit(supabase, null, user.id, 'survey.create', 'surveys', data.id, { title: parsed.data.title }, { eventId })
   revalidatePath('/dashboard')
   return { data }
 }
@@ -112,9 +112,12 @@ export async function deleteQuestion(questionId: string) {
 export async function publishSurvey(surveyId: string) {
   const supabase = await createClient()
   const user = await requireUser()
-  const { error } = await supabase.from('surveys').update({ status: 'active' }).eq('id', surveyId)
+  const { data: updated, error } = await supabase.from('surveys').update({ status: 'active' }).eq('id', surveyId).select('event_id')
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'survey.publish', 'surveys', surveyId)
+  // The event comes from the row actually updated; no row (RLS refused or bad
+  // id) means nothing happened, so there is nothing to audit.
+  const eventId = (updated as { event_id: string }[] | null)?.[0]?.event_id
+  if (eventId) await logAudit(supabase, null, user.id, 'survey.publish', 'surveys', surveyId, undefined, { eventId })
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -122,9 +125,12 @@ export async function publishSurvey(surveyId: string) {
 export async function closeSurvey(surveyId: string) {
   const supabase = await createClient()
   const user = await requireUser()
-  const { error } = await supabase.from('surveys').update({ status: 'closed' }).eq('id', surveyId)
+  const { data: updated, error } = await supabase.from('surveys').update({ status: 'closed' }).eq('id', surveyId).select('event_id')
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'survey.close', 'surveys', surveyId)
+  // The event comes from the row actually updated; no row (RLS refused or bad
+  // id) means nothing happened, so there is nothing to audit.
+  const eventId = (updated as { event_id: string }[] | null)?.[0]?.event_id
+  if (eventId) await logAudit(supabase, null, user.id, 'survey.close', 'surveys', surveyId, undefined, { eventId })
   revalidatePath('/dashboard')
   return { success: true }
 }

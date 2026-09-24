@@ -197,7 +197,7 @@ export async function undoCheckIn(registrationId: string) {
 
   await logAudit(supabase, null, user.id, 'checkin.undo', 'registrations', registrationId, {
     undone_by: user.id,
-  })
+  }, { eventId: reg.event_id })
 
   return { ok: true }
 }

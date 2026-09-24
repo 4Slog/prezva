@@ -271,6 +271,7 @@ describe('embedIssueOrGetCertificate — the GHL half the embed door never had',
       'issued_certificates',
       mockNewCert.id,
       expect.objectContaining({ registrationId: REG_ID, via: 'embed' }),
+      { eventId: EVENT_ID },
     )
   })
 

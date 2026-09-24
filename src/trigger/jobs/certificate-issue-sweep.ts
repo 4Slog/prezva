@@ -163,7 +163,7 @@ export const certificateIssueSweepTask = schemaTask({
       failed,
       eventId,
       via,
-    })
+    }, { eventId })
 
     return { issued, skipped, failed }
   },

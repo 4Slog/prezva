@@ -58,7 +58,7 @@ export async function createSponsor(eventId: string, formData: FormData) {
     logo_url: logo_url || null,
   })
   if (error) return { error: error.message }
-  await logAudit(admin, null, userId, 'sponsor.create', 'event_sponsors', eventId, { name: parsed.data.name })
+  await logAudit(admin, null, userId, 'sponsor.create', 'event_sponsors', eventId, { name: parsed.data.name }, { eventId })
   revalidatePath(`/events/[slug]/sponsors`, 'page')
   return { ok: true }
 }
@@ -86,7 +86,7 @@ export async function updateSponsor(
     .eq('id', sponsorId)
     .eq('event_id', eventId)
   if (error) return { error: error.message }
-  await logAudit(admin, null, userId, 'sponsor.update', 'event_sponsors', sponsorId)
+  await logAudit(admin, null, userId, 'sponsor.update', 'event_sponsors', sponsorId, undefined, { eventId })
   revalidatePath(`/events/[slug]/sponsors`, 'page')
   return { ok: true }
 }
@@ -100,7 +100,7 @@ export async function deleteSponsor(sponsorId: string, eventId: string) {
     .eq('id', sponsorId)
     .eq('event_id', eventId)
   if (error) return { error: error.message }
-  await logAudit(admin, null, userId, 'sponsor.delete', 'event_sponsors', sponsorId)
+  await logAudit(admin, null, userId, 'sponsor.delete', 'event_sponsors', sponsorId, undefined, { eventId })
   revalidatePath(`/events/[slug]/sponsors`, 'page')
   return { ok: true }
 }

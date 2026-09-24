@@ -1,68 +1,141 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { logAudit } from '@/lib/audit/log'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REFACTOR SAFETY ONLY — THIS FILE IS NOT EVIDENCE THE AUDIT TRAIL WORKS.
 //
-// Every test here hands logAudit a FAKE Supabase client. A fake has no column
-// types, no enum, no RLS and no constraints, so a mocked insert succeeds
-// whether or not the real `audit_logs.action` column would accept the value.
-// The bug this change exists for — a dotted action string rejected by the
-// `audit_action` enum, 22P02, zero rows ever written — would pass every
-// assertion below while the production table stayed empty. A green run here
-// says the control flow is intact; it says nothing about the database.
+// The admin client is faked. A fake has no column types, no RLS, no grants and
+// no FKs, so a mocked insert succeeds whether or not the real table would
+// accept the row. What these tests DO protect: the write goes through the
+// service-role client no matter what the caller hands in (O120 — the user-
+// scoped client was refused by RLS at ~30 sites), event_id is set and org_id
+// is resolved from the event, a non-uuid entityId cannot fail the insert, and
+// neither a returned nor a thrown error reaches the caller.
 //
-// What these tests DO protect: that a returned `{ error }` is read and logged
-// rather than discarded, that a thrown error is still caught, and that neither
-// path throws at the caller. Those are exactly the properties a future
-// refactor could quietly undo.
-//
-// The real proof is a live insert against the migrated column, followed by
-// `select count(*) from audit_logs`. That check is outstanding.
+// The real proof is a live action on prezva.app followed by a row count.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function makeClient(result: { error: { message: string } | null } | Error) {
-  const insert = vi.fn(() =>
-    result instanceof Error ? Promise.reject(result) : Promise.resolve(result),
-  )
-  return { client: { from: vi.fn(() => ({ insert })) } as any, insert }
-}
+const ORG = '11111111-1111-4111-8111-111111111111'
+const OTHER_ORG = '22222222-2222-4222-8222-222222222222'
+const EVENT = '33333333-3333-4333-8333-333333333333'
+const REC = '44444444-4444-4444-8444-444444444444'
+const USER = '55555555-5555-4555-8555-555555555555'
+
+type InsertResult = { error: { message: string } | null } | Error
+type EventResult = { data: { org_id: string | null } | null; error: { message: string } | null }
+
+const state: {
+  insertResult: InsertResult
+  eventResult: EventResult
+  insert: ReturnType<typeof vi.fn>
+  eventEq: ReturnType<typeof vi.fn>
+  from: ReturnType<typeof vi.fn>
+} = {} as never
+
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => ({ from: state.from })),
+}))
+
+import { logAudit } from '@/lib/audit/log'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 let errSpy: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
+  state.insertResult = { error: null }
+  state.eventResult = { data: { org_id: ORG }, error: null }
+  state.insert = vi.fn(() =>
+    state.insertResult instanceof Error ? Promise.reject(state.insertResult) : Promise.resolve(state.insertResult),
+  )
+  state.eventEq = vi.fn(() => ({ maybeSingle: () => Promise.resolve(state.eventResult) }))
+  state.from = vi.fn((table: string) =>
+    table === 'events'
+      ? { select: () => ({ eq: state.eventEq }) }
+      : { insert: state.insert },
+  )
   errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 afterEach(() => {
   errSpy.mockRestore()
 })
 
+// A caller's user-scoped client. If logAudit touched it, these would record.
+function userClient() {
+  return { from: vi.fn(() => { throw new Error('user-scoped client must not be used') }) }
+}
+
 describe('logAudit', () => {
-  it('writes the row with the expected column mapping', async () => {
-    const { client, insert } = makeClient({ error: null })
+  it('writes through the service-role client, never the client it was handed', async () => {
+    const passed = userClient()
 
-    await logAudit(client, 'org-1', 'user-1', 'certificate.bulk_issue', 'events', 'event-1', {
-      issued: 3,
-    })
+    await logAudit(passed, ORG, USER, 'org.update', 'organizations', ORG)
 
-    expect(client.from).toHaveBeenCalledWith('audit_logs')
-    expect(insert).toHaveBeenCalledWith({
-      org_id: 'org-1',
-      user_id: 'user-1',
-      action: 'certificate.bulk_issue',
-      table_name: 'events',
-      record_id: 'event-1',
-      new_data: { issued: 3 },
+    expect(createAdminClient).toHaveBeenCalled()
+    expect(passed.from).not.toHaveBeenCalled()
+    expect(state.from).toHaveBeenCalledWith('audit_logs')
+    expect(state.insert).toHaveBeenCalledWith({
+      org_id: ORG,
+      event_id: null,
+      user_id: USER,
+      action: 'org.update',
+      table_name: 'organizations',
+      record_id: ORG,
+      new_data: null,
     })
   })
 
+  it('sets event_id and resolves org_id from the event when the caller passes null', async () => {
+    await logAudit(userClient(), null, USER, 'checkin.scan', 'registrations', REC, { method: 'qr_scan' }, { eventId: EVENT })
+
+    expect(state.from).toHaveBeenCalledWith('events')
+    expect(state.eventEq).toHaveBeenCalledWith('id', EVENT)
+    expect(state.insert).toHaveBeenCalledWith({
+      org_id: ORG,
+      event_id: EVENT,
+      user_id: USER,
+      action: 'checkin.scan',
+      table_name: 'registrations',
+      record_id: REC,
+      new_data: { method: 'qr_scan' },
+    })
+  })
+
+  it('uses the event org over a different orgId from the caller, and says so', async () => {
+    await logAudit(userClient(), OTHER_ORG, USER, 'ticket.create', 'ticket_types', REC, undefined, { eventId: EVENT })
+
+    expect(state.insert.mock.calls[0][0]).toMatchObject({ org_id: ORG, event_id: EVENT })
+    expect(errSpy).toHaveBeenCalledTimes(1)
+    expect(String(errSpy.mock.calls[0][0])).toContain('does not match')
+  })
+
+  it('still writes the row when the event lookup finds nothing, keeping the id in new_data', async () => {
+    state.eventResult = { data: null, error: null }
+
+    await logAudit(userClient(), ORG, USER, 'session.delete', 'session', REC, undefined, { eventId: EVENT })
+
+    expect(state.insert).toHaveBeenCalledWith(expect.objectContaining({
+      org_id: ORG,
+      event_id: null,
+      new_data: { event_ref: EVENT },
+    }))
+    expect(String(errSpy.mock.calls[0][0])).toContain('event lookup failed')
+  })
+
+  it('puts a non-uuid entityId in new_data.entity_ref with record_id null, and the insert still runs', async () => {
+    await logAudit(userClient(), ORG, USER, 'track.update', 'track', 'not-a-uuid', { name: 'Main' })
+
+    expect(state.insert).toHaveBeenCalledWith(expect.objectContaining({
+      record_id: null,
+      new_data: { name: 'Main', entity_ref: 'not-a-uuid' },
+    }))
+    expect(errSpy).not.toHaveBeenCalled()
+  })
+
   it('maps omitted optionals to null rather than undefined', async () => {
-    const { client, insert } = makeClient({ error: null })
+    await logAudit(userClient(), null, null, 'org.create')
 
-    await logAudit(client, null, null, 'org.create')
-
-    expect(insert).toHaveBeenCalledWith({
+    expect(state.insert).toHaveBeenCalledWith({
       org_id: null,
+      event_id: null,
       user_id: null,
       action: 'org.create',
       table_name: null,
@@ -72,58 +145,43 @@ describe('logAudit', () => {
   })
 
   it('says nothing when the insert succeeds', async () => {
-    const { client } = makeClient({ error: null })
-
-    await logAudit(client, 'org-1', null, 'org.update')
+    await logAudit(userClient(), ORG, null, 'org.update')
 
     expect(errSpy).not.toHaveBeenCalled()
   })
 
-  // ── The regression this change is about ──────────────────────────────────
-  it('LOGS a returned { error } instead of discarding it', async () => {
-    // postgrest-js does not throw on a constraint violation — it resolves with
-    // { error }. The previous implementation never read the return value, so
-    // this path produced no output at all and the bare catch never fired.
-    const { client } = makeClient({
-      error: { message: 'invalid input value for enum audit_action: "certificate.bulk_issue"' },
-    })
+  it('LOGS a returned { error } with the action instead of discarding it, and does not throw', async () => {
+    // postgrest-js resolves with { error } rather than throwing.
+    state.insertResult = { error: { message: 'new row violates row-level security policy' } }
 
-    await logAudit(client, 'org-1', null, 'certificate.bulk_issue')
+    await expect(logAudit(userClient(), ORG, null, 'certificate.bulk_issue')).resolves.toBeUndefined()
 
     expect(errSpy).toHaveBeenCalledTimes(1)
     const [prefix, message, ctx] = errSpy.mock.calls[0]
-    // 'insert failed', specifically — NOT the 'threw' wording. Rethrowing the
-    // returned error into the catch below would also produce a log line and
-    // also not surface to the caller, so a looser assertion here passes on an
-    // implementation that reports a PostgREST rejection as a transport
+    // 'insert failed', specifically — a PostgREST rejection, not a transport
     // failure. The two mean different things to whoever reads the log.
     expect(prefix).toContain('insert failed')
     expect(prefix).not.toContain('threw')
-    expect(message).toContain('invalid input value for enum audit_action')
-    // The action is load-bearing in the message: this failure was
-    // value-specific, and a log line without it would not identify which call
-    // sites were broken.
+    expect(message).toContain('row-level security')
     expect(ctx).toEqual({ action: 'certificate.bulk_issue' })
   })
 
-  it('does NOT throw when the insert returns an error', async () => {
-    const { client } = makeClient({ error: { message: 'boom' } })
-
-    // Callers treat auditing as fire-and-forget. Surfacing this would turn a
-    // bookkeeping failure into a user-visible one.
-    await expect(logAudit(client, 'org-1', null, 'ticket.create')).resolves.toBeUndefined()
-  })
-
   it('still catches a THROWN error, and logs it distinctly', async () => {
-    const { client } = makeClient(new Error('fetch failed'))
+    state.insertResult = new Error('fetch failed')
 
-    await expect(logAudit(client, 'org-1', null, 'ticket.create')).resolves.toBeUndefined()
+    await expect(logAudit(userClient(), ORG, null, 'ticket.create')).resolves.toBeUndefined()
 
     expect(errSpy).toHaveBeenCalledTimes(1)
     const [prefix, message] = errSpy.mock.calls[0]
-    // Distinct wording from the returned-error path: a throw means the request
-    // never reached PostgREST, which is a different problem to diagnose.
     expect(prefix).toContain('threw')
     expect(message).toContain('fetch failed')
+  })
+
+  it('does not throw when the admin client cannot be constructed', async () => {
+    vi.mocked(createAdminClient).mockImplementationOnce(() => { throw new Error('Missing Supabase admin credentials') })
+
+    await expect(logAudit(userClient(), ORG, null, 'ticket.create')).resolves.toBeUndefined()
+
+    expect(String(errSpy.mock.calls[0][1])).toContain('Missing Supabase admin credentials')
   })
 })

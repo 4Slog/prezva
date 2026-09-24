@@ -165,6 +165,7 @@ describe('certificateIssueSweepTask.run', () => {
       'events',
       EVENT_ID,
       { issued: 1, skipped: 1, failed: 1, eventId: EVENT_ID, via: 'dashboard' },
+      { eventId: EVENT_ID },
     )
   })
 
@@ -180,6 +181,7 @@ describe('certificateIssueSweepTask.run', () => {
     expect(logAudit).toHaveBeenCalledWith(
       expect.anything(), ORG_ID, null, 'certificate.bulk_issue', 'events', EVENT_ID,
       expect.objectContaining({ via: 'embed' }),
+      { eventId: EVENT_ID },
     )
   })
 
@@ -204,6 +206,7 @@ describe('certificateIssueSweepTask.run', () => {
     expect(logAudit).toHaveBeenCalledWith(
       expect.anything(), ORG_ID, null, 'certificate.bulk_issue', 'events', EVENT_ID,
       { issued: 0, skipped: 0, failed: 0, eventId: EVENT_ID, via: 'dashboard' },
+      { eventId: EVENT_ID },
     )
   })
 
