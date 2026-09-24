@@ -196,7 +196,7 @@ export async function savePack(
   receivedAtMs: number = Date.now(),
 ): Promise<void> {
   const serverNow = Date.parse(pack.serverNow)
-  await db.transaction('rw', db.meta, db.list, async () => {
+  await db.transaction('rw', db.meta, db.list, db.queue, async () => {
     await db.meta.put({
       sessionId,
       grant: pack.grant,
@@ -206,6 +206,9 @@ export async function savePack(
     })
     await db.list.where('sessionId').equals(sessionId).delete()
     await db.list.bulkPut(pack.attendees.map((a: OfflinePackAttendee) => ({ sessionId, ...a })))
+    // O125: the refreshed list now carries every synced check-in; the synced
+    // queue entries for this session have nothing left to say.
+    await db.queue.where('[sessionId+status]').equals([sessionId, 'synced']).delete()
   })
 }
 
@@ -261,12 +264,15 @@ export async function findByRegistration(db: SessionScanDB, sessionId: string, r
   return (await db.list.get([sessionId, registrationId])) ?? null
 }
 
-// Checked in on the list, or already queued (and not refused) on this device.
+// Checked in on the list, or queued on this device and not yet sent (O125).
+// A 'synced' entry does not count: once sent, the server's answer is the list —
+// if the list says not checked in (the check-in was undone, or refused), the
+// device must not keep believing an old queue entry.
 export async function isCheckedInLocally(db: SessionScanDB, sessionId: string, registrationId: string): Promise<boolean> {
   const row = await findByRegistration(db, sessionId, registrationId)
   if (row?.checkedInAt) return true
   const queued = await db.queue.where('[sessionId+registrationId]').equals([sessionId, registrationId])
-    .filter(q => q.status === 'pending' || q.status === 'synced')
+    .filter(q => q.status === 'pending')
     .count()
   return queued > 0
 }

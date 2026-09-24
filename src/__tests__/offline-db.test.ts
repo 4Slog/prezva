@@ -197,3 +197,18 @@ describe('needs attention — dismiss (R84)', () => {
     expect((await getOfflineDB().pending.get(e.id!))!.status).toBe('pending')
   })
 })
+
+describe('offline door sync — synced entries drop the scanned code (O125)', () => {
+  it('synced entries lose qrCode; needs_attention keeps it for staff', async () => {
+    const ok = await queueCheckIn(EVENT_ID, 'ok', 'dev-1')
+    const bad = await queueCheckIn(EVENT_ID, 'bad', 'dev-1')
+    stubServer(x => x.qr_code === 'bad'
+      ? { entryId: x.entryId, status: 'refused', reason: 'nope' }
+      : { entryId: x.entryId, status: 'accepted' })
+    await syncPending(EVENT_ID)
+    const rows = new Map((await getOfflineDB().pending.toArray()).map(r => [r.entryId, r]))
+    expect(rows.get(ok.entryId)!.status).toBe('synced')
+    expect(rows.get(ok.entryId)).not.toHaveProperty('qrCode')
+    expect(rows.get(bad.entryId)).toMatchObject({ status: 'needs_attention', qrCode: 'bad' })
+  })
+})

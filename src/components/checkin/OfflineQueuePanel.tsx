@@ -111,6 +111,6 @@ interface NeedsAttentionListProps {
 export function NeedsAttentionList({ entries, onDismiss }: NeedsAttentionListProps) {
   const items: AttentionItem[] = entries
     .filter(e => e.id !== undefined)
-    .map(e => ({ key: String(e.id), label: truncateQr(e.qrCode), mono: true, scannedAt: e.scannedAt, reason: e.reason }))
+    .map(e => ({ key: String(e.id), label: truncateQr(e.qrCode ?? ''), mono: true, scannedAt: e.scannedAt, reason: e.reason }))
   return <AttentionList items={items} onDismiss={key => onDismiss(Number(key))} />
 }

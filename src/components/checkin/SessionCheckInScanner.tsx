@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { Check, AlertTriangle, X, Copy, CheckCheck, CloudOff, Clock } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
 import { OfflineQueueStatus, AttentionList, type AttentionItem } from '@/components/checkin/OfflineQueuePanel'
+import { isNetworkFailure, thrownMessage } from '@/lib/checkin/network-error'
 import { useSessionOffline, type OfflineOutcome } from '@/components/checkin/useSessionOffline'
 import { truncateToken, type ScanSurface } from '@/lib/checkin/session-offline-db'
 import type { OfflineSessionPack } from '@/lib/checkin/offline-pack'
@@ -189,7 +190,12 @@ export function SessionCheckInScanner({
       try {
         // The server parses the token (Prezva QR or GHL ticket) — send it as decoded.
         result = await scanAction(code)
-      } catch {
+      } catch (e) {
+        if (!isNetworkFailure(e)) {
+          // The server answered with an error: a refusal, not a reason to go offline.
+          showResult({ success: false, error: thrownMessage(e) })
+          return
+        }
         // No network (or connected without internet): the device list decides.
         markNetworkFailed()
         await scanOffline()
@@ -245,7 +251,11 @@ export function SessionCheckInScanner({
       let result: CheckInResult
       try {
         result = viaOverride ? await actions.override(registrationId) : await actions.mark(registrationId)
-      } catch {
+      } catch (e) {
+        if (!isNetworkFailure(e)) {
+          showResult({ success: false, error: thrownMessage(e) }, viaOverride)
+          return
+        }
         markNetworkFailed()
         await queueOffline()
         return

@@ -227,6 +227,28 @@ describe.each(surfaces)('$name session scanner — offline', (s) => {
     expect(await db.queue.count()).toBe(2)
   })
 
+  it('O125: a thrown SERVER error is a refusal, not an offline fallback', async () => {
+    s.scan.mockRejectedValue(new Error('Registration is not confirmed'))
+    s.renderIt()
+    const db = await dbFor(s.surface, s.staffKey)
+    await waitForPack(db)
+    await scan(QR_ADA)
+    expect(await screen.findByText(/Registration is not confirmed/)).toBeTruthy()
+    expect(screen.queryByText(/offline — will sync/)).toBeNull()
+    expect(await db.queue.count()).toBe(0)
+  })
+
+  it('O125: a thrown server error on Mark in is shown, nothing queued', async () => {
+    s.mark.mockRejectedValue(new Error('Session not found'))
+    s.renderIt()
+    const db = await dbFor(s.surface, s.staffKey)
+    await waitForPack(db)
+    fireEvent.click(screen.getByText(/^Attendees/))
+    await act(async () => { fireEvent.click(screen.getAllByText('Mark in')[0]) })
+    expect(await screen.findByText(/Session not found/)).toBeTruthy()
+    expect(await db.queue.count()).toBe(0)
+  })
+
   it('offline Mark in queues a manual check-in', async () => {
     s.renderIt()
     const db = await dbFor(s.surface, s.staffKey)
@@ -276,16 +298,19 @@ describe.each(surfaces)('$name session scanner — offline', (s) => {
     expect((await db.queue.toArray())[0].status).toBe('pending')
   })
 
-  it('a successful sync marks entries synced and refreshes the pack', async () => {
+  it('a successful sync marks entries synced, refreshes the pack, and the refresh prunes them (O125)', async () => {
     const db = await dbFor(s.surface, s.staffKey)
     await savePack(db, SESSION, makePack())
     const row = await enqueue(db, { sessionId: SESSION, kind: 'scan', token: QR_ADA, registrationId: ADA, grant: 'g' })
+    const seen: (string | undefined)[] = []
+    db.queue.hook('updating', (mods: object) => { seen.push((mods as { status?: string }).status) })
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ processed: 1, total: 1, results: [{ entryId: row.entryId, status: 'accepted', kind: 'scan' }] }), { status: 200 })))
     s.renderIt()
-    await waitFor(async () => expect((await db.queue.get(row.entryId))?.status).toBe('synced'))
-    expect(await db.queue.get(row.entryId)).not.toHaveProperty('token')
     // Before the sync, and again after it.
-    expect(s.fetchPack.mock.calls.length).toBeGreaterThanOrEqual(3)
+    await waitFor(() => expect(s.fetchPack.mock.calls.length).toBeGreaterThanOrEqual(3))
+    expect(seen).toContain('synced')
+    // The refreshed list carries the check-in; the synced entry (and its token) is gone.
+    await waitFor(async () => expect(await db.queue.get(row.entryId)).toBeUndefined())
   })
 
   it('a refused entry shows in needs attention with the name, not the token; Dismiss deletes the token', async () => {

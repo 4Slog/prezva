@@ -281,3 +281,39 @@ describe('sign-out helpers', () => {
     expect(await countPendingEverywhere()).toBe(0)
   })
 })
+
+describe('O125 stale device queue', () => {
+  it('a list row with checkedInAt null plus an old SYNCED entry is not locally checked in', async () => {
+    await savePack(db, SESSION, pack())
+    const row = await enqueue(db, { sessionId: SESSION, kind: 'manual', registrationId: REG })
+    await db.queue.update(row.entryId, { status: 'synced' })
+    // The server list says not checked in (e.g. the check-in was undone).
+    await db.list.update([SESSION, REG], { checkedInAt: null })
+    expect(await isCheckedInLocally(db, SESSION, REG)).toBe(false)
+  })
+
+  it('a PENDING entry is locally checked in', async () => {
+    await savePack(db, SESSION, pack())
+    await enqueue(db, { sessionId: SESSION, kind: 'manual', registrationId: REG })
+    await db.list.update([SESSION, REG], { checkedInAt: null })
+    expect(await isCheckedInLocally(db, SESSION, REG)).toBe(true)
+  })
+
+  it('a successful list refresh deletes this session\'s synced entries only', async () => {
+    const OTHER = '5e552000-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
+    await savePack(db, SESSION, pack())
+    const synced = await enqueue(db, { sessionId: SESSION, kind: 'manual', registrationId: REG })
+    await db.queue.update(synced.entryId, { status: 'synced' })
+    const pending = await enqueue(db, { sessionId: SESSION, kind: 'recheck', token: 't' })
+    const attention = await enqueue(db, { sessionId: SESSION, kind: 'recheck', token: 'u' })
+    await db.queue.update(attention.entryId, { status: 'needs_attention' })
+    const otherSynced = await enqueue(db, { sessionId: OTHER, kind: 'recheck', token: 'v' })
+    await db.queue.update(otherSynced.entryId, { status: 'synced' })
+
+    await savePack(db, SESSION, pack())
+
+    const left = (await db.queue.toArray()).map(r => r.entryId).sort()
+    expect(left).toEqual([pending.entryId, attention.entryId, otherSynced.entryId].sort())
+  })
+})
+

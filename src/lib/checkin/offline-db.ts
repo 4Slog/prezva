@@ -15,7 +15,9 @@ export interface PendingCheckIn {
   id?: number
   entryId: string
   eventId: string
-  qrCode: string
+  // The scanned code — a check-in credential. Deleted once the entry is synced
+  // (matches the session queue); pending and needs_attention entries keep it.
+  qrCode?: string
   deviceId: string
   scannedAt: string
   status: QueueStatus
@@ -137,7 +139,11 @@ async function syncVia(url: string, eventId: string): Promise<SyncOutcome> {
         if (!row?.id) continue
         sent.delete(r.entryId)
         if (r.status === 'accepted' || r.status === 'already_checked_in') {
-          await db.pending.update(row.id, { status: 'synced', syncedAt })
+          await db.pending.where('id').equals(row.id).modify(p => {
+            p.status = 'synced'
+            p.syncedAt = syncedAt
+            delete p.qrCode
+          })
           outcome.synced++
         } else if (r.status === 'refused') {
           await db.pending.update(row.id, {
