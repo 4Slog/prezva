@@ -6,7 +6,7 @@ import { generateKeyPairSync, sign } from 'node:crypto'
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(),
 }))
-vi.mock('@/lib/registration/actions', () => ({
+vi.mock('@/lib/registration/external-payment', () => ({
   createRegistrationFromExternalPayment: vi.fn(),
 }))
 vi.mock('@/lib/trigger', () => ({
@@ -21,7 +21,7 @@ vi.mock('@/lib/ghl/post-registration-writeback', () => ({
 
 import { POST } from './route'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
+import { createRegistrationFromExternalPayment } from '@/lib/registration/external-payment'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { isOrgEntitled } from '@/lib/entitlements'
 import { postRegistrationWriteback } from '@/lib/ghl/post-registration-writeback'

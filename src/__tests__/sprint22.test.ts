@@ -65,11 +65,14 @@ describe('Sprint 22 — Certificate Engine', () => {
     expect(existsSync(path)).toBe(true)
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain("'use server'")
-    expect(src).toContain('issueOrGetCertificate')
     expect(src).toContain('getMyIssuedCertificates')
-    expect(src).toContain('listOrgCertificateTemplates')
     expect(src).toContain('upsertCertificateTemplate')
-    expect(src).toContain('getOrCreateDefaultTemplate')
+    // Unchecked helpers are server-only, never server-action exports (Batch C/2).
+    const data = readFileSync(join(SRC, 'lib/certificates/certificate-data.ts'), 'utf-8')
+    expect(data).toContain("import 'server-only'")
+    expect(data).toContain('issueOrGetCertificate')
+    expect(data).toContain('listOrgCertificateTemplates')
+    expect(data).toContain('getOrCreateDefaultTemplate')
   })
 
   // API route

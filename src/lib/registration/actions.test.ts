@@ -46,7 +46,8 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: adminFrom })),
 }))
 
-import { startRegistration, createRegistrationFromExternalPayment } from './actions'
+import { startRegistration } from './actions'
+import { createRegistrationFromExternalPayment } from './external-payment'
 import { isOrgEntitled } from '@/lib/entitlements'
 
 const ORG_ID = 'org-1'

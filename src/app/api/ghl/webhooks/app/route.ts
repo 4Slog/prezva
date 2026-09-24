@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
+import { createRegistrationFromExternalPayment } from '@/lib/registration/external-payment'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { parsePaymentWebhookInput } from '@/lib/ghl/sanitize-payment-input'
 import { verifyGhlAppSignature, GHL_APP_WEBHOOK_SIGNATURE_HEADER } from '@/lib/ghl/app-webhook-auth'

@@ -48,16 +48,6 @@ export async function saveAsTemplate(
   return { data: data as OrgTemplate }
 }
 
-export async function incrementTemplateUsage(templateId: string): Promise<void> {
-  // Admin client: increment usage_count bypassing RLS restrictions
-  const admin = createAdminClient()
-  try {
-    await admin.rpc('increment_template_usage', { template_id: templateId })
-  } catch {
-    // Non-critical — fail silently if RPC not yet created
-  }
-}
-
 export async function deleteOrgTemplate(templateId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { error } = await supabase.from('org_templates').delete().eq('id', templateId)

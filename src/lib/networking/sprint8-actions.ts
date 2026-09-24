@@ -59,7 +59,7 @@ export async function upsertAttendeeProfile(registrationId: string, raw: unknown
 
     if (error) return { error: error.message }
 
-    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    const { awardPoints } = await import('@/lib/engagement/points')
     await awardPoints((reg as any).event_id, user.id, 'profile_complete').catch(() => {})
 
     revalidatePath('/e')
@@ -319,7 +319,7 @@ export async function createCommunityPost(eventId: string, raw: unknown) {
       .eq('is_deleted', false)
 
     if (count === 1) {
-      const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+      const { awardPoints } = await import('@/lib/engagement/points')
       await awardPoints(eventId, user.id, 'community_post')
     }
   } catch {
@@ -489,7 +489,7 @@ export async function addCommunityReply(postId: string, body: string) {
             .select()
 
           if (inserted && inserted.length > 0) {
-            const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+            const { awardPoints } = await import('@/lib/engagement/points')
             await awardPoints(eventId, postAuthorId, 'community_post', pts)
           }
         }

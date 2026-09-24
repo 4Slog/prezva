@@ -17,19 +17,6 @@ const SponsorSchema = z.object({
   is_featured: z.coerce.boolean().default(false),
 })
 
-export async function getSponsors(eventId: string) {
-  // Admin client: read sponsors across RLS for org admin view
-  const admin = createAdminClient()
-  const { data } = await admin
-    .from('event_sponsors')
-    .select('*')
-    .eq('event_id', eventId)
-    .order('tier')
-    .order('sort_order')
-    .order('created_at')
-  return data ?? []
-}
-
 async function getSponsorContext(eventId: string) {
   const user = await requireUser()
   const admin = createAdminClient()

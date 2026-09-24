@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   let awardedPoints = 0
   try {
-    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    const { awardPoints } = await import('@/lib/engagement/points')
     awardedPoints = await awardPoints(eventId, user.id, 'photo_upload')
   } catch { /* points failure must not break the upload */ }
 

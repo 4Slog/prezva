@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { listOrgCertificateTemplates } from '@/lib/certificates/actions'
+import { listOrgCertificateTemplates } from '@/lib/certificates/certificate-data'
 import { CertificatesClient } from './client'
 
 type Props = { params: Promise<{ slug: string }> }

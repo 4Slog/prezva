@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 vi.mock('@/lib/audit/log', () => ({ logAudit: vi.fn() }))
-vi.mock('@/lib/volunteers/actions', () => ({ sendVolunteerThankYouEmails: vi.fn() }))
+vi.mock('@/lib/volunteers/post-event', () => ({ sendVolunteerThankYouEmails: vi.fn() }))
 vi.mock('@/lib/auth/get-user', () => ({ requireUser: vi.fn(async () => ({ id: 'user-1' })) }))
 
 const mockApplyStarterTemplate = vi.fn()

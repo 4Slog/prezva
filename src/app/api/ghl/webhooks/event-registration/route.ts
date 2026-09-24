@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
+import { createRegistrationFromExternalPayment } from '@/lib/registration/external-payment'
 import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { postRegistrationWriteback } from '@/lib/ghl/post-registration-writeback'
 import {

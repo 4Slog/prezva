@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { validateSpeakerToken, getSpeakerSessionsWithQA, getSpeakerFormSchema, getSpeakerFormSubmission, getSessionHandouts, getSessionFeedbackForSpeaker } from '@/lib/speaker/speaker-actions'
+import { validateSpeakerToken, getSpeakerFormSchema } from '@/lib/speaker/speaker-actions'
+import { getSpeakerSessionsWithQA, getSpeakerFormSubmission, getSessionHandouts, getSessionFeedbackForSpeaker } from '@/lib/speaker/speaker-portal-data'
 import { createClient } from '@/lib/supabase/server'
 import { SpeakerHubClient } from './speaker-hub-client'
 

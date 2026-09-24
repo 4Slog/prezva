@@ -38,7 +38,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { issueOrGetCertificate } from '@/lib/certificates/actions'
+import { issueOrGetCertificate } from '@/lib/certificates/certificate-data'
 import { checkEligibility } from '@/lib/certificates/eligibility'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'

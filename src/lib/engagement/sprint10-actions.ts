@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
-import { awardPointsForReg } from '@/lib/engagement/points'
+import { awardPoints, awardPointsForReg } from '@/lib/engagement/points'
 import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 
 export async function getEmailCampaigns(eventId: string) {
@@ -120,38 +120,6 @@ export async function getSessionFeedback(sessionId: string) {
 }
 
 // ── T-104: leaderboard ────────────────────────────────────────────────────────
-
-export async function awardPoints(eventId: string, userId: string, action: string, overridePoints?: number): Promise<number> {
-  const supabase = await createClient()
-
-  // Try to get event-specific config, fall back to defaults
-  let points = POINT_VALUES[action] ?? 1
-  try {
-    const { data: event } = await supabase
-      .from('events')
-      .select('leaderboard_point_config')
-      .eq('id', eventId)
-      .single()
-    if (event?.leaderboard_point_config) {
-      const config = event.leaderboard_point_config as Record<string, number>
-      if (typeof config[action] === 'number') points = config[action]
-    }
-  } catch {
-    // fall back to default
-  }
-  if (typeof overridePoints === 'number') points = overridePoints
-
-  // leaderboard_points is service-role only; insert via admin client.
-  const admin = createAdminClient()
-  const { error } = await admin
-    .from('leaderboard_points')
-    .insert({ event_id: eventId, user_id: userId, action, points })
-  // Ignore unique constraint violations (23505) — duplicate award attempt, silently skip
-  if (error && !error.code?.includes('23505')) {
-    console.error('[leaderboard] awardPoints error:', error.message)
-  }
-  return points
-}
 
 export async function updateLeaderboardPointConfig(eventId: string, config: Record<string, number>) {
   const supabase = await createClient()

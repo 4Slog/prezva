@@ -213,7 +213,7 @@ async function recordDoorQrCheckIn(
 
   let points_awarded = 0
   if ((reg as any).user_id) {
-    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    const { awardPoints } = await import('@/lib/engagement/points')
     try {
       points_awarded = await awardPoints(eventId, (reg as any).user_id, 'checkin')
     } catch {}
@@ -292,7 +292,7 @@ export async function checkInBySearch(
 
   let points_awarded = 0
   if ((reg as any).user_id) {
-    const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+    const { awardPoints } = await import('@/lib/engagement/points')
     try {
       points_awarded = await awardPoints(eventId, (reg as any).user_id, 'checkin')
     } catch {}

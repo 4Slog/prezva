@@ -43,7 +43,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
+import { createRegistrationFromExternalPayment } from '@/lib/registration/external-payment'
 
 describe('createRegistrationFromExternalPayment — appAccessToken', () => {
   beforeEach(() => {

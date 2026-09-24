@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { getSpeakerConversations, getSpeakersWithMissingInfo } from '@/lib/speaker/speaker-actions'
+import { getSpeakerConversations } from '@/lib/speaker/speaker-portal-data'
 import { SpeakerMessagesClient } from './speaker-messages-client'
 
 type Props = { params: Promise<{ slug: string }> }

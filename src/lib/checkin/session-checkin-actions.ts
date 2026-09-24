@@ -78,7 +78,7 @@ export async function markSessionAttendance(sessionId: string, eventId: string) 
   let pointsAwarded = 0
   if (!existingPoint) {
     try {
-      const { awardPoints } = await import('@/lib/engagement/sprint10-actions')
+      const { awardPoints } = await import('@/lib/engagement/points')
       pointsAwarded = await awardPoints(eventId, user.id, 'session_attend')
     } catch { /* non-fatal */ }
   }

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { getAgenda, getOrgSessionTypes } from '@/lib/agenda/actions'
-import { getSponsors } from '@/lib/sponsors/actions'
+import { getSponsors } from '@/lib/sponsors/sponsor-data'
 import { AgendaClient } from './client'
 import { requireEventTimezone } from '@/lib/datetime/zoned-input'
 

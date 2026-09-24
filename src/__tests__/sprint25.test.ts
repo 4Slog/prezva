@@ -46,7 +46,7 @@ describe('Sprint 25 — Sponsor Module', () => {
     expect(existsSync(path)).toBe(true)
     const src = readFileSync(path, 'utf-8')
     expect(src).toContain("'use server'")
-    expect(src).toContain('getSponsors')
+    expect(readFileSync(join(SRC, 'lib/sponsors/sponsor-data.ts'), 'utf-8')).toContain('getSponsors')
     expect(src).toContain('createSponsor')
     expect(src).toContain('updateSponsor')
     expect(src).toContain('deleteSponsor')

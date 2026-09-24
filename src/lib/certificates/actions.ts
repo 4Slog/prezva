@@ -5,42 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
-import {
-  issueCertificateCore,
-  getOrCreateDefaultTemplate as getOrCreateDefaultTemplateCore,
-} from './issue-core'
-
-// Thin re-exposure of the core helper. It lives in issue-core.ts so that module
-// can resolve templates without importing back into this 'use server' file and
-// creating a cycle; the wrapper keeps the existing server-action export surface
-// and every existing import path working unchanged.
-export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
-  return getOrCreateDefaultTemplateCore(orgId)
-}
-
-export async function getIssuedCertificate(registrationId: string) {
-  const admin = createAdminClient()
-  const { data } = await admin
-    .from('issued_certificates')
-    .select('*')
-    .eq('registration_id', registrationId)
-    .maybeSingle()
-  return data
-}
-
-// The DASHBOARD door. Authorization has already happened upstream by the time
-// this runs, and it is not the same check on every path:
-//   • src/app/api/certificates/[regId]/route.ts — the ATTENDEE, via owner-match
-//     on registrations.user_id or the registration's certificate_token.
-//   • src/lib/certificates/bulk-issue.ts — the ORGANIZER, via
-//     assertPermission(orgId, userId, 'certificates.manage').
-// That is exactly why issueCertificateCore performs no authorization of its
-// own; see the header comment there before adding a check to either side.
-export async function issueOrGetCertificate(
-  registrationId: string,
-): Promise<{ data?: any; skipped?: true; error?: string }> {
-  return issueCertificateCore(createAdminClient(), registrationId, 'dashboard')
-}
 
 export async function getMyIssuedCertificates() {
   const supabase = await createClient()
@@ -62,16 +26,6 @@ export async function getMyIssuedCertificates() {
     .in('registration_id', regIds)
     .order('created_at', { ascending: false })
 
-  return (data ?? []) as any[]
-}
-
-export async function listOrgCertificateTemplates(orgId: string) {
-  const admin = createAdminClient()
-  const { data } = await admin
-    .from('certificate_templates')
-    .select('*')
-    .eq('org_id', orgId)
-    .order('created_at', { ascending: false })
   return (data ?? []) as any[]
 }
 

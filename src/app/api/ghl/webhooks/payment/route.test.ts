@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(),
 }))
-vi.mock('@/lib/registration/actions', () => ({
+vi.mock('@/lib/registration/external-payment', () => ({
   createRegistrationFromExternalPayment: vi.fn(),
 }))
 vi.mock('@/lib/trigger', () => ({
@@ -56,7 +56,7 @@ import { POST, eventDateInEventTz } from './route'
 import { verifyWebhookSecret } from '@/lib/ghl/webhook-auth'
 import { isOrgEntitled } from '@/lib/entitlements'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createRegistrationFromExternalPayment } from '@/lib/registration/actions'
+import { createRegistrationFromExternalPayment } from '@/lib/registration/external-payment'
 import { enqueueGhlSync } from '@/lib/trigger'
 import { ghlPut, ghlPost } from '@/lib/integrations/ghl/client'
 import { ghlAdapter } from '@/lib/integrations/ghl/adapter'

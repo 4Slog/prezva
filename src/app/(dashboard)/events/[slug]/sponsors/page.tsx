@@ -1,6 +1,6 @@
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
-import { getSponsors } from '@/lib/sponsors/actions'
+import { getSponsors } from '@/lib/sponsors/sponsor-data'
 import Link from 'next/link'
 import { SponsorsClient } from './sponsors-client'
 
