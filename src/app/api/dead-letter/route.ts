@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { hasInternalSecret } from '@/lib/auth/internal-secret'
 
 const Schema = z.object({
   type:     z.string(),
@@ -9,7 +10,9 @@ const Schema = z.object({
   event_id: z.string().uuid().optional(),
 })
 
+// Internal only: no browser or user session may write dead-letter items.
 export async function POST(req: Request) {
+  if (!hasInternalSecret(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await req.json()
     const parsed = Schema.safeParse(body)

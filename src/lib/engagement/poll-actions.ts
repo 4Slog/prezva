@@ -6,11 +6,31 @@ import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 
+// The session decides the event; the caller needs agenda.manage on that
+// event's org, and the eventId the page passed must be the session's own.
+async function authorizeSession(sessionId: string, key: 'agenda.manage' | 'agenda.view') {
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: session } = await admin.from('sessions').select('id, event_id').eq('id', sessionId).maybeSingle()
+  if (!session) return { error: 'Session not found' } as const
+  const { data: event } = await admin.from('events').select('id, org_id').eq('id', session.event_id).maybeSingle()
+  if (!event) return { error: 'Event not found' } as const
+  try { await assertPermission(event.org_id as string, user.id, key) } catch (e) { return catchPermission(e) }
+  return { session: session as { id: string; event_id: string } }
+}
+
 export async function createPoll(sessionId: string, eventId: string, question: string, options: string[]) {
+  const auth = await authorizeSession(sessionId, 'agenda.manage')
+  if ('error' in auth) return { error: auth.error }
+  if (auth.session.event_id !== eventId) return { error: 'Session not found' }
+  const q = typeof question === 'string' ? question.trim() : ''
+  const opts = Array.isArray(options) ? options.filter(o => typeof o === 'string' && o.trim()).map(o => o.trim()) : []
+  if (!q || q.length > 1000) return { error: 'Enter a question' }
+  if (opts.length < 2 || opts.length > 10 || opts.some(o => o.length > 200)) return { error: 'Give 2 to 10 options' }
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('session_polls')
-    .insert({ session_id: sessionId, event_id: eventId, question, options })
+    .insert({ session_id: auth.session.id, event_id: auth.session.event_id, question: q, options: opts })
     .select()
     .single()
   if (error) return { error: error.message }
@@ -83,11 +103,14 @@ export async function submitVote(pollId: string, optionIndex: number, userId?: s
 }
 
 export async function getPollsForSession(sessionId: string) {
+  const auth = await authorizeSession(sessionId, 'agenda.view')
+  if ('error' in auth) return []
   const admin = createAdminClient()
   const { data: polls, error } = await admin
     .from('session_polls')
     .select('*, session_poll_votes(option_index)')
-    .eq('session_id', sessionId)
+    .eq('session_id', auth.session.id)
+    .eq('event_id', auth.session.event_id)
     .order('created_at', { ascending: true })
   if (error) return []
   return (polls ?? []).map((p: any) => {

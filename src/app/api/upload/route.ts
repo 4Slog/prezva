@@ -23,6 +23,42 @@ const SIZE_MAP: Record<UploadType, number> = {
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
 
+// The entity the file is stored under must belong to the org the caller is a
+// member of: the org itself, or an event of that org (directly, or through the
+// speaker / sponsor row's event). Anything else — including ids that are not
+// rows at all, which would otherwise shape the storage path — is refused.
+async function entityBelongsToOrg(
+  admin: ReturnType<typeof createAdminClient>,
+  uploadType: UploadType,
+  entityId: string,
+  orgId: string,
+): Promise<boolean> {
+  const eventInOrg = async (eventId: string | null | undefined) => {
+    if (!eventId) return false
+    const { data } = await admin.from('events').select('id').eq('id', eventId).eq('org_id', orgId).maybeSingle()
+    return !!data
+  }
+  switch (uploadType) {
+    case 'org-logo':
+      return entityId === orgId
+    case 'event-cover':
+    case 'venue-map':
+      return eventInOrg(entityId)
+    case 'speaker-photo': {
+      const { data: speaker } = await admin.from('speakers').select('event_id').eq('id', entityId).maybeSingle()
+      if (speaker) return eventInOrg(speaker.event_id)
+      const { data: libSpeaker } = await admin.from('org_speakers').select('id').eq('id', entityId).eq('org_id', orgId).maybeSingle()
+      return !!libSpeaker
+    }
+    case 'sponsor-logo': {
+      const { data: sponsor } = await admin.from('event_sponsors').select('event_id').eq('id', entityId).maybeSingle()
+      return eventInOrg(sponsor?.event_id)
+    }
+    default:
+      return false
+  }
+}
+
 export async function POST(req: NextRequest) {
   const user = await requireUser()
 
@@ -52,9 +88,13 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
   if (!member) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
+  const admin = createAdminClient()
+  if (!(await entityBelongsToOrg(admin, uploadType, entityId, orgId))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const ext = file.type === 'image/svg+xml' ? 'svg' : file.type.split('/')[1].replace('jpeg', 'jpg')
   const filename = `${uploadType}/${entityId}/${Date.now()}.${ext}`
-  const admin = createAdminClient()
   const bytes = await file.arrayBuffer()
   const bucket = BUCKET_MAP[uploadType]
 

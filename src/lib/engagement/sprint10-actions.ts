@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { POINT_VALUES } from '@/lib/engagement/point-values'
+import { awardPointsForReg } from '@/lib/engagement/points'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 
 export async function getEmailCampaigns(eventId: string) {
   const supabase = await createClient()
@@ -118,32 +120,6 @@ export async function getSessionFeedback(sessionId: string) {
 }
 
 // ── T-104: leaderboard ────────────────────────────────────────────────────────
-
-export async function awardPointsForReg(eventId: string, registrationId: string, action: string, overridePoints?: number): Promise<number> {
-  const supabase = await createClient()
-  let points = POINT_VALUES[action] ?? 1
-  try {
-    const { data: event } = await supabase
-      .from('events')
-      .select('leaderboard_point_config')
-      .eq('id', eventId)
-      .single()
-    if (event?.leaderboard_point_config) {
-      const config = event.leaderboard_point_config as Record<string, number>
-      if (typeof config[action] === 'number') points = config[action]
-    }
-  } catch { /* fall back to default */ }
-  if (typeof overridePoints === 'number') points = overridePoints
-
-  const admin = (await import('@/lib/supabase/admin')).createAdminClient()
-  const { error } = await admin
-    .from('leaderboard_points')
-    .insert({ event_id: eventId, registration_id: registrationId, action, points })
-  if (error && !error.code?.includes('23505')) {
-    console.error('[leaderboard] awardPointsForReg error:', error.message)
-  }
-  return points
-}
 
 export async function awardPoints(eventId: string, userId: string, action: string, overridePoints?: number): Promise<number> {
   const supabase = await createClient()
@@ -264,36 +240,53 @@ export async function setTriviaActive(eventSlug: string, active: boolean) {
   return { ok: true }
 }
 
-export async function submitTriviaAnswer(questionId: string, answerIndex: number, registrationId?: string) {
+// Points go to the caller's own registration for the question's event: a
+// logged-in attendee's confirmed registration, or — for a guest — the
+// registration whose qr_code token they present. Never a caller-supplied id.
+// A question awards once per identity: trivia_answers is unique on
+// (question_id, user_id); guest points are unique on (event, registration,
+// action) via leaderboard_points_reg_action_idx.
+export async function submitTriviaAnswer(questionId: string, answerIndex: number, registrationToken?: string) {
+  if (!Number.isInteger(answerIndex)) return { error: 'Invalid answer', correct: false }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user && !registrationId) return { error: 'Enter your registration code to participate', correct: false }
+  if (!user && !registrationToken) return { error: 'Enter your registration code to participate', correct: false }
 
   // Read trivia question via admin client — guest path has no auth.uid() so
   // the user-scoped RLS policy would return nothing.
-  const triviaAdmin = createAdminClient()
-  const { data: q } = await triviaAdmin
+  const admin = createAdminClient()
+  const { data: q } = await admin
     .from('trivia_questions')
-    .select('correct_index, points, event_id')
+    .select('id, correct_index, points, event_id')
     .eq('id', questionId)
-    .single()
+    .maybeSingle()
   if (!q) return { error: 'Question not found', correct: false }
+  const eventId = (q as any).event_id as string
 
   const isCorrect = (q as any).correct_index === answerIndex
 
   let awardedPoints = 0
   if (user) {
+    const reg = await resolveOwnedRegistration({ type: 'user', userId: user.id }, eventId)
+    if (!reg) return { error: 'You are not registered for this event', correct: false }
     const { error } = await supabase.from('trivia_answers').insert({
       question_id: questionId,
       user_id: user.id,
       answer_index: answerIndex,
       is_correct: isCorrect,
     })
-    if (error) return { error: error.message, correct: false }
-    if (isCorrect) awardedPoints = await awardPoints((q as any).event_id, user.id, 'trivia_correct', (q as any).points)
+    if (error) return { error: error.code === '23505' ? 'Already answered' : error.message, correct: false }
+    if (isCorrect) awardedPoints = await awardPoints(eventId, user.id, 'trivia_correct', (q as any).points)
   } else {
-    // Guest: award points by registration_id only
-    if (isCorrect) awardedPoints = await awardPointsForReg((q as any).event_id, registrationId!, 'trivia_correct', (q as any).points)
+    const { data: reg } = await admin
+      .from('registrations')
+      .select('id')
+      .eq('qr_code', registrationToken!)
+      .eq('event_id', eventId)
+      .eq('status', 'confirmed')
+      .maybeSingle()
+    if (!reg) return { error: 'Registration code not recognised for this event', correct: false }
+    if (isCorrect) awardedPoints = await awardPointsForReg(eventId, reg.id, 'trivia_correct', (q as any).points)
   }
 
   return { correct: isCorrect, points: isCorrect ? awardedPoints : 0, correctIndex: (q as any).correct_index }

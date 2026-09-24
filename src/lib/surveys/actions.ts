@@ -173,7 +173,7 @@ export async function submitSurveyResponseByToken(surveyId: string, token: strin
 
   let awardedPoints = 0
   try {
-    const { awardPointsForReg } = await import('@/lib/engagement/sprint10-actions')
+    const { awardPointsForReg } = await import('@/lib/engagement/points')
     awardedPoints = await awardPointsForReg(eventId, registrationId, 'survey_complete')
   } catch { /* points failure must not break the submission */ }
 

@@ -64,7 +64,11 @@ export async function sendSMSAnnouncement(eventId: string, message: string) {
 }
 
 export async function getSMSEligibleCount(eventId: string): Promise<number> {
+  const user = await requireUser()
   const admin = createAdminClient()
+  const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).maybeSingle()
+  if (!event) return 0
+  try { await assertPermission((event as any).org_id, user.id, 'announcements.send') } catch { return 0 }
   const { count } = await admin
     .from('registrations')
     .select('id', { count: 'exact', head: true })

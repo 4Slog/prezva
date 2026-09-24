@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 
 function toIcsDate(iso: string) {
   return new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
@@ -9,14 +10,18 @@ function escapeIcs(s: string) {
   return s.replace(/[\\;,]/g, '\\$&').replace(/\n/g, '\\n')
 }
 
+// Serves the signed-in caller's own bookmarks only. The export is a same-origin
+// download link on /e/[slug]/my-agenda (shown only to signed-in users), so the
+// session cookie travels with it; no userId is accepted from the URL.
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const { searchParams } = new URL(req.url)
-  const userId = searchParams.get('userId')
-  if (!userId) return new NextResponse('userId required', { status: 400 })
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new NextResponse('Sign in to export your agenda', { status: 401 })
+  const userId = user.id
 
   const admin = createAdminClient()
 

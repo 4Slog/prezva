@@ -234,7 +234,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     )}
                     {showGoogleWallet && (
                       <a
-                        href={`/api/passes/google/${reg.id}`}
+                        href={`/api/passes/google/${reg.id}?t=${encodeURIComponent(reg.qr_code ?? '')}`}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
                       >
                         Add to Google Wallet

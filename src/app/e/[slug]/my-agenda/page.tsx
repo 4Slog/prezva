@@ -50,7 +50,7 @@ export default async function MyAgendaPage({ params }: { params: Promise<{ slug:
           </div>
           {mySessions.length > 0 && (
             <a
-              href={`/api/events/${event.id}/my-agenda/calendar.ics?userId=${userId}`}
+              href={`/api/events/${event.id}/my-agenda/calendar.ics`}
               download
               style={{ fontSize: 13, color: 'var(--pz-teal)', border: '1px solid var(--pz-teal)', padding: '0.4rem 0.875rem', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
             >

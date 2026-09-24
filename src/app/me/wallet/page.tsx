@@ -147,7 +147,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
 
         {!past && googleWalletEnabled && (
           <Link
-            href={`/api/passes/google/${reg.id}`}
+            href={`/api/passes/google/${reg.id}?t=${encodeURIComponent(reg.qr_code ?? '')}`}
             target="_blank"
             style={{ padding: '8px 14px', background: SOCIAL_BRAND_COLORS.googleWallet, color: 'var(--pz-surface)', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
           >

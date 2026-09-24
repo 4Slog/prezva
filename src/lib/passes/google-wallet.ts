@@ -1,4 +1,4 @@
-'use server'
+import 'server-only'
 
 import { createSign } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
