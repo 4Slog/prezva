@@ -91,7 +91,8 @@ export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActi
     if (embed && embedActions) {
       await embedActions.updateStatus(eventId, itemId, status)
     } else {
-      await updateRosItemStatus(itemId, status)
+      const res = await updateRosItemStatus(itemId, status)
+      if ('error' in res && res.error) { setError(res.error); return }
     }
     setItems(prev => prev.map(item =>
       item.id === itemId
@@ -106,7 +107,8 @@ export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActi
     if (embed && embedActions) {
       await embedActions.deleteItem(eventId, itemId)
     } else {
-      await deleteRosItem(itemId)
+      const res = await deleteRosItem(itemId)
+      if ('error' in res && res.error) { setError(res.error); return }
     }
     setItems(prev => prev.filter(i => i.id !== itemId))
   }

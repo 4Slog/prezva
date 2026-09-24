@@ -1,5 +1,6 @@
 'use server'
 
+import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -103,9 +104,7 @@ export async function getAttendees(
     .eq('event_id', eventId)
 
   if (filters.search) {
-    // Escape PostgREST filter metacharacters to prevent filter injection
-    const s = filters.search.replace(/\\/g, '\\\\').replace(/[,()]/g, m => '\\' + m)
-    query = (query as any).or(`attendee_name.ilike.%${s}%,attendee_email.ilike.%${s}%`)
+    query = (query as any).or(ilikeAnyOf(['attendee_name', 'attendee_email'], filters.search))
   }
   if (filters.status) query = query.eq('status', filters.status)
   if (filters.ticketTypeId) query = query.eq('ticket_type_id', filters.ticketTypeId)

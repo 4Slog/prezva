@@ -2,6 +2,9 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 
 export async function createPoll(sessionId: string, eventId: string, question: string, options: string[]) {
   const admin = createAdminClient()
@@ -14,47 +17,56 @@ export async function createPoll(sessionId: string, eventId: string, question: s
   return { data }
 }
 
-export async function activatePoll(pollId: string) {
+// The poll's event comes from the poll row; the caller needs agenda.manage on
+// that event's org.
+async function authorizePoll(pollId: string): Promise<{ error: string } | { poll: { id: string; session_id: string; event_id: string } }> {
+  const user = await requireUser()
   const admin = createAdminClient()
-  // First get the session_id so we can deactivate other polls in same session
-  const { data: poll } = await admin
+  const { data: poll } = await admin.from('session_polls').select('id, session_id, event_id').eq('id', pollId).maybeSingle()
+  if (!poll) return { error: 'Poll not found' }
+  const { data: event } = await admin.from('events').select('org_id').eq('id', poll.event_id).maybeSingle()
+  if (!event) return { error: 'Event not found' }
+  try { await assertPermission(event.org_id as string, user.id, 'agenda.manage') } catch (e) { return catchPermission(e) }
+  return { poll: poll as { id: string; session_id: string; event_id: string } }
+}
+
+async function updatePoll(pollId: string, eventId: string, values: Record<string, unknown>) {
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('session_polls')
-    .select('session_id')
+    .update(values)
     .eq('id', pollId)
-    .single()
-  if (poll) {
-    await admin
-      .from('session_polls')
-      .update({ is_active: false })
-      .eq('session_id', poll.session_id)
-      .neq('id', pollId)
-  }
-  const { error } = await admin
-    .from('session_polls')
-    .update({ is_active: true, closed_at: null })
-    .eq('id', pollId)
+    .eq('event_id', eventId)
+    .select('id')
   if (error) return { error: error.message }
+  if (!data?.length) return { error: 'Poll not found' }
   return { success: true }
+}
+
+export async function activatePoll(pollId: string) {
+  const auth = await authorizePoll(pollId)
+  if ('error' in auth) return auth
+  const admin = createAdminClient()
+  // Deactivate the other polls in the same session (same event) first
+  await admin
+    .from('session_polls')
+    .update({ is_active: false })
+    .eq('session_id', auth.poll.session_id)
+    .eq('event_id', auth.poll.event_id)
+    .neq('id', pollId)
+  return updatePoll(pollId, auth.poll.event_id, { is_active: true, closed_at: null })
 }
 
 export async function closePoll(pollId: string) {
-  const admin = createAdminClient()
-  const { error } = await admin
-    .from('session_polls')
-    .update({ is_active: false, closed_at: new Date().toISOString() })
-    .eq('id', pollId)
-  if (error) return { error: error.message }
-  return { success: true }
+  const auth = await authorizePoll(pollId)
+  if ('error' in auth) return auth
+  return updatePoll(pollId, auth.poll.event_id, { is_active: false, closed_at: new Date().toISOString() })
 }
 
 export async function showResults(pollId: string, show: boolean) {
-  const admin = createAdminClient()
-  const { error } = await admin
-    .from('session_polls')
-    .update({ show_results: show })
-    .eq('id', pollId)
-  if (error) return { error: error.message }
-  return { success: true }
+  const auth = await authorizePoll(pollId)
+  if ('error' in auth) return auth
+  return updatePoll(pollId, auth.poll.event_id, { show_results: show })
 }
 
 export async function submitVote(pollId: string, optionIndex: number, userId?: string, registrationId?: string) {

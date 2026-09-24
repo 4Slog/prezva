@@ -72,7 +72,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
   }
 
   async function answerQuestion(questionId: string) {
-    await markQuestionAnswered(questionId)
+    await markQuestionAnswered(token, questionId)
   }
 
   async function loadMessages() {
@@ -228,7 +228,8 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
                           <button
                             onClick={async () => {
                               if (!confirm('Delete this handout?')) return
-                              await deleteHandout(h.id)
+                              const res = await deleteHandout(token, h.id)
+                              if (res.error) { alert(res.error); return }
                               setSessionsWithQA(prev => prev.map(s =>
                                 s.session?.id === sd.session?.id
                                   ? { ...s, handouts: s.handouts.filter((x: any) => x.id !== h.id) }

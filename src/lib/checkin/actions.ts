@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser, getUser } from '@/lib/auth/get-user'
 import { assertPermission, hasPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
 import { isSuperAdmin } from '@/lib/admin/gate'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
@@ -833,7 +834,8 @@ export async function getSessionCheckInAttendees(
 export async function searchAttendeesForCheckIn(eventId: string, query: string) {
   const user = await requireUser()
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await getEventOrg(supabase, eventId)
+  await assertPermission(event.org_id, user.id, 'checkin.manage')
 
   if (!query || query.length < 2) return []
 
@@ -842,7 +844,7 @@ export async function searchAttendeesForCheckIn(eventId: string, query: string) 
     .select('id, attendee_name, attendee_email, status, delivery_method, ticket_types(name), check_ins(id, checked_in_at)')
     .eq('event_id', eventId)
     .neq('status', 'cancelled')
-    .or('attendee_name.ilike.%' + query + '%,attendee_email.ilike.%' + query + '%')
+    .or(ilikeAnyOf(['attendee_name', 'attendee_email'], query))
     .limit(10)
 
   return ((data ?? []) as any[]).map(r => ({

@@ -1,5 +1,6 @@
 'use server'
 
+import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME, type EmbeddedSessionPayload } from '@/lib/embedded/session'
@@ -477,15 +478,12 @@ export async function searchAttendeesForCheckIn(eventId: string, query: string) 
 
   if (!query || query.length < 2) return []
 
-  // Escape PostgREST filter metacharacters to prevent filter injection
-  const safe = query.replace(/\\/g, '\\\\').replace(/[,()]/g, m => '\\' + m)
-
   const { data } = await db
     .from('registrations')
     .select('id, attendee_name, attendee_email, status, delivery_method, ticket_types(name), check_ins(id, checked_in_at)')
     .eq('event_id', eventId)
     .neq('status', 'cancelled')
-    .or('attendee_name.ilike.%' + safe + '%,attendee_email.ilike.%' + safe + '%')
+    .or(ilikeAnyOf(['attendee_name', 'attendee_email'], query))
     .limit(10)
 
   return ((data ?? []) as any[]).map(r => ({

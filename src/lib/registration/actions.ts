@@ -3,6 +3,8 @@
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getSessionIdentity } from '@/lib/auth/session-identity'
+import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import { createCheckoutSession } from '@/lib/stripe/checkout'
 import { enqueueConfirmationEmail } from '@/lib/trigger'
 import { verifyMembership } from '@/lib/integrations/_shared/association-verify'
@@ -668,6 +670,12 @@ export async function virtualCheckIn(registrationId: string) {
   if ((reg as any).status === 'refunded') return { error: 'Registration was refunded' }
   if (!['virtual', 'both'].includes((reg as any).delivery_method ?? ''))
     return { error: 'This registration is not virtual' }
+
+  // Only the attendee who owns this registration may check it in.
+  const { data: ev } = await admin.from('events').select('slug').eq('id', (reg as any).event_id).maybeSingle()
+  const identity = await getSessionIdentity((ev as any)?.slug ?? undefined)
+  const owned = await resolveOwnedRegistration(identity, (reg as any).event_id)
+  if (owned?.id !== registrationId) return { error: 'Registration not found' }
 
   const { data: existing } = await admin
     .from('check_ins')

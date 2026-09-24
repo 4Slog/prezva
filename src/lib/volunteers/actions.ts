@@ -110,11 +110,21 @@ export async function sendVolunteerAlert(
 }
 
 export async function resolveVolunteerAlert(alertId: string) {
+  const user = await requireUser()
   const admin = createAdminClient()
-  await admin
+  const { data: alert } = await admin.from('volunteer_alerts').select('id, event_id').eq('id', alertId).maybeSingle()
+  if (!alert) return { error: 'Alert not found' }
+  const { data: event } = await admin.from('events').select('org_id').eq('id', alert.event_id).maybeSingle()
+  if (!event) return { error: 'Event not found' }
+  try { await assertPermission(event.org_id as string, user.id, 'volunteers.manage') } catch (e) { return catchPermission(e) }
+  const { data, error } = await admin
     .from('volunteer_alerts')
     .update({ resolved: true, resolved_at: new Date().toISOString() })
     .eq('id', alertId)
+    .eq('event_id', alert.event_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!data?.length) return { error: 'Alert not found' }
   return { ok: true }
 }
 

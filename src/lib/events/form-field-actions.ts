@@ -90,14 +90,23 @@ export async function reorderFormFields(fieldIds: string[]) {
   const user = await requireUser()
   const admin = createAdminClient()
   if (fieldIds.length === 0) return { ok: true }
-  const { data: first } = await admin.from('form_fields').select('event_id').eq('id', fieldIds[0]).single()
-  if (!first) return { error: 'Field not found' }
-  const orgId = await getEventOrgId(first.event_id)
+  if (new Set(fieldIds).size !== fieldIds.length) return { error: 'Duplicate field ids' }
+  // Every field must belong to ONE event, and the caller must be permitted on
+  // that event — checked before any row is touched.
+  const { data: rows } = await admin.from('form_fields').select('id, event_id').in('id', fieldIds)
+  const found = (rows ?? []) as { id: string; event_id: string }[]
+  if (found.length !== fieldIds.length) return { error: 'Field not found' }
+  const eventIds = new Set(found.map(r => r.event_id))
+  if (eventIds.size !== 1) return { error: 'Fields belong to different events' }
+  const eventId = found[0].event_id
+  const orgId = await getEventOrgId(eventId)
   if (!orgId) return { error: 'Event not found' }
   try { await assertPermission(orgId, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
-  await Promise.all(
-    fieldIds.map((id, idx) => admin.from('form_fields').update({ sort_order: idx }).eq('id', id))
+  const results = await Promise.all(
+    fieldIds.map((id, idx) => admin.from('form_fields').update({ sort_order: idx }).eq('id', id).eq('event_id', eventId).select('id'))
   )
+  const failed = results.find(r => r.error || !r.data?.length)
+  if (failed) return { error: failed.error?.message ?? 'Field not found' }
   revalidatePath('/events')
   return { ok: true }
 }

@@ -275,18 +275,32 @@ export async function getSessionHandouts(sessionId: string) {
   return (data ?? []) as any[]
 }
 
-export async function deleteHandout(handoutId: string) {
+// Speaker portal (token only, no login): the speaker token must belong to the
+// speaker who owns the handout, on the handout's own event.
+export async function deleteHandout(token: string, handoutId: string) {
+  const tokenData = await validateSpeakerToken(token)
+  if (!tokenData) return { error: 'Invalid speaker link' }
   const admin = createAdminClient()
-  const { data } = await admin
+  const { data: handout } = await admin
     .from('session_handouts')
-    .select('storage_path')
+    .select('id, session_id, speaker_id, storage_path')
     .eq('id', handoutId)
-    .single()
-  if ((data as any)?.storage_path) {
-    await admin.storage.from('speaker-handouts').remove([(data as any).storage_path])
+    .maybeSingle()
+  if (!handout || handout.speaker_id !== tokenData.speaker_id) return { error: 'Handout not found' }
+  const { data: session } = await admin.from('sessions').select('event_id').eq('id', handout.session_id).maybeSingle()
+  if (!session || session.event_id !== tokenData.event_id) return { error: 'Handout not found' }
+  const { data: deleted, error } = await admin
+    .from('session_handouts')
+    .delete()
+    .eq('id', handoutId)
+    .eq('speaker_id', tokenData.speaker_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!deleted?.length) return { error: 'Handout not found' }
+  if (handout.storage_path) {
+    await admin.storage.from('speaker-handouts').remove([handout.storage_path])
   }
-  const { error } = await admin.from('session_handouts').delete().eq('id', handoutId)
-  return { error: error?.message }
+  return {}
 }
 
 // ── T-095g: polls ─────────────────────────────────────────────────────────────
@@ -383,13 +397,34 @@ export async function createPoll(sessionId: string, eventId: string, body: strin
   return { error: error?.message }
 }
 
-export async function markQuestionAnswered(questionId: string) {
+// Speaker portal (token only): the token's speaker must be on the question's
+// session, and the question must belong to the token's event.
+export async function markQuestionAnswered(token: string, questionId: string) {
+  const tokenData = await validateSpeakerToken(token)
+  if (!tokenData) return { error: 'Invalid speaker link' }
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data: question } = await admin
+    .from('session_questions')
+    .select('id, session_id, event_id')
+    .eq('id', questionId)
+    .maybeSingle()
+  if (!question || question.event_id !== tokenData.event_id) return { error: 'Question not found' }
+  const { data: onSession } = await admin
+    .from('session_speakers')
+    .select('session_id')
+    .eq('session_id', question.session_id)
+    .eq('speaker_id', tokenData.speaker_id)
+    .limit(1)
+  if (!onSession?.length) return { error: 'Question not found' }
+  const { data: updated, error } = await admin
     .from('session_questions')
     .update({ answered_at: new Date().toISOString() })
     .eq('id', questionId)
-  return { error: error?.message }
+    .eq('event_id', tokenData.event_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!updated?.length) return { error: 'Question not found' }
+  return {}
 }
 
 // ── T-095d: speaker messaging ─────────────────────────────────────────────────
@@ -586,22 +621,33 @@ export async function deleteHandoutAsOrg(handoutId: string, orgId: string) {
   const user = await requireUser()
   const admin = createAdminClient()
 
-  try { await assertPermission(orgId, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
-
+  // The handout's event comes from the handout row (via its session); it must
+  // belong to the caller's org, and the permission is checked on that org.
   const { data: handout } = await admin
     .from('session_handouts')
-    .select('id, storage_path')
+    .select('id, session_id, storage_path')
     .eq('id', handoutId)
-    .single()
-
+    .maybeSingle()
   if (!handout) return { error: 'Not found' }
+  const { data: session } = await admin.from('sessions').select('event_id').eq('id', handout.session_id).maybeSingle()
+  if (!session) return { error: 'Not found' }
+  const { data: event } = await admin.from('events').select('id, org_id').eq('id', session.event_id).maybeSingle()
+  if (!event || event.org_id !== orgId) return { error: 'Not found' }
 
-  const storagePath = (handout as any).storage_path
-  if (storagePath) {
-    await admin.storage.from('speaker-handouts').remove([storagePath]).catch(() => {})
+  try { await assertPermission(event.org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
+
+  const { data: deleted, error } = await admin
+    .from('session_handouts')
+    .delete()
+    .eq('id', handoutId)
+    .eq('session_id', handout.session_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!deleted?.length) return { error: 'Not found' }
+
+  if (handout.storage_path) {
+    await admin.storage.from('speaker-handouts').remove([handout.storage_path]).catch(() => {})
   }
-
-  await admin.from('session_handouts').delete().eq('id', handoutId)
   return { ok: true }
 }
 

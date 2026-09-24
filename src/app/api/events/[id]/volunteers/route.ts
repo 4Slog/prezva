@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueVolunteerInvite } from '@/lib/trigger'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { checkRateLimit, volunteerInviteLimiter } from '@/lib/ratelimit'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -20,7 +22,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireUser()
+    const user = await requireUser()
     const { id } = await params
     const body = await req.json()
     const parsed = Schema.safeParse(body)
@@ -28,15 +30,26 @@ export async function POST(
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
 
-    // Admin client: insert volunteer bypassing RLS (org staff already validated by requireUser + org check)
+    // Admin client: insert volunteer bypassing RLS. The event comes from the URL
+    // slug (never the body's event_id) and the caller needs volunteers.manage on
+    // that event's org.
     const admin = createAdminClient()
     const { data: event } = await admin
       .from('events')
-      .select('id, title, start_at, slug')
+      .select('id, org_id, title, start_at, slug')
       .eq('slug', id)
       .maybeSingle()
 
     if (!event) return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+
+    try {
+      await assertPermission(event.org_id as string, user.id, 'volunteers.manage')
+    } catch {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { limited } = await checkRateLimit(volunteerInviteLimiter, user.id)
+    if (limited) return NextResponse.json({ error: 'Too many invites sent. Try again in a few minutes.' }, { status: 429 })
 
     const { data: volunteer, error } = await admin
       .from('volunteers')

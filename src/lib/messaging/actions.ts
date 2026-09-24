@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { revalidatePath } from 'next/cache'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export interface Conversation {
   id: string
   event_id: string
@@ -29,6 +31,8 @@ export interface Message {
 export async function getOrCreateConversation(eventId: string, otherUserId: string) {
   const supabase = await createClient()
   const user = await requireUser()
+  // otherUserId is interpolated into an .or() filter below: it must be a UUID.
+  if (!UUID_RE.test(otherUserId)) return { error: 'Invalid user' }
 
   // Check if recipient has disabled DMs — default allow, block only if explicitly false
   const { data: recipientPref } = await supabase

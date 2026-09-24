@@ -2,6 +2,9 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import {
   issueCertificateCore,
   getOrCreateDefaultTemplate as getOrCreateDefaultTemplateCore,
@@ -76,7 +79,19 @@ export async function upsertCertificateTemplate(
   orgId: string,
   params: { id?: string; name: string; isDefault: boolean; payload: object }
 ) {
+  const user = await requireUser()
+  try { await assertPermission(orgId, user.id, 'org.certificate_templates') } catch (e) { return catchPermission(e) }
   const admin = createAdminClient()
+
+  // An existing template is edited only within its own org (the org checked above).
+  if (params.id) {
+    const { data: existing } = await admin
+      .from('certificate_templates')
+      .select('id, org_id')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (!existing || existing.org_id !== orgId) return { error: 'Template not found' }
+  }
 
   if (params.isDefault) {
     await admin
@@ -86,11 +101,15 @@ export async function upsertCertificateTemplate(
   }
 
   if (params.id) {
-    const { error } = await admin
+    const { data, error } = await admin
       .from('certificate_templates')
       .update({ name: params.name, is_default: params.isDefault, payload: params.payload, updated_at: new Date().toISOString() })
       .eq('id', params.id)
-    return { error: error?.message }
+      .eq('org_id', orgId)
+      .select('id')
+    if (error) return { error: error.message }
+    if (!data?.length) return { error: 'Template not found' }
+    return { error: undefined }
   }
 
   const { error } = await admin

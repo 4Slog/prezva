@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     .from('registrations')
     .select('id, attendee_name, attendee_email, status, checked_in_at, ticket_types(name)')
     .eq('event_id', (vol as any).event_id)
-    .or(`attendee_name.ilike.%${query}%,attendee_email.ilike.%${query}%`)
+    .or(ilikeAnyOf(['attendee_name', 'attendee_email'], query))
     .in('status', ['confirmed', 'checked_in', 'pending'])
     .limit(10)
 

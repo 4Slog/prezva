@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
@@ -123,17 +124,29 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
 }
 
 export async function deleteAnnouncement(announcementId: string, eventId: string) {
-  const supabase = await createClient()
   const user = await requireUser()
-  const { data: ev } = await supabase.from('events').select('org_id').eq('id', eventId).single()
+  // O122: the event is the announcement row's own event, not the caller's
+  // eventId; the permission is checked on that event's org and the delete is
+  // scoped to it.
+  const admin = createAdminClient()
+  const { data: ann } = await admin
+    .from('announcements')
+    .select('id, event_id')
+    .eq('id', announcementId)
+    .maybeSingle()
+  if (!ann || ann.event_id !== eventId) return { error: 'Announcement not found' }
+  const { data: ev } = await admin.from('events').select('org_id').eq('id', ann.event_id).maybeSingle()
   if (!ev) return { error: 'Event not found' }
   try { await assertPermission(ev.org_id, user.id, 'announcements.send') } catch (e) { return catchPermission(e) }
-  const { error } = await supabase
+  const { data: deleted, error } = await admin
     .from('announcements')
     .delete()
     .eq('id', announcementId)
+    .eq('event_id', ann.event_id)
+    .select('id')
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'announcement.delete', 'announcements', announcementId, undefined, { eventId })
+  if (!deleted?.length) return { error: 'Announcement not found' }
+  await logAudit(admin, ev.org_id, user.id, 'announcement.delete', 'announcements', announcementId, undefined, { eventId: ann.event_id })
   revalidatePath('/dashboard')
   return { success: true }
 }

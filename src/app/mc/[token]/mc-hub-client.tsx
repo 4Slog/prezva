@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { updateRosItemStatus } from '@/lib/events/run-of-show-actions'
+import { updateRosItemStatusByMcToken } from '@/lib/events/run-of-show-actions'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -13,11 +13,12 @@ interface Props {
 
 type Tab = 'runofshow' | 'speakers' | 'qa'
 
-export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: initQA, token: _token }: Props) {
+export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: initQA, token }: Props) {
   const [tab, setTab] = useState<Tab>('runofshow')
   const [rosItems, setRosItems] = useState(initRos)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [qaQuestions, setQaQuestions] = useState(initQA)
+  const [statusError, setStatusError] = useState<string | null>(null)
 
   const sessionIds = sessions.map((s: any) => s.id)
 
@@ -58,7 +59,9 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
   }, [])
 
   async function handleStatus(itemId: string, status: 'upcoming' | 'in_progress' | 'done' | 'skipped') {
-    await updateRosItemStatus(itemId, status)
+    const res = await updateRosItemStatusByMcToken(token, itemId, status)
+    if ('error' in res && res.error) { setStatusError(res.error); return }
+    setStatusError(null)
     setRosItems(prev => prev.map(item =>
       item.id === itemId
         ? { ...item, status }
@@ -144,6 +147,9 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
         {/* RUN OF SHOW TAB */}
         {tab === 'runofshow' && (
           <div>
+            {statusError && (
+              <p role="alert" style={{ color: 'var(--pz-error)', fontSize: 13, margin: '0 0 0.75rem' }}>{statusError}</p>
+            )}
             {nextItem && (
               <div style={{ padding: '0.75rem 1rem', background: 'var(--pz-surface)',
                             borderRadius: 8, marginBottom: '1rem',

@@ -7,7 +7,7 @@ vi.mock('@/lib/orgs/actions', () => ({ assertOrgRole: vi.fn().mockResolvedValue(
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { createClient } from '@/lib/supabase/server'
-import { getAnnouncements, createAnnouncement, deleteAnnouncement } from '@/lib/announcements/actions'
+import { getAnnouncements, createAnnouncement } from '@/lib/announcements/actions'
 
 const ANN_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const EVT_ID = 'b1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -71,15 +71,5 @@ describe('Announcements', () => {
     const res = await createAnnouncement(EVT_ID, fd)
     expect(res).toHaveProperty('data')
   })
-
-  it('deleteAnnouncement calls delete', async () => {
-    const evtChain = makeChain({ org_id: 'org-a1b2c3d4' })
-    const delChain = makeChain(null)
-    const fromMock = vi.fn()
-      .mockReturnValueOnce(evtChain)   // from('events')
-      .mockReturnValueOnce(delChain)   // delete query
-    ;(createClient as any).mockResolvedValue({ from: fromMock })
-    const res = await deleteAnnouncement(ANN_ID, EVT_ID)
-    expect(res).toHaveProperty('success', true)
-  })
+  // deleteAnnouncement is covered in batch-b-authz-actions.test.ts (O122).
 })

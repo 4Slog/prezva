@@ -1,33 +1,30 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/get-user'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueVolunteerInvite } from '@/lib/trigger'
+import { checkRateLimit, volunteerInviteLimiter } from '@/lib/ratelimit'
+import { resolveVolunteerTarget } from '@/lib/volunteers/route-auth'
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string; volunteerId: string }> }
 ) {
-  await requireUser()
+  const user = await requireUser()
   const { id, volunteerId } = await params
-  // Admin client: read volunteer + event for resend
-  const admin = createAdminClient()
-  const { data: volunteer } = await admin
-    .from('volunteers')
-    .select('*, events(title, start_at, slug)')
-    .eq('id', volunteerId)
-    .maybeSingle()
+  const target = await resolveVolunteerTarget(id, volunteerId, user.id)
+  if (target instanceof NextResponse) return target
 
-  if (!volunteer) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const { limited } = await checkRateLimit(volunteerInviteLimiter, user.id)
+  if (limited) return NextResponse.json({ error: 'Too many invites sent. Try again in a few minutes.' }, { status: 429 })
 
-  const event = volunteer.events as { title: string; start_at: string; slug: string } | null
+  const { volunteer, event } = target
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
   void enqueueVolunteerInvite({
     volunteerName:  volunteer.name,
     volunteerEmail: volunteer.email,
     volunteerRole:  volunteer.role,
-    eventTitle:     event?.title ?? id,
-    eventDate:      event?.start_at ?? '',
+    eventTitle:     event.title,
+    eventDate:      event.start_at,
     shiftStart:     volunteer.shift_start ?? null,
     shiftEnd:       volunteer.shift_end ?? null,
     portalUrl:      `${appUrl}/volunteer/${volunteer.portal_access_token}`,

@@ -15,18 +15,19 @@ export async function POST(
 
   // Validate volunteer token
   const { data: volunteer } = await admin.rpc('get_volunteer_by_token', { p_token: token })
-  if (!volunteer) return NextResponse.json({ error: 'Invalid volunteer token' }, { status: 401 })
+  if (!volunteer?.event_id) return NextResponse.json({ error: 'Invalid volunteer token' }, { status: 401 })
 
   const allowedRoles = ['check-in', 'registration-desk']
   if (!allowedRoles.includes(volunteer.role)) {
     return NextResponse.json({ error: 'This volunteer role does not have check-in access' }, { status: 403 })
   }
 
-  // Find registration by QR code
+  // Find registration by QR code — only within the volunteer's own event
   const { data: reg } = await admin
     .from('registrations')
     .select('id, event_id, attendee_name, attendee_email, status, ticket_type_id, ticket_types(name)')
     .eq('qr_code', qrCode)
+    .eq('event_id', volunteer.event_id)
     .maybeSingle()
 
   if (!reg) return NextResponse.json({ error: 'QR code not found' }, { status: 404 })
