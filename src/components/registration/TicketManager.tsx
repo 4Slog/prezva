@@ -5,6 +5,7 @@ import { MapPin, Monitor } from 'lucide-react'
 import { createTicketType, deleteTicketType } from '@/lib/registration/ticket-actions'
 import { Field } from '@/components/ui/Field'
 import { zoneName } from '@/lib/datetime/zoned-input'
+import { formatSaleWindow } from '@/lib/datetime/sale-window'
 import { Gated } from '@/components/auth/Gated'
 
 interface Ticket {
@@ -18,6 +19,8 @@ interface Ticket {
   quantity_sold: number
   is_visible: boolean
   sort_order: number
+  sale_starts_at?: string | null
+  sale_ends_at?: string | null
 }
 
 const ASSOCIATION_LABELS: Record<string, string> = {
@@ -110,6 +113,14 @@ export function TicketManager({ eventId, eventTimezone, tickets: initial, connec
                       : <><MapPin size={12} /> In-person</>}
                   </span>
                 </div>
+                {(() => {
+                  const sale = formatSaleWindow(t.sale_starts_at, t.sale_ends_at, eventTimezone)
+                  return sale.label ? (
+                    <p className="mt-1 text-xs" style={{ color: sale.state === 'ended' ? 'var(--pz-error)' : 'var(--pz-muted)' }}>
+                      {sale.label}
+                    </p>
+                  ) : null
+                })()}
               </div>
               <Gated permission="event.tickets" perms={permissions} mode="hide">
                 <button

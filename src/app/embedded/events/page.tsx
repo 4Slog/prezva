@@ -34,6 +34,8 @@ interface TicketRow {
   currency: string | null
   quantity: number | null
   quantity_sold: number | null
+  sale_starts_at: string | null
+  sale_ends_at: string | null
 }
 
 type LoadResult =
@@ -96,7 +98,7 @@ export default async function EmbeddedEventsPage({ searchParams }: Props) {
         const { data: ticketTypes } = eventIds.length > 0
           ? await db
               .from('ticket_types')
-              .select('event_id, name, type, price_cents, currency, quantity, quantity_sold')
+              .select('event_id, name, type, price_cents, currency, quantity, quantity_sold, sale_starts_at, sale_ends_at')
               .in('event_id', eventIds)
               .eq('is_visible', true)
               .eq('is_active', true)

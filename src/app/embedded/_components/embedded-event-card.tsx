@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { EventStatusBadge } from '@/components/events/EventStatusBadge'
 import { GhlProductPicker } from './ghl-product-picker'
+import { formatSaleWindow } from '@/lib/datetime/sale-window'
 
 interface TicketType {
   event_id: string
@@ -12,6 +13,8 @@ interface TicketType {
   currency: string | null
   quantity: number | null
   quantity_sold: number | null
+  sale_starts_at?: string | null
+  sale_ends_at?: string | null
 }
 
 interface Event {
@@ -150,10 +153,18 @@ export function EmbeddedEventCard({ event, tickets, entitled }: Props) {
             const capacityLabel = tt.quantity == null
               ? 'Unlimited'
               : `${tt.quantity_sold ?? 0} / ${tt.quantity}`
+            const sale = formatSaleWindow(tt.sale_starts_at, tt.sale_ends_at, event.timezone)
             return (
               <div key={i} className="flex items-center justify-between gap-4">
-                <span className="text-xs font-medium truncate" style={{ color: 'var(--pz-text)' }}>
-                  {tt.name}
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-xs font-medium truncate" style={{ color: 'var(--pz-text)' }}>
+                    {tt.name}
+                  </span>
+                  {sale.label && (
+                    <span className="text-xs truncate" style={{ color: sale.state === 'ended' ? 'var(--pz-error)' : 'var(--pz-muted)' }}>
+                      {sale.label}
+                    </span>
+                  )}
                 </span>
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="text-xs" style={{ color: 'var(--pz-muted)' }}>
