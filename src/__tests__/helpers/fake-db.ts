@@ -10,7 +10,14 @@ type Filter = (r: Row) => boolean
 
 export type Write = { table: string; op: 'insert' | 'update' | 'delete' | 'upsert'; values?: any; matched: number }
 
-export function createFakeDb(initial: Record<string, Row[]> = {}, opts: { failInsert?: Record<string, { code: string; message: string }> } = {}) {
+export function createFakeDb(
+  initial: Record<string, Row[]> = {},
+  opts: {
+    failInsert?: Record<string, { code: string; message: string }>
+    // Emulates a unique index: return true when the new row collides with an existing one (→ 23505).
+    unique?: Record<string, (existing: Row, incoming: Row) => boolean>
+  } = {},
+) {
   const tables: Record<string, Row[]> = {}
   for (const [k, v] of Object.entries(initial)) tables[k] = v.map(r => ({ ...r }))
   const writes: Write[] = []
@@ -54,6 +61,10 @@ export function createFakeDb(initial: Record<string, Row[]> = {}, opts: { failIn
         const fail = opts.failInsert?.[table]
         if (fail) return { data: null, error: fail, count: null }
         const list = (Array.isArray(values) ? values : [values]).map((v: Row) => ({ id: v.id ?? `new-${rows().length + 1}`, ...v }))
+        const clash = opts.unique?.[table]
+        if (clash && list.some((n: Row) => rows().some(r => clash(r, n)))) {
+          return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' }, count: null }
+        }
         rows().push(...list)
         writes.push({ table, op, values, matched: list.length })
         return { data: returning ? list : null, error: null, count: list.length }

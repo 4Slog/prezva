@@ -6,6 +6,7 @@ import { requireUser, getUser } from '@/lib/auth/get-user'
 import { assertPermission, hasPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
+import { doorRefusal, doorRefusalMessage, isAdmittable, type DoorRefusal } from '@/lib/checkin/admission'
 import { isSuperAdmin } from '@/lib/admin/gate'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
@@ -53,6 +54,23 @@ export interface CheckInResult {
   points_awarded?: number
   // Set on a refused GHL ticket scan (R79): staff may record an override (R81).
   canOverride?: boolean
+  // Set when the door refuses a ticket (R90): who, why, and what to do.
+  refusal?: DoorRefusal
+}
+
+// A registration's door result when it is already in (no check-in time known).
+function alreadyCheckedInResult(reg: unknown): CheckInResult {
+  const r = reg as { id: string; attendee_name: string; attendee_email: string; ticket_types?: { name?: string } | null }
+  return {
+    success: true,
+    registration: {
+      id: r.id,
+      attendee_name: r.attendee_name,
+      attendee_email: r.attendee_email,
+      ticket_name: r.ticket_types?.name ?? '',
+      already_checked_in: true,
+    },
+  }
 }
 
 export interface CheckInStats {
@@ -140,15 +158,17 @@ async function recordDoorQrCheckIn(
 
   if (offline && regErr && regErr.code !== 'PGRST116') throw new Error(regErr.message)
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  // R90: the door admits confirmed registrations only; a refusal writes nothing.
+  const refusal = doorRefusal((reg as any).status, (reg as any).attendee_name)
+  if (refusal) return { success: false, error: doorRefusalMessage(refusal), refusal }
 
   const { data: existing } = await supabase
     .from('check_ins')
     .select('id, checked_in_at')
     .eq('registration_id', (reg as any).id)
     .is('session_id', null)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   const alreadyCheckedIn = (checkInTime?: string): CheckInResult => ({
     success: true,
@@ -181,8 +201,9 @@ async function recordDoorQrCheckIn(
   })
 
   if (ciErr) {
-    // A replayed queue entry (client_entry_id) was already written.
-    if (offline && isUniqueViolation(ciErr)) return alreadyCheckedIn()
+    // 23505: a replayed queue entry (client_entry_id), or another device got
+    // this registration in first (check_ins_door_once) — already checked in.
+    if (isUniqueViolation(ciErr)) return alreadyCheckedIn()
     if (offline) throw new Error(ciErr.message)
     return { success: false, error: ciErr.message }
   }
@@ -229,15 +250,17 @@ export async function checkInBySearch(
     .single()
 
   if (!reg) return { success: false, error: 'Attendee not found' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  // R90: the door admits confirmed registrations only; a refusal writes nothing.
+  const refusal = doorRefusal((reg as any).status, (reg as any).attendee_name)
+  if (refusal) return { success: false, error: doorRefusalMessage(refusal), refusal }
 
   const { data: existing } = await supabase
     .from('check_ins')
     .select('id, checked_in_at')
     .eq('registration_id', registrationId)
     .is('session_id', null)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   if (existing) {
     return {
@@ -262,6 +285,7 @@ export async function checkInBySearch(
     synced_at: new Date().toISOString(),
   })
 
+  if (isUniqueViolation(error)) return alreadyCheckedInResult(reg)
   if (error) return { success: false, error: error.message }
 
   await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', registrationId, { method: 'manual' }, { eventId })
@@ -420,7 +444,7 @@ async function recordSessionCheckIn(
   if (offline && regErr) throw new Error(regErr.message)
 
   if (!reg) return { ok: false, error: 'Registration not found' }
-  if (reg.status !== 'confirmed') {
+  if (!isAdmittable(reg.status)) {
     return { ok: false, error: 'Registration is not confirmed' }
   }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { DoorRefusalNotice } from '@/components/checkin/DoorRefusalNotice'
 import { useState, useCallback, useRef } from 'react'
 import { AlertTriangle, Check, Clock, Copy, CheckCheck, X } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
@@ -157,8 +158,9 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats, arrivalUr
         </div>
       )}
 
-      {/* Scan result toast */}
-      {lastResult && (
+      {/* Scan result toast — a refused ticket (R90) gets the red "Do not admit" */}
+      {lastResult?.refusal && <DoorRefusalNotice refusal={lastResult.refusal} />}
+      {lastResult && !lastResult.refusal && (
         <div className={
           'p-4 rounded-xl border text-sm font-medium transition-all ' +
           (lastResult.success

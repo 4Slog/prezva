@@ -83,6 +83,9 @@ function makeChain(override: Record<string, any> = {}) {
     base[k] = vi.fn().mockReturnThis()
   }
   base.single = vi.fn()
+  // Door existing-check-in lookups use .limit(1).maybeSingle(); by default it
+  // answers like the chain's .single().
+  base.maybeSingle = vi.fn((...a: unknown[]) => base.single(...a))
   for (const k of Object.keys(override)) base[k] = override[k]
   for (const k of ['select', 'insert', 'update', 'delete', 'eq', 'is', 'neq', 'or', 'order', 'limit']) {
     if (!override[k]) base[k] = vi.fn().mockReturnValue(base)

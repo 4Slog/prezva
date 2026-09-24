@@ -165,9 +165,9 @@ describe.each(surfaces)('processOfflineQueue ($name) — per-entry results', ({ 
     expect(res.results).toEqual([
       { entryId: a, status: 'accepted' },
       { entryId: b, status: 'already_checked_in' },
-      { entryId: c, status: 'refused', reason: 'Registration is cancelled' },
+      { entryId: c, status: 'refused', reason: 'Do not admit Name r-cancelled: Registration is cancelled. Send them to the registration desk.' },
       { entryId: d, status: 'refused', reason: 'QR code not found for this event' },
-      { entryId: e, status: 'refused', reason: 'Registration was refunded' },
+      { entryId: e, status: 'refused', reason: 'Do not admit Name r-refunded: Registration was refunded. Send them to the registration desk.' },
     ])
     expect(res.processed).toBe(1)
     expect(res.total).toBe(5)

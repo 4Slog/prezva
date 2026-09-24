@@ -1,6 +1,7 @@
 'use server'
 
 import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
+import { doorRefusal, doorRefusalMessage, sessionStatusError } from '@/lib/checkin/admission'
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME, type EmbeddedSessionPayload } from '@/lib/embedded/session'
@@ -162,6 +163,21 @@ async function fireGhlStageMove(
 
 // ── Server Actions ────────────────────────────────────────────────────────────
 
+// A door result for a registration that is already in (no time known).
+function embedAlreadyCheckedIn(reg: unknown): CheckInResult {
+  const r = reg as { id: string; attendee_name: string; attendee_email: string; ticket_types?: { name?: string } | null }
+  return {
+    success: true,
+    registration: {
+      id: r.id,
+      attendee_name: r.attendee_name,
+      attendee_email: r.attendee_email,
+      ticket_name: r.ticket_types?.name ?? '',
+      already_checked_in: true,
+    },
+  }
+}
+
 export async function checkInByQR(
   eventId: string,
   qrCode: string,
@@ -178,15 +194,17 @@ export async function checkInByQR(
     .single()
 
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  // R90: the door admits confirmed registrations only; a refusal writes nothing.
+  const refusal = doorRefusal((reg as any).status, (reg as any).attendee_name)
+  if (refusal) return { success: false, error: doorRefusalMessage(refusal), refusal }
 
   const { data: existing } = await db
     .from('check_ins')
     .select('id, checked_in_at')
     .eq('registration_id', (reg as any).id)
     .is('session_id', null)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   if (existing) {
     return {
@@ -212,6 +230,8 @@ export async function checkInByQR(
     synced_at: new Date().toISOString(),
   })
 
+  // 23505 (check_ins_door_once): another scan got this registration in first.
+  if (isUniqueViolation(ciErr)) return embedAlreadyCheckedIn(reg)
   if (ciErr) return { success: false, error: ciErr.message }
 
   await fireGhlStageMove(db, (reg as any).id, orgId)
@@ -244,15 +264,17 @@ export async function checkInBySearch(
     .single()
 
   if (!reg) return { success: false, error: 'Attendee not found' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  // R90: the door admits confirmed registrations only; a refusal writes nothing.
+  const refusal = doorRefusal((reg as any).status, (reg as any).attendee_name)
+  if (refusal) return { success: false, error: doorRefusalMessage(refusal), refusal }
 
   const { data: existing } = await db
     .from('check_ins')
     .select('id, checked_in_at')
     .eq('registration_id', registrationId)
     .is('session_id', null)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   if (existing) {
     return {
@@ -278,6 +300,7 @@ export async function checkInBySearch(
     synced_at: new Date().toISOString(),
   })
 
+  if (isUniqueViolation(error)) return embedAlreadyCheckedIn(reg)
   if (error) return { success: false, error: error.message }
 
   await fireGhlStageMove(db, registrationId, orgId)
@@ -415,15 +438,17 @@ async function checkInByQRInternal(
 
   if (regErr && regErr.code !== 'PGRST116') throw new Error(regErr.message)
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
-  if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
-  if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
+  // R90: the door admits confirmed registrations only; a refusal writes nothing.
+  const refusal = doorRefusal((reg as any).status, (reg as any).attendee_name)
+  if (refusal) return { success: false, error: doorRefusalMessage(refusal), refusal }
 
   const { data: existing } = await db
     .from('check_ins')
     .select('id, checked_in_at')
     .eq('registration_id', (reg as any).id)
     .is('session_id', null)
-    .single()
+    .limit(1)
+    .maybeSingle()
 
   const alreadyCheckedIn = (checkInTime?: string): CheckInResult => ({
     success: true,
@@ -523,13 +548,6 @@ type SessionScanReg = {
   ticket_types: { name: string } | null
 }
 
-// R80: session scanners are confirmed-only, with the dashboard's wording.
-function sessionStatusError(status: string): string | null {
-  if (status === 'cancelled') return 'Registration is cancelled'
-  if (status === 'refunded') return 'Registration was refunded'
-  if (status !== 'confirmed') return 'Registration is not confirmed'
-  return null
-}
 
 export async function embedScanIntoSession(
   eventId: string,

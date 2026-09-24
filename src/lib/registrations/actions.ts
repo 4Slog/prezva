@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { doorRefusal, doorRefusalMessage } from '@/lib/checkin/admission'
+import { isUniqueViolation } from '@/lib/checkin/offline-sync'
 import { logAudit } from '@/lib/audit/log'
 import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
@@ -461,7 +463,7 @@ export async function manualCheckIn(registrationId: string) {
 
   const { data: reg } = await supabase
     .from('registrations')
-    .select('id, event_id, user_id, events(organizations(id))')
+    .select('id, event_id, user_id, status, attendee_name, events(organizations(id))')
     .eq('id', registrationId)
     .maybeSingle()
 
@@ -473,11 +475,16 @@ export async function manualCheckIn(registrationId: string) {
 
   try { await assertPermission(orgId, user.id, 'checkin.manage') } catch (e) { return catchPermission(e) }
 
+  // R90: the door admits confirmed registrations only; a refusal writes nothing.
+  const refusal = doorRefusal(reg.status, reg.attendee_name)
+  if (refusal) return { error: doorRefusalMessage(refusal), refusal }
+
   const { data: existing } = await supabase
     .from('check_ins')
     .select('id')
     .eq('registration_id', registrationId)
     .is('session_id', null)
+    .limit(1)
     .maybeSingle()
 
   if (existing) return { ok: true, alreadyCheckedIn: true }
@@ -493,6 +500,8 @@ export async function manualCheckIn(registrationId: string) {
       synced_at: new Date().toISOString(),
     })
 
+  // 23505 (check_ins_door_once): someone checked them in first.
+  if (isUniqueViolation(error)) return { ok: true, alreadyCheckedIn: true }
   if (error) return { error: error.message }
   return { ok: true, alreadyCheckedIn: false }
 }

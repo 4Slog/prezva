@@ -120,7 +120,7 @@ describe('embedded processOfflineQueue (checkInByQRInternal)', () => {
     expect((result as any).processed).toBe(0)
     // R84: per-entry result keyed by entryId (was failedQrCodes).
     expect((result as any).results).toEqual([
-      { entryId: ENTRY_ID, status: 'refused', reason: 'Registration was refunded' },
+      { entryId: ENTRY_ID, status: 'refused', reason: 'Do not admit Alice: Registration was refunded. Send them to the registration desk.' },
     ])
   })
 })
