@@ -238,29 +238,81 @@ export async function sendMeetingRequest(eventId: string, raw: unknown) {
   return { success: true }
 }
 
+// O134: the RECIPIENT answers a pending request. A counter carries its own
+// zone ({ at, tz }, R89) and sets status 'countered'; the requester then
+// accepts or declines it with respondToCounterProposal. Every path reports a
+// failed or zero-row write as an error.
 export async function respondToMeetingRequest(
   requestId: string,
   response: 'accepted' | 'declined' | 'counter',
-  counterTime?: string,
+  counterTime?: ProposedTime,
   counterNote?: string,
-) {
+): Promise<{ ok: true; status: string } | { error: string }> {
   const user = await requireUser()
   const supabase = await createClient()
 
-  const statusMap = { accepted: 'accepted', declined: 'declined', counter: 'pending' } as const
-  const { error } = await supabase
+  let values: Record<string, unknown>
+  if (response === 'counter') {
+    if (!isProposedTime(counterTime)) return { error: 'Pick a valid date and time' }
+    const note = typeof counterNote === 'string' ? counterNote.trim() : ''
+    if (note.length > 500) return { error: 'Note is too long' }
+    values = {
+      status: 'countered',
+      meeting_counter_time: { at: new Date(counterTime.at).toISOString(), tz: counterTime.tz },
+      meeting_counter_note: note || null,
+    }
+  } else if (response === 'accepted' || response === 'declined') {
+    values = { status: response }
+  } else {
+    return { error: 'Invalid response' }
+  }
+
+  const { data, error } = await supabase
     .from('meeting_requests')
-    .update({
-      status: statusMap[response],
-      meeting_counter_time: counterTime ?? null,
-      meeting_counter_note: counterNote ?? null,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ ...values, updated_at: new Date().toISOString() })
     .eq('id', requestId)
     .eq('recipient_id', user.id)
-
+    .eq('status', 'pending')
+    .select('id, status')
   if (error) return { error: error.message }
-  return { ok: true, response }
+  if (!data?.length) return { error: 'This meeting request is no longer open' }
+  return { ok: true, status: values.status as string }
+}
+
+// O134: the REQUESTER answers the recipient's counter-proposal. Accepting books
+// the countered instant as the meeting time.
+export async function respondToCounterProposal(
+  requestId: string,
+  response: 'accepted' | 'declined',
+): Promise<{ ok: true; status: string } | { error: string }> {
+  const user = await requireUser()
+  const supabase = await createClient()
+  if (response !== 'accepted' && response !== 'declined') return { error: 'Invalid response' }
+
+  const { data: request } = await supabase
+    .from('meeting_requests')
+    .select('id, status, meeting_counter_time')
+    .eq('id', requestId)
+    .eq('requester_id', user.id)
+    .maybeSingle()
+  if (!request || request.status !== 'countered') return { error: 'This counter-proposal is no longer open' }
+
+  const values: Record<string, unknown> = { status: response }
+  if (response === 'accepted') {
+    if (!isProposedTime(request.meeting_counter_time)) return { error: 'The proposed time is unavailable' }
+    values.meeting_at = request.meeting_counter_time.at
+  }
+
+  const { data, error } = await supabase
+    .from('meeting_requests')
+    .update({ ...values, updated_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .eq('requester_id', user.id)
+    .eq('status', 'countered')
+    .select('id, status')
+  if (error) return { error: error.message }
+  if (!data?.length) return { error: 'This counter-proposal is no longer open' }
+  return { ok: true, status: response }
 }
 
 export async function getMeetingRequests(eventId: string) {

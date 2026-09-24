@@ -2269,6 +2269,8 @@ export type Database = {
           id: string
           location: string | null
           meeting_at: string | null
+          meeting_counter_note: string | null
+          meeting_counter_time: Json | null
           message: string | null
           proposed_times: Json | null
           recipient_id: string
@@ -2282,6 +2284,8 @@ export type Database = {
           id?: string
           location?: string | null
           meeting_at?: string | null
+          meeting_counter_note?: string | null
+          meeting_counter_time?: Json | null
           message?: string | null
           proposed_times?: Json | null
           recipient_id: string
@@ -2295,6 +2299,8 @@ export type Database = {
           id?: string
           location?: string | null
           meeting_at?: string | null
+          meeting_counter_note?: string | null
+          meeting_counter_time?: Json | null
           message?: string | null
           proposed_times?: Json | null
           recipient_id?: string

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useDeviceTimeZone } from '@/components/events/useDeviceTimeZone'
-import { formatProposedTime } from '@/lib/datetime/zoned-input'
+import { formatProposedTime, zonedInputToIso } from '@/lib/datetime/zoned-input'
+import { TimezoneOptions } from '@/components/events/TimezoneOptions'
 import { respondToMeetingRequest } from '@/lib/networking/sprint8-actions'
 import { Avatar } from '@/components/identity/Avatar'
 import { HandleTag } from '@/components/identity/HandleTag'
@@ -24,14 +25,30 @@ export function MeetingResponsePanel({ requestId, requesterName, requesterAvatar
   const [status, setStatus] = useState(initialStatus)
   const [showCounter, setShowCounter] = useState(false)
   const [counterTime, setCounterTime] = useState('')
+  const [counterNote, setCounterNote] = useState('')
+  // R89: the counter is proposed in the responder's device zone unless they pick another.
+  const [pickedTz, setPickedTz] = useState<string | null>(null)
+  const counterTz = pickedTz ?? viewerTz ?? 'UTC'
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function respond(response: 'accepted' | 'declined' | 'counter') {
-    if (response === 'counter' && !counterTime) { setShowCounter(true); return }
+    setError(null)
+    let counter: { at: string; tz: string } | undefined
+    if (response === 'counter') {
+      if (!counterTime) { setShowCounter(true); return }
+      try {
+        counter = { at: zonedInputToIso(counterTime, counterTz), tz: counterTz }
+      } catch {
+        setError('Enter a valid date and time')
+        return
+      }
+    }
     setBusy(true)
-    await respondToMeetingRequest(requestId, response, response === 'counter' ? counterTime : undefined)
+    const res = await respondToMeetingRequest(requestId, response, counter, response === 'counter' ? counterNote : undefined)
     setBusy(false)
-    setStatus(response === 'counter' ? 'countered' : response)
+    if ('error' in res) { setError(res.error); return }
+    setStatus(res.status)
     setShowCounter(false)
   }
 
@@ -78,13 +95,33 @@ export function MeetingResponsePanel({ requestId, requesterName, requesterAvatar
           ))}
         </div>
       )}
+      {error && <p role="alert" style={{ color: 'var(--pz-error)', fontSize: 12, marginBottom: 8 }}>{error}</p>}
       {showCounter ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="datetime-local"
+              aria-label="Suggested time"
+              value={counterTime}
+              onChange={e => setCounterTime(e.target.value)}
+              style={{ flex: 1, background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13 }}
+            />
+            <select
+              aria-label="Time zone"
+              value={counterTz}
+              onChange={e => setPickedTz(e.target.value)}
+              style={{ background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 6px', color: 'var(--pz-text)', fontSize: 12 }}
+            >
+              <TimezoneOptions current={counterTz} />
+            </select>
+          </div>
           <input
             type="text"
-            placeholder="e.g. Monday 2pm at the networking lounge"
-            value={counterTime}
-            onChange={e => setCounterTime(e.target.value)}
+            aria-label="Note (optional)"
+            placeholder="Note (optional), e.g. at the networking lounge"
+            value={counterNote}
+            maxLength={500}
+            onChange={e => setCounterNote(e.target.value)}
             style={{ background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '8px 10px', color: 'var(--pz-text)', fontSize: 13 }}
           />
           <div style={{ display: 'flex', gap: 8 }}>

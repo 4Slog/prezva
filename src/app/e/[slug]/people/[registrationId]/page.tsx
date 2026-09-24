@@ -5,6 +5,7 @@ import { getAttendeeProfile, getVirtualCardData, getFollowStatus } from '@/lib/n
 import { ProfileActions } from './profile-actions'
 import VCardQR from '@/components/networking/VCardQR'
 import { MeetingResponsePanel } from '@/components/networking/MeetingResponsePanel'
+import { MeetingCounterPanel } from '@/components/networking/MeetingCounterPanel'
 import { HandleTag } from '@/components/identity/HandleTag'
 import { Avatar } from '@/components/identity/Avatar'
 
@@ -139,8 +140,9 @@ export default async function AttendeePage({ params }: Props) {
 
   let followStatus = { following: false }
   let incomingMeetingRequest: any = null
+  let counteredRequest: any = null
   if (user && p.user_id) {
-    const [fs, mr] = await Promise.all([
+    const [fs, mr, cr] = await Promise.all([
       getFollowStatus(eventId, p.user_id),
       supabase.from('meeting_requests')
         .select('id, status, message, proposed_times')
@@ -149,9 +151,18 @@ export default async function AttendeePage({ params }: Props) {
         .eq('recipient_id', user.id)
         .eq('status', 'pending')
         .maybeSingle(),
+      // O134: my request to this person that they answered with a counter-proposal.
+      supabase.from('meeting_requests')
+        .select('id, meeting_counter_time, meeting_counter_note')
+        .eq('event_id', eventId)
+        .eq('requester_id', user.id)
+        .eq('recipient_id', p.user_id)
+        .eq('status', 'countered')
+        .maybeSingle(),
     ])
     followStatus = fs
     incomingMeetingRequest = mr.data ?? null
+    counteredRequest = cr.data ?? null
   }
 
   return (
@@ -213,6 +224,14 @@ export default async function AttendeePage({ params }: Props) {
               message={incomingMeetingRequest.message}
               proposedTimes={incomingMeetingRequest.proposed_times ?? []}
               initialStatus={incomingMeetingRequest.status}
+            />
+          )}
+          {counteredRequest && (
+            <MeetingCounterPanel
+              requestId={counteredRequest.id}
+              recipientName={p.attendee_name}
+              counterTime={counteredRequest.meeting_counter_time}
+              counterNote={counteredRequest.meeting_counter_note}
             />
           )}
         </div>
