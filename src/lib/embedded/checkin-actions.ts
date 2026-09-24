@@ -79,32 +79,45 @@ async function resolveEmbedStaff(
   orgId: string,
   staffEmail: string | null,
 ): Promise<{ checked_in_by: string | null; checked_in_by_email: string | null }> {
-  if (!staffEmail) return { checked_in_by: null, checked_in_by_email: null }
   try {
-    // ilike for case-insensitivity; the exact compare below neutralises any
-    // wildcard PostgREST still honours (it rewrites '*' to '%').
-    const pattern = staffEmail.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
-    const { data: profiles } = await db
-      .from('profiles')
-      .select('id, email')
-      .ilike('email', pattern)
-      .limit(20)
-    const ids = (profiles ?? [])
-      .filter(p => p.email?.trim().toLowerCase() === staffEmail)
-      .map(p => p.id)
-    if (ids.length === 0) return { checked_in_by: null, checked_in_by_email: staffEmail }
-    const { data: members } = await db
-      .from('org_members')
-      .select('user_id')
-      .eq('org_id', orgId)
-      .in('user_id', ids)
-    const memberIds = [...new Set((members ?? []).map(m => m.user_id))]
-    // Two member profiles sharing one email is ambiguous — record the email only.
-    return { checked_in_by: memberIds.length === 1 ? memberIds[0] : null, checked_in_by_email: staffEmail }
+    return await resolveEmbedStaffStrict(db, orgId, staffEmail)
   } catch (e) {
     console.error('[embed-checkin] staff lookup failed (email still recorded):', e)
     return { checked_in_by: null, checked_in_by_email: staffEmail }
   }
+}
+
+// resolveEmbedStaff without the fallback: a failed lookup THROWS instead of
+// reading as "not a member". The offline sync's identity re-check needs to tell
+// the two apart (a failure retries; only a definite answer refuses).
+async function resolveEmbedStaffStrict(
+  db: ReturnType<typeof createAdminClient>,
+  orgId: string,
+  staffEmail: string | null,
+): Promise<{ checked_in_by: string | null; checked_in_by_email: string | null }> {
+  if (!staffEmail) return { checked_in_by: null, checked_in_by_email: null }
+  // ilike for case-insensitivity; the exact compare below neutralises any
+  // wildcard PostgREST still honours (it rewrites '*' to '%').
+  const pattern = staffEmail.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+  const { data: profiles, error: profilesErr } = await db
+    .from('profiles')
+    .select('id, email')
+    .ilike('email', pattern)
+    .limit(20)
+  if (profilesErr) throw new Error(profilesErr.message)
+  const ids = (profiles ?? [])
+    .filter(p => p.email?.trim().toLowerCase() === staffEmail)
+    .map(p => p.id)
+  if (ids.length === 0) return { checked_in_by: null, checked_in_by_email: staffEmail }
+  const { data: members, error: membersErr } = await db
+    .from('org_members')
+    .select('user_id')
+    .eq('org_id', orgId)
+    .in('user_id', ids)
+  if (membersErr) throw new Error(membersErr.message)
+  const memberIds = [...new Set((members ?? []).map(m => m.user_id))]
+  // Two member profiles sharing one email is ambiguous — record the email only.
+  return { checked_in_by: memberIds.length === 1 ? memberIds[0] : null, checked_in_by_email: staffEmail }
 }
 
 async function assertEventOwnership(
@@ -749,6 +762,10 @@ export async function embedProcessOfflineSessionQueue(
     for (const e of valid) results.push({ entryId: e.entryId, status: 'refused', reason, kind: e.kind })
     return { processed: 0, total: parsed.data.entries.length, results }
   }
+  const retryAll = (): OfflineSyncResponse => {
+    for (const e of valid) results.push({ entryId: e.entryId, status: 'retry', reason: 'Server error', kind: e.kind })
+    return { processed: 0, total: parsed.data.entries.length, results }
+  }
 
   const { data: sessionRow } = await db
     .from('sessions').select('id').eq('id', sessionId).eq('event_id', eventId).maybeSingle()
@@ -758,8 +775,15 @@ export async function embedProcessOfflineSessionQueue(
   if (!grant || grant.orgId !== orgId) return refuseAll(GRANT_EXPIRED_REASON)
   // R88: identity is the grant's. When it named an org member, that email must
   // still resolve to exactly that member.
+  // Only a definite answer refuses; a failed lookup leaves the entries to retry.
   if (grant.userId) {
-    const current = await resolveEmbedStaff(db, orgId, grant.email?.trim().toLowerCase() || null)
+    let current: EmbedStaff
+    try {
+      current = await resolveEmbedStaffStrict(db, orgId, grant.email?.trim().toLowerCase() || null)
+    } catch (e) {
+      console.error('[embed-checkin] grant staff re-check failed, device will retry:', e)
+      return retryAll()
+    }
     if (current.checked_in_by !== grant.userId) return refuseAll(GRANT_PERMISSION_LOST_REASON)
   }
   const staff: EmbedStaff = { checked_in_by: grant.userId, checked_in_by_email: grant.email }

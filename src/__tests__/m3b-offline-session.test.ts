@@ -65,6 +65,8 @@ let failInsertFor: Set<string>
 // Max rows one request returns, like PostgREST's cap.
 const ROW_CAP = 1000
 let rangeCalls: number
+// Makes one lookup fail with a database error (not an empty result).
+let failLookup: ((table: string, filters: [string, unknown][]) => boolean) | null
 
 function table(name: string) {
   const filters: [string, unknown][] = []
@@ -104,12 +106,17 @@ function table(name: string) {
       (db[name] ??= []).push({ id: `row-${Math.random()}`, ...row })
       return Promise.resolve({ error: null })
     },
-    maybeSingle: async () => ({ data: match()[0] ?? null, error: null }),
+    maybeSingle: async () => failLookup?.(name, filters)
+      ? { data: null, error: { code: '08006', message: 'connection failure' } }
+      : { data: match()[0] ?? null, error: null },
     single: async () => {
       const rows = match()
       return rows.length === 1 ? { data: rows[0], error: null } : { data: null, error: { code: 'PGRST116', message: 'no rows' } }
     },
-    then: (resolve: (v: { data: Row[]; error: null }) => unknown) => Promise.resolve({ data: match(), error: null }).then(resolve),
+    then: (resolve: (v: { data: Row[] | null; error: { message: string } | null }) => unknown) =>
+      Promise.resolve(failLookup?.(name, filters)
+        ? { data: null, error: { message: 'connection failure' } }
+        : { data: match(), error: null }).then(resolve),
   }
   return q
 }
@@ -149,6 +156,7 @@ beforeEach(() => {
   embedValid = true
   failInsertFor = new Set()
   rangeCalls = 0
+  failLookup = null
   vi.mocked(logAudit).mockClear()
   db = {
     events: [
@@ -263,6 +271,11 @@ describe('offline pack authorization', () => {
   it('dashboard requires checkin.manage (membership alone is not enough)', async () => {
     liveUser = { id: NOPERM }
     expect(await getOfflineSessionPack(EVENT, SESSION)).toHaveProperty('error')
+  })
+
+  it('dashboard: signed out returns an error (a background refresh never redirects)', async () => {
+    liveUser = null
+    expect(await getOfflineSessionPack(EVENT, SESSION)).toEqual({ error: 'Signed out' })
   })
 
   it('dashboard grant names the signed-in staff member', async () => {
@@ -517,6 +530,65 @@ describe('session sync identity (R88)', () => {
     expect(e.results[0].reason).toBe(GRANT_EXPIRED_REASON)
     const d = await sync(processOfflineSessionQueue, await embedGrant(), [{ kind: 'manual', entryId: b, scannedAt: hoursAgo(0.01), registrationId: R_OK }])
     expect(d.results[0].reason).toBe(GRANT_EXPIRED_REASON)
+  })
+})
+
+// ── Identity re-check: an error retries, only a denial refuses ───────────────
+
+describe('session sync identity re-check errors (M3b-A finding 1)', () => {
+  it('dashboard: a database error re-checking the grant user returns retry for every entry', async () => {
+    failLookup = (table, filters) => table === 'org_members' && filters.some(([c, v]) => c === 'user_id' && v === GRANTEE)
+    const [a, b] = [entryId(), entryId()]
+    const res = await sync(processOfflineSessionQueue, await dashGrant(GRANTEE), [
+      { kind: 'manual', entryId: a, scannedAt: hoursAgo(0.01), registrationId: R_OK },
+      { kind: 'scan', entryId: b, scannedAt: hoursAgo(0.01), token: QR_OK },
+    ])
+    expect(res.results).toEqual([
+      { entryId: a, status: 'retry', reason: 'Server error', kind: 'manual' },
+      { entryId: b, status: 'retry', reason: 'Server error', kind: 'scan' },
+    ])
+    expect(sessionRows()).toHaveLength(0)
+  })
+
+  it('dashboard: a role-permission lookup error also retries', async () => {
+    failLookup = (table) => table === 'role_permissions'
+    // The live user's own check (assertPermission) reads role_permissions too and
+    // folds the error into a denial — so let the live user be a super admin here.
+    const { isSuperAdmin } = await import('@/lib/admin/gate')
+    vi.mocked(isSuperAdmin).mockImplementation((id: string) => id === STAFF)
+    const id = entryId()
+    const res = await sync(processOfflineSessionQueue, await dashGrant(GRANTEE), [
+      { kind: 'manual', entryId: id, scannedAt: hoursAgo(0.01), registrationId: R_OK },
+    ])
+    vi.mocked(isSuperAdmin).mockReturnValue(false)
+    expect(res.results).toEqual([{ entryId: id, status: 'retry', reason: 'Server error', kind: 'manual' }])
+  })
+
+  it('dashboard: a definite denial still refuses', async () => {
+    db.org_members = db.org_members.filter(m => m.user_id !== GRANTEE)
+    const id = entryId()
+    const res = await sync(processOfflineSessionQueue, await dashGrant(GRANTEE), [
+      { kind: 'manual', entryId: id, scannedAt: hoursAgo(0.01), registrationId: R_OK },
+    ])
+    expect(res.results).toEqual([{ entryId: id, status: 'refused', reason: GRANT_PERMISSION_LOST_REASON, kind: 'manual' }])
+  })
+
+  it('embedded: a database error resolving the grant email returns retry', async () => {
+    failLookup = (table) => table === 'profiles'
+    const id = entryId()
+    const res = await sync(embedProcessOfflineSessionQueue, await embedGrant(GRANTEE), [
+      { kind: 'manual', entryId: id, scannedAt: hoursAgo(0.01), registrationId: R_OK },
+    ])
+    expect(res.results).toEqual([{ entryId: id, status: 'retry', reason: 'Server error', kind: 'manual' }])
+  })
+
+  it('embedded: an org-member lookup error returns retry', async () => {
+    failLookup = (table, filters) => table === 'org_members' && filters.some(([c]) => c === 'org_id')
+    const id = entryId()
+    const res = await sync(embedProcessOfflineSessionQueue, await embedGrant(GRANTEE), [
+      { kind: 'manual', entryId: id, scannedAt: hoursAgo(0.01), registrationId: R_OK },
+    ])
+    expect(res.results).toEqual([{ entryId: id, status: 'retry', reason: 'Server error', kind: 'manual' }])
   })
 })
 

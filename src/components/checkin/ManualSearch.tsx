@@ -32,9 +32,16 @@ export function ManualSearch({ eventId, onCheckIn, onSearch }: ManualSearchProps
   const search = useCallback(async (q: string) => {
     if (q.length < 2) { setResults([]); return }
     setSearching(true)
-    const data = await searchFn(eventId, q)
-    setResults(data as AttendeeRow[])
-    setSearching(false)
+    try {
+      const data = await searchFn(eventId, q)
+      setResults(data as AttendeeRow[])
+    } catch (e) {
+      // No network: no results, and the search box never sticks on "searching".
+      console.error('[checkin] attendee search failed:', e)
+      setResults([])
+    } finally {
+      setSearching(false)
+    }
   }, [eventId, searchFn])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {

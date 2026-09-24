@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser, getUser } from '@/lib/auth/get-user'
 import { assertPermission, hasPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { isSuperAdmin } from '@/lib/admin/gate'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { enqueueGhlStageMove } from '@/lib/trigger'
@@ -638,7 +639,10 @@ export async function getOfflineSessionPack(
   eventId: string,
   sessionId: string,
 ): Promise<OfflineSessionPack | { error: string }> {
-  const user = await requireUser()
+  // Refreshed in the background every few minutes: a signed-out user gets an
+  // error (the device keeps its stored list), never a redirect off the scanner.
+  const user = await getUser()
+  if (!user) return { error: 'Signed out' }
   const db = createAdminClient()
   const { data: event } = await db
     .from('events').select('id, org_id, end_at').eq('id', eventId).maybeSingle()
@@ -693,6 +697,10 @@ export async function processOfflineSessionQueue(
     for (const e of valid) results.push({ entryId: e.entryId, status: 'refused', reason, kind: e.kind })
     return { processed: 0, total: parsed.data.entries.length, results }
   }
+  const retryAll = (): OfflineSyncResponse => {
+    for (const e of valid) results.push({ entryId: e.entryId, status: 'retry', reason: 'Server error', kind: e.kind })
+    return { processed: 0, total: parsed.data.entries.length, results }
+  }
 
   const { data: session } = await supabase
     .from('sessions').select('id').eq('id', sessionId).eq('event_id', eventId).maybeSingle()
@@ -701,9 +709,10 @@ export async function processOfflineSessionQueue(
   const grant = await verifyOfflineGrant(parsed.data.grant, { surface: 'dashboard', eventId, sessionId })
   if (!grant || grant.orgId !== event.org_id || !grant.userId) return refuseAll(GRANT_EXPIRED_REASON)
   const staffUserId = grant.userId
-  if (!(await hasPermission(event.org_id, staffUserId, 'checkin.manage'))) {
-    return refuseAll(GRANT_PERMISSION_LOST_REASON)
-  }
+  // Only a definite denial refuses; a lookup failure leaves the entries to retry.
+  const still = await grantHolderCanCheckIn(event.org_id, staffUserId)
+  if (still === 'error') return retryAll()
+  if (still === 'denied') return refuseAll(GRANT_PERMISSION_LOST_REASON)
 
   const floor = grantScanFloor(grant)
   // Sequential: two queued scans of one attendee must not race.
@@ -734,6 +743,28 @@ export async function processOfflineSessionQueue(
   }
 
   return { processed: results.filter(r => r.status === 'accepted').length, total: parsed.data.entries.length, results }
+}
+
+// checkin.manage for the grant's user, with the same rules as assertPermission
+// but reading the errors it folds into a denial: 'error' means "could not tell"
+// (the sync retries), never "no access".
+async function grantHolderCanCheckIn(orgId: string, userId: string): Promise<'allowed' | 'denied' | 'error'> {
+  try {
+    if (isSuperAdmin(userId)) return 'allowed'
+    const db = createAdminClient()
+    const { data: member, error } = await db
+      .from('org_members').select('role_id').eq('org_id', orgId).eq('user_id', userId).maybeSingle()
+    if (error) return 'error'
+    if (!member?.role_id) return 'denied'
+    const { data: perm, error: permErr } = await db
+      .from('role_permissions').select('permission_key')
+      .eq('role_id', member.role_id).eq('permission_key', 'checkin.manage').maybeSingle()
+    if (permErr) return 'error'
+    return perm ? 'allowed' : 'denied'
+  } catch (e) {
+    console.error('[checkin] grant permission check failed:', e)
+    return 'error'
+  }
 }
 
 async function syncSessionEntry(

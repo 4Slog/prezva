@@ -2,6 +2,9 @@
 
 import type { PendingCheckIn } from '@/lib/checkin/offline-db'
 
+// Door name-search check-in threw (no network). Not queued offline.
+export const MANUAL_CHECKIN_FAILED = 'Could not check in — check the connection and try again'
+
 // A QR code is a check-in credential: never shown in full.
 export function truncateQr(code: string): string {
   return code.length > 8 ? `${code.slice(0, 6)}…` : `${code.slice(0, 2)}…`
@@ -16,13 +19,15 @@ function formatScanTime(iso: string): string {
 interface QueueStatusProps {
   isOnline: boolean
   pendingCount: number
+  // Session scanners (R85): how many pending entries are re-checks.
+  pendingVerificationCount?: number
   needsAttentionCount: number
   syncing: boolean
   onSync: () => void
 }
 
 // Header widget: connection, pending count with Sync now, needs-attention count.
-export function OfflineQueueStatus({ isOnline, pendingCount, needsAttentionCount, syncing, onSync }: QueueStatusProps) {
+export function OfflineQueueStatus({ isOnline, pendingCount, pendingVerificationCount = 0, needsAttentionCount, syncing, onSync }: QueueStatusProps) {
   return (
     <div className="flex-shrink-0 text-right">
       <div className="flex items-center gap-2 justify-end">
@@ -31,7 +36,10 @@ export function OfflineQueueStatus({ isOnline, pendingCount, needsAttentionCount
       </div>
       {pendingCount > 0 && (
         <div className="mt-1">
-          <span className="text-xs text-yellow-600 font-medium">{pendingCount} pending</span>
+          <span className="text-xs text-yellow-600 font-medium">
+            {pendingCount} pending
+            {pendingVerificationCount > 0 && ` (${pendingVerificationCount} pending verification)`}
+          </span>
           {isOnline && (
             <button
               onClick={onSync}
@@ -53,38 +61,56 @@ export function OfflineQueueStatus({ isOnline, pendingCount, needsAttentionCount
   )
 }
 
-interface NeedsAttentionListProps {
-  entries: PendingCheckIn[]
-  onDismiss: (id: number) => void
+export interface AttentionItem {
+  key: string
+  // The attendee name, or a truncated token — never a full token.
+  label: string
+  mono?: boolean
+  scannedAt: string
+  reason?: string
 }
 
-// Queued scans the server refused, with its reason. Dismiss keeps the entry on
+interface AttentionListProps {
+  items: AttentionItem[]
+  onDismiss: (key: string) => void
+  noun?: string
+}
+
+// Queued entries the server refused, with its reason. Dismiss keeps the entry on
 // the device (status 'dismissed') and hides it here.
-export function NeedsAttentionList({ entries, onDismiss }: NeedsAttentionListProps) {
-  if (entries.length === 0) return null
+export function AttentionList({ items, onDismiss, noun = 'scan' }: AttentionListProps) {
+  if (items.length === 0) return null
   return (
     <div className="p-3 rounded-lg text-sm bg-red-50 border border-red-200 text-red-800 space-y-2">
       <p className="font-medium">
-        {entries.length} queued scan{entries.length === 1 ? '' : 's'} could not be checked in
+        {items.length} queued {noun}{items.length === 1 ? '' : 's'} could not be checked in
       </p>
       <ul className="space-y-1">
-        {entries.map(e => (
-          <li key={e.id} className="flex items-center justify-between gap-3">
+        {items.map(e => (
+          <li key={e.key} className="flex items-center justify-between gap-3">
             <span className="min-w-0">
-              <span className="font-mono text-xs">{truncateQr(e.qrCode)}</span>
+              <span className={e.mono ? 'font-mono text-xs' : 'text-xs font-medium'}>{e.label}</span>
               <span className="text-xs"> · scanned {formatScanTime(e.scannedAt)} · {e.reason ?? 'Refused'}</span>
             </span>
-            {e.id !== undefined && (
-              <button
-                onClick={() => onDismiss(e.id as number)}
-                className="flex-shrink-0 text-xs underline"
-              >
-                Dismiss
-              </button>
-            )}
+            <button onClick={() => onDismiss(e.key)} className="flex-shrink-0 text-xs underline">
+              Dismiss
+            </button>
           </li>
         ))}
       </ul>
     </div>
   )
+}
+
+interface NeedsAttentionListProps {
+  entries: PendingCheckIn[]
+  onDismiss: (id: number) => void
+}
+
+// The door queue's list (R84).
+export function NeedsAttentionList({ entries, onDismiss }: NeedsAttentionListProps) {
+  const items: AttentionItem[] = entries
+    .filter(e => e.id !== undefined)
+    .map(e => ({ key: String(e.id), label: truncateQr(e.qrCode), mono: true, scannedAt: e.scannedAt, reason: e.reason }))
+  return <AttentionList items={items} onDismiss={key => onDismiss(Number(key))} />
 }

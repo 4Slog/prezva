@@ -49,6 +49,7 @@ export default async function SessionCheckInPage({ params }: Props) {
         sessionTitle={(session as any).title}
         sessionUrl={sessionUrl}
         initialAttendees={attendees}
+        staffUserId={access!.user.id}
       />
     </div>
   )

@@ -9,27 +9,9 @@ import {
   type PendingCheckIn,
   type SyncOutcome,
 } from '@/lib/checkin/offline-db'
+import { getDeviceId } from '@/lib/checkin/device-id'
 
-const DEVICE_ID_KEY = 'prezva-device-id'
 export const SYNC_INTERVAL_MS = 30_000
-
-let memoryDeviceId: string | null = null
-
-// localStorage can be unavailable or throw (partitioned storage in the GHL
-// iframe, private mode); a missing device id must never stop a scan queueing.
-function getDeviceId(): string {
-  try {
-    let id = localStorage.getItem(DEVICE_ID_KEY)
-    if (!id) {
-      id = crypto.randomUUID()
-      localStorage.setItem(DEVICE_ID_KEY, id)
-    }
-    return id
-  } catch {
-    memoryDeviceId ??= crypto.randomUUID()
-    return memoryDeviceId
-  }
-}
 
 // R84: the event-door offline queue, shared by the dashboard and embedded door
 // clients. Syncs on the online event, on demand, and every SYNC_INTERVAL_MS while

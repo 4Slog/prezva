@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { signOut } from "@/lib/auth/actions"
+import { countPendingEverywhere, deleteAllScanDbs } from "@/lib/checkin/session-offline-db"
 
 interface UserMenuProps {
   email: string
@@ -13,6 +14,8 @@ interface UserMenuProps {
 export function UserMenu({ email, name, avatarUrl }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
+  // Unsynced offline session check-ins found at sign-out (M3b): ask first.
+  const [unsyncedWarning, setUnsyncedWarning] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const initial = (name ?? email ?? "U").trim().charAt(0).toUpperCase()
 
@@ -34,9 +37,20 @@ export function UserMenu({ email, name, avatarUrl }: UserMenuProps) {
     }
   }, [open])
 
-  async function handleSignOut() {
+  async function handleSignOut(confirmed = false) {
     setPending(true)
     try {
+      // This browser's offline scan stores belong to whoever is signed in:
+      // they go with the session. Unsynced check-ins are warned about first.
+      if (!confirmed) {
+        const unsynced = await countPendingEverywhere().catch(() => 0)
+        if (unsynced > 0) {
+          setUnsyncedWarning(unsynced)
+          setPending(false)
+          return
+        }
+      }
+      await deleteAllScanDbs().catch(e => console.error("[sign-out] offline stores not cleared:", e))
       await signOut()
     } catch {
       setPending(false)
@@ -122,16 +136,42 @@ export function UserMenu({ email, name, avatarUrl }: UserMenuProps) {
             className="py-1"
             style={{ borderTop: "1px solid var(--pz-border)" }}
           >
-            <button
-              type="button"
-              role="menuitem"
-              onClick={handleSignOut}
-              disabled={pending}
-              className="block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-[var(--pz-surface-2)] disabled:opacity-50"
-              style={{ color: "var(--pz-text)" }}
-            >
-              {pending ? "Signing out..." : "Sign out"}
-            </button>
+            {unsyncedWarning !== null ? (
+              <div role="alert" className="px-4 py-2 space-y-2">
+                <p className="text-xs" style={{ color: "var(--pz-text)" }}>
+                  {unsyncedWarning} check-in{unsyncedWarning === 1 ? " has" : "s have"} not synced; signing out will discard them
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setUnsyncedWarning(null); void handleSignOut(true) }}
+                    disabled={pending}
+                    className="px-2 py-1 rounded text-xs font-semibold bg-red-600 text-white disabled:opacity-50"
+                  >
+                    Sign out anyway
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUnsyncedWarning(null)}
+                    className="px-2 py-1 rounded text-xs underline"
+                    style={{ color: "var(--pz-text)" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => void handleSignOut()}
+                disabled={pending}
+                className="block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-[var(--pz-surface-2)] disabled:opacity-50"
+                style={{ color: "var(--pz-text)" }}
+              >
+                {pending ? "Signing out..." : "Sign out"}
+              </button>
+            )}
           </div>
         </div>
       )}

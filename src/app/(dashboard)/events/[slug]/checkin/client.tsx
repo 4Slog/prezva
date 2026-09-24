@@ -9,7 +9,7 @@ import { checkInByQR, checkInBySearch, getCheckInStats } from '@/lib/checkin/act
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
 import { syncPending } from '@/lib/checkin/offline-db'
 import { useDoorQueue } from '@/components/checkin/useDoorQueue'
-import { OfflineQueueStatus, NeedsAttentionList } from '@/components/checkin/OfflineQueuePanel'
+import { OfflineQueueStatus, NeedsAttentionList, MANUAL_CHECKIN_FAILED } from '@/components/checkin/OfflineQueuePanel'
 import { Gated } from '@/components/auth/Gated'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
@@ -131,10 +131,20 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
   }, [eventId, scanning, refreshStats, queueScan])
 
   const handleManualCheckIn = useCallback(async (registrationId: string) => {
-    const result = await checkInBySearch(eventId, registrationId)
+    // A thrown call (no network) shows an error; the name search never freezes.
+    // Door manual check-in is not queued offline.
+    let result: CheckInResult
+    try {
+      result = await checkInBySearch(eventId, registrationId)
+    } catch (e) {
+      console.error('[checkin] manual check-in failed:', e)
+      result = { success: false, error: MANUAL_CHECKIN_FAILED }
+    }
     setLastResult(result)
-    if (result.success) await refreshStats()
     setTimeout(() => setLastResult(null), 3000)
+    if (result.success) {
+      try { await refreshStats() } catch (e) { console.error('[checkin] stats refresh failed:', e) }
+    }
   }, [eventId, refreshStats])
 
   const tabs: { id: Tab; label: string }[] = [

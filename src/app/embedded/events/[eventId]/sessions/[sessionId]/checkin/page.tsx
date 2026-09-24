@@ -17,8 +17,10 @@ export default async function EmbedSessionCheckInPage({ params }: Props) {
   if (!token) redirect('/embedded/events')
 
   let orgId: string
+  let staffEmail: string | null = null
   try {
     const session = await verifyEmbeddedSession(token)
+    staffEmail = session.user_email?.trim().toLowerCase() || null
     const db = createAdminClient()
     const { data: link } = await db
       .from('ghl_location_links')
@@ -65,6 +67,7 @@ export default async function EmbedSessionCheckInPage({ params }: Props) {
         sessionTitle={(sessionRow as any).title}
         sessionUrl={sessionUrl}
         initialAttendees={attendees}
+        staffEmail={staffEmail}
       />
   )
 }
