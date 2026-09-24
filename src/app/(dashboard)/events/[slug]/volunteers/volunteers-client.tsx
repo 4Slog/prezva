@@ -97,6 +97,7 @@ export function VolunteersClient({
     shift_start: '', shift_end: '', notes: '',
   })
   const [err, setErr] = useState('')
+  const [actionErr, setActionErr] = useState('')
 
   // Default (standalone) implementations — preserved verbatim as the fetch/import fallback
   // so the client stays byte-identical when no *Action prop is injected (embed lane).
@@ -181,7 +182,8 @@ export function VolunteersClient({
     if (action === 'remove' && !confirm('Remove this volunteer?')) return
     const fn = action === 'checkin' ? checkin : action === 'resend' ? resend : remove
     const result = await fn(id, eventId)
-    if ('error' in result) return
+    if ('error' in result) { setActionErr(result.error || 'Request failed'); return }
+    setActionErr('')
     if (action === 'remove') {
       setVolunteers(v => v.filter(x => x.id !== id))
     } else if (action === 'checkin') {
@@ -191,6 +193,11 @@ export function VolunteersClient({
 
   return (
     <div>
+      {actionErr && (
+        <p role="alert" style={{ fontSize: 13, color: 'var(--pz-error)', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '0.5rem 0.75rem', marginBottom: 16 }}>
+          {actionErr}
+        </p>
+      )}
       {/* Alert inbox */}
       {alerts.length > 0 && (
         <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '1rem', marginBottom: 24 }}>

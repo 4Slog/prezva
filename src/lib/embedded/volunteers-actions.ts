@@ -188,12 +188,14 @@ export async function embedRemoveVolunteer(volunteerId: string, eventId: string)
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
 
-  const { error } = await db
+  const { data: deleted, error } = await db
     .from('volunteers')
     .delete()
     .eq('id', volunteerId)
     .eq('event_id', eventId)
+    .select('id')
   if (error) return { error: error.message }
+  if (!deleted?.length) return { error: 'Volunteer not found' }
   return { ok: true }
 }
 

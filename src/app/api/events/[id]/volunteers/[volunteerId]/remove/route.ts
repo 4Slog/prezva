@@ -1,43 +1,30 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { assertPermission } from '@/lib/auth/assert-permission'
+import { resolveVolunteerTarget } from '@/lib/volunteers/route-auth'
 
+// O132: the dashboard sends the event slug; resolveVolunteerTarget takes the
+// event from the volunteer row, accepts the URL ref as that event's id or
+// slug, and requires volunteers.manage on it. The delete is scoped to that
+// event and a zero-row delete is an error, never a silent success.
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string; volunteerId: string }> }
 ) {
   const user = await requireUser()
-  const { id: eventId, volunteerId } = await params
+  const { id: eventRef, volunteerId } = await params
+
+  const target = await resolveVolunteerTarget(eventRef, volunteerId, user.id)
+  if (target instanceof NextResponse) return target
 
   const admin = createAdminClient()
-
-  // Verify the volunteer belongs to the event in the URL — prevents IDOR
-  // where volunteerId from one event is replayed against another event's path.
-  const { data: volunteer } = await admin
+  const { data: deleted, error } = await admin
     .from('volunteers')
-    .select('event_id')
+    .delete()
     .eq('id', volunteerId)
-    .maybeSingle()
-  if (!volunteer || volunteer.event_id !== eventId) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  // Resolve org and require staff+ membership.
-  const { data: event } = await admin
-    .from('events')
-    .select('org_id')
-    .eq('id', eventId)
-    .maybeSingle()
-  if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-  try {
-    await assertPermission(event.org_id as string, user.id, 'volunteers.manage')
-  } catch {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const { error } = await admin.from('volunteers').delete().eq('id', volunteerId)
+    .eq('event_id', target.event.id)
+    .select('id')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!deleted?.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ ok: true })
 }
