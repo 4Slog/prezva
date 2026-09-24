@@ -50,7 +50,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
     if (embed && embedActions?.sendSpeakerInvite) {
       result = await embedActions.sendSpeakerInvite(event.id, speakerId)
     } else {
-      result = await sendSpeakerInvite(event.id, speakerId, window.location.origin)
+      result = await sendSpeakerInvite(event.id, speakerId)
     }
     setInviteResult(prev => ({
       ...prev,

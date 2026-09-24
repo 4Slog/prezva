@@ -2,6 +2,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 
 async function validateToken(token: string) {
   const admin = createAdminClient()
@@ -267,15 +268,33 @@ export async function updateLeadQuality(
   return { ok: true }
 }
 
+// Dashboard: the sponsor row decides the event; the caller must hold
+// sponsors.manage on that event's org. Contact portal tokens are only ever
+// returned after that check passes.
+async function authorizeSponsor(sponsorId: string): Promise<{ sponsorId: string } | { error: string }> {
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: sponsor } = await admin.from('event_sponsors').select('id, event_id').eq('id', sponsorId).maybeSingle()
+  if (!sponsor) return { error: 'Sponsor not found' }
+  const { data: event } = await admin.from('events').select('id, org_id').eq('id', sponsor.event_id).maybeSingle()
+  if (!event) return { error: 'Sponsor not found' }
+  try { await assertPermission(event.org_id, user.id, 'sponsors.manage') } catch (e) { return catchPermission(e) }
+  return { sponsorId: sponsor.id }
+}
+
 export async function addSponsorContact(
   sponsorId: string,
   name: string,
   email?: string,
 ): Promise<{ id?: string; portal_token?: string; error?: string }> {
+  const cleanName = typeof name === 'string' ? name.trim() : ''
+  if (!cleanName || cleanName.length > 200) return { error: 'Enter a name' }
+  const auth = await authorizeSponsor(sponsorId)
+  if ('error' in auth) return { error: auth.error }
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('sponsor_contacts')
-    .insert({ sponsor_id: sponsorId, name, email: email ?? null })
+    .insert({ sponsor_id: auth.sponsorId, name: cleanName, email: email?.trim() || null })
     .select('id, portal_token')
     .single()
   if (error) return { error: error.message }
@@ -283,11 +302,13 @@ export async function addSponsorContact(
 }
 
 export async function getSponsorContacts(sponsorId: string) {
+  const auth = await authorizeSponsor(sponsorId)
+  if ('error' in auth) return []
   const admin = createAdminClient()
   const { data } = await admin
     .from('sponsor_contacts')
     .select('id, name, email, portal_token, created_at')
-    .eq('sponsor_id', sponsorId)
+    .eq('sponsor_id', auth.sponsorId)
     .order('created_at', { ascending: true })
   return data ?? []
 }

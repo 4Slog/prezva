@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
-import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-actions'
+import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
 import { enqueueGhlSpeakerMessage } from '@/lib/trigger'
 import { z } from 'zod'
 
@@ -254,8 +254,9 @@ export async function embedSendSpeakerInvite(eventId: string, speakerId: string)
   if (!speaker) return { error: 'Speaker not found' }
   if (!(speaker as any).email) return { error: 'Speaker has no email address' }
 
-  const token = await getOrCreateSpeakerToken(eventId, speakerId)
-  if (!token) return { error: 'Failed to generate token' }
+  const issued = await getOrCreateSpeakerToken(speakerId, { embedOrgId: orgId })
+  if ('error' in issued) return { error: issued.error }
+  const token = issued.token
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
   const portalUrl = `${appUrl}/speaker/${token}`

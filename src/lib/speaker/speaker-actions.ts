@@ -7,6 +7,8 @@ import { requireUser } from '@/lib/auth/get-user'
 import { enqueueSpeakerInviteEmail } from '@/lib/trigger'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
+import { escapeHtml } from '@/trigger/lib/escape'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
 
@@ -41,31 +43,6 @@ export async function createSpeaker(eventId: string, input: {
     .single()
   if (error) return { error: error.message }
   return { data }
-}
-
-export async function getOrCreateSpeakerToken(eventId: string, speakerId: string) {
-  // speaker_tokens is service-role only — bearer tokens must never be exposed
-  // via RLS. Callers of this function are already org-staff-gated upstream.
-  const admin = createAdminClient()
-
-  const { data: existing } = await admin
-    .from('speaker_tokens')
-    .select('token, expires_at')
-    .eq('event_id', eventId)
-    .eq('speaker_id', speakerId)
-    .single()
-
-  if (existing && new Date(existing.expires_at) > new Date()) {
-    return existing.token as string
-  }
-
-  const { data } = await admin
-    .from('speaker_tokens')
-    .upsert({ event_id: eventId, speaker_id: speakerId }, { onConflict: 'event_id,speaker_id' })
-    .select('token')
-    .single()
-
-  return (data as any)?.token as string | null
 }
 
 export async function validateSpeakerToken(token: string) {
@@ -104,30 +81,59 @@ export async function validateSpeakerToken(token: string) {
   }
 }
 
+// Resolves an event's org and requires the caller to hold `key` on it.
+// Returns the event, or { error } for a missing event or a missing permission.
+async function authorizeEvent(
+  eventId: string,
+  key: 'speakers.manage',
+): Promise<{ event: { id: string; org_id: string } } | { error: string }> {
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: event } = await admin.from('events').select('id, org_id').eq('id', eventId).maybeSingle()
+  if (!event) return { error: 'Event not found' }
+  try { await assertPermission(event.org_id, user.id, key) } catch (e) { return catchPermission(e) }
+  return { event }
+}
+
+// Speaker portal: the token alone identifies the speaker and the event.
+async function speakerFromToken(token: string): Promise<{ eventId: string; speakerId: string } | null> {
+  if (typeof token !== 'string' || !token) return null
+  const data = await validateSpeakerToken(token)
+  if (!data?.event_id || !data?.speaker_id) return null
+  return { eventId: data.event_id as string, speakerId: data.speaker_id as string }
+}
+
 // ── T-095b: magic link invite ─────────────────────────────────────────────────
 
-export async function sendSpeakerInvite(eventId: string, speakerId: string, appUrl: string) {
-  const supabase = await createClient()
+// The speaker row decides the event; the caller must hold speakers.manage on
+// that event's org (checked inside getOrCreateSpeakerToken). The portal URL is
+// built from the app's own origin, never a caller-supplied one.
+export async function sendSpeakerInvite(eventId: string, speakerId: string) {
+  const user = await requireUser()
+  const admin = createAdminClient()
 
-  const { data: speaker } = await supabase
+  const { data: speaker } = await admin
     .from('speakers')
-    .select('email, name, ghl_contact_id')
+    .select('id, event_id, email, name, ghl_contact_id')
     .eq('id', speakerId)
     .eq('event_id', eventId)
-    .single()
+    .maybeSingle()
+  if (!speaker) return { error: 'Speaker not found' }
 
-  if (!(speaker as any)?.email) return { error: 'Speaker has no email address' }
+  let issued: Awaited<ReturnType<typeof getOrCreateSpeakerToken>>
+  try { issued = await getOrCreateSpeakerToken(speaker.id, { userId: user.id }) } catch (e) { return catchPermission(e) }
+  if ('error' in issued) return { error: issued.error }
 
-  const token = await getOrCreateSpeakerToken(eventId, speakerId)
-  if (!token) return { error: 'Failed to generate token' }
+  if (!(speaker as any).email) return { error: 'Speaker has no email address' }
 
-  const portalUrl = `${appUrl}/speaker/${token}`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
+  const portalUrl = `${appUrl}/speaker/${issued.token}`
 
-  const { data: eventRow } = await supabase
+  const { data: eventRow } = await admin
     .from('events')
     .select('title, start_at, org_id')
-    .eq('id', eventId)
-    .single()
+    .eq('id', issued.eventId)
+    .maybeSingle()
 
   const service = createServiceClient()
   const { error } = await service.auth.admin.generateLink({
@@ -253,11 +259,22 @@ export async function getSpeakerFormSubmission(eventId: string, speakerId: strin
   return (data as any)?.data ?? {}
 }
 
-export async function saveSpeakerFormSubmission(eventId: string, speakerId: string, formData: Record<string, string>) {
+// Speaker portal: event and speaker come from the token, never the caller.
+export async function saveSpeakerFormSubmission(token: string, formData: Record<string, string>) {
+  const ctx = await speakerFromToken(token)
+  if (!ctx) return { error: 'Invalid speaker link' }
+  if (!formData || typeof formData !== 'object' || Array.isArray(formData)) return { error: 'Invalid form data' }
+  const entries = Object.entries(formData)
+  if (entries.length > 200 || entries.some(([k, v]) => k.length > 200 || typeof v !== 'string' || v.length > 20000)) {
+    return { error: 'Invalid form data' }
+  }
   const admin = createAdminClient()
   const { error } = await admin
     .from('speaker_form_submissions')
-    .upsert({ event_id: eventId, speaker_id: speakerId, data: formData, updated_at: new Date().toISOString() }, { onConflict: 'event_id,speaker_id' })
+    .upsert(
+      { event_id: ctx.eventId, speaker_id: ctx.speakerId, data: Object.fromEntries(entries), updated_at: new Date().toISOString() },
+      { onConflict: 'event_id,speaker_id' },
+    )
   return { error: error?.message }
 }
 
@@ -380,19 +397,34 @@ export async function getSpeakerSessionsWithQA(speakerId: string, eventId: strin
   }))
 }
 
-export async function createPoll(sessionId: string, eventId: string, body: string, options: string[]) {
-  const supabase = await createClient()
-  const user = await supabase.auth.getUser()
-  // Speakers can create polls from the token-gated portal (no auth.uid); use
-  // admin client so both authenticated staff and token-only speakers work.
+// Speaker portal (token only): the token's speaker must be assigned to the
+// session, and the session must be on the token's event.
+export async function createPoll(token: string, sessionId: string, body: string, options: string[]) {
+  const ctx = await speakerFromToken(token)
+  if (!ctx) return { error: 'Invalid speaker link' }
+  const question = typeof body === 'string' ? body.trim() : ''
+  const opts = Array.isArray(options) ? options.filter(o => typeof o === 'string' && o.trim()).map(o => o.trim()) : []
+  if (!question || question.length > 1000) return { error: 'Enter a question' }
+  if (opts.length < 2 || opts.length > 10 || opts.some(o => o.length > 200)) return { error: 'Give 2 to 10 options' }
+
   const admin = createAdminClient()
+  const { data: session } = await admin.from('sessions').select('id, event_id').eq('id', sessionId).maybeSingle()
+  if (!session || session.event_id !== ctx.eventId) return { error: 'Session not found' }
+  const { data: onSession } = await admin
+    .from('session_speakers')
+    .select('session_id')
+    .eq('session_id', session.id)
+    .eq('speaker_id', ctx.speakerId)
+    .limit(1)
+  if (!onSession?.length) return { error: 'Session not found' }
+
   const { error } = await admin.from('session_questions').insert({
-    session_id: sessionId,
-    event_id: eventId,
-    user_id: user.data.user?.id ?? null,
-    body,
+    session_id: session.id,
+    event_id: ctx.eventId,
+    user_id: null,
+    body: question,
     is_poll: true,
-    poll_options: options.map(opt => ({ label: opt, votes: 0 })),
+    poll_options: opts.map(opt => ({ label: opt, votes: 0 })),
   })
   return { error: error?.message }
 }
@@ -428,29 +460,31 @@ export async function markQuestionAnswered(token: string, questionId: string) {
 }
 
 // ── T-095d: speaker messaging ─────────────────────────────────────────────────
+// speaker_conversations / speaker_messages are service-role only. Two doors:
+// the speaker portal (authorized by the speaker token; ids come from the
+// token; always posts as 'speaker') and the dashboard (speakers.manage on the
+// event the row belongs to; always posts as 'organizer').
 
-export async function getOrCreateSpeakerConversation(eventId: string, speakerId: string) {
-  // speaker_conversations is service-role only; called from speaker portal and
-  // org dashboard contexts.
+const MAX_MESSAGE = 5000
+
+async function findOrCreateConversation(eventId: string, speakerId: string): Promise<string | null> {
   const admin = createAdminClient()
   const { data: existing } = await admin
     .from('speaker_conversations')
     .select('id')
     .eq('event_id', eventId)
     .eq('speaker_id', speakerId)
-    .single()
-
+    .maybeSingle()
   if (existing) return (existing as any).id as string
-
   const { data } = await admin
     .from('speaker_conversations')
     .insert({ event_id: eventId, speaker_id: speakerId })
     .select('id')
     .single()
-  return (data as any)?.id as string | null
+  return ((data as any)?.id as string | undefined) ?? null
 }
 
-export async function getSpeakerMessages(conversationId: string) {
+async function listMessages(conversationId: string) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('speaker_messages')
@@ -460,59 +494,124 @@ export async function getSpeakerMessages(conversationId: string) {
   return (data ?? []) as any[]
 }
 
-export async function sendSpeakerMessage(conversationId: string, senderRole: 'organizer' | 'speaker', body: string) {
+function cleanBody(body: unknown): string | null {
+  const text = typeof body === 'string' ? body.trim() : ''
+  return text && text.length <= MAX_MESSAGE ? text : null
+}
+
+// Dashboard: the conversation's event comes from the row; speakers.manage on it.
+async function authorizeConversation(conversationId: string) {
+  const admin = createAdminClient()
+  const { data: conv } = await admin
+    .from('speaker_conversations')
+    .select('id, event_id, speaker_id')
+    .eq('id', conversationId)
+    .maybeSingle()
+  if (!conv) return { error: 'Conversation not found' } as const
+  const auth = await authorizeEvent(conv.event_id, 'speakers.manage')
+  if ('error' in auth) return auth
+  return { conv: conv as { id: string; event_id: string; speaker_id: string } }
+}
+
+// Portal: the token's own conversation.
+export async function getSpeakerPortalConversation(token: string): Promise<string | null> {
+  const ctx = await speakerFromToken(token)
+  if (!ctx) return null
+  return findOrCreateConversation(ctx.eventId, ctx.speakerId)
+}
+
+export async function getSpeakerPortalMessages(token: string) {
+  const ctx = await speakerFromToken(token)
+  if (!ctx) return []
+  const admin = createAdminClient()
+  const { data: conv } = await admin
+    .from('speaker_conversations')
+    .select('id')
+    .eq('event_id', ctx.eventId)
+    .eq('speaker_id', ctx.speakerId)
+    .maybeSingle()
+  return conv ? listMessages((conv as any).id) : []
+}
+
+export async function sendSpeakerPortalMessage(token: string, body: string): Promise<{ error?: string }> {
+  const ctx = await speakerFromToken(token)
+  if (!ctx) return { error: 'Invalid speaker link' }
+  const text = cleanBody(body)
+  if (!text) return { error: 'Message is empty or too long' }
+  const conversationId = await findOrCreateConversation(ctx.eventId, ctx.speakerId)
+  if (!conversationId) return { error: 'Could not open the conversation' }
   const admin = createAdminClient()
   const { error } = await admin
     .from('speaker_messages')
-    .insert({ conversation_id: conversationId, sender_role: senderRole, body })
+    .insert({ conversation_id: conversationId, sender_role: 'speaker', body: text })
+  return error ? { error: error.message } : {}
+}
+
+// Dashboard: the speaker row decides the event; it must be the event the page is on.
+export async function getOrCreateSpeakerConversation(eventId: string, speakerId: string): Promise<string | null> {
+  const admin = createAdminClient()
+  const { data: speaker } = await admin.from('speakers').select('id, event_id').eq('id', speakerId).maybeSingle()
+  if (!speaker || speaker.event_id !== eventId) return null
+  const auth = await authorizeEvent(speaker.event_id, 'speakers.manage')
+  if ('error' in auth) return null
+  return findOrCreateConversation(speaker.event_id, speaker.id)
+}
+
+export async function getSpeakerMessages(conversationId: string) {
+  const auth = await authorizeConversation(conversationId)
+  if ('error' in auth) return []
+  return listMessages(auth.conv.id)
+}
+
+export async function sendSpeakerMessage(conversationId: string, body: string): Promise<{ error?: string }> {
+  const auth = await authorizeConversation(conversationId)
+  if ('error' in auth) return { error: auth.error }
+  const text = cleanBody(body)
+  if (!text) return { error: 'Message is empty or too long' }
+  const { conv } = auth
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('speaker_messages')
+    .insert({ conversation_id: conv.id, sender_role: 'organizer', body: text })
   if (error) return { error: error.message }
 
-  if (senderRole === 'organizer') {
-    const { data: conv } = await admin
-      .from('speaker_conversations')
-      .select('speaker_id, event_id, speakers(name, email, confirmation_token), events(title, organizations(name))')
-      .eq('id', conversationId)
-      .single()
+  const [{ data: speaker }, { data: event }] = await Promise.all([
+    admin.from('speakers').select('name, email, confirmation_token').eq('id', conv.speaker_id).maybeSingle(),
+    admin.from('events').select('title, organizations(name)').eq('id', conv.event_id).maybeSingle(),
+  ])
+  const orgName = (event as any)?.organizations?.name ?? 'Event organizer'
 
-    if (conv) {
-      const speaker = (conv as any).speakers
-      const event = (conv as any).events
-      const orgName = event?.organizations?.name ?? 'Event organizer'
-      const hubUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/speaker/${speaker?.confirmation_token}`
+  const { data: recent } = await admin
+    .from('speaker_messages')
+    .select('created_at')
+    .eq('conversation_id', conv.id)
+    .eq('sender_role', 'organizer')
+    .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+    .order('created_at', { ascending: false })
+    .limit(2)
+  const shouldEmail = !recent || recent.length <= 1
 
-      const { data: recent } = await admin
-        .from('speaker_messages')
-        .select('created_at')
-        .eq('conversation_id', conversationId)
-        .eq('sender_role', 'organizer')
-        .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false })
-        .limit(2)
-
-      const shouldEmail = !recent || recent.length <= 1
-
-      if (shouldEmail && speaker?.email) {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: `${orgName} <noreply@prezva.app>`,
-            to: speaker.email,
-            subject: `New message re: ${event?.title ?? 'your session'}`,
-            html: `<p>Hi ${speaker.name},</p>
-                   <p>${orgName} sent you a message:</p>
-                   <blockquote style="border-left:3px solid #2DD4BF;padding:0 1rem;color:#555">${body}</blockquote>
-                   <p><a href="${hubUrl}">View in your speaker hub →</a></p>`,
-          }),
-        }).catch(() => {})
-      }
-    }
+  if (shouldEmail && (speaker as any)?.email) {
+    const hubUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/speaker/${(speaker as any).confirmation_token}`
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${orgName.replace(/[<>"\r\n]/g, '')} <noreply@prezva.app>`,
+        to: (speaker as any).email,
+        subject: `New message re: ${(event as any)?.title ?? 'your session'}`,
+        html: `<p>Hi ${escapeHtml((speaker as any).name ?? '')},</p>
+               <p>${escapeHtml(orgName)} sent you a message:</p>
+               <blockquote style="border-left:3px solid #2DD4BF;padding:0 1rem;color:#555;white-space:pre-wrap">${escapeHtml(text)}</blockquote>
+               <p><a href="${escapeHtml(hubUrl)}">View in your speaker hub →</a></p>`,
+      }),
+    }).catch(() => {})
   }
 
-  return { error: undefined }
+  return {}
 }
 
 export async function getSpeakerConversations(eventId: string) {
@@ -529,9 +628,10 @@ export async function getSpeakerConversations(eventId: string) {
 // ── T-095e: bulk message ──────────────────────────────────────────────────────
 
 export async function getSpeakersWithMissingInfo(eventId: string, missingField: string) {
-  const supabase = await createClient()
+  const auth = await authorizeEvent(eventId, 'speakers.manage')
+  if ('error' in auth) return []
   const admin = createAdminClient()
-  let q = supabase.from('speakers').select('id, name, email, status').eq('event_id', eventId)
+  let q = admin.from('speakers').select('id, name, email, status').eq('event_id', eventId)
   if (missingField === 'bio') q = q.is('bio', null)
   if (missingField === 'photo') q = q.is('photo_url', null)
   if (missingField === 'form') {

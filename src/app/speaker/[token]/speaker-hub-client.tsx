@@ -6,9 +6,9 @@ import {
   saveSpeakerFormSubmission,
   createPoll,
   markQuestionAnswered,
-  sendSpeakerMessage,
-  getOrCreateSpeakerConversation,
-  getSpeakerMessages,
+  sendSpeakerPortalMessage,
+  getSpeakerPortalConversation,
+  getSpeakerPortalMessages,
   deleteHandout,
 } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/client'
@@ -54,7 +54,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
 
   async function saveForm() {
     startTransition(async () => {
-      await saveSpeakerFormSubmission(event.id, speaker.id, formData)
+      await saveSpeakerFormSubmission(token, formData)
       setFormSaved(true)
       setTimeout(() => setFormSaved(false), 2500)
     })
@@ -64,7 +64,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
     const opts = pollOptions.filter(o => o.trim())
     if (!pollSession || !pollBody.trim() || opts.length < 2) return
     setPollPending(true)
-    await createPoll(pollSession, event.id, pollBody.trim(), opts)
+    await createPoll(token, pollSession, pollBody.trim(), opts)
     setPollBody('')
     setPollOptions(['', ''])
     setPollSession('')
@@ -76,10 +76,10 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
   }
 
   async function loadMessages() {
-    const id = await getOrCreateSpeakerConversation(event.id, speaker.id)
+    const id = await getSpeakerPortalConversation(token)
     if (!id) return
     setConvId(id)
-    const msgs = await getSpeakerMessages(id)
+    const msgs = await getSpeakerPortalMessages(token)
     setMessages(msgs)
     const sb = supabaseRef.current
     const channel = sb
@@ -94,7 +94,7 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
   async function sendMsg() {
     if (!convId || !msgBody.trim()) return
     setMsgPending(true)
-    await sendSpeakerMessage(convId, 'speaker', msgBody.trim())
+    await sendSpeakerPortalMessage(token, msgBody.trim())
     setMsgBody('')
     setMsgPending(false)
   }

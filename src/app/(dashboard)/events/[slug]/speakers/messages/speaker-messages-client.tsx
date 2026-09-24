@@ -87,7 +87,7 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
         setMessages(prev => [...prev, { id: crypto.randomUUID(), sender_role: 'organizer', body: trimmed, created_at: new Date().toISOString() }])
       }
     } else {
-      await sendSpeakerMessage(activeConvId, 'organizer', trimmed)
+      await sendSpeakerMessage(activeConvId, trimmed)
     }
     setMsgBody('')
     setMsgPending(false)
@@ -111,7 +111,7 @@ export function SpeakerMessagesClient({ event, conversations: initialConvs, spea
         : await getSpeakersWithMissingInfo(event.id, bulkFilter)
       for (const sp of targets) {
         const convId = await getOrCreateSpeakerConversation(event.id, sp.id)
-        if (convId) await sendSpeakerMessage(convId, 'organizer', bulkBody.trim())
+        if (convId) await sendSpeakerMessage(convId, bulkBody.trim())
       }
     }
 
