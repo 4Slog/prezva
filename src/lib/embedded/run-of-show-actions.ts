@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
+import { inputToInstant } from '@/lib/datetime/zoned-input'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ async function assertEventOwnership(
 ) {
   const { data } = await db
     .from('events')
-    .select('id, org_id')
+    .select('id, org_id, timezone')
     .eq('id', eventId)
     .eq('org_id', orgId)
     .maybeSingle()
@@ -44,7 +45,7 @@ export async function embedGetRunOfShowData(eventId: string) {
 
   const { data: event } = await db
     .from('events')
-    .select('id, title, mc_token')
+    .select('id, title, mc_token, timezone')
     .eq('id', eventId)
     .eq('org_id', orgId)
     .single()
@@ -78,7 +79,14 @@ export async function embedUpsertRosItem(
   },
 ) {
   const { db, orgId } = await resolveEmbedContext()
-  await assertEventOwnership(db, eventId, orgId)
+  const event = await assertEventOwnership(db, eventId, orgId)
+
+  // O109: a datetime-local wall clock is read in the event's zone.
+  try {
+    item = { ...item, time_at: inputToInstant(item.time_at, event.timezone as string) }
+  } catch {
+    return { error: 'Invalid time' }
+  }
 
   if (item.id) {
     const { data: existing } = await db

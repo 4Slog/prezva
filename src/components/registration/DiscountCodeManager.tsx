@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createDiscountCode, toggleDiscountCode, deleteDiscountCode } from '@/lib/events/discount-actions'
 import { Field } from '@/components/ui/Field'
 import { Gated } from '@/components/auth/Gated'
+import { zoneName } from '@/lib/datetime/zoned-input'
 
 interface DiscountCode {
   id: string
@@ -18,7 +19,8 @@ interface DiscountCode {
 
 const inputCls = 'w-full rounded-lg border border-[var(--pz-border)] bg-[var(--pz-surface)] px-3 py-2 text-sm text-[var(--pz-text)] focus:border-[var(--pz-teal)] focus:outline-none focus:ring-1 focus:ring-[var(--pz-teal)]'
 
-export function DiscountCodeManager({ eventId, initial, permissions = [] }: { eventId: string; initial: DiscountCode[]; permissions?: string[] }) {
+export function DiscountCodeManager({ eventId, eventTimezone, initial, permissions = [] }: { eventId: string; eventTimezone: string; initial: DiscountCode[]; permissions?: string[] }) {
+  const tzName = zoneName(eventTimezone)
   const [codes, setCodes] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent')
@@ -90,7 +92,7 @@ export function DiscountCodeManager({ eventId, initial, permissions = [] }: { ev
                 <th className="px-3 py-2 text-left text-xs font-medium text-[var(--pz-muted)]">Code</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-[var(--pz-muted)]">Discount</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-[var(--pz-muted)]">Uses</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-[var(--pz-muted)]">Expires</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[var(--pz-muted)]">Expires (end of day, {tzName})</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-[var(--pz-muted)]">Active</th>
                 <th className="px-3 py-2" />
               </tr>
@@ -101,7 +103,7 @@ export function DiscountCodeManager({ eventId, initial, permissions = [] }: { ev
                   <td className="px-3 py-2 font-mono font-bold text-[var(--pz-teal-ink)]">{c.code}</td>
                   <td className="px-3 py-2 text-[var(--pz-text)]">{fmtDiscount(c)}</td>
                   <td className="px-3 py-2 text-[var(--pz-muted)]">{c.uses_count}{c.max_uses ? `/${c.max_uses}` : ''}</td>
-                  <td className="px-3 py-2 text-[var(--pz-muted)]">{c.valid_until ? new Date(c.valid_until).toLocaleDateString() : '—'}</td>
+                  <td className="px-3 py-2 text-[var(--pz-muted)]">{c.valid_until ? new Date(c.valid_until).toLocaleDateString('en-US', { timeZone: eventTimezone, month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
                   <td className="px-3 py-2">
                     <button
                       onClick={() => handleToggle(c)}
@@ -169,7 +171,7 @@ export function DiscountCodeManager({ eventId, initial, permissions = [] }: { ev
               />
             </Field>
             <div className="col-span-2">
-              <Field label="Expires (optional)" htmlFor="dc-expires">
+              <Field label={`Expires (optional) — valid through the end of this day, ${tzName}`} htmlFor="dc-expires">
                 <input
                   id="dc-expires"
                   type="date"

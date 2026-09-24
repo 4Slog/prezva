@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useDeviceTimeZone } from '@/components/events/useDeviceTimeZone'
+import { formatProposedTime } from '@/lib/datetime/zoned-input'
 import { respondToMeetingRequest } from '@/lib/networking/sprint8-actions'
 import { Avatar } from '@/components/identity/Avatar'
 import { HandleTag } from '@/components/identity/HandleTag'
@@ -11,11 +13,14 @@ interface Props {
   requesterAvatarUrl?: string | null
   requesterHandle?: string | null
   message: string | null
-  proposedTimes: string[]
+  // R89: { at, tz } entries; legacy rows hold naive strings.
+  proposedTimes: unknown[]
   initialStatus: string
 }
 
 export function MeetingResponsePanel({ requestId, requesterName, requesterAvatarUrl, requesterHandle, message, proposedTimes, initialStatus }: Props) {
+  // The viewer's own zone, known only in the browser (null during SSR → proposed zone only).
+  const viewerTz = useDeviceTimeZone()
   const [status, setStatus] = useState(initialStatus)
   const [showCounter, setShowCounter] = useState(false)
   const [counterTime, setCounterTime] = useState('')
@@ -69,7 +74,7 @@ export function MeetingResponsePanel({ requestId, requesterName, requesterAvatar
       {proposedTimes.length > 0 && (
         <div style={{ marginBottom: 8 }}>
           {proposedTimes.map((t, i) => (
-            <p key={i} style={{ color: 'var(--pz-text)', fontSize: 12, marginBottom: 2 }}>• {t}</p>
+            <p key={i} style={{ color: 'var(--pz-text)', fontSize: 12, marginBottom: 2 }}>• {formatProposedTime(t, viewerTz)}</p>
           ))}
         </div>
       )}

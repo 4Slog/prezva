@@ -26,24 +26,24 @@ const PERMS_NONE: string[] = []
 describe('Registration manager Add controls — permission gating', () => {
   describe('TicketManager', () => {
     it('Add ticket type button is enabled with event.tickets', () => {
-      render(<TicketManager eventId={EVENT_ID} tickets={[]} permissions={PERMS_HAVE} />)
+      render(<TicketManager eventTimezone="America/New_York" eventId={EVENT_ID} tickets={[]} permissions={PERMS_HAVE} />)
       expect(screen.getByRole('button', { name: /add ticket type/i })).not.toBeDisabled()
     })
 
     it('Add ticket type button is disabled without event.tickets', () => {
-      render(<TicketManager eventId={EVENT_ID} tickets={[]} permissions={PERMS_NONE} />)
+      render(<TicketManager eventTimezone="America/New_York" eventId={EVENT_ID} tickets={[]} permissions={PERMS_NONE} />)
       expect(screen.getByRole('button', { name: /add ticket type/i })).toBeDisabled()
     })
   })
 
   describe('DiscountCodeManager', () => {
     it('Create code button is enabled with event.tickets', () => {
-      render(<DiscountCodeManager eventId={EVENT_ID} initial={[]} permissions={PERMS_HAVE} />)
+      render(<DiscountCodeManager eventTimezone="America/New_York" eventId={EVENT_ID} initial={[]} permissions={PERMS_HAVE} />)
       expect(screen.getByRole('button', { name: /create code/i })).not.toBeDisabled()
     })
 
     it('Create code button is disabled without event.tickets', () => {
-      render(<DiscountCodeManager eventId={EVENT_ID} initial={[]} permissions={PERMS_NONE} />)
+      render(<DiscountCodeManager eventTimezone="America/New_York" eventId={EVENT_ID} initial={[]} permissions={PERMS_NONE} />)
       expect(screen.getByRole('button', { name: /create code/i })).toBeDisabled()
     })
   })

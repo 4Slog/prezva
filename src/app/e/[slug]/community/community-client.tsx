@@ -1,5 +1,6 @@
 'use client'
 
+import { formatInZone, zoneName } from '@/lib/datetime/zoned-input'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -49,6 +50,7 @@ type PostType = 'post' | 'meetup' | 'article'
 export function CommunityClient({
   eventSlug,
   eventId,
+  eventTimezone,
   userId,
   initialPosts,
   sessionTitles = {},
@@ -56,6 +58,8 @@ export function CommunityClient({
 }: {
   eventSlug: string
   eventId: string
+  // O109: meetup times are wall clocks in, and display in, the event's zone.
+  eventTimezone: string
   userId: string | null
   initialPosts: Post[]
   sessionTitles?: Record<string, string>
@@ -324,7 +328,8 @@ export function CommunityClient({
           {(postType === 'meetup') && (
             <div className="mb-3 grid grid-cols-2 gap-2">
               <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Location (optional)" className="rounded-lg px-3 py-2 text-sm focus:outline-none" style={inputStyle} />
-              <input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} className="rounded-lg px-3 py-2 text-sm focus:outline-none" style={inputStyle} />
+              <input type="datetime-local" aria-label={`Meetup time (${zoneName(eventTimezone)})`} title={`Time in ${zoneName(eventTimezone)}`} value={startsAt} onChange={e => setStartsAt(e.target.value)} className="rounded-lg px-3 py-2 text-sm focus:outline-none" style={inputStyle} />
+              <p className="col-span-2 text-xs" style={{ color: 'var(--pz-muted)', margin: 0 }}>Meetup time is in {zoneName(eventTimezone)}</p>
             </div>
           )}
 
@@ -428,7 +433,7 @@ export function CommunityClient({
               {post.post_type === 'meetup' && (post.location || post.starts_at) && (
                 <div className="flex gap-3 text-xs mb-3" style={{ color: 'var(--pz-muted)' }}>
                   {post.location && <span>📍 {post.location}</span>}
-                  {post.starts_at && <span>🕐 {new Date(post.starts_at).toLocaleString()}</span>}
+                  {post.starts_at && <span>🕐 {formatInZone(post.starts_at, eventTimezone)}</span>}
                 </div>
               )}
 

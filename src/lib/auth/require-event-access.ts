@@ -4,7 +4,7 @@ import { requireUser } from '@/lib/auth/get-user'
 
 export interface EventOrgAccess {
   user: Awaited<ReturnType<typeof requireUser>>
-  event: { id: string; title: string; slug: string; org_id: string }
+  event: { id: string; title: string; slug: string; org_id: string; timezone: string }
   role: string
 }
 
@@ -13,7 +13,7 @@ export async function requireEventOrgAccess(slug: string): Promise<EventOrgAcces
   const supabase = await createClient()
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, org_id')
+    .select('id, title, slug, org_id, timezone')
     .eq('slug', slug)
     .single()
   if (!event) notFound()

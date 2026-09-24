@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { enqueueVolunteerInvite } from '@/lib/trigger'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { checkRateLimit, volunteerInviteLimiter } from '@/lib/ratelimit'
+import { optionalInputToInstant } from '@/lib/datetime/zoned-input'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -36,7 +37,7 @@ export async function POST(
     const admin = createAdminClient()
     const { data: event } = await admin
       .from('events')
-      .select('id, org_id, title, start_at, slug')
+      .select('id, org_id, title, start_at, slug, timezone')
       .eq('slug', id)
       .maybeSingle()
 
@@ -51,6 +52,16 @@ export async function POST(
     const { limited } = await checkRateLimit(volunteerInviteLimiter, user.id)
     if (limited) return NextResponse.json({ error: 'Too many invites sent. Try again in a few minutes.' }, { status: 429 })
 
+    // O109: shift times are wall clocks in the EVENT's zone.
+    let shiftStart: string | null
+    let shiftEnd: string | null
+    try {
+      shiftStart = optionalInputToInstant(parsed.data.shift_start, event.timezone as string)
+      shiftEnd = optionalInputToInstant(parsed.data.shift_end, event.timezone as string)
+    } catch {
+      return NextResponse.json({ error: 'Invalid shift time' }, { status: 400 })
+    }
+
     const { data: volunteer, error } = await admin
       .from('volunteers')
       .insert({
@@ -59,8 +70,8 @@ export async function POST(
         email:       parsed.data.email,
         phone:       parsed.data.phone ?? null,
         role:        parsed.data.role,
-        shift_start: parsed.data.shift_start ?? null,
-        shift_end:   parsed.data.shift_end ?? null,
+        shift_start: shiftStart,
+        shift_end:   shiftEnd,
         notes:       parsed.data.notes ?? null,
         status:      'invited',
       })
@@ -84,6 +95,7 @@ export async function POST(
       eventDate:      event.start_at,
       shiftStart:     volunteer.shift_start ?? null,
       shiftEnd:       volunteer.shift_end ?? null,
+      eventTimezone:  event.timezone as string,
       portalUrl:      `${appUrl}/volunteer/${volunteer.portal_access_token}`,
     })
 

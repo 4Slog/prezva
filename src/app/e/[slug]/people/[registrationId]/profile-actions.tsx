@@ -1,6 +1,9 @@
 'use client'
 
+import { zonedInputToIso } from '@/lib/datetime/zoned-input'
+import { TimezoneOptions } from '@/components/events/TimezoneOptions'
 import { useState } from 'react'
+import { useDeviceTimeZone } from '@/components/events/useDeviceTimeZone'
 import { useRouter } from 'next/navigation'
 import { Video } from 'lucide-react'
 import { followAttendee, unfollowAttendee, sendMeetingRequest } from '@/lib/networking/sprint8-actions'
@@ -27,6 +30,12 @@ export function ProfileActions({
   const [showMeeting, setShowMeeting] = useState(false)
   const [meetingMsg, setMeetingMsg] = useState('')
   const [proposedTime, setProposedTime] = useState('')
+  // R89: the requester proposes in their own zone by default (the device zone),
+  // unless they pick another from the dropdown.
+  const deviceTz = useDeviceTimeZone()
+  const [pickedTz, setPickedTz] = useState<string | null>(null)
+  const proposedTz = pickedTz ?? deviceTz ?? 'UTC'
+  const [meetingError, setMeetingError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [videoLoading, setVideoLoading] = useState(false)
@@ -44,13 +53,24 @@ export function ProfileActions({
 
   async function handleMeetingRequest() {
     if (!targetUserId) return
+    setMeetingError(null)
+    let proposed: { at: string; tz: string }[] = []
+    if (proposedTime) {
+      try {
+        proposed = [{ at: zonedInputToIso(proposedTime, proposedTz), tz: proposedTz }]
+      } catch {
+        setMeetingError('Enter a valid date and time')
+        return
+      }
+    }
     setSending(true)
-    await sendMeetingRequest(eventId, {
+    const res = await sendMeetingRequest(eventId, {
       recipient_id: targetUserId,
       message: meetingMsg,
-      proposed_times: proposedTime ? [proposedTime] : [],
+      proposed_times: proposed,
     })
     setSending(false)
+    if (res && 'error' in res && res.error) { setMeetingError(res.error); return }
     setSent(true)
     setShowMeeting(false)
     setTimeout(() => setSent(false), 3000)
@@ -129,15 +149,26 @@ export function ProfileActions({
               style={inputStyle}
             />
           </Field>
-          <Field label="Proposed time (optional)" htmlFor="meet-time">
-            <input
-              id="meet-time"
-              type="datetime-local"
-              value={proposedTime}
-              onChange={e => setProposedTime(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 text-xs focus:outline-none"
-              style={inputStyle}
-            />
+          <Field label="Proposed time (optional)" htmlFor="meet-time" error={meetingError ?? undefined}>
+            <div className="flex gap-2">
+              <input
+                id="meet-time"
+                type="datetime-local"
+                value={proposedTime}
+                onChange={e => setProposedTime(e.target.value)}
+                className="w-full rounded-lg px-3 py-2 text-xs focus:outline-none"
+                style={inputStyle}
+              />
+              <select
+                aria-label="Time zone"
+                value={proposedTz}
+                onChange={e => setPickedTz(e.target.value)}
+                className="rounded-lg px-2 py-2 text-xs focus:outline-none"
+                style={inputStyle}
+              >
+                <TimezoneOptions current={proposedTz} />
+              </select>
+            </div>
           </Field>
           <div className="flex gap-2">
             <button

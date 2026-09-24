@@ -1,5 +1,6 @@
 'use server'
 
+import { inputToInstant, isProposedTime, type ProposedTime } from '@/lib/datetime/zoned-input'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
@@ -198,14 +199,17 @@ export async function getVirtualCardData(registrationId: string) {
 const MeetingSchema = z.object({
   recipient_id: z.string().uuid(),
   message: z.string().max(500).optional(),
-  proposed_times: z.array(z.string()).max(3).optional(),
+  // R89: each proposed time is the real instant plus the zone it was proposed in.
+  proposed_times: z.array(z.custom<ProposedTime>(isProposedTime, { message: 'Invalid proposed time' })).max(3).optional(),
   location: z.string().max(200).optional(),
 })
 
 export async function sendMeetingRequest(eventId: string, raw: unknown) {
   const user = await requireUser()
   const supabase = await createClient()
-  const data = MeetingSchema.parse(raw)
+  const parsed = MeetingSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const data = parsed.data
 
   const { data: existing } = await supabase
     .from('meeting_requests')
@@ -224,7 +228,7 @@ export async function sendMeetingRequest(eventId: string, raw: unknown) {
     requester_id: user.id,
     recipient_id: data.recipient_id,
     message: data.message,
-    proposed_times: data.proposed_times ?? [],
+    proposed_times: (data.proposed_times ?? []).map(t => ({ at: new Date(t.at).toISOString(), tz: t.tz })),
     location: data.location,
     status: 'pending',
     updated_at: new Date().toISOString(),
@@ -289,6 +293,13 @@ export async function createCommunityPost(eventId: string, raw: unknown) {
   const user = await requireUser()
   const supabase = await createClient()
   const data = PostSchema.parse(raw)
+
+  // O109: a meetup's start is a wall clock in the EVENT's zone.
+  if (data.starts_at) {
+    const { data: ev } = await supabase.from('events').select('timezone').eq('id', eventId).maybeSingle()
+    if (!ev) return { error: 'Event not found' }
+    try { data.starts_at = inputToInstant(data.starts_at, ev.timezone as string) } catch { return { error: 'Invalid meetup time' } }
+  }
 
   const { data: post, error } = await supabase
     .from('community_posts')

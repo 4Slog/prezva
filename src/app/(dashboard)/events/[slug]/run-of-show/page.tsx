@@ -27,6 +27,7 @@ export default async function RunOfShowPage({ params }: Props) {
       </div>
       <RunOfShowClient
         eventId={event.id}
+        eventTimezone={event.timezone}
         initItems={rosItems}
         sessions={(sessionsRes.data ?? []) as any[]}
       />

@@ -35,7 +35,7 @@ export default async function EmbedVolunteersPage({ params }: Props) {
     redirect('/embedded/events')
   }
 
-  const { volunteers, alerts, eventSlug } = data
+  const { volunteers, alerts, eventSlug, eventTimezone } = data
 
   return (
     <>
@@ -43,6 +43,7 @@ export default async function EmbedVolunteersPage({ params }: Props) {
       <VolunteersClient
         eventId={eventId}
         eventSlug={eventSlug}
+        eventTimezone={eventTimezone}
         volunteers={volunteers as any}
         sessions={[]}
         alerts={alerts as any}

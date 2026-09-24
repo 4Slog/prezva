@@ -1,5 +1,6 @@
 'use client'
 
+import { zoneShortName } from '@/lib/datetime/zoned-input'
 import { useState, useRef } from 'react'
 import { PortalShell } from '@/components/portal/PortalShell'
 import { respondToVolunteerShift, sendVolunteerAlert } from '@/lib/volunteers/actions'
@@ -267,6 +268,7 @@ export function VolunteerPortalClient({ volunteer: initial, event, token, assign
             <p style={{ fontSize: 14, color: 'var(--pz-teal-ink)', marginTop: 8, fontWeight: 600 }}>
               Your shift: {fmtTime(volunteer.shift_start)}
               {volunteer.shift_end ? ' – ' + fmtTime(volunteer.shift_end) : ''}
+              {' '}{zoneShortName(event.timezone, Date.parse(volunteer.shift_start))}
             </p>
           )}
         </div>

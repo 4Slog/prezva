@@ -58,8 +58,8 @@ const FUTURE = new Date(Date.now() + 86400000).toISOString()
 function seed() {
   h.db = createFakeDb({
     events: [
-      { id: 'e1', org_id: 'orgA', slug: 'ev-a', mc_token: 'mc-a' },
-      { id: 'e2', org_id: 'orgB', slug: 'ev-b', mc_token: 'mc-b' },
+      { id: 'e1', org_id: 'orgA', slug: 'ev-a', mc_token: 'mc-a', timezone: 'America/New_York' },
+      { id: 'e2', org_id: 'orgB', slug: 'ev-b', mc_token: 'mc-b', timezone: 'America/New_York' },
     ],
     run_of_show_items: [
       { id: 'r1', event_id: 'e1', title: 'Doors', status: 'upcoming' },

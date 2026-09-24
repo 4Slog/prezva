@@ -13,7 +13,7 @@ export default async function CommunityPage({ params, searchParams }: Props) {
   const supabase = await createClient()
 
   const { data: event } = await supabase
-    .from('events').select('id, title').eq('slug', slug).single()
+    .from('events').select('id, title, timezone').eq('slug', slug).single()
   if (!event) notFound()
 
   const eventId = (event as any).id
@@ -42,6 +42,7 @@ export default async function CommunityPage({ params, searchParams }: Props) {
         <CommunityClient
           eventSlug={slug}
           eventId={eventId}
+          eventTimezone={(event as any).timezone ?? 'UTC'}
           userId={user?.id ?? null}
           initialPosts={posts}
           sessionTitles={sessionTitles}

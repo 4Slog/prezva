@@ -7,6 +7,7 @@ import {
   importSessionsToRos,
 } from '@/lib/events/run-of-show-actions'
 import { Field } from '@/components/ui/Field'
+import { zoneName } from '@/lib/datetime/zoned-input'
 
 interface RosItem {
   id: string
@@ -37,6 +38,8 @@ interface EmbedActions {
 
 interface Props {
   eventId: string
+  // The event's IANA zone: the form's wall clock is read in it, and every time shows in it.
+  eventTimezone: string
   initItems: RosItem[]
   sessions: Session[]
   embed?: boolean
@@ -58,7 +61,8 @@ const EMPTY_FORM = {
   responsible_email: '',
 }
 
-export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActions }: Props) {
+export function RunOfShowClient({ eventId, eventTimezone, initItems, sessions, embed, embedActions }: Props) {
+  const tzName = zoneName(eventTimezone)
   const [items, setItems] = useState<RosItem[]>(initItems)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -158,7 +162,7 @@ export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActi
           <h3 style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>New item</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <Field label="Time" htmlFor="ros-time" required>
+              <Field label={`Time (${tzName})`} htmlFor="ros-time" required>
                 <input
                   id="ros-time"
                   type="datetime-local"
@@ -242,6 +246,9 @@ export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActi
         </form>
       )}
 
+      {items.length > 0 && (
+        <p style={{ fontSize: 12, color: 'var(--pz-muted)', margin: '0 0 8px' }}>Times in {tzName}</p>
+      )}
       {items.length === 0 && !showForm ? (
         <p style={{ color: 'var(--pz-muted)', textAlign: 'center', padding: '3rem' }}>
           No run of show items yet. Add one above or import from sessions.
@@ -256,7 +263,7 @@ export function RunOfShowClient({ eventId, initItems, sessions, embed, embedActi
           }}>
             <div style={{ width: 60, flexShrink: 0, textAlign: 'center' }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--pz-text)', margin: 0 }}>
-                {new Date(item.time_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {new Date(item.time_at).toLocaleTimeString('en-US', { timeZone: eventTimezone, hour: 'numeric', minute: '2-digit' })}
               </p>
               <p style={{ fontSize: 10, color: 'var(--pz-muted)', margin: 0 }}>{item.duration_minutes}m</p>
             </div>

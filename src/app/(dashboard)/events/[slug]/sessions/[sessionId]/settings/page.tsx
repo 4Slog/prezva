@@ -50,6 +50,7 @@ export default async function SessionSettingsPage({ params }: Props) {
       <RecordingSection
         sessionId={session.id}
         eventSlug={slug}
+        eventTimezone={access!.event.timezone}
         initialRecordingEnabled={(session as any).recording_enabled ?? false}
         initialAllowRewatch={(session as any).allow_rewatch ?? false}
         initialMuxAssetId={(session as any).mux_asset_id ?? null}

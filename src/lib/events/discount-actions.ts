@@ -6,6 +6,7 @@ import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { endOfZonedDateIso, inputToInstant } from '@/lib/datetime/zoned-input'
 
 const CodeSchema = z.object({
   code: z.string().min(3).max(30).toUpperCase(),
@@ -38,12 +39,24 @@ export async function createDiscountCode(eventId: string, input: unknown) {
   const parsed = CodeSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  const orgId = await getEventOrgId(eventId)
-  if (!orgId) return { error: 'Event not found' }
-  try { await assertPermission(orgId, user.id, 'event.tickets') } catch (e) { return catchPermission(e) }
+  const { data: ev } = await supabase.from('events').select('org_id, timezone').eq('id', eventId).single()
+  if (!ev) return { error: 'Event not found' }
+  try { await assertPermission(ev.org_id as string, user.id, 'event.tickets') } catch (e) { return catchPermission(e) }
+  // O109: "Expires <date>" means through the END of that date in the event's
+  // zone (next day 00:00 there, minus 1 ms). An instant passes through.
+  let validUntil: string | null = null
+  if (parsed.data.valid_until) {
+    try {
+      validUntil = /^\d{4}-\d{2}-\d{2}$/.test(parsed.data.valid_until)
+        ? endOfZonedDateIso(parsed.data.valid_until, ev.timezone as string)
+        : inputToInstant(parsed.data.valid_until, ev.timezone as string)
+    } catch {
+      return { error: 'Invalid expiry date' }
+    }
+  }
   const { data, error } = await supabase
     .from('discount_codes')
-    .insert({ event_id: eventId, ...parsed.data })
+    .insert({ event_id: eventId, ...parsed.data, valid_until: validUntil })
     .select()
     .single()
   if (error) return { error: error.message }

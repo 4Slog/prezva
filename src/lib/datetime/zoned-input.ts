@@ -153,3 +153,108 @@ export function resolveEditedInstant(
   }
   return inputToInstant(submitted, targetTimeZone)
 }
+
+// ── Dates and display (O109, R89) ────────────────────────────────────────────
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * The END of a calendar date in `timeZone`: the next day's 00:00 there, minus
+ * 1 ms (so "2026-10-06" in New York → 2026-10-07T03:59:59.999Z). Used for
+ * "valid until <date>" limits, which must hold through the whole local day.
+ */
+export function endOfZonedDateIso(date: string, timeZone: string): string {
+  const m = typeof date === 'string' ? DATE_RE.exec(date) : null
+  if (!m) throw new RangeError(`Not a YYYY-MM-DD date: ${JSON.stringify(date)}`)
+  const [year, month, day] = m.slice(1).map(Number)
+  const next = new Date(Date.UTC(year, month - 1, day + 1))
+  if (new Date(Date.UTC(year, month - 1, day)).getUTCDate() !== day) {
+    throw new RangeError(`Not a real calendar date: ${JSON.stringify(date)}`)
+  }
+  const nextMidnight = `${pad(next.getUTCFullYear(), 4)}-${pad(next.getUTCMonth() + 1)}-${pad(next.getUTCDate())}T00:00`
+  return new Date(Date.parse(zonedInputToIso(nextMidnight, timeZone)) - 1).toISOString()
+}
+
+/** The calendar date ("YYYY-MM-DD") an instant falls on in `timeZone`. */
+export function isoToZonedDate(iso: string, timeZone: string): string {
+  return isoToZonedInput(iso, timeZone).slice(0, 10)
+}
+
+/** The zone's name as people say it, e.g. "Eastern Time"; UTC is "UTC". */
+export function zoneName(timeZone: string, at: number = Date.now()): string {
+  if (timeZone === 'UTC' || timeZone === 'Etc/UTC') return 'UTC'
+  formatterFor(timeZone)
+  const part = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longGeneric' })
+    .formatToParts(new Date(at)).find(p => p.type === 'timeZoneName')?.value
+  return part ?? timeZone
+}
+
+/** Short form for inline times: "Eastern", "Pacific" (drops a trailing " Time"). */
+export function zoneShortName(timeZone: string, at: number = Date.now()): string {
+  return zoneName(timeZone, at).replace(/ Time$/, '')
+}
+
+const DEFAULT_FORMAT: Intl.DateTimeFormatOptions = {
+  weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+}
+
+/** An instant as the wall clock reads in `timeZone`, with the zone named: "Tue, Oct 6, 3:00 PM Eastern Time". */
+export function formatInZone(iso: string, timeZone: string, opts: Intl.DateTimeFormatOptions = DEFAULT_FORMAT): string {
+  const ms = Date.parse(iso)
+  if (Number.isNaN(ms)) return iso
+  const text = new Intl.DateTimeFormat('en-US', { ...opts, timeZone }).format(new Date(ms))
+  return `${text} ${zoneName(timeZone, ms)}`
+}
+
+/** inputToInstant for an optional form field: empty / missing → null. */
+export function optionalInputToInstant(value: string | null | undefined, timeZone: string): string | null {
+  if (value == null || value.trim() === '') return null
+  return inputToInstant(value.trim(), timeZone)
+}
+
+// ── Meeting request proposed times (R89) ─────────────────────────────────────
+// A proposed time is stored as the real instant plus the zone it was proposed
+// in. Rows written before R89 hold a naive string; those display as-is.
+
+export interface ProposedTime {
+  at: string
+  tz: string
+}
+
+export function isProposedTime(value: unknown): value is ProposedTime {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  if (typeof v.at !== 'string' || typeof v.tz !== 'string' || !INSTANT_RE.test(v.at) || Number.isNaN(Date.parse(v.at))) return false
+  try { formatterFor(v.tz) } catch { return false }
+  return true
+}
+
+function dayAndTime(ms: number, timeZone: string): { day: string; time: string } {
+  const parts: Record<string, string> = {}
+  const f = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  for (const p of f.formatToParts(new Date(ms))) parts[p.type] = p.value
+  return { day: `${parts.weekday} ${parts.month} ${parts.day}`, time: `${parts.hour}:${parts.minute} ${parts.dayPeriod}` }
+}
+
+/**
+ * "Tue Oct 6, 3:00 PM Eastern" — plus " — 12:00 PM your time (Pacific)" when
+ * the viewer's zone reads the instant differently (the day is added when it
+ * differs too). A legacy naive string shows as-is, flagged.
+ */
+export function formatProposedTime(value: unknown, viewerTimeZone: string | null): string {
+  if (typeof value === 'string') return `${value} (time zone not recorded)`
+  if (!isProposedTime(value)) return 'Time unavailable'
+  const ms = Date.parse(value.at)
+  const there = dayAndTime(ms, value.tz)
+  const base = `${there.day}, ${there.time} ${zoneShortName(value.tz, ms)}`
+  if (!viewerTimeZone) return base
+  let viewerValid = true
+  try { formatterFor(viewerTimeZone) } catch { viewerValid = false }
+  if (!viewerValid) return base
+  const here = dayAndTime(ms, viewerTimeZone)
+  const sameReading = here.day === there.day && here.time === there.time &&
+    zoneShortName(viewerTimeZone, ms) === zoneShortName(value.tz, ms)
+  if (sameReading) return base
+  const local = here.day === there.day ? here.time : `${here.day}, ${here.time}`
+  return `${base} — ${local} your time (${zoneShortName(viewerTimeZone, ms)})`
+}

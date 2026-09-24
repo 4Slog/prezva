@@ -46,6 +46,7 @@ export default async function VolunteersPage({ params }: Props) {
       <VolunteersClient
         eventId={event.id}
         eventSlug={slug}
+        eventTimezone={event.timezone}
         volunteers={(volunteers ?? []) as any[]}
         sessions={(sessions ?? []) as any[]}
         alerts={(alerts ?? []) as any[]}

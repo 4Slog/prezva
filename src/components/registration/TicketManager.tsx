@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { MapPin, Monitor } from 'lucide-react'
 import { createTicketType, deleteTicketType } from '@/lib/registration/ticket-actions'
 import { Field } from '@/components/ui/Field'
+import { zoneName } from '@/lib/datetime/zoned-input'
 import { Gated } from '@/components/auth/Gated'
 
 interface Ticket {
@@ -31,6 +32,8 @@ const ASSOCIATION_LABELS: Record<string, string> = {
 
 interface TicketManagerProps {
   eventId: string
+  // O109: sale window inputs are wall clocks in the event's zone.
+  eventTimezone: string
   tickets: Ticket[]
   connectedAssociations?: string[]
   permissions?: string[]
@@ -41,7 +44,7 @@ function fmtPrice(cents: number, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100)
 }
 
-export function TicketManager({ eventId, tickets: initial, connectedAssociations = [], permissions = [] }: TicketManagerProps) {
+export function TicketManager({ eventId, eventTimezone, tickets: initial, connectedAssociations = [], permissions = [] }: TicketManagerProps) {
   const [tickets, setTickets] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [type, setType]         = useState('free')
@@ -154,10 +157,10 @@ export function TicketManager({ eventId, tickets: initial, connectedAssociations
             <Field label="Max per order" htmlFor="tkt-maxord">
               <input id="tkt-maxord" name="max_per_order" type="number" min="1" max="100" defaultValue="10" className={inputCls} />
             </Field>
-            <Field label="Sale starts at" htmlFor="tkt-sale-start">
+            <Field label={`Sale starts at (${zoneName(eventTimezone)})`} htmlFor="tkt-sale-start">
               <input id="tkt-sale-start" name="sale_starts_at" type="datetime-local" className={inputCls} />
             </Field>
-            <Field label="Sale ends at" htmlFor="tkt-sale-end">
+            <Field label={`Sale ends at (${zoneName(eventTimezone)})`} htmlFor="tkt-sale-end">
               <input id="tkt-sale-end" name="sale_ends_at" type="datetime-local" className={inputCls} />
             </Field>
             <div className="col-span-2">

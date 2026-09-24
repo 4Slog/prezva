@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { inputToInstant } from '@/lib/datetime/zoned-input'
 
 type RosStatus = 'upcoming' | 'in_progress' | 'done' | 'skipped'
 const ROS_STATUSES: readonly RosStatus[] = ['upcoming', 'in_progress', 'done', 'skipped']
@@ -21,16 +22,18 @@ export async function getRunOfShow(eventId: string) {
 
 // O115: the permission is checked on the org of the event that owns the target —
 // for an existing item that event comes from the item row, never from the caller.
-async function authorizeEvent(eventId: string): Promise<{ error: string } | { eventId: string }> {
+type RosAuth = { error: string } | { eventId: string; timezone: string }
+
+async function authorizeEvent(eventId: string): Promise<RosAuth> {
   const user = await requireUser()
   const admin = createAdminClient()
-  const { data: event } = await admin.from('events').select('id, org_id').eq('id', eventId).maybeSingle()
+  const { data: event } = await admin.from('events').select('id, org_id, timezone').eq('id', eventId).maybeSingle()
   if (!event) return { error: 'Event not found' }
   try { await assertPermission(event.org_id as string, user.id, 'run_of_show.manage') } catch (e) { return catchPermission(e) }
-  return { eventId: event.id as string }
+  return { eventId: event.id as string, timezone: event.timezone as string }
 }
 
-async function authorizeItem(itemId: string): Promise<{ error: string } | { eventId: string }> {
+async function authorizeItem(itemId: string): Promise<RosAuth> {
   await requireUser()
   const admin = createAdminClient()
   const { data: item } = await admin.from('run_of_show_items').select('id, event_id').eq('id', itemId).maybeSingle()
@@ -45,19 +48,29 @@ export async function upsertRosItem(eventId: string, item: {
 }) {
   const { id, ...fields } = item
   const admin = createAdminClient()
+  // O109: a datetime-local wall clock is read in the EVENT's zone; an instant
+  // (Z / offset) passes through unchanged.
+  const withInstant = (timezone: string) => {
+    try { return { ok: true as const, values: { ...fields, time_at: inputToInstant(fields.time_at, timezone) } } }
+    catch { return { ok: false as const } }
+  }
   if (id) {
     const auth = await authorizeItem(id)
     if ('error' in auth) return auth
+    const v = withInstant(auth.timezone)
+    if (!v.ok) return { error: 'Invalid time' }
     // event_id is never rewritten on an existing row.
     const { data, error } = await admin.from('run_of_show_items')
-      .update(fields).eq('id', id).eq('event_id', auth.eventId).select('id')
+      .update(v.values).eq('id', id).eq('event_id', auth.eventId).select('id')
     if (error) return { error: error.message }
     if (!data?.length) return { error: 'Item not found' }
   } else {
     const auth = await authorizeEvent(eventId)
     if ('error' in auth) return auth
+    const v = withInstant(auth.timezone)
+    if (!v.ok) return { error: 'Invalid time' }
     const { error } = await admin.from('run_of_show_items')
-      .insert({ ...fields, event_id: auth.eventId })
+      .insert({ ...v.values, event_id: auth.eventId })
     if (error) return { error: error.message }
   }
   return { ok: true }

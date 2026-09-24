@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { resolveVolunteerAlert, exportVolunteerHours } from '@/lib/volunteers/actions'
 import { Field } from '@/components/ui/Field'
+import { zoneName, zoneShortName } from '@/lib/datetime/zoned-input'
 import { Gated } from '@/components/auth/Gated'
 import { VOLUNTEER_STATUS_COLORS as STATUS_COLORS, VOLUNTEER_ALERT_TYPE_COLORS as ALERT_TYPE_COLORS } from '@/lib/ui/category-colors'
 
@@ -51,6 +52,8 @@ interface VolunteerFormInput {
 interface Props {
   eventId: string
   eventSlug: string
+  // The event's IANA zone: shift inputs are read in it and shifts display in it.
+  eventTimezone: string
   volunteers: Volunteer[]
   sessions: Session[]
   alerts: VolunteerAlert[]
@@ -65,12 +68,11 @@ interface Props {
 const ROLES = ['check-in', 'session-monitor', 'registration-desk', 'vip-support', 'team-lead', 'general']
 const STATUSES = ['All', 'invited', 'confirmed', 'checked_in', 'no_show']
 
-function fmtShift(start?: string | null, end?: string | null) {
+function fmtShift(timeZone: string, start?: string | null, end?: string | null) {
   if (!start) return '—'
-  const s = new Date(start).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-  if (!end) return s
-  const e = new Date(end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  return `${s} – ${e}`
+  const s = new Date(start).toLocaleString('en-US', { timeZone, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  const e = end ? ` – ${new Date(end).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' })}` : ''
+  return `${s}${e} ${zoneShortName(timeZone, Date.parse(start))}`
 }
 
 
@@ -81,7 +83,7 @@ const SHIFT_RESPONSE_COLORS: Record<string, string> = {
 }
 
 export function VolunteersClient({
-  eventId, eventSlug, volunteers: initial, sessions, alerts: initialAlerts, permissions,
+  eventId, eventSlug, eventTimezone, volunteers: initial, sessions, alerts: initialAlerts, permissions,
   addAction, checkinAction, resendAction, removeAction, exportHoursAction,
 }: Props) {
   const [volunteers, setVolunteers] = useState<Volunteer[]>(initial)
@@ -276,11 +278,11 @@ export function VolunteersClient({
                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </Field>
-            <Field label="Shift Start" htmlFor="vol-shift-start">
+            <Field label={`Shift Start (${zoneName(eventTimezone)})`} htmlFor="vol-shift-start">
               <input id="vol-shift-start" type="datetime-local" value={form.shift_start} onChange={e => setForm(f => ({ ...f, shift_start: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
             </Field>
-            <Field label="Shift End" htmlFor="vol-shift-end">
+            <Field label={`Shift End (${zoneName(eventTimezone)})`} htmlFor="vol-shift-end">
               <input id="vol-shift-end" type="datetime-local" value={form.shift_end} onChange={e => setForm(f => ({ ...f, shift_end: e.target.value }))}
                 style={{ width: '100%', background: 'var(--pz-bg)', border: '1px solid var(--pz-border)', borderRadius: 6, padding: '6px 10px', fontSize: 13, color: 'var(--pz-text)', boxSizing: 'border-box' }} />
             </Field>
@@ -346,7 +348,7 @@ export function VolunteersClient({
                     </span>
                   </td>
                   <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--pz-muted)' }}>
-                    {fmtShift(v.shift_start, v.shift_end)}
+                    {fmtShift(eventTimezone, v.shift_start, v.shift_end)}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: STATUS_COLORS[v.status] ?? 'var(--pz-muted)', textTransform: 'capitalize' }}>

@@ -50,6 +50,7 @@ export default async function EmbedRunOfShowPage({ params }: Props) {
       </div>
       <RunOfShowClient
         eventId={eventId}
+        eventTimezone={(data.event?.timezone as string | undefined) ?? 'UTC'}
         initItems={data.rosItems}
         sessions={data.sessions as any}
         embed

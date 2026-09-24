@@ -27,6 +27,7 @@ export async function POST(
     eventDate:      event.start_at,
     shiftStart:     volunteer.shift_start ?? null,
     shiftEnd:       volunteer.shift_end ?? null,
+    eventTimezone:  event.timezone ?? undefined,
     portalUrl:      `${appUrl}/volunteer/${volunteer.portal_access_token}`,
   })
 

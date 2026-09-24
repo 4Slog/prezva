@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
+import { optionalInputToInstant } from '@/lib/datetime/zoned-input'
 import { enqueueVolunteerInvite } from '@/lib/trigger'
 import { z } from 'zod'
 
@@ -66,13 +67,14 @@ export async function embedGetVolunteers(eventId: string) {
       .eq('event_id', eventId)
       .eq('resolved', false)
       .order('created_at', { ascending: false }),
-    db.from('events').select('slug').eq('id', eventId).single(),
+    db.from('events').select('slug, timezone').eq('id', eventId).single(),
   ])
 
   return {
     volunteers: volunteersResult.data ?? [],
     alerts: alertsResult.data ?? [],
     eventSlug: (eventResult.data as any)?.slug ?? '',
+    eventTimezone: ((eventResult.data as any)?.timezone as string | undefined) ?? 'UTC',
   }
 }
 
@@ -85,10 +87,20 @@ export async function embedAddVolunteer(eventId: string, payload: unknown) {
 
   const { data: event } = await db
     .from('events')
-    .select('title, start_at')
+    .select('title, start_at, timezone')
     .eq('id', eventId)
     .single()
   if (!event) return { error: 'Event not found' }
+
+  // O109: shift times are wall clocks in the EVENT's zone.
+  let shiftStart: string | null
+  let shiftEnd: string | null
+  try {
+    shiftStart = optionalInputToInstant(parsed.data.shift_start, (event as any).timezone)
+    shiftEnd = optionalInputToInstant(parsed.data.shift_end, (event as any).timezone)
+  } catch {
+    return { error: 'Invalid shift time' }
+  }
 
   const { data: volunteer, error } = await db
     .from('volunteers')
@@ -98,8 +110,8 @@ export async function embedAddVolunteer(eventId: string, payload: unknown) {
       email:       parsed.data.email,
       phone:       parsed.data.phone ?? null,
       role:        parsed.data.role,
-      shift_start: parsed.data.shift_start ?? null,
-      shift_end:   parsed.data.shift_end ?? null,
+      shift_start: shiftStart,
+      shift_end:   shiftEnd,
       notes:       parsed.data.notes ?? null,
       status:      'invited',
     })
@@ -122,6 +134,7 @@ export async function embedAddVolunteer(eventId: string, payload: unknown) {
     eventDate:      (event as any).start_at,
     shiftStart:     volunteer.shift_start ?? null,
     shiftEnd:       volunteer.shift_end ?? null,
+    eventTimezone:  (event as any).timezone ?? undefined,
     portalUrl:      `${appUrl}/volunteer/${volunteer.portal_access_token}`,
   })
 
@@ -147,13 +160,13 @@ export async function embedResendVolunteerInvite(volunteerId: string, eventId: s
 
   const { data: volunteer } = await db
     .from('volunteers')
-    .select('*, events(title, start_at)')
+    .select('*, events(title, start_at, timezone)')
     .eq('id', volunteerId)
     .eq('event_id', eventId)
     .maybeSingle()
   if (!volunteer) return { error: 'Not found' }
 
-  const event = volunteer.events as { title: string; start_at: string } | null
+  const event = volunteer.events as { title: string; start_at: string; timezone: string } | null
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
   void enqueueVolunteerInvite({
@@ -164,6 +177,7 @@ export async function embedResendVolunteerInvite(volunteerId: string, eventId: s
     eventDate:      event?.start_at ?? '',
     shiftStart:     volunteer.shift_start ?? null,
     shiftEnd:       volunteer.shift_end ?? null,
+    eventTimezone:  event?.timezone,
     portalUrl:      `${appUrl}/volunteer/${volunteer.portal_access_token}`,
   })
 

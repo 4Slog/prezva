@@ -1,5 +1,6 @@
 'use client'
 
+import { isoToZonedInput, zonedInputToIso, resolveEditedInstant, formatInZone, zoneName } from '@/lib/datetime/zoned-input'
 import { useState, useRef } from 'react'
 import {
   enableRecording,
@@ -18,6 +19,8 @@ import { Field } from '@/components/ui/Field'
 interface Props {
   sessionId: string
   eventSlug: string
+  // O109: the broadcast time is a wall clock in the EVENT's zone.
+  eventTimezone: string
   initialRecordingEnabled: boolean
   initialAllowRewatch: boolean
   initialMuxAssetId: string | null
@@ -74,6 +77,7 @@ function Toggle({
 export default function RecordingSection({
   sessionId,
   eventSlug,
+  eventTimezone,
   initialRecordingEnabled,
   initialAllowRewatch,
   initialMuxAssetId,
@@ -88,7 +92,7 @@ export default function RecordingSection({
   const [simuliveScheduledAt, setSimuliveScheduledAt] = useState(initialSimuliveScheduledAt)
   const [scheduleDateInput, setScheduleDateInput] = useState(
     initialSimuliveScheduledAt
-      ? new Date(initialSimuliveScheduledAt).toISOString().slice(0, 16)
+      ? isoToZonedInput(initialSimuliveScheduledAt, eventTimezone)
       : ''
   )
 
@@ -209,7 +213,19 @@ export default function RecordingSection({
   async function handleSaveSchedule() {
     setSavingSchedule(true)
     setScheduleError(null)
-    const isoAt = scheduleDateInput ? new Date(scheduleDateInput).toISOString() : null
+    let isoAt: string | null
+    try {
+      // An untouched pre-fill keeps the stored instant exactly (R83).
+      isoAt = !scheduleDateInput
+        ? null
+        : simuliveScheduledAt
+          ? resolveEditedInstant(scheduleDateInput, simuliveScheduledAt, eventTimezone, eventTimezone)
+          : zonedInputToIso(scheduleDateInput, eventTimezone)
+    } catch {
+      setScheduleError('Enter a valid date and time')
+      setSavingSchedule(false)
+      return
+    }
     const result = await updateSimuliveSchedule(sessionId, isoAt, eventSlug)
     if ('error' in result) {
       setScheduleError(result.error ?? null)
@@ -437,9 +453,7 @@ export default function RecordingSection({
           {simuliveScheduledAt ? (
             <div>
               <p style={{ fontSize: 13, color: 'var(--pz-success-fill)', fontWeight: 600, marginBottom: 8 }}>
-                Scheduled for {new Date(simuliveScheduledAt).toLocaleString(undefined, {
-                  dateStyle: 'medium', timeStyle: 'short',
-                })} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+                Scheduled for {formatInZone(simuliveScheduledAt, eventTimezone, { dateStyle: 'medium', timeStyle: 'short' })}
               </p>
               <button
                 onClick={handleCancelSchedule}
@@ -455,7 +469,7 @@ export default function RecordingSection({
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Field label="Broadcast at:" htmlFor="simulive-broadcast-at" error={scheduleError ?? undefined}>
+              <Field label={`Broadcast at (${zoneName(eventTimezone)}):`} htmlFor="simulive-broadcast-at" error={scheduleError ?? undefined}>
                 <input
                   id="simulive-broadcast-at"
                   type="datetime-local"

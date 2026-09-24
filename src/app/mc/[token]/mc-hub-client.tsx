@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { updateRosItemStatusByMcToken } from '@/lib/events/run-of-show-actions'
 import { createClient } from '@/lib/supabase/client'
+import { zoneName } from '@/lib/datetime/zoned-input'
 
 interface Props {
   event: any
@@ -150,6 +151,7 @@ export function MCHubClient({ event, rosItems: initRos, sessions, qaQuestions: i
             {statusError && (
               <p role="alert" style={{ color: 'var(--pz-error)', fontSize: 13, margin: '0 0 0.75rem' }}>{statusError}</p>
             )}
+            <p style={{ fontSize: 11, color: 'var(--pz-muted)', margin: '0 0 0.5rem' }}>Times in {zoneName(event.timezone ?? 'UTC')}</p>
             {nextItem && (
               <div style={{ padding: '0.75rem 1rem', background: 'var(--pz-surface)',
                             borderRadius: 8, marginBottom: '1rem',

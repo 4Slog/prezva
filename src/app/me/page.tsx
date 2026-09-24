@@ -1,4 +1,5 @@
 import { requireUser } from '@/lib/auth/get-user'
+import { zoneShortName } from '@/lib/datetime/zoned-input'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { ORG_ROLE_BADGE_CONFIGS } from '@/lib/ui/category-colors'
@@ -13,6 +14,7 @@ type EventRef = {
   venue_city: string | null
   venue_state: string | null
   status: string | null
+  timezone?: string | null
 }
 
 type AttendeeRow = {
@@ -53,7 +55,7 @@ type OrgMembershipRow = {
 type Role =
   | { kind: 'attendee'; ticketName: string | null; eventSlug: string; eventId: string; regId: string }
   | { kind: 'speaker'; sessionName: string | null; token: string | null; speakerId: string }
-  | { kind: 'volunteer'; role: string | null; shiftStart: string | null; shiftEnd: string | null; token: string | null; volunteerId: string }
+  | { kind: 'volunteer'; role: string | null; shiftStart: string | null; shiftEnd: string | null; shiftTimezone: string | null; token: string | null; volunteerId: string }
 
 type TimelineEntry = {
   event: EventRef
@@ -90,12 +92,12 @@ export default async function MePage() {
       : Promise.resolve({ data: [] as SpeakerRow[] }),
     admin
       .from('volunteers')
-      .select('id, status, portal_access_token, role, shift_start, shift_end, event_id, events(id, title, slug, start_at, end_at, venue_city, venue_state, status)')
+      .select('id, status, portal_access_token, role, shift_start, shift_end, event_id, events(id, title, slug, start_at, end_at, venue_city, venue_state, status, timezone)')
       .eq('user_id', user.id),
     userEmail
       ? admin
           .from('volunteers')
-          .select('id, status, portal_access_token, role, shift_start, shift_end, event_id, events(id, title, slug, start_at, end_at, venue_city, venue_state, status)')
+          .select('id, status, portal_access_token, role, shift_start, shift_end, event_id, events(id, title, slug, start_at, end_at, venue_city, venue_state, status, timezone)')
           .eq('email', userEmail)
       : Promise.resolve({ data: [] as VolunteerRow[] }),
     admin
@@ -158,6 +160,7 @@ export default async function MePage() {
       role: v.role,
       shiftStart: v.shift_start,
       shiftEnd: v.shift_end,
+      shiftTimezone: v.events.timezone ?? null,
       token: v.portal_access_token,
       volunteerId: v.id,
     })
@@ -467,8 +470,11 @@ function RolePill({ role, eventSlug }: { role: Role; eventSlug: string }) {
     )
   }
   const href = role.token ? `/volunteer/${role.token}` : `/e/${eventSlug}`
+  // O109: the shift reads in the event's zone, named.
   const shift = role.shiftStart
-    ? new Date(role.shiftStart).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    ? role.shiftTimezone
+      ? `${new Date(role.shiftStart).toLocaleTimeString('en-US', { timeZone: role.shiftTimezone, hour: 'numeric', minute: '2-digit' })} ${zoneShortName(role.shiftTimezone, Date.parse(role.shiftStart))}`
+      : new Date(role.shiftStart).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : null
   return (
     <Link href={href} style={pillStyle}>

@@ -1,6 +1,7 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { escapeHtml } from '../lib/escape'
+import { zoneName } from '@/lib/datetime/zoned-input'
 
 export const sendVolunteerInviteEmail = schemaTask({
   id: 'send-volunteer-invite',
@@ -12,15 +13,24 @@ export const sendVolunteerInviteEmail = schemaTask({
     eventDate:      z.string(),
     shiftStart:     z.string().nullable(),
     shiftEnd:       z.string().nullable(),
+    // O109: the event's IANA zone. Optional so runs queued before it existed still send.
+    eventTimezone:  z.string().optional(),
     portalUrl:      z.string(),
     orgEmail:       z.string().email().optional(),
   }),
   run: async (payload) => {
+    const tz = payload.eventTimezone
     const fmtDate = (d: string) =>
-      new Date(d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+      new Date(d).toLocaleDateString('en-US', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    // O109: the shift reads in the EVENT's zone, and the zone is named.
+    const fmtShift = (start: string, end: string | null) => {
+      const startText = new Date(start).toLocaleString('en-US', { timeZone: tz, dateStyle: 'medium', timeStyle: 'short' })
+      const endText = end ? ' – ' + new Date(end).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }) : ''
+      return tz ? `${startText}${endText} ${zoneName(tz, Date.parse(start))}` : `${startText}${endText}`
+    }
 
     const shiftLine = payload.shiftStart
-      ? `<li>⏰ <strong>Shift:</strong> ${new Date(payload.shiftStart).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}${payload.shiftEnd ? ' – ' + new Date(payload.shiftEnd).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}</li>`
+      ? `<li>⏰ <strong>Shift:</strong> ${escapeHtml(fmtShift(payload.shiftStart, payload.shiftEnd))}</li>`
       : ''
 
     const html = `
@@ -59,7 +69,7 @@ export const sendVolunteerInviteEmail = schemaTask({
     `
 
     const shiftText = payload.shiftStart
-      ? `Shift: ${new Date(payload.shiftStart).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}${payload.shiftEnd ? ' – ' + new Date(payload.shiftEnd).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}`
+      ? `Shift: ${fmtShift(payload.shiftStart, payload.shiftEnd)}`
       : ''
 
     const text = [

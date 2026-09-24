@@ -46,12 +46,14 @@ export default async function TicketsPage({ params }: Props) {
       </div>
       <TicketManager
         eventId={event.id}
+        eventTimezone={event.timezone}
         tickets={tickets as Parameters<typeof TicketManager>[0]['tickets']}
         connectedAssociations={connectedAssociations}
         permissions={permissions}
       />
       <DiscountCodeManager
         eventId={event.id}
+        eventTimezone={event.timezone}
         initial={discountCodes as any}
         permissions={permissions}
       />
