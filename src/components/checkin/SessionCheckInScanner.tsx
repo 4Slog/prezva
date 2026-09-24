@@ -10,6 +10,8 @@ import { truncateToken, type ScanSurface } from '@/lib/checkin/session-offline-d
 import type { OfflineSessionPack } from '@/lib/checkin/offline-pack'
 import type { CheckInResult, SessionAttendeeRow } from '@/lib/checkin/actions'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
+import { useScanResult } from '@/components/checkin/useScanResult'
+import { NextGuestButton } from '@/components/checkin/NextGuestButton'
 
 type Tab = 'scan' | 'attendees' | 'session-qr'
 
@@ -60,14 +62,20 @@ export function SessionCheckInScanner({
 }: Props) {
   const [tab, setTab] = useState<Tab>('scan')
   const [attendees, setAttendees] = useState<SessionAttendeeRow[]>(initialAttendees)
-  const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
-  const [offlineToast, setOfflineToast] = useState<OfflineToast | null>(null)
-  const [scanning, setScanning] = useState(false)
+  // O135: refusals (errors, a refused GHL ticket R81, not on the device list
+  // R85) stay until "Next guest"; successes clear after 3 s; camera frames are
+  // ignored while a refusal is up and for 3 s after the same code succeeded.
+  const scan = useScanResult<
+    | { src: 'online'; result: CheckInResult; viaOverride: boolean }
+    | { src: 'offline'; toast: OfflineToast }
+  >()
+  const lastResult = scan.shown?.value.src === 'online' ? scan.shown.value.result : null
+  const lastWasOverride = scan.shown?.value.src === 'online' && scan.shown.value.viaOverride
+  const offlineToast = scan.shown?.value.src === 'offline' ? scan.shown.value.toast : null
+  const refusalUp = scan.shown?.kind === 'refusal'
   const [copied, setCopied] = useState(false)
   const [overrideMode, setOverrideMode] = useState(false)
-  const [lastWasOverride, setLastWasOverride] = useState(false)
   const [search, setSearch] = useState('')
-  const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const busyRef = useRef(false)
 
@@ -110,37 +118,23 @@ export function SessionCheckInScanner({
     )
   }
 
-  function clearTimer() {
-    if (resultTimerRef.current) clearTimeout(resultTimerRef.current)
+  function showResult(result: CheckInResult, viaOverride = false, code?: string) {
+    scan.show({ src: 'online', result, viaOverride }, result.success ? 'success' : 'refusal', code)
   }
 
-  function showResult(result: CheckInResult, viaOverride = false) {
-    clearTimer()
-    setOfflineToast(null)
-    setLastResult(result)
-    setLastWasOverride(viaOverride)
-    // A refused GHL ticket stays up until staff act on it or dismiss it (R81).
-    if (!result.canOverride) {
-      resultTimerRef.current = setTimeout(() => setLastResult(null), 3000)
-    }
+  function showOffline(toast: OfflineToast, code?: string) {
+    const kind = toast.kind === 'accepted' || toast.kind === 'already'
+      ? 'success'
+      : toast.kind === 'recheck_queued' ? 'info' : 'refusal'
+    scan.show({ src: 'offline', toast }, kind, code)
   }
 
-  function showOffline(toast: OfflineToast) {
-    clearTimer()
-    setLastResult(null)
-    setOfflineToast(toast)
-    // "Not on this device's list" waits for staff to choose (R85).
-    if (toast.kind !== 'no_match') {
-      resultTimerRef.current = setTimeout(() => setOfflineToast(null), 4000)
-    }
-  }
-
-  function showOfflineOutcome(outcome: OfflineOutcome, viaOverride = false) {
+  function showOfflineOutcome(outcome: OfflineOutcome, viaOverride = false, code?: string) {
     if (outcome.kind === 'accepted') {
       const verb = viaOverride ? 'Override' : 'Accepted'
-      showOffline({ kind: 'accepted', text: `${verb}: ${outcome.name} (offline — will sync)` })
+      showOffline({ kind: 'accepted', text: `${verb}: ${outcome.name} (offline — will sync)` }, code)
     } else if (outcome.kind === 'already') {
-      showOffline({ kind: 'already', text: 'Already checked in (this device)' })
+      showOffline({ kind: 'already', text: 'Already checked in (this device)' }, code)
     } else if (outcome.kind === 'no_match') {
       showOffline({ kind: 'no_match', token: outcome.token })
     } else if (outcome.kind === 'recheck_queued') {
@@ -150,11 +144,7 @@ export function SessionCheckInScanner({
     }
   }
 
-  function dismissResult() {
-    clearTimer()
-    setLastResult(null)
-    setOfflineToast(null)
-  }
+  const dismissResult = scan.next
 
   function startOverride() {
     dismissResult()
@@ -167,19 +157,17 @@ export function SessionCheckInScanner({
     if (overrideMode && tab === 'attendees') searchRef.current?.focus()
   }, [overrideMode, tab])
 
-  useEffect(() => () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current) }, [])
-
   const { offlineScan, queueRecheck, offlineMark, markNetworkFailed, markNetworkOk } = offline
   const scanAction = actions.scan
 
-  async function scanNow(code: string) {
-    if (scanning || busyRef.current) return
+  async function scanNow(code: string, source: 'camera' | 'typed') {
+    if (busyRef.current) return
+    if (source === 'camera' && !scan.cameraMayScan(code)) return
     busyRef.current = true
-    setScanning(true)
     try {
       const scanOffline = async () => {
         const outcome = await offlineScan(code)
-        showOfflineOutcome(outcome)
+        showOfflineOutcome(outcome, false, code)
         if (outcome.kind === 'accepted') applyCheckIn(outcome.registrationId, new Date().toISOString())
       }
       if (!navigator.onLine) {
@@ -202,7 +190,7 @@ export function SessionCheckInScanner({
         return
       }
       markNetworkOk()
-      showResult(result)
+      showResult(result, false, code)
       if (result.success && result.registration && !result.registration.already_checked_in) {
         applyCheckIn(result.registration.id, new Date().toISOString())
       }
@@ -211,7 +199,6 @@ export function SessionCheckInScanner({
       showOffline({ kind: 'error', text: 'Could not check in — try again' })
     } finally {
       busyRef.current = false
-      setScanning(false)
     }
   }
 
@@ -219,7 +206,7 @@ export function SessionCheckInScanner({
   // latest scanNow runs through the ref.
   const scanNowRef = useRef(scanNow)
   useEffect(() => { scanNowRef.current = scanNow })
-  const handleQRScan = useCallback((code: string) => { void scanNowRef.current(code) }, [])
+  const handleQRScan = useCallback((code: string, source: 'camera' | 'typed') => { void scanNowRef.current(code, source) }, [])
 
   async function handleRecheck(token: string) {
     try {
@@ -385,9 +372,6 @@ export function SessionCheckInScanner({
                   >
                     Override…
                   </button>
-                  <button onClick={dismissResult} aria-label="Dismiss" className="p-1">
-                    <X size={14} />
-                  </button>
                 </span>
               )}
             </span>
@@ -424,9 +408,6 @@ export function SessionCheckInScanner({
                 >
                   Override…
                 </button>
-                <button onClick={dismissResult} aria-label="Dismiss" className="p-1">
-                  <X size={14} />
-                </button>
               </span>
             </span>
           ) : offlineToast.kind === 'recheck_queued' ? (
@@ -436,6 +417,8 @@ export function SessionCheckInScanner({
           )}
         </div>
       )}
+
+      {refusalUp && <NextGuestButton onClick={dismissResult} />}
 
       {/* Tab content */}
       {tab === 'scan' && (

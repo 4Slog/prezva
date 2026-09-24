@@ -5,7 +5,9 @@ import { Camera } from 'lucide-react'
 type ScanState = 'prompt' | 'scanning' | 'denied' | 'manual'
 
 interface QRScannerProps {
-  onScan: (code: string) => void
+  // 'camera' for a decoded frame, 'typed' for a code entered by hand (O135: a
+  // typed code may replace a refusal on screen; a camera frame may not).
+  onScan: (code: string, source: 'camera' | 'typed') => void
   active: boolean
 }
 
@@ -49,7 +51,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
         )
         scannerRef.current = scanner
         scanner.render(
-          (decodedText: string) => { onScan(decodedText) },
+          (decodedText: string) => { onScan(decodedText, 'camera') },
           (_err: any) => {},
         )
         setReady(true)
@@ -165,7 +167,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
             type="text"
             value={manualCode}
             onChange={e => setManualCode(e.target.value.toUpperCase())}
-            onKeyDown={e => { if (e.key === 'Enter' && manualCode.trim()) { onScan(manualCode.trim()); setManualCode('') }}}
+            onKeyDown={e => { if (e.key === 'Enter' && manualCode.trim()) { onScan(manualCode.trim(), 'typed'); setManualCode('') }}}
             placeholder="PREZVA-..."
             autoFocus
             style={{
@@ -175,7 +177,7 @@ export function QRScanner({ onScan, active }: QRScannerProps) {
             }}
           />
           <button
-            onClick={() => { if (manualCode.trim()) { onScan(manualCode.trim()); setManualCode('') }}}
+            onClick={() => { if (manualCode.trim()) { onScan(manualCode.trim(), 'typed'); setManualCode('') }}}
             disabled={!manualCode.trim()}
             style={{
               padding: '0.625rem 1rem', borderRadius: 8, border: 'none',

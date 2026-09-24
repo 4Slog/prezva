@@ -1,6 +1,8 @@
 'use client'
 
 import { DoorRefusalNotice } from '@/components/checkin/DoorRefusalNotice'
+import { NextGuestButton } from '@/components/checkin/NextGuestButton'
+import { useScanResult } from '@/components/checkin/useScanResult'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { AlertTriangle, Check, X, Copy, CheckCheck, Clock } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
@@ -44,11 +46,14 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
   const canCheckIn = permissions.includes('*') || permissions.includes('checkin.manage')
   const [tab, setTab] = useState<Tab>('qr')
   const [stats, setStats] = useState<CheckInStats>(initialStats)
-  const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
-  // R84: a scan saved to the offline queue. Never an accepted check-in.
-  const [queued, setQueued] = useState(false)
-  const [scanning, setScanning] = useState(false)
-  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // O135: refusals stay until "Next guest"; successes clear after 3 s.
+  // R84: a queued scan is an info notice, never an accepted check-in.
+  const scan = useScanResult<{ kind: 'result'; result: CheckInResult } | { kind: 'queued' }>()
+  const lastResult = scan.shown?.value.kind === 'result' ? scan.shown.value.result : null
+  const queued = scan.shown?.value.kind === 'queued'
+  const refusalUp = scan.shown?.kind === 'refusal'
+  const nextGuest = scan.next
+  const busyRef = useRef(false)
   const [kioskMode, setKioskMode] = useState(false)
   const [escCount, setEscCount] = useState(0)
   const escTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -69,11 +74,11 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
   useEffect(() => {
     if (!kioskMode || !lastResult?.success) return
     const t = setTimeout(() => {
-      setLastResult(null)
+      nextGuest()
       setTab('qr')
     }, 30000)
     return () => clearTimeout(t)
-  }, [kioskMode, lastResult])
+  }, [kioskMode, lastResult, nextGuest])
 
   // Kiosk: Esc ×3 to exit
   useEffect(() => {
@@ -96,15 +101,21 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
     return () => window.removeEventListener('keydown', handler)
   }, [kioskMode])
 
-  const handleQRScan = useCallback(async (code: string) => {
-    if (scanning) return
-    setScanning(true)
+  const showScan = scan.show
+  const showResult = useCallback((result: CheckInResult, code?: string) =>
+    showScan({ kind: 'result', result }, result.success ? 'success' : 'refusal', code), [showScan])
+
+  async function scanNow(code: string, source: 'camera' | 'typed') {
+    if (busyRef.current) return
+    // O135: while a refusal is up, and for 3 s after the same code succeeded,
+    // camera frames are ignored. A typed code always goes through.
+    if (source === 'camera' && !scan.cameraMayScan(code)) return
+    busyRef.current = true
 
     const normalizedCode = code.toLowerCase()
     const queue = async () => {
       await queueScan(normalizedCode)
-      setLastResult(null)
-      setQueued(true)
+      scan.show({ kind: 'queued' }, 'info')
     }
 
     try {
@@ -121,15 +132,21 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
         await queue()
         return
       }
-      setLastResult(result)
+      showResult(result, normalizedCode)
       if (result.success) await refreshStats()
     } catch (e) {
       console.error('[checkin] could not queue scan:', e)
-      setLastResult({ success: false, error: 'Scan not saved — try again' })
+      showResult({ success: false, error: 'Scan not saved — try again' })
     } finally {
-      scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setQueued(false); setScanning(false) }, 3000)
+      busyRef.current = false
     }
-  }, [eventId, scanning, refreshStats, queueScan])
+  }
+
+  // Stable for QRScanner (its camera effect restarts when onScan changes); the
+  // latest scanNow runs through the ref.
+  const scanNowRef = useRef(scanNow)
+  useEffect(() => { scanNowRef.current = scanNow })
+  const handleQRScan = useCallback((code: string, source: 'camera' | 'typed') => { void scanNowRef.current(code, source) }, [])
 
   const handleManualCheckIn = useCallback(async (registrationId: string) => {
     // A thrown call (no network) shows an error; the name search never freezes.
@@ -141,12 +158,12 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
       console.error('[checkin] manual check-in failed:', e)
       result = { success: false, error: MANUAL_CHECKIN_FAILED }
     }
-    setLastResult(result)
-    setTimeout(() => setLastResult(null), 3000)
+    // A manual check-in replaces whatever is on screen, refusal included.
+    showResult(result)
     if (result.success) {
       try { await refreshStats() } catch (e) { console.error('[checkin] stats refresh failed:', e) }
     }
-  }, [eventId, refreshStats])
+  }, [eventId, refreshStats, showResult])
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'qr', label: 'QR Scanner' },
@@ -224,6 +241,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
 
       {/* Scan result toast — a refused ticket (R90) gets the red "Do not admit" */}
       {lastResult?.refusal && <DoorRefusalNotice refusal={lastResult.refusal} />}
+      {refusalUp && <NextGuestButton onClick={scan.next} />}
       {lastResult && !lastResult.refusal && (
         <div className={
           'p-4 rounded-xl border text-sm font-medium transition-all ' +
@@ -345,6 +363,7 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
 
           {/* Check-in result */}
           {lastResult?.refusal && <DoorRefusalNotice refusal={lastResult.refusal} variant="kiosk" />}
+          {refusalUp && <NextGuestButton onClick={scan.next} variant="kiosk" />}
           {lastResult && !lastResult.refusal && (
             <div
               style={{
