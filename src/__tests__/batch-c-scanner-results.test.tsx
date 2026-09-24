@@ -207,7 +207,10 @@ describe('SessionCheckInScanner', () => {
     scanner.code = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
     await tick(50)
     await click('camera')
-    for (let i = 0; i < 20 && !screen.queryByText(/Not on this device/); i++) await tick(10)
+    // Dexie runs on real macrotasks (setImmediate is not faked): yield to them
+    // until the device-list outcome is shown. Generous cap for slow CI runners.
+    const settle = () => act(async () => { await new Promise(r => setImmediate(r)); await vi.advanceTimersByTimeAsync(5) })
+    for (let i = 0; i < 2000 && !screen.queryByText(/Not on this device/); i++) await settle()
     expect(screen.getByText(/Not on this device/)).toBeInTheDocument()
     expect(screen.getByText('Queue for re-check')).toBeInTheDocument()
     expect(screen.getByText('Override…')).toBeInTheDocument()
