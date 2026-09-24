@@ -6,8 +6,8 @@ import { cookies } from 'next/headers'
 type OrgOrg = { slug?: string }
 type OrgEntry = { organizations?: OrgOrg | OrgOrg[] | null }
 
-function slugOf(entry: OrgEntry): string | undefined {
-  const org = entry.organizations
+function slugOf(entry: OrgEntry | undefined): string | undefined {
+  const org = entry?.organizations
   if (!org) return undefined
   if (Array.isArray(org)) return org[0]?.slug
   return org.slug

@@ -1,10 +1,12 @@
 import { headers, cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { getUserOrgs } from '@/lib/orgs/actions'
 import { getUserContexts } from '@/lib/auth/get-contexts'
 import { isSuperAdmin } from '@/lib/admin/gate'
 import { resolveActiveOrgSlug } from '@/lib/auth/active-org'
+import { shouldRedirectNoOrgUser } from '@/lib/auth/no-org-redirect'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { OrgShell } from '@/components/layout/OrgShell'
 import { UserMenu } from '@/components/auth/UserMenu'
@@ -36,6 +38,9 @@ export default async function DashboardLayout({
   if (impersonateCookie && isSuperAdmin(user.id)) {
     try { impersonateOrg = JSON.parse(impersonateCookie) } catch { /* ignore */ }
   }
+
+  // O116: no org and not impersonating → the attendee home.
+  if (shouldRedirectNoOrgUser(pathname, orgs.length, !!impersonateOrg)) redirect('/me')
 
   let effectiveOrgSlug: string | null
   let effectiveOrgId: string
