@@ -100,6 +100,7 @@ describe('embedded checkInBySearch', () => {
 })
 
 describe('embedded processOfflineQueue (checkInByQRInternal)', () => {
+  const ENTRY_ID = 'e0b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e'
   it('rejects a refunded entry in the offline batch', async () => {
     const refundedReg = {
       id: REG_ID, attendee_name: 'Alice', attendee_email: 'alice@test.com',
@@ -114,11 +115,13 @@ describe('embedded processOfflineQueue (checkInByQRInternal)', () => {
     const result = await processOfflineQueue({
       eventId: EVENT_ID,
       deviceId: 'scanner-1',
-      entries: [{ qr_code: QR_CODE, scanned_at: new Date().toISOString() }],
+      entries: [{ entryId: ENTRY_ID, qr_code: QR_CODE, scanned_at: new Date().toISOString() }],
     })
     expect((result as any).processed).toBe(0)
-    expect((result as any).failedQrCodes).toEqual([QR_CODE])
-    expect((result as any).errors[0]).toContain('refunded')
+    // R84: per-entry result keyed by entryId (was failedQrCodes).
+    expect((result as any).results).toEqual([
+      { entryId: ENTRY_ID, status: 'refused', reason: 'Registration was refunded' },
+    ])
   })
 })
 

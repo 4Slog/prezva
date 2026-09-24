@@ -7,13 +7,20 @@ import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
 import { getGhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-token'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
+import {
+  OfflineSyncBatchSchema,
+  parseOfflineEntries,
+  clampScanTime,
+  offlineResult,
+  type OfflineEntryResult,
+  type OfflineSyncResponse,
+} from '@/lib/checkin/offline-sync'
 
 export interface CheckInResult {
   success: boolean
@@ -80,6 +87,24 @@ export async function checkInByQR(
   const event = await getEventOrg(supabase, eventId)
   try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
 
+  const result = await recordDoorQrCheckIn(supabase, user.id, eventId, qrCode, deviceId)
+  if (result.success && !result.registration?.already_checked_in) revalidatePath('/events')
+  return result
+}
+
+// Core door QR write, shared by the online scan and the offline sync (R84). Not
+// exported: the caller has already authorised staffUserId for the event. The
+// online scan passes no `offline` and writes exactly as before (checked_in_at
+// is the database default, now). The offline sync passes the clamped scan time
+// and throws on a database failure so the entry is retried, not refused.
+async function recordDoorQrCheckIn(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  staffUserId: string,
+  eventId: string,
+  qrCode: string,
+  deviceId: string,
+  offline?: { checkedInAt: string },
+): Promise<CheckInResult> {
   const { data: reg, error: regErr } = await supabase
     .from('registrations')
     .select('id, user_id, attendee_name, attendee_email, status, ticket_types(name)')
@@ -87,6 +112,7 @@ export async function checkInByQR(
     .eq('qr_code', qrCode.toLowerCase())
     .single()
 
+  if (offline && regErr && regErr.code !== 'PGRST116') throw new Error(regErr.message)
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
   if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
@@ -115,15 +141,20 @@ export async function checkInByQR(
   const { error: ciErr } = await supabase.from('check_ins').insert({
     event_id: eventId,
     registration_id: (reg as any).id,
-    checked_in_by: user.id,
+    checked_in_by: staffUserId,
     method: 'qr_scan',
     device_id: deviceId,
     synced_at: new Date().toISOString(),
+    ...(offline ? { checked_in_at: offline.checkedInAt, checked_in_source: 'offline_sync' } : {}),
   })
 
-  if (ciErr) return { success: false, error: ciErr.message }
+  if (ciErr) {
+    if (offline) throw new Error(ciErr.message)
+    return { success: false, error: ciErr.message }
+  }
 
-  await logAudit(supabase, null, user.id, 'checkin.scan', 'registrations', (reg as any).id, { method: 'qr_scan' })
+  await logAudit(supabase, null, staffUserId, 'checkin.scan', 'registrations', (reg as any).id,
+    offline ? { method: 'qr_scan', source: 'offline_sync' } : { method: 'qr_scan' })
 
   let points_awarded = 0
   if ((reg as any).user_id) {
@@ -133,7 +164,6 @@ export async function checkInByQR(
     } catch {}
   }
 
-  revalidatePath('/events')
   return {
     success: true,
     registration: {
@@ -287,44 +317,34 @@ export async function getCheckInStats(eventId: string): Promise<CheckInStats> {
   }
 }
 
-const OfflineSyncSchema = z.object({
-  eventId: z.string().uuid(),
-  deviceId: z.string().min(1),
-  entries: z.array(z.object({
-    qr_code: z.string().min(1),
-    scanned_at: z.string(),
-  })),
-})
-
-export async function processOfflineQueue(raw: unknown) {
+export async function processOfflineQueue(raw: unknown): Promise<OfflineSyncResponse | { error: string }> {
   const user = await requireUser()
-  const parsed = OfflineSyncSchema.safeParse(raw)
+  const parsed = OfflineSyncBatchSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  const { eventId, deviceId, entries } = parsed.data
+  const { eventId, deviceId } = parsed.data
   const supabase = await createClient()
   const event = await getEventOrg(supabase, eventId)
   try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return catchPermission(e) }
 
-  const results = await Promise.all(
-    entries.map(entry => checkInByQR(eventId, entry.qr_code.toLowerCase(), deviceId))
-  )
-
-  let processed = 0
-  const errors: string[] = []
-  const failedQrCodes: string[] = []
-
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i]
-    if (result.success && !result.registration?.already_checked_in) {
-      processed++
-    } else if (!result.success) {
-      errors.push(entries[i].qr_code + ': ' + result.error)
-      failedQrCodes.push(entries[i].qr_code)
+  const { valid, invalid } = parseOfflineEntries(parsed.data.entries)
+  const results: OfflineEntryResult[] = [...invalid]
+  // Sequential: two queued scans of one code must not race past the
+  // existing-check-in lookup.
+  for (const entry of valid) {
+    const { checkedInAt, clamped } = clampScanTime(entry.scanned_at)
+    try {
+      const r = await recordDoorQrCheckIn(supabase, user.id, eventId, entry.qr_code, deviceId, { checkedInAt })
+      results.push(offlineResult(entry.entryId, r, clamped))
+    } catch (e) {
+      console.error('[checkin] offline entry failed, device will retry:', e)
+      results.push({ entryId: entry.entryId, status: 'retry', reason: 'Server error' })
     }
   }
 
-  return { processed, total: entries.length, errors, failedQrCodes }
+  const processed = results.filter(r => r.status === 'accepted').length
+  if (processed > 0) revalidatePath('/events')
+  return { processed, total: parsed.data.entries.length, results }
 }
 
 type SessionCheckInMethod = 'self' | 'qr_scan' | 'manual' | 'override'

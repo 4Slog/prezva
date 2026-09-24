@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { AlertTriangle, Check, X, Copy, CheckCheck } from 'lucide-react'
+import { AlertTriangle, Check, X, Copy, CheckCheck, Clock } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
 import { ManualSearch } from '@/components/checkin/ManualSearch'
 import { CheckInDashboard } from '@/components/checkin/CheckInDashboard'
 import { checkInByQR, checkInBySearch, getCheckInStats } from '@/lib/checkin/actions'
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
-import { queueCheckIn, getPendingCount, syncPending } from '@/lib/checkin/offline-db'
+import { syncPending } from '@/lib/checkin/offline-db'
+import { useDoorQueue } from '@/components/checkin/useDoorQueue'
+import { OfflineQueueStatus, NeedsAttentionList } from '@/components/checkin/OfflineQueuePanel'
 import { Gated } from '@/components/auth/Gated'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
@@ -37,72 +39,30 @@ interface CheckInClientProps {
 
 type Tab = 'qr' | 'search' | 'stats' | 'arrival-qr'
 
-const DEVICE_ID_KEY = 'prezva-device-id'
-
-function getDeviceId(): string {
-  let id = localStorage.getItem(DEVICE_ID_KEY)
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem(DEVICE_ID_KEY, id)
-  }
-  return id
-}
-
 export function CheckInClient({ eventId, eventName, initialStats, volunteerStatus, permissions, eventSelfCheckInUrl }: CheckInClientProps) {
   const canCheckIn = permissions.includes('*') || permissions.includes('checkin.manage')
   const [tab, setTab] = useState<Tab>('qr')
   const [stats, setStats] = useState<CheckInStats>(initialStats)
   const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
+  // R84: a scan saved to the offline queue. Never an accepted check-in.
+  const [queued, setQueued] = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? navigator.onLine : true)
-  const [pendingCount, setPendingCount] = useState(0)
-  const [syncing, setSyncing] = useState(false)
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [kioskMode, setKioskMode] = useState(false)
   const [escCount, setEscCount] = useState(0)
   const escTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [urlCopied, setUrlCopied] = useState(false)
 
-  const refreshPending = useCallback(async () => {
-    const count = await getPendingCount(eventId)
-    setPendingCount(count)
-  }, [eventId])
-
-  const triggerSync = useCallback(async () => {
-    const count = await getPendingCount(eventId)
-    if (count === 0) return
-    setSyncing(true)
-    await syncPending(eventId)
-    const remaining = await getPendingCount(eventId)
-    setPendingCount(remaining)
-    setSyncing(false)
-    const fresh = await getCheckInStats(eventId)
-    setStats(fresh)
-  }, [eventId])
-
   const refreshStats = useCallback(async () => {
-    const fresh = await getCheckInStats(eventId)
-    setStats(fresh)
+    try {
+      setStats(await getCheckInStats(eventId))
+    } catch {
+      // Offline or a failed refresh: keep the last stats.
+    }
   }, [eventId])
 
-  useEffect(() => {
-    getPendingCount(eventId).then(count => setPendingCount(count))
-  }, [eventId])
-
-  useEffect(() => {
-    const onOnline = () => {
-      setIsOnline(true)
-      triggerSync()
-    }
-    const onOffline = () => setIsOnline(false)
-    window.addEventListener('online', onOnline)
-    window.addEventListener('offline', onOffline)
-    return () => {
-      window.removeEventListener('online', onOnline)
-      window.removeEventListener('offline', onOffline)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const { isOnline, pendingCount, needsAttention, syncing, triggerSync, queueScan, dismiss } =
+    useDoorQueue(eventId, syncPending, refreshStats)
 
   // Kiosk: auto-reset 30s after successful check-in
   useEffect(() => {
@@ -140,21 +100,35 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
     setScanning(true)
 
     const normalizedCode = code.toLowerCase()
-
-    if (!navigator.onLine) {
-      const deviceId = getDeviceId()
-      await queueCheckIn(eventId, normalizedCode, deviceId)
-      await refreshPending()
-      setLastResult({ success: true, registration: { id: 'offline', attendee_name: 'Queued (offline)', attendee_email: '', ticket_name: '', already_checked_in: false } })
-      scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setScanning(false) }, 3000)
-      return
+    const queue = async () => {
+      await queueScan(normalizedCode)
+      setLastResult(null)
+      setQueued(true)
     }
 
-    const result = await checkInByQR(eventId, normalizedCode)
-    setLastResult(result)
-    if (result.success) await refreshStats()
-    scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setScanning(false) }, 3000)
-  }, [eventId, scanning, refreshStats, refreshPending])
+    try {
+      if (!navigator.onLine) {
+        await queue()
+        return
+      }
+      let result: CheckInResult
+      try {
+        result = await checkInByQR(eventId, normalizedCode)
+      } catch {
+        // The call itself failed (network down, or connected with no internet):
+        // queue it. A returned { success: false } is a real refusal, shown below.
+        await queue()
+        return
+      }
+      setLastResult(result)
+      if (result.success) await refreshStats()
+    } catch (e) {
+      console.error('[checkin] could not queue scan:', e)
+      setLastResult({ success: false, error: 'Scan not saved — try again' })
+    } finally {
+      scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setQueued(false); setScanning(false) }, 3000)
+    }
+  }, [eventId, scanning, refreshStats, queueScan])
 
   const handleManualCheckIn = useCallback(async (registrationId: string) => {
     const result = await checkInBySearch(eventId, registrationId)
@@ -181,27 +155,13 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           </p>
         </div>
         {/* Offline sync widget */}
-        <div className="flex-shrink-0 text-right">
-          <div className="flex items-center gap-2 justify-end">
-            <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-[var(--pz-success-fill)]' : 'bg-[var(--pz-error)]'}`} />
-            <span className="text-xs text-[var(--pz-muted)]">{isOnline ? 'Online' : 'Offline'}</span>
-          </div>
-          {pendingCount > 0 && (
-            <div className="mt-1">
-              <span className="text-xs text-yellow-600 font-medium">{pendingCount} pending</span>
-              {isOnline && (
-                <button
-                  onClick={triggerSync}
-                  disabled={syncing}
-                  className="ml-2 text-xs underline disabled:opacity-50"
-                  style={{ color: 'var(--pz-teal-ink)' }}
-                >
-                  {syncing ? 'Syncing…' : 'Sync now'}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+        <OfflineQueueStatus
+          isOnline={isOnline}
+          pendingCount={pendingCount}
+          needsAttentionCount={needsAttention.length}
+          syncing={syncing}
+          onSync={triggerSync}
+        />
       </div>
 
       {/* Offline banner */}
@@ -210,6 +170,8 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           Offline — scans will be queued and synced when reconnected
         </div>
       )}
+
+      <NeedsAttentionList entries={needsAttention} onDismiss={dismiss} />
 
       {/* Tab switcher + kiosk button */}
       <div className="flex items-center gap-2">
@@ -241,6 +203,13 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
           </button>
         </Gated>
       </div>
+
+      {/* Queued scan: distinct from a check-in, no attendee shown */}
+      {queued && (
+        <div className="p-4 rounded-xl border text-sm font-medium bg-blue-50 border-blue-200 text-blue-800">
+          <span className="flex items-center gap-1"><Clock size={14} /> Queued — will sync</span>
+        </div>
+      )}
 
       {/* Scan result toast */}
       {lastResult && (
@@ -347,6 +316,20 @@ export function CheckInClient({ eventId, eventName, initialStats, volunteerStatu
               <KioskClock /> &nbsp;·&nbsp; {stats.total_checked_in}/{stats.total_registered} checked in
             </p>
           </div>
+
+          {/* Queued scan */}
+          {queued && (
+            <div
+              style={{
+                width: '100%', maxWidth: 560, marginBottom: '1rem',
+                padding: '1rem', borderRadius: 12, textAlign: 'center',
+                fontSize: '1.1rem', fontWeight: 600,
+                border: '1px dashed var(--pz-chrome-muted)', color: 'var(--pz-chrome-text)',
+              }}
+            >
+              Queued — will sync
+            </div>
+          )}
 
           {/* Check-in result */}
           {lastResult && (

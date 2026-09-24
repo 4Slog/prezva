@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { AlertTriangle, Check, Copy, CheckCheck, X } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { AlertTriangle, Check, Clock, Copy, CheckCheck, X } from 'lucide-react'
 import { QRScanner } from '@/components/checkin/QRScanner'
 import { ManualSearch } from '@/components/checkin/ManualSearch'
 import { CheckInDashboard } from '@/components/checkin/CheckInDashboard'
@@ -12,21 +12,12 @@ import {
   searchAttendeesForCheckIn,
 } from '@/lib/embedded/checkin-actions'
 import type { CheckInResult, CheckInStats } from '@/lib/checkin/actions'
-import { queueCheckIn, getPendingCount, syncPendingEmbed } from '@/lib/checkin/offline-db'
+import { syncPendingEmbed } from '@/lib/checkin/offline-db'
+import { useDoorQueue } from '@/components/checkin/useDoorQueue'
+import { OfflineQueueStatus, NeedsAttentionList } from '@/components/checkin/OfflineQueuePanel'
 import QRDisplay from '@/app/e/[slug]/my-qr/qr-display'
 
 type Tab = 'qr' | 'search' | 'stats' | 'arrival-qr'
-
-const DEVICE_ID_KEY = 'prezva-device-id'
-
-function getDeviceId(): string {
-  let id = localStorage.getItem(DEVICE_ID_KEY)
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem(DEVICE_ID_KEY, id)
-  }
-  return id
-}
 
 interface EmbedCheckInClientProps {
   eventId: string
@@ -40,73 +31,55 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats, arrivalUr
   const [arrivalCopied, setArrivalCopied] = useState(false)
   const [stats, setStats] = useState<CheckInStats>(initialStats)
   const [lastResult, setLastResult] = useState<CheckInResult | null>(null)
+  // R84: a scan saved to the offline queue. Never an accepted check-in.
+  const [queued, setQueued] = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? navigator.onLine : true)
-  const [pendingCount, setPendingCount] = useState(0)
-  const [syncing, setSyncing] = useState(false)
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const refreshPending = useCallback(async () => {
-    const count = await getPendingCount(eventId)
-    setPendingCount(count)
-  }, [eventId])
-
-  const triggerSync = useCallback(async () => {
-    const count = await getPendingCount(eventId)
-    if (count === 0) return
-    setSyncing(true)
-    try {
-      await syncPendingEmbed(eventId)
-    } catch {
-      // ignore — offline-db logs internally
-    }
-    const remaining = await getPendingCount(eventId)
-    setPendingCount(remaining)
-    setSyncing(false)
-    const fresh = await getCheckInStats(eventId)
-    setStats(fresh)
-  }, [eventId])
-
   const refreshStats = useCallback(async () => {
-    const fresh = await getCheckInStats(eventId)
-    setStats(fresh)
-  }, [eventId])
-
-  useEffect(() => {
-    getPendingCount(eventId).then(count => setPendingCount(count))
-  }, [eventId])
-
-  useEffect(() => {
-    const onOnline = () => { setIsOnline(true); triggerSync() }
-    const onOffline = () => setIsOnline(false)
-    window.addEventListener('online', onOnline)
-    window.addEventListener('offline', onOffline)
-    return () => {
-      window.removeEventListener('online', onOnline)
-      window.removeEventListener('offline', onOffline)
+    try {
+      setStats(await getCheckInStats(eventId))
+    } catch {
+      // Offline or a failed refresh: keep the last stats.
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [eventId])
+
+  const { isOnline, pendingCount, needsAttention, syncing, triggerSync, queueScan, dismiss } =
+    useDoorQueue(eventId, syncPendingEmbed, refreshStats)
 
   const handleQRScan = useCallback(async (code: string) => {
     if (scanning) return
     setScanning(true)
     const normalizedCode = code.toLowerCase()
-
-    if (!navigator.onLine) {
-      const deviceId = getDeviceId()
-      await queueCheckIn(eventId, normalizedCode, deviceId)
-      await refreshPending()
-      setLastResult({ success: true, registration: { id: 'offline', attendee_name: 'Queued (offline)', attendee_email: '', ticket_name: '', already_checked_in: false } })
-      scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setScanning(false) }, 3000)
-      return
+    const queue = async () => {
+      await queueScan(normalizedCode)
+      setLastResult(null)
+      setQueued(true)
     }
 
-    const result = await checkInByQR(eventId, normalizedCode)
-    setLastResult(result)
-    if (result.success) await refreshStats()
-    scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setScanning(false) }, 3000)
-  }, [eventId, scanning, refreshStats, refreshPending])
+    try {
+      if (!navigator.onLine) {
+        await queue()
+        return
+      }
+      let result: CheckInResult
+      try {
+        result = await checkInByQR(eventId, normalizedCode)
+      } catch {
+        // The call itself failed (network down, or connected with no internet):
+        // queue it. A returned { success: false } is a real refusal, shown below.
+        await queue()
+        return
+      }
+      setLastResult(result)
+      if (result.success) await refreshStats()
+    } catch (e) {
+      console.error('[embed-checkin] could not queue scan:', e)
+      setLastResult({ success: false, error: 'Scan not saved — try again' })
+    } finally {
+      scanTimeoutRef.current = setTimeout(() => { setLastResult(null); setQueued(false); setScanning(false) }, 3000)
+    }
+  }, [eventId, scanning, refreshStats, queueScan])
 
   const handleManualCheckIn = useCallback(async (registrationId: string) => {
     const result = await checkInBySearch(eventId, registrationId)
@@ -132,27 +105,13 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats, arrivalUr
             Check-In — {stats.total_checked_in}/{stats.total_registered} attendees checked in
           </p>
         </div>
-        <div className="flex-shrink-0 text-right">
-          <div className="flex items-center gap-2 justify-end">
-            <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-[var(--pz-success-fill)]' : 'bg-[var(--pz-error)]'}`} />
-            <span className="text-xs text-[var(--pz-muted)]">{isOnline ? 'Online' : 'Offline'}</span>
-          </div>
-          {pendingCount > 0 && (
-            <div className="mt-1">
-              <span className="text-xs text-yellow-600 font-medium">{pendingCount} pending</span>
-              {isOnline && (
-                <button
-                  onClick={triggerSync}
-                  disabled={syncing}
-                  className="ml-2 text-xs underline disabled:opacity-50"
-                  style={{ color: 'var(--pz-teal-ink)' }}
-                >
-                  {syncing ? 'Syncing…' : 'Sync now'}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+        <OfflineQueueStatus
+          isOnline={isOnline}
+          pendingCount={pendingCount}
+          needsAttentionCount={needsAttention.length}
+          syncing={syncing}
+          onSync={triggerSync}
+        />
       </div>
 
       {!isOnline && (
@@ -160,6 +119,8 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats, arrivalUr
           Offline — scans will be queued and synced when reconnected
         </div>
       )}
+
+      <NeedsAttentionList entries={needsAttention} onDismiss={dismiss} />
 
       {/* Tab switcher */}
       <div className="flex gap-1 bg-[var(--pz-bg)] p-1 rounded-lg">
@@ -178,6 +139,13 @@ export function EmbedCheckInClient({ eventId, eventName, initialStats, arrivalUr
           </button>
         ))}
       </div>
+
+      {/* Queued scan: distinct from a check-in, no attendee shown */}
+      {queued && (
+        <div className="p-4 rounded-xl border text-sm font-medium bg-blue-50 border-blue-200 text-blue-800">
+          <span className="flex items-center gap-1"><Clock size={14} /> Queued — will sync</span>
+        </div>
+      )}
 
       {/* Scan result toast */}
       {lastResult && (

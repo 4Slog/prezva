@@ -1,12 +1,19 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { getGhlOrgConfig, type GhlStageKey } from '@/lib/integrations/ghl/org-config'
 import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-token'
+import {
+  OfflineSyncBatchSchema,
+  parseOfflineEntries,
+  clampScanTime,
+  offlineResult,
+  type OfflineEntryResult,
+  type OfflineSyncResponse,
+} from '@/lib/checkin/offline-sync'
 
 export type { CheckInResult, CheckInStats, RecentCheckIn, SessionAttendeeRow } from '@/lib/checkin/actions'
 
@@ -300,54 +307,50 @@ export async function getCheckInStats(eventId: string): Promise<CheckInStats> {
   }
 }
 
-const OfflineSyncSchema = z.object({
-  eventId: z.string().uuid(),
-  deviceId: z.string().min(1),
-  entries: z.array(z.object({
-    qr_code: z.string().min(1),
-    scanned_at: z.string(),
-  })),
-})
-
-export async function processOfflineQueue(raw: unknown) {
-  const parsed = OfflineSyncSchema.safeParse(raw)
+export async function processOfflineQueue(raw: unknown): Promise<OfflineSyncResponse | { error: string }> {
+  const parsed = OfflineSyncBatchSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  const { eventId, deviceId, entries } = parsed.data
+  const { eventId, deviceId } = parsed.data
   // Verify embed context before processing
-  const { orgId } = await resolveEmbedContext()
-  const db = createAdminClient()
+  const { db, orgId, staffEmail } = await resolveEmbedContext()
   const { data: eventRow } = await db.from('events').select('id').eq('id', eventId).eq('org_id', orgId).maybeSingle()
   if (!eventRow) return { error: 'Event not found or access denied' }
 
-  const results = await Promise.all(
-    entries.map(entry => checkInByQRInternal(db, orgId, eventId, entry.qr_code.toLowerCase(), deviceId))
-  )
+  // R84: the staff member recorded is the one SYNCING the queue (the embed
+  // session making this request), not necessarily the one who scanned.
+  const staff = await resolveEmbedStaff(db, orgId, staffEmail)
 
-  let processed = 0
-  const errors: string[] = []
-  const failedQrCodes: string[] = []
-
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i]
-    if (result.success && !result.registration?.already_checked_in) {
-      processed++
-    } else if (!result.success) {
-      errors.push(entries[i].qr_code + ': ' + result.error)
-      failedQrCodes.push(entries[i].qr_code)
+  const { valid, invalid } = parseOfflineEntries(parsed.data.entries)
+  const results: OfflineEntryResult[] = [...invalid]
+  // Sequential: two queued scans of one code must not race past the
+  // existing-check-in lookup.
+  for (const entry of valid) {
+    const { checkedInAt, clamped } = clampScanTime(entry.scanned_at)
+    try {
+      const r = await checkInByQRInternal(db, orgId, eventId, entry.qr_code.toLowerCase(), deviceId, staff, checkedInAt)
+      results.push(offlineResult(entry.entryId, r, clamped))
+    } catch (e) {
+      console.error('[embed-checkin] offline entry failed, device will retry:', e)
+      results.push({ entryId: entry.entryId, status: 'retry', reason: 'Server error' })
     }
   }
 
-  return { processed, total: entries.length, errors, failedQrCodes }
+  const processed = results.filter(r => r.status === 'accepted').length
+  return { processed, total: parsed.data.entries.length, results }
 }
 
-// Internal variant used by processOfflineQueue to avoid re-resolving embed context N times
+// Offline-sync door write for processOfflineQueue (avoids re-resolving embed
+// context per entry). A database failure throws so the device retries the entry
+// instead of moving it to needs_attention.
 async function checkInByQRInternal(
   db: ReturnType<typeof createAdminClient>,
   orgId: string,
   eventId: string,
   qrCode: string,
   deviceId: string,
+  staff: { checked_in_by: string | null; checked_in_by_email: string | null },
+  checkedInAt: string,
 ): Promise<CheckInResult> {
   const { data: reg, error: regErr } = await db
     .from('registrations')
@@ -356,6 +359,7 @@ async function checkInByQRInternal(
     .eq('qr_code', qrCode)
     .single()
 
+  if (regErr && regErr.code !== 'PGRST116') throw new Error(regErr.message)
   if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
   if ((reg as any).status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
   if ((reg as any).status === 'refunded') return { success: false, error: 'Registration was refunded' }
@@ -384,14 +388,15 @@ async function checkInByQRInternal(
   const { error: ciErr } = await db.from('check_ins').insert({
     event_id: eventId,
     registration_id: (reg as any).id,
-    checked_in_by: null,
+    ...staff,
     checked_in_source: 'offline_sync',
     method: 'qr_scan',
     device_id: deviceId,
+    checked_in_at: checkedInAt,
     synced_at: new Date().toISOString(),
   })
 
-  if (ciErr) return { success: false, error: ciErr.message }
+  if (ciErr) throw new Error(ciErr.message)
 
   await fireGhlStageMove(db, (reg as any).id, orgId)
 

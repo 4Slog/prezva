@@ -316,11 +316,16 @@ describe('processOfflineQueue', () => {
       eventId: EVENT_ID,
       deviceId: 'scanner-1',
       entries: [
-        { qr_code: 'PREZVA-A', scanned_at: new Date().toISOString() },
-        { qr_code: 'PREZVA-B', scanned_at: new Date().toISOString() },
+        { entryId: 'e1000000-0000-4000-8000-000000000001', qr_code: 'PREZVA-A', scanned_at: new Date().toISOString() },
+        { entryId: 'e1000000-0000-4000-8000-000000000002', qr_code: 'PREZVA-B', scanned_at: new Date().toISOString() },
       ],
     })
     expect((result as any).total).toBe(2)
+    // R84: one result per entry, keyed by entryId.
+    expect((result as any).results).toEqual([
+      { entryId: 'e1000000-0000-4000-8000-000000000001', status: 'accepted' },
+      { entryId: 'e1000000-0000-4000-8000-000000000002', status: 'accepted' },
+    ])
   })
 })
 
