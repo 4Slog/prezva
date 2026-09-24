@@ -48,6 +48,11 @@ function table(name: string) {
       if (name === 'check_ins' && failInsertFor.has(row.registration_id as string)) {
         return Promise.resolve({ error: { message: 'connection reset' } })
       }
+      // The 0151 partial unique index on client_entry_id.
+      if (name === 'check_ins' && row.client_entry_id &&
+          (db.check_ins ?? []).some(r => r.client_entry_id === row.client_entry_id)) {
+        return Promise.resolve({ error: { code: '23505', message: 'duplicate key value violates unique constraint' } })
+      }
       (db[name] ??= []).push(row)
       return Promise.resolve({ error: null })
     },
@@ -70,9 +75,10 @@ import { verifyEmbeddedSession } from '@/lib/embedded/session'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { getGhlOrgConfig, type GhlOrgConfig } from '@/lib/integrations/ghl/org-config'
 import {
-  clampScanTime,
+  resolveScanTime,
   MAX_SCAN_AGE_MS,
   SCAN_TIME_CLAMPED_NOTE,
+  STALE_SCAN_REASON,
   type OfflineSyncResponse,
 } from '@/lib/checkin/offline-sync'
 import {
@@ -146,7 +152,7 @@ async function sync(run: (raw: unknown) => Promise<unknown>, entries: unknown[])
   return res as OfflineSyncResponse
 }
 
-describe.each(surfaces)('processOfflineQueue ($name) — per-entry results', ({ run }) => {
+describe.each(surfaces)('processOfflineQueue ($name) — per-entry results', ({ name, run }) => {
   it('returns one result per entry keyed by entryId: accepted, already checked in, refused', async () => {
     const [a, b, c, d, e] = [entryId(), entryId(), entryId(), entryId(), entryId()]
     const res = await sync(run, [
@@ -204,14 +210,40 @@ describe.each(surfaces)('processOfflineQueue ($name) — per-entry results', ({ 
     expect(doorRows().filter(r => r.registration_id === 'r-new')).toHaveLength(1)
   })
 
-  it('scanned_at lands in checked_in_at; synced_at is the server receive time', async () => {
+  it('scanned_at lands in checked_in_at; synced_at is the server receive time; R87 columns set', async () => {
     const scannedAt = hoursAgo(5)
+    const id = entryId()
     const before = Date.now()
-    await sync(run, [{ entryId: entryId(), qr_code: 'r-new-qr', scanned_at: scannedAt }])
+    await sync(run, [{ entryId: id, qr_code: 'r-new-qr', scanned_at: scannedAt }])
     const row = rowFor('r-new')!
     expect(row.checked_in_at).toBe(scannedAt)
     expect(Date.parse(row.synced_at as string)).toBeGreaterThanOrEqual(before)
-    expect(row.checked_in_source).toBe('offline_sync')
+    // R87: the surface, never the legacy 'offline_sync'; the offline marker is its own columns.
+    expect(row.checked_in_source).toBe(name === 'dashboard' ? 'dashboard' : 'embed')
+    expect(row).toEqual(expect.objectContaining({ is_offline: true, client_scanned_at: scannedAt, client_entry_id: id }))
+  })
+
+  it('corrects for device clock skew from deviceNow; client_scanned_at keeps the raw device time', async () => {
+    // Device clock is 2h behind: it says it is 1h ago now, and scanned 3h ago on its clock.
+    const deviceNow = hoursAgo(2)
+    const rawScan = hoursAgo(5)
+    const res = (await run({ eventId: EVENT, deviceId: 'dev-1', deviceNow, entries: [
+      { entryId: entryId(), qr_code: 'r-new-qr', scanned_at: rawScan },
+    ] })) as OfflineSyncResponse
+    expect(res.results[0].status).toBe('accepted')
+    const row = rowFor('r-new')!
+    expect(row.client_scanned_at).toBe(rawScan)
+    // Corrected = raw + 2h = 3h ago (allow for the test's own runtime).
+    expect(Math.abs(Date.parse(row.checked_in_at as string) - Date.parse(hoursAgo(3)))).toBeLessThan(5_000)
+  })
+
+  it('a replayed entryId (unique client_entry_id) is already_checked_in, never an error', async () => {
+    const id = entryId()
+    await sync(run, [{ entryId: id, qr_code: 'r-new-qr', scanned_at: hoursAgo(1) }])
+    // The door check-in was undone since, so only the client_entry_id index catches the replay.
+    db.check_ins = db.check_ins.map(r => r.registration_id === 'r-new' ? { ...r, registration_id: 'undone' } : r)
+    const res = await sync(run, [{ entryId: id, qr_code: 'r-new-qr', scanned_at: hoursAgo(1) }])
+    expect(res.results).toEqual([{ entryId: id, status: 'already_checked_in' }])
   })
 
   it('a future scanned_at is clamped to the server now, and the result says so', async () => {
@@ -224,12 +256,11 @@ describe.each(surfaces)('processOfflineQueue ($name) — per-entry results', ({ 
     expect(at).toBeLessThanOrEqual(Date.now())
   })
 
-  it('a scanned_at older than 72 hours is clamped to the server now', async () => {
+  it('a scanned_at older than 72 hours is refused for review and not written (stale-scan rule)', async () => {
     const id = entryId()
-    const before = Date.now()
     const res = await sync(run, [{ entryId: id, qr_code: 'r-new-qr', scanned_at: hoursAgo(73) }])
-    expect(res.results[0].note).toBe(SCAN_TIME_CLAMPED_NOTE)
-    expect(Date.parse(rowFor('r-new')!.checked_in_at as string)).toBeGreaterThanOrEqual(before)
+    expect(res.results).toEqual([{ entryId: id, status: 'refused', reason: STALE_SCAN_REASON }])
+    expect(rowFor('r-new')).toBeUndefined()
   })
 
   it('a malformed batch is refused as a whole (the route answers non-OK)', async () => {
@@ -243,7 +274,7 @@ describe('processOfflineQueue (embedded) — syncing staff', () => {
     embedAs(' Door.Staff@ORG.test ')
     await sync(embedProcessOfflineQueue, [{ entryId: entryId(), qr_code: 'r-new-qr', scanned_at: hoursAgo(1) }])
     expect(rowFor('r-new')).toEqual(expect.objectContaining({
-      checked_in_by: MEMBER_ID, checked_in_by_email: 'door.staff@org.test', checked_in_source: 'offline_sync',
+      checked_in_by: MEMBER_ID, checked_in_by_email: 'door.staff@org.test', checked_in_source: 'embed', is_offline: true,
     }))
   })
 
@@ -292,18 +323,50 @@ describe('online door scan is unchanged', () => {
   })
 })
 
-describe('clampScanTime', () => {
+describe('resolveScanTime', () => {
   const now = new Date('2026-09-23T12:00:00.000Z')
+  const ok = (checkedInAt: string, clamped: boolean, clientScannedAt: string | null) =>
+    ({ ok: true, checkedInAt, clamped, clientScannedAt })
   it('keeps a scan time inside the window', () => {
-    expect(clampScanTime('2026-09-23T09:30:00.000Z', now)).toEqual({ checkedInAt: '2026-09-23T09:30:00.000Z', clamped: false })
+    const t = '2026-09-23T09:30:00.000Z'
+    expect(resolveScanTime(t, { now })).toEqual(ok(t, false, t))
   })
   it('keeps a scan exactly 72 hours old', () => {
     const edge = new Date(now.getTime() - MAX_SCAN_AGE_MS).toISOString()
-    expect(clampScanTime(edge, now)).toEqual({ checkedInAt: edge, clamped: false })
+    expect(resolveScanTime(edge, { now })).toEqual(ok(edge, false, edge))
   })
-  it('clamps future, too-old, and unparseable times to now', () => {
-    for (const t of ['2026-09-23T12:00:01.000Z', '2026-09-20T11:59:59.000Z', 'not a date']) {
-      expect(clampScanTime(t, now)).toEqual({ checkedInAt: now.toISOString(), clamped: true })
-    }
+  it('refuses a scan more than 72 hours old', () => {
+    expect(resolveScanTime('2026-09-20T11:59:59.000Z', { now }))
+      .toEqual({ ok: false, reason: STALE_SCAN_REASON, clientScannedAt: '2026-09-20T11:59:59.000Z' })
+  })
+  it('records a future scan at the server now', () => {
+    expect(resolveScanTime('2026-09-23T12:00:01.000Z', { now })).toEqual(ok(now.toISOString(), true, '2026-09-23T12:00:01.000Z'))
+  })
+  it('records an unparseable scan time at the server now', () => {
+    expect(resolveScanTime('not a date', { now })).toEqual(ok(now.toISOString(), true, null))
+  })
+  it('shifts by serverNow - deviceNow before the stale/future rule, keeping the raw time', () => {
+    // Device clock 1h ahead: its 12:30 scan happened at server 11:30.
+    expect(resolveScanTime('2026-09-23T12:30:00.000Z', { now, deviceNow: '2026-09-23T13:00:00.000Z' }))
+      .toEqual(ok('2026-09-23T11:30:00.000Z', false, '2026-09-23T12:30:00.000Z'))
+    // Device clock 2 days behind: a scan that looks 73h old is really 25h old — kept.
+    expect(resolveScanTime('2026-09-20T11:00:00.000Z', { now, deviceNow: '2026-09-21T12:00:00.000Z' }))
+      .toEqual(ok('2026-09-22T11:00:00.000Z', false, '2026-09-20T11:00:00.000Z'))
+    // Device clock 3 days ahead: a scan 1h ago on its clock is 1h ago on the server's
+    // (kept, not refused as stale nor clamped as future).
+    expect(resolveScanTime('2026-09-26T11:00:00.000Z', { now, deviceNow: '2026-09-26T12:00:00.000Z' }))
+      .toEqual(ok('2026-09-23T11:00:00.000Z', false, '2026-09-26T11:00:00.000Z'))
+    // Device clock 2 days behind: a scan 80h before its now is still stale after correction.
+    expect(resolveScanTime('2026-09-18T04:00:00.000Z', { now, deviceNow: '2026-09-21T12:00:00.000Z' }))
+      .toEqual({ ok: false, reason: STALE_SCAN_REASON, clientScannedAt: '2026-09-18T04:00:00.000Z' })
+  })
+  it('makes no correction for a missing or unparseable deviceNow', () => {
+    const t = '2026-09-23T09:30:00.000Z'
+    expect(resolveScanTime(t, { now, deviceNow: null })).toEqual(ok(t, false, t))
+    expect(resolveScanTime(t, { now, deviceNow: 'garbage' })).toEqual(ok(t, false, t))
+  })
+  it('clamps a corrected time earlier than the floor up to the floor', () => {
+    const floor = new Date('2026-09-23T10:00:00.000Z')
+    expect(resolveScanTime('2026-09-23T09:00:00.000Z', { now, floor })).toEqual(ok(floor.toISOString(), true, '2026-09-23T09:00:00.000Z'))
   })
 })

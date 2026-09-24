@@ -2,8 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireUser } from '@/lib/auth/get-user'
-import { assertPermission } from '@/lib/auth/assert-permission'
+import { requireUser, getUser } from '@/lib/auth/get-user'
+import { assertPermission, hasPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
@@ -14,10 +14,25 @@ import { parseScanToken, GHL_TICKET_NOT_REGISTERED } from '@/lib/checkin/scan-to
 import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import {
+  mintOfflineGrant,
+  verifyOfflineGrant,
+  grantScanFloor,
+  GRANT_EXPIRED_REASON,
+  GRANT_PERMISSION_LOST_REASON,
+} from '@/lib/checkin/offline-grant'
+import { loadOfflinePackAttendees, type OfflineSessionPack } from '@/lib/checkin/offline-pack'
+import {
   OfflineSyncBatchSchema,
+  SessionSyncBatchSchema,
+  SessionSyncEntrySchema,
+  SESSION_NOT_FOUND_REASON,
+  parseEntries,
+  type SessionSyncEntry,
+  type SessionSyncFailure,
   parseOfflineEntries,
-  clampScanTime,
+  resolveScanTime,
   offlineResult,
+  isUniqueViolation,
   type OfflineEntryResult,
   type OfflineSyncResponse,
 } from '@/lib/checkin/offline-sync'
@@ -92,18 +107,27 @@ export async function checkInByQR(
   return result
 }
 
+// Offline marker for a queued check-in (R87). checked_in_source stays the
+// surface; these columns say it came from a device queue.
+export interface OfflineWrite {
+  checkedInAt: string
+  clientScannedAt: string | null
+  clientEntryId: string
+}
+
 // Core door QR write, shared by the online scan and the offline sync (R84). Not
 // exported: the caller has already authorised staffUserId for the event. The
 // online scan passes no `offline` and writes exactly as before (checked_in_at
-// is the database default, now). The offline sync passes the clamped scan time
-// and throws on a database failure so the entry is retried, not refused.
+// is the database default, now). The offline sync passes the resolved scan time
+// and the R87 columns, and throws on a database failure so the entry is
+// retried, not refused.
 async function recordDoorQrCheckIn(
   supabase: Awaited<ReturnType<typeof createClient>>,
   staffUserId: string,
   eventId: string,
   qrCode: string,
   deviceId: string,
-  offline?: { checkedInAt: string },
+  offline?: OfflineWrite,
 ): Promise<CheckInResult> {
   const { data: reg, error: regErr } = await supabase
     .from('registrations')
@@ -124,19 +148,19 @@ async function recordDoorQrCheckIn(
     .is('session_id', null)
     .single()
 
-  if (existing) {
-    return {
-      success: true,
-      registration: {
-        id: (reg as any).id,
-        attendee_name: (reg as any).attendee_name,
-        attendee_email: (reg as any).attendee_email,
-        ticket_name: (reg as any).ticket_types?.name ?? '',
-        already_checked_in: true,
-        check_in_time: (existing as any).checked_in_at,
-      },
-    }
-  }
+  const alreadyCheckedIn = (checkInTime?: string): CheckInResult => ({
+    success: true,
+    registration: {
+      id: (reg as any).id,
+      attendee_name: (reg as any).attendee_name,
+      attendee_email: (reg as any).attendee_email,
+      ticket_name: (reg as any).ticket_types?.name ?? '',
+      already_checked_in: true,
+      check_in_time: checkInTime,
+    },
+  })
+
+  if (existing) return alreadyCheckedIn((existing as any).checked_in_at)
 
   const { error: ciErr } = await supabase.from('check_ins').insert({
     event_id: eventId,
@@ -145,16 +169,24 @@ async function recordDoorQrCheckIn(
     method: 'qr_scan',
     device_id: deviceId,
     synced_at: new Date().toISOString(),
-    ...(offline ? { checked_in_at: offline.checkedInAt, checked_in_source: 'offline_sync' } : {}),
+    ...(offline ? {
+      checked_in_at: offline.checkedInAt,
+      checked_in_source: 'dashboard',
+      is_offline: true,
+      client_scanned_at: offline.clientScannedAt,
+      client_entry_id: offline.clientEntryId,
+    } : {}),
   })
 
   if (ciErr) {
+    // A replayed queue entry (client_entry_id) was already written.
+    if (offline && isUniqueViolation(ciErr)) return alreadyCheckedIn()
     if (offline) throw new Error(ciErr.message)
     return { success: false, error: ciErr.message }
   }
 
   await logAudit(supabase, null, staffUserId, 'checkin.scan', 'registrations', (reg as any).id,
-    offline ? { method: 'qr_scan', source: 'offline_sync' } : { method: 'qr_scan' }, { eventId })
+    offline ? { method: 'qr_scan', offline: true } : { method: 'qr_scan' }, { eventId })
 
   let points_awarded = 0
   if ((reg as any).user_id) {
@@ -322,7 +354,7 @@ export async function processOfflineQueue(raw: unknown): Promise<OfflineSyncResp
   const parsed = OfflineSyncBatchSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  const { eventId, deviceId } = parsed.data
+  const { eventId, deviceId, deviceNow } = parsed.data
   const supabase = await createClient()
   const event = await getEventOrg(supabase, eventId)
   try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return catchPermission(e) }
@@ -332,10 +364,18 @@ export async function processOfflineQueue(raw: unknown): Promise<OfflineSyncResp
   // Sequential: two queued scans of one code must not race past the
   // existing-check-in lookup.
   for (const entry of valid) {
-    const { checkedInAt, clamped } = clampScanTime(entry.scanned_at)
+    const time = resolveScanTime(entry.scanned_at, { deviceNow })
+    if (!time.ok) {
+      results.push({ entryId: entry.entryId, status: 'refused', reason: time.reason })
+      continue
+    }
     try {
-      const r = await recordDoorQrCheckIn(supabase, user.id, eventId, entry.qr_code, deviceId, { checkedInAt })
-      results.push(offlineResult(entry.entryId, r, clamped))
+      const r = await recordDoorQrCheckIn(supabase, user.id, eventId, entry.qr_code, deviceId, {
+        checkedInAt: time.checkedInAt,
+        clientScannedAt: time.clientScannedAt,
+        clientEntryId: entry.entryId,
+      })
+      results.push(offlineResult(entry.entryId, r, time.clamped))
     } catch (e) {
       console.error('[checkin] offline entry failed, device will retry:', e)
       results.push({ entryId: entry.entryId, status: 'retry', reason: 'Server error' })
@@ -349,45 +389,58 @@ export async function processOfflineQueue(raw: unknown): Promise<OfflineSyncResp
 
 type SessionCheckInMethod = 'self' | 'qr_scan' | 'manual' | 'override'
 
+// A dashboard session check-in written from a device queue (M3b): the R87
+// columns plus the device id.
+type SessionOfflineWrite = OfflineWrite & { deviceId: string }
+
 // Core session write. Not exported: checkedInBy is a staff identity and 'override'
 // is a staff-only record (R81), so only server code that has already authorised
-// the caller may supply them.
+// the caller may supply them. Online callers pass no `offline` and write exactly
+// as before. The offline sync passes the resolved scan time and R87 columns; a
+// unique violation (the registration+session key, or a replayed client_entry_id)
+// is already_checked_in, and any other database failure throws so the device
+// retries the entry.
 async function recordSessionCheckIn(
   registrationId: string,
   sessionId: string,
   method: SessionCheckInMethod,
   checkedInBy: string | null,
+  offline?: SessionOfflineWrite,
 ): Promise<{ ok: boolean; alreadyCheckedIn?: boolean; error?: string }> {
   const supabase = createAdminClient()
 
-  const { data: reg } = await supabase
+  const { data: reg, error: regErr } = await supabase
     .from('registrations')
     .select('id, event_id, status, events(org_id)')
     .eq('id', registrationId)
     .maybeSingle()
+
+  if (offline && regErr) throw new Error(regErr.message)
 
   if (!reg) return { ok: false, error: 'Registration not found' }
   if (reg.status !== 'confirmed') {
     return { ok: false, error: 'Registration is not confirmed' }
   }
 
-  const { data: session } = await supabase
+  const { data: session, error: sessionErr } = await supabase
     .from('sessions')
     .select('id, event_id')
     .eq('id', sessionId)
     .maybeSingle()
 
+  if (offline && sessionErr) throw new Error(sessionErr.message)
   if (!session || session.event_id !== reg.event_id) {
     return { ok: false, error: 'Session not found for this event' }
   }
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from('check_ins')
     .select('id')
     .eq('registration_id', registrationId)
     .eq('session_id', sessionId)
     .maybeSingle()
 
+  if (offline && existingErr) throw new Error(existingErr.message)
   if (existing) return { ok: true, alreadyCheckedIn: true }
 
   const { error } = await supabase.from('check_ins').insert({
@@ -396,11 +449,22 @@ async function recordSessionCheckIn(
     session_id: sessionId,
     method,
     checked_in_by: checkedInBy,
-    checked_in_at: new Date().toISOString(),
+    checked_in_at: offline ? offline.checkedInAt : new Date().toISOString(),
     synced_at: new Date().toISOString(),
+    ...(offline ? {
+      checked_in_source: 'dashboard',
+      is_offline: true,
+      client_scanned_at: offline.clientScannedAt,
+      client_entry_id: offline.clientEntryId,
+      device_id: offline.deviceId,
+    } : {}),
   })
 
-  if (error) return { ok: false, error: error.message }
+  if (error) {
+    if (offline && isUniqueViolation(error)) return { ok: true, alreadyCheckedIn: true }
+    if (offline) throw new Error(error.message)
+    return { ok: false, error: error.message }
+  }
 
   try {
     const orgId = (reg.events as any)?.org_id as string | undefined
@@ -460,10 +524,11 @@ async function finishStaffSessionCheckIn(
   sessionId: string,
   method: 'qr_scan' | 'manual' | 'override',
   staffUserId: string,
+  offline?: SessionOfflineWrite,
 ): Promise<CheckInResult> {
   if (reg.status === 'cancelled') return { success: false, error: 'Registration is cancelled' }
   if (reg.status === 'refunded') return { success: false, error: 'Registration was refunded' }
-  const result = await recordSessionCheckIn(reg.id, sessionId, method, staffUserId)
+  const result = await recordSessionCheckIn(reg.id, sessionId, method, staffUserId, offline)
   if (!result.ok) return { success: false, error: result.error }
   return {
     success: true,
@@ -490,30 +555,9 @@ export async function orgCheckInToSession(
   try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
 
   if (method === 'qr_scan') {
-    const token = parseScanToken(qrCodeOrRegId)
-    if (token.kind === 'ghl') {
-      // R79: event-scoped. A token registered on another event is indistinguishable
-      // from an unknown one here — never reveal which event it belongs to.
-      const { data: reg } = await supabase
-        .from('registrations')
-        .select(SESSION_REG_SELECT)
-        .eq('event_id', eventId)
-        .eq('ghl_attendee_id', token.attendeeId)
-        .maybeSingle()
-      if (!reg) return { success: false, error: GHL_TICKET_NOT_REGISTERED, canOverride: true }
-      return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, user.id)
-    }
-    // A2: Prezva's own QR — and anything unrecognised — takes the qr_code lookup
-    // exactly as before (manual-add and transfer codes are not 32-hex).
-    const qrCode = token.kind === 'prezva' ? token.qrCode : qrCodeOrRegId.toLowerCase()
-    const { data: reg } = await supabase
-      .from('registrations')
-      .select(SESSION_REG_SELECT)
-      .eq('event_id', eventId)
-      .eq('qr_code', qrCode)
-      .single()
-    if (!reg) return { success: false, error: 'QR code not found for this event' }
-    return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, user.id)
+    const found = await lookupSessionScanReg(supabase, eventId, qrCodeOrRegId)
+    if ('error' in found) return { success: false, ...found }
+    return finishStaffSessionCheckIn(found.reg, sessionId, method, user.id)
   }
 
   const { data: reg } = await supabase
@@ -524,6 +568,43 @@ export async function orgCheckInToSession(
     .single()
   if (!reg) return { success: false, error: 'Attendee not found' }
   return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, user.id)
+}
+
+// The session scan lookup, shared by the online scan and the offline sync so a
+// queued token is judged exactly as a live one. `strict` (offline) throws on a
+// database failure so the entry is retried instead of refused.
+async function lookupSessionScanReg(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  raw: string,
+  strict = false,
+): Promise<{ reg: SessionRegRow } | { error: string; canOverride?: boolean }> {
+  const token = parseScanToken(raw)
+  if (token.kind === 'ghl') {
+    // R79: event-scoped. A token registered on another event is indistinguishable
+    // from an unknown one here — never reveal which event it belongs to.
+    const { data: reg, error } = await supabase
+      .from('registrations')
+      .select(SESSION_REG_SELECT)
+      .eq('event_id', eventId)
+      .eq('ghl_attendee_id', token.attendeeId)
+      .maybeSingle()
+    if (strict && error) throw new Error(error.message)
+    if (!reg) return { error: GHL_TICKET_NOT_REGISTERED, canOverride: true }
+    return { reg: reg as unknown as SessionRegRow }
+  }
+  // A2: Prezva's own QR — and anything unrecognised — takes the qr_code lookup
+  // exactly as before (manual-add and transfer codes are not 32-hex).
+  const qrCode = token.kind === 'prezva' ? token.qrCode : raw.toLowerCase()
+  const { data: reg, error } = await supabase
+    .from('registrations')
+    .select(SESSION_REG_SELECT)
+    .eq('event_id', eventId)
+    .eq('qr_code', qrCode)
+    .single()
+  if (strict && error && error.code !== 'PGRST116') throw new Error(error.message)
+  if (!reg) return { error: 'QR code not found for this event' }
+  return { reg: reg as unknown as SessionRegRow }
 }
 
 // R81: staff check-in after a refused scan. Recorded as method 'override' with the
@@ -546,6 +627,139 @@ export async function orgOverrideSessionCheckIn(
     .maybeSingle()
   if (!reg) return { success: false, error: 'Attendee not found' }
   return finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, 'override', user.id)
+}
+
+// ── Offline session scanning (M3b) ───────────────────────────────────────────
+
+// The list an offline session scanner holds, plus the staff grant its queued
+// check-ins will sync under. Stricter than the online list: checkin.manage, not
+// just membership.
+export async function getOfflineSessionPack(
+  eventId: string,
+  sessionId: string,
+): Promise<OfflineSessionPack | { error: string }> {
+  const user = await requireUser()
+  const db = createAdminClient()
+  const { data: event } = await db
+    .from('events').select('id, org_id, end_at').eq('id', eventId).maybeSingle()
+  if (!event) return { error: 'Event not found' }
+  try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { error: (e as Error).message } }
+
+  const { data: session } = await db
+    .from('sessions').select('id').eq('id', sessionId).eq('event_id', eventId).maybeSingle()
+  if (!session) return { error: SESSION_NOT_FOUND_REASON }
+
+  try {
+    const now = new Date()
+    const attendees = await loadOfflinePackAttendees(db, eventId, sessionId)
+    const grant = await mintOfflineGrant(
+      { surface: 'dashboard', eventId, sessionId, orgId: event.org_id, userId: user.id, email: null },
+      event.end_at,
+      now,
+    )
+    return { serverNow: now.toISOString(), grant, eventEndsAt: event.end_at, attendees }
+  } catch (e) {
+    console.error('[checkin] offline pack failed:', e)
+    return { error: 'Could not load the offline list' }
+  }
+}
+
+// Drains a device's queued session check-ins. Live auth is the signed-in user
+// (checkin.manage); the IDENTITY written is the grant's, re-checked here. URL
+// ids (the arguments) win over anything in the body.
+export async function processOfflineSessionQueue(
+  eventId: string,
+  sessionId: string,
+  raw: unknown,
+): Promise<OfflineSyncResponse | SessionSyncFailure> {
+  const user = await getUser()
+  if (!user) return { error: 'Session expired; reopen the page', code: 'session_expired', status: 401 }
+
+  const parsed = SessionSyncBatchSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message, status: 400 }
+  const { deviceId, deviceNow } = parsed.data
+
+  const supabase = await createClient()
+  const { data: event } = await supabase
+    .from('events').select('id, org_id').eq('id', eventId).maybeSingle()
+  if (!event) return { error: 'Event not found', status: 400 }
+  if (!(await hasPermission(event.org_id, user.id, 'checkin.manage'))) {
+    return { error: 'Not authorised to check in attendees', status: 403 }
+  }
+
+  const { valid, invalid } = parseEntries(parsed.data.entries, SessionSyncEntrySchema)
+  const results: OfflineEntryResult[] = [...invalid]
+  const refuseAll = (reason: string): OfflineSyncResponse => {
+    for (const e of valid) results.push({ entryId: e.entryId, status: 'refused', reason, kind: e.kind })
+    return { processed: 0, total: parsed.data.entries.length, results }
+  }
+
+  const { data: session } = await supabase
+    .from('sessions').select('id').eq('id', sessionId).eq('event_id', eventId).maybeSingle()
+  if (!session) return refuseAll(SESSION_NOT_FOUND_REASON)
+
+  const grant = await verifyOfflineGrant(parsed.data.grant, { surface: 'dashboard', eventId, sessionId })
+  if (!grant || grant.orgId !== event.org_id || !grant.userId) return refuseAll(GRANT_EXPIRED_REASON)
+  const staffUserId = grant.userId
+  if (!(await hasPermission(event.org_id, staffUserId, 'checkin.manage'))) {
+    return refuseAll(GRANT_PERMISSION_LOST_REASON)
+  }
+
+  const floor = grantScanFloor(grant)
+  // Sequential: two queued scans of one attendee must not race.
+  for (const entry of valid) {
+    const time = resolveScanTime(entry.scannedAt, { deviceNow, floor })
+    if (!time.ok) {
+      results.push({ entryId: entry.entryId, status: 'refused', reason: time.reason, kind: entry.kind })
+      continue
+    }
+    const offline: SessionOfflineWrite = {
+      checkedInAt: time.checkedInAt,
+      clientScannedAt: time.clientScannedAt,
+      clientEntryId: entry.entryId,
+      deviceId,
+    }
+    try {
+      const { method, r } = await syncSessionEntry(supabase, eventId, sessionId, entry, staffUserId, offline)
+      const result: OfflineEntryResult = { ...offlineResult(entry.entryId, r, time.clamped), kind: entry.kind }
+      results.push(result)
+      if (result.status === 'accepted' && r.registration) {
+        await logAudit(null, null, staffUserId, 'checkin.scan', 'registrations', r.registration.id,
+          { method, offline: true, kind: entry.kind }, { eventId })
+      }
+    } catch (e) {
+      console.error('[checkin] offline session entry failed, device will retry:', e)
+      results.push({ entryId: entry.entryId, status: 'retry', reason: 'Server error', kind: entry.kind })
+    }
+  }
+
+  return { processed: results.filter(r => r.status === 'accepted').length, total: parsed.data.entries.length, results }
+}
+
+async function syncSessionEntry(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  sessionId: string,
+  entry: SessionSyncEntry,
+  staffUserId: string,
+  offline: SessionOfflineWrite,
+): Promise<{ method: 'qr_scan' | 'manual' | 'override'; r: CheckInResult }> {
+  if (entry.kind === 'scan' || entry.kind === 'recheck') {
+    // R85: a recheck is judged exactly like a live scan (R79 + R80).
+    const found = await lookupSessionScanReg(supabase, eventId, entry.token, true)
+    if ('error' in found) return { method: 'qr_scan', r: { success: false, error: found.error } }
+    return { method: 'qr_scan', r: await finishStaffSessionCheckIn(found.reg, sessionId, 'qr_scan', staffUserId, offline) }
+  }
+  const method = entry.kind
+  const { data: reg, error } = await supabase
+    .from('registrations')
+    .select(SESSION_REG_SELECT)
+    .eq('id', entry.registrationId)
+    .eq('event_id', eventId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!reg) return { method, r: { success: false, error: 'Attendee not found' } }
+  return { method, r: await finishStaffSessionCheckIn(reg as unknown as SessionRegRow, sessionId, method, staffUserId, offline) }
 }
 
 export interface SessionAttendeeRow {

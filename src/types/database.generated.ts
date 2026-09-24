@@ -598,9 +598,12 @@ export type Database = {
           checked_in_by: string | null
           checked_in_by_email: string | null
           checked_in_source: string
+          client_entry_id: string | null
+          client_scanned_at: string | null
           device_id: string | null
           event_id: string
           id: string
+          is_offline: boolean
           method: Database["public"]["Enums"]["checkin_method"] | null
           registration_id: string
           session_id: string | null
@@ -611,9 +614,12 @@ export type Database = {
           checked_in_by?: string | null
           checked_in_by_email?: string | null
           checked_in_source?: string
+          client_entry_id?: string | null
+          client_scanned_at?: string | null
           device_id?: string | null
           event_id: string
           id?: string
+          is_offline?: boolean
           method?: Database["public"]["Enums"]["checkin_method"] | null
           registration_id: string
           session_id?: string | null
@@ -624,9 +630,12 @@ export type Database = {
           checked_in_by?: string | null
           checked_in_by_email?: string | null
           checked_in_source?: string
+          client_entry_id?: string | null
+          client_scanned_at?: string | null
           device_id?: string | null
           event_id?: string
           id?: string
+          is_offline?: boolean
           method?: Database["public"]["Enums"]["checkin_method"] | null
           registration_id?: string
           session_id?: string | null
