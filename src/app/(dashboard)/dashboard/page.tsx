@@ -90,7 +90,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     // Published events
     supabase.from('events').select('id', { count: 'exact', head: true }).eq('org_id', orgId).eq('status', 'published'),
     // Stripe Connect status
-    supabase.from('organizations').select('stripe_charges_enabled').eq('id', orgId).maybeSingle(),
+    supabase.from('organizations').select('charges_enabled').eq('id', orgId).maybeSingle(),
   ])
 
   const confirmedCount = (registeredResult as any).count ?? 0
@@ -103,7 +103,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const hasPublishedEvent = publishedCount > 0
   const hasMultipleMembers = (membersResult.data?.length ?? 0) > 1
   const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
-  const hasStripeConnected = (stripeRow as any)?.data?.stripe_charges_enabled === true
+  const hasStripeConnected = (stripeRow as any)?.data?.charges_enabled === true
 
   const checklistItems = [
     { label: 'Organization created',                done: true },

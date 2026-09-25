@@ -24,9 +24,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const admin = createAdminClient()
     const { data, error } = await admin
       .from('org_members')
-      .select('id, role, created_at, profiles(id, full_name, email, avatar_url, job_title)')
+      // org_members has joined_at (no created_at) and two FKs to profiles
+      // (user_id, invited_by), so the embed must name the member's.
+      .select('id, role, joined_at, profiles!org_members_user_id_fkey(id, full_name, email, avatar_url, job_title)')
       .eq('org_id', orgId)
-      .order('created_at', { ascending: true })
+      .order('joined_at', { ascending: true })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data)

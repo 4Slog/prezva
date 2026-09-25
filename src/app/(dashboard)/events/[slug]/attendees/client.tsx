@@ -27,6 +27,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
   const [engagementScores, setEngagementScores] = useState<AttendeeEngagement[]>([])
   const [engagementLoaded, setEngagementLoaded] = useState(false)
   const [engagementLoading, setEngagementLoading] = useState(false)
+  const [engagementError, setEngagementError] = useState('')
   const [pendingRegs, setPendingRegs] = useState<any[]>([])
   const [pendingLoaded, setPendingLoaded] = useState(false)
   const [pendingMsg, setPendingMsg] = useState('')
@@ -127,10 +128,16 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
 
   async function loadEngagement() {
     setEngagementLoading(true)
-    const scores = await getAttendeeEngagementScores(eventId)
-    setEngagementScores(scores)
-    setEngagementLoaded(true)
-    setEngagementLoading(false)
+    setEngagementError('')
+    try {
+      const scores = await getAttendeeEngagementScores(eventId)
+      setEngagementScores(scores)
+      setEngagementLoaded(true)
+    } catch {
+      setEngagementError('Could not load engagement scores. Please try again.')
+    } finally {
+      setEngagementLoading(false)
+    }
   }
 
   async function switchTab(tab: 'attendees' | 'pending' | 'waitlist' | 'engagement') {
@@ -306,7 +313,7 @@ export function AttendeesClient({ eventId, eventSlug, eventName, orgId, initialD
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-[var(--text-secondary)]">
-              {engagementLoading ? 'Loading…' : engagementLoaded ? `${engagementScores.length} attendees scored` : ''}
+              {engagementLoading ? 'Loading…' : engagementError || (engagementLoaded ? `${engagementScores.length} attendees scored` : '')}
             </p>
             {engagementLoaded && engagementScores.length > 0 && (
               <button

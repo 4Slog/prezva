@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isUniqueViolation } from '@/lib/checkin/offline-sync'
 
 export async function POST(
   req: Request,
@@ -23,40 +24,47 @@ export async function POST(
   }
 
   // Find registration by QR code — only within the volunteer's own event
-  const { data: reg } = await admin
+  const { data: reg, error: regError } = await admin
     .from('registrations')
     .select('id, event_id, attendee_name, attendee_email, status, ticket_type_id, ticket_types(name)')
     .eq('qr_code', qrCode)
     .eq('event_id', volunteer.event_id)
     .maybeSingle()
 
+  if (regError) return NextResponse.json({ error: 'Could not look up this QR code. Please try again.' }, { status: 500 })
   if (!reg) return NextResponse.json({ error: 'QR code not found' }, { status: 404 })
-  if (!['confirmed', 'checked_in'].includes((reg as any).status)) {
+  // 'checked_in' is not a registration_status value: a check-in lives only in
+  // check_ins, and the registration stays 'confirmed'.
+  if ((reg as any).status !== 'confirmed') {
     return NextResponse.json({ error: 'Registration is not confirmed' }, { status: 400 })
   }
 
-  // Check if already checked in
-  const { data: existing } = await admin
-    .from('check_ins')
-    .select('id, created_at')
-    .eq('registration_id', reg.id)
-    .is('session_id', null)
-    .maybeSingle()
-
-  if (existing) {
+  const alreadyCheckedIn = async () => {
+    const { data: existing, error: existingError } = await admin
+      .from('check_ins')
+      .select('id, checked_in_at')
+      .eq('registration_id', reg.id)
+      .is('session_id', null)
+      .maybeSingle()
+    if (existingError) console.error('[volunteer checkin] re-read failed', existingError.message)
     return NextResponse.json({
       ok: true,
       already_checked_in: true,
       attendee_name: (reg as any).attendee_name,
       ticket_type_name: (reg as any).ticket_types?.name ?? 'Ticket',
-      checked_in_at: existing.created_at,
+      checked_in_at: existing?.checked_in_at ?? null,
     })
   }
 
-  // Mark checked in
-  const now = new Date().toISOString()
-  await admin.from('check_ins').insert({ registration_id: reg.id, event_id: reg.event_id, checked_in_by: null, method: 'qr_scan', synced_at: now })
-  await admin.from('registrations').update({ status: 'checked_in', checked_in_at: now }).eq('id', reg.id)
+  // Mark checked in. check_ins_door_once allows one door check-in per
+  // registration: a 23505 means this attendee is already checked in.
+  const { error: insertError } = await admin.from('check_ins').insert({
+    registration_id: reg.id, event_id: reg.event_id, checked_in_by: null, method: 'qr_scan', synced_at: new Date().toISOString(),
+  })
+  if (insertError) {
+    if (isUniqueViolation(insertError)) return alreadyCheckedIn()
+    return NextResponse.json({ error: 'Could not check this attendee in. Please try again.' }, { status: 500 })
+  }
 
   return NextResponse.json({
     ok: true,

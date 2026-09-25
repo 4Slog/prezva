@@ -7,6 +7,7 @@ import { catchPermission } from '@/lib/auth/permission-error'
 import { doorRefusal, doorRefusalMessage } from '@/lib/checkin/admission'
 import { isUniqueViolation } from '@/lib/checkin/offline-sync'
 import { logAudit } from '@/lib/audit/log'
+import { escapeHtml } from '@/trigger/lib/escape'
 import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
 export async function refundRegistration(registrationId: string, force?: boolean) {
@@ -186,16 +187,14 @@ export async function undoCheckIn(registrationId: string) {
 
   const admin = createAdminClient()
 
-  // Delete the check-in record
-  await admin.from('check_ins')
+  // Delete the check-in record. A check-in lives only in check_ins —
+  // registrations has no checked_in_at and its status never changed — so there
+  // is nothing to revert on the registration.
+  const { error: undoError } = await admin.from('check_ins')
     .delete()
     .eq('registration_id', registrationId)
     .is('session_id', null)
-
-  // Revert registration status back to confirmed
-  await admin.from('registrations')
-    .update({ status: 'confirmed', checked_in_at: null })
-    .eq('id', registrationId)
+  if (undoError) return { error: `Could not undo the check-in: ${undoError.message}` }
 
   await logAudit(supabase, null, user.id, 'checkin.undo', 'registrations', registrationId, {
     undone_by: user.id,
@@ -389,9 +388,13 @@ export async function selfCancelRegistration(registrationId: string) {
   }
 
   const isPaid = (reg.amount_paid_cents ?? 0) > 0
-  const newStatus = isPaid ? 'cancellation_requested' : 'cancelled'
-
-  await admin.from('registrations').update({ status: newStatus }).eq('id', registrationId)
+  // registration_status has no 'cancellation_requested' (that write always
+  // failed silently). A paid ticket stays confirmed — and valid at the door —
+  // until the organizer refunds it; a free one is cancelled now.
+  if (!isPaid) {
+    const { error: cancelError } = await admin.from('registrations').update({ status: 'cancelled' }).eq('id', registrationId)
+    if (cancelError) return { error: 'Could not cancel this registration. Please try again.' }
+  }
 
   const orgName = (ev?.organizations as any)?.name ?? 'Prezva'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
@@ -423,14 +426,17 @@ export async function selfCancelRegistration(registrationId: string) {
 
   if (isPaid) {
     // Notify organizer
-    const { data: orgOwner } = await admin
+    // org_members has two FKs to profiles (user_id, invited_by): name the one
+    // for the member. There is no public.users table.
+    const { data: orgOwner, error: ownerError } = await admin
       .from('org_members')
-      .select('users(email)')
+      .select('profiles!org_members_user_id_fkey(email)')
       .eq('org_id', (await admin.from('events').select('org_id').eq('id', reg.event_id).single()).data?.org_id ?? '')
       .in('role', ['owner', 'admin'])
       .limit(1)
       .maybeSingle()
-    const orgEmail = (orgOwner?.users as any)?.email
+    if (ownerError) console.error('[cancel] organizer lookup failed', ownerError.message)
+    const orgEmail = (orgOwner?.profiles as { email?: string | null } | null)?.email
     if (orgEmail) {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -439,7 +445,7 @@ export async function selfCancelRegistration(registrationId: string) {
           from: 'noreply@prezva.app',
           to: orgEmail,
           subject: `Cancellation request: ${reg.attendee_name} — ${ev.title}`,
-          html: `<p>${reg.attendee_name} (${reg.attendee_email}) has requested a cancellation for ${ev.title}. Please process the refund via your Stripe dashboard.</p>`,
+          html: `<p>${escapeHtml(reg.attendee_name ?? '')} (${escapeHtml(reg.attendee_email ?? '')}) has requested a cancellation for ${escapeHtml(ev.title ?? '')}. Please process the refund via your Stripe dashboard — the ticket stays valid until it is refunded.</p>`,
         }),
       })
     }

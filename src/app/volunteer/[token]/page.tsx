@@ -34,11 +34,14 @@ export default async function VolunteerPortalPage({ params }: Props) {
   const assignedSessionIds: string[] = (volunteer.assigned_sessions ?? []) as string[]
   let assignedSessions: AssignedSession[] = []
   if (assignedSessionIds.length > 0) {
-    const { data: sessions } = await admin
+    // sessions has session_type, not type (aliased so the portal is unchanged).
+    const { data: sessions, error: sessionsError } = await admin
       .from('sessions')
-      .select('id, title, starts_at, ends_at, type, rooms(name)')
+      .select('id, title, starts_at, ends_at, type:session_type, rooms(name)')
       .in('id', assignedSessionIds)
+      .eq('event_id', volunteer.event_id)
       .order('starts_at', { ascending: true })
+    if (sessionsError) console.error('[volunteer portal] assigned sessions read failed', sessionsError.message)
     assignedSessions = (sessions ?? []) as unknown as AssignedSession[]
   }
 

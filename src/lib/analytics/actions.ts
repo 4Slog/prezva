@@ -64,10 +64,13 @@ export async function computeEventAnalytics(supabase: SupabaseClient, eventId: s
     supabase.from('announcements').select('id').eq('event_id', eventId),
     supabase.from('ticket_types').select('id, name, type').eq('event_id', eventId),
     supabase.from('check_ins').select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId).is('session_id', null).gte('created_at', last30m),
+      .eq('event_id', eventId).is('session_id', null).gte('checked_in_at', last30m),
     supabase.from('check_ins').select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId).is('session_id', null).gte('created_at', last60m),
+      .eq('event_id', eventId).is('session_id', null).gte('checked_in_at', last60m),
   ])
+  // The check-in velocity counts used to read a column that does not exist and
+  // reported 0 without an error surfacing.
+  if (ci30m.error || ci60m.error) console.error('[analytics] check-in velocity read failed', (ci30m.error ?? ci60m.error)!.message)
 
   const regs = registrations ?? []
   const confirmed = regs.filter((r: any) => r.status === 'confirmed')

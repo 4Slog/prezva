@@ -30,7 +30,7 @@ export default async function OrgSpeakerLibraryPage({ params }: Props) {
   const permSet = await getOrgPermissions((org as any).id, user.id)
   const permissions = Array.from(permSet)
 
-  const [{ data: libSpeakers }, { data: events }] = await Promise.all([
+  const [{ data: libSpeakers, error: libError }, { data: events, error: eventsError }] = await Promise.all([
     admin
       .from('org_speakers')
       .select('*')
@@ -38,12 +38,13 @@ export default async function OrgSpeakerLibraryPage({ params }: Props) {
       .order('times_spoken', { ascending: false }),
     admin
       .from('events')
-      .select('id, title, slug, start_date')
+      .select('id, title, slug, start_at')
       .eq('org_id', (org as any).id)
-      .gte('start_date', daysAgoDateString(30))
-      .order('start_date', { ascending: true })
+      .gte('start_at', daysAgoDateString(30))
+      .order('start_at', { ascending: true })
       .limit(20),
   ])
+  if (libError || eventsError) throw new Error(`Could not load the speaker library: ${(libError ?? eventsError)!.message}`)
 
   return (
     <div className="p-6">

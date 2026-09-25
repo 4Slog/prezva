@@ -2,8 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Quotes the cell and neutralizes spreadsheet formulas (=, +, -, @, tab, CR)
+// in respondent-typed text.
 function csvEscape(val: unknown): string {
-  return '"' + String(val ?? '').replace(/"/g, '""') + '"'
+  let s = String(val ?? '')
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
+  return '"' + s.replace(/"/g, '""') + '"'
 }
 
 export async function GET(
@@ -20,17 +24,21 @@ export async function GET(
   const { data: member } = await supabase.from('org_members').select('role').eq('org_id', (event as any).org_id).eq('user_id', user.id).maybeSingle()
   if (!member) return NextResponse.json({ error: 'Not authorised' }, { status: 403 })
 
-  const { data: questions } = await supabase
+  const { data: questions, error: questionsError } = await supabase
     .from('survey_questions')
     .select('id, question_text, sort_order')
     .eq('survey_id', surveyId)
     .order('sort_order', { ascending: true })
 
-  const { data: responses } = await supabase
+  // survey_responses has submitted_at, not created_at.
+  const { data: responses, error: responsesError } = await supabase
     .from('survey_responses')
-    .select('id, created_at, user_id, registration_id, survey_answers(question_id, answer_text)')
+    .select('id, submitted_at, user_id, registration_id, survey_answers(question_id, answer_text, answer_choice, answer_number)')
     .eq('survey_id', surveyId)
-    .order('created_at', { ascending: true })
+    .order('submitted_at', { ascending: true })
+  if (questionsError || responsesError) {
+    return NextResponse.json({ error: 'Could not export responses. Please try again.' }, { status: 500 })
+  }
 
   const qs = questions ?? []
   const headers = ['Response ID', 'Submitted At', ...qs.map(q => q.question_text)]
@@ -39,10 +47,12 @@ export async function GET(
     const answerMap: Record<string, string> = {}
     for (const a of (r as any).survey_answers ?? []) {
       answerMap[a.question_id] = a.answer_text
+        ?? (Array.isArray(a.answer_choice) ? a.answer_choice.join('; ') : null)
+        ?? (a.answer_number != null ? String(a.answer_number) : '')
     }
     return [
       r.id,
-      new Date(r.created_at).toLocaleString(),
+      r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '',
       ...qs.map(q => answerMap[q.id] ?? ''),
     ]
   })

@@ -43,14 +43,15 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
     admin.from('leaderboard_points')
       .select('registration_id, user_id, points')
       .eq('event_id', eventId),
+    // trivia_answers has no event_id: the event comes through the question.
     admin.from('trivia_answers')
-      .select('user_id, id')
-      .eq('event_id', eventId),
+      .select('user_id, id, trivia_questions!inner(event_id)')
+      .eq('trivia_questions.event_id', eventId),
     admin.from('icebreaker_completions')
       .select('user_id, id')
       .eq('event_id', eventId),
     admin.from('community_posts')
-      .select('user_id, id')
+      .select('author_id, id')
       .eq('event_id', eventId),
     admin.from('session_feedback')
       .select('user_id, id')
@@ -59,6 +60,10 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
       .select('registration_id, session_id')
       .eq('event_id', eventId),
   ])
+
+  // A failed read would silently score everyone 0 for that signal.
+  const failed = [regsRes, checkInsRes, pointsRes, triviaRes, iceRes, postsRes, feedbackRes, sessionAttendanceRes].find(r => r.error)
+  if (failed) throw new Error(`Could not compute engagement: ${failed.error!.message}`)
 
   const regs = (regsRes.data ?? []) as any[]
   const checkedInRegIds = new Set((checkInsRes.data ?? []).map((c: any) => c.registration_id))
@@ -88,7 +93,7 @@ export async function getAttendeeEngagementScores(eventId: string): Promise<Atte
 
   const postsByUser: Record<string, number> = {}
   for (const p of (postsRes.data ?? []) as any[]) {
-    if (p.user_id) postsByUser[p.user_id] = (postsByUser[p.user_id] ?? 0) + 1
+    if (p.author_id) postsByUser[p.author_id] = (postsByUser[p.author_id] ?? 0) + 1
   }
 
   const feedbackByUser: Record<string, number> = {}
