@@ -7,6 +7,7 @@ import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { requireEventTimezone, zonedInputToIso } from '@/lib/datetime/zoned-input'
 import { resolveCreateTimes } from '@/lib/events/event-times'
+import { EVENT_COLUMNS, SESSION_COLUMNS, SPEAKER_COLUMNS } from '@/lib/db/public-columns'
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
 
   const { data: sourceEvent } = await supabase
     .from('events')
-    .select('*')
+    .select(EVENT_COLUMNS)
     .eq('id', eventId)
     .single()
   if (!sourceEvent) return { error: 'Event not found' }
@@ -165,15 +166,15 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
   }
 
   // Clone speakers
-  const { data: speakers } = await supabase.from('speakers').select('*').eq('event_id', eventId)
+  const { data: speakers } = await supabase.from('speakers').select(SPEAKER_COLUMNS).eq('event_id', eventId)
   if ((speakers ?? []).length > 0) {
     await supabase.from('speakers').insert(
-      (speakers as any[]).map(s => ({ ...s, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined, status: 'invited', confirmed_at: null, confirmation_token: undefined }))
+      (speakers as any[]).map(s => ({ ...s, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined, status: 'invited', confirmed_at: null }))
     )
   }
 
   // Clone sessions (without speaker assignments to avoid FK issues)
-  const { data: sessions } = await supabase.from('sessions').select('*').eq('event_id', eventId)
+  const { data: sessions } = await supabase.from('sessions').select(SESSION_COLUMNS).eq('event_id', eventId)
   if ((sessions ?? []).length > 0) {
     await supabase.from('sessions').insert(
       (sessions as any[]).map(s => ({ ...s, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined }))
@@ -189,13 +190,13 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
   const supabase = await createClient()
   const user = await requireUser()
 
-  const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single()
+  const { data: event } = await supabase.from('events').select(EVENT_COLUMNS).eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
 
   // event_templates is service-role only; require org membership before writing.
   try { await assertPermission((event as any).org_id, user.id, 'org.templates.manage') } catch (e) { return catchPermission(e) }
 
-  const { data: sessions } = await supabase.from('sessions').select('*').eq('event_id', eventId)
+  const { data: sessions } = await supabase.from('sessions').select(SESSION_COLUMNS).eq('event_id', eventId)
   const { data: tickets } = await supabase.from('ticket_types').select('*').eq('event_id', eventId)
   const { data: speakers } = await supabase.from('speakers').select('name, email, bio, job_title, company').eq('event_id', eventId)
 
@@ -433,7 +434,7 @@ export async function setEventRecurrence(eventId: string, recurrence: 'annual' |
 
 export async function createNextOccurrence(eventId: string) {
   const supabase = await createClient()
-  const { data: event } = await supabase.from('events').select('*').eq('id', eventId).single()
+  const { data: event } = await supabase.from('events').select(EVENT_COLUMNS).eq('id', eventId).single()
   if (!event) return { error: 'Event not found' }
   if (!(event as any).recurrence) return { error: 'Event is not recurring' }
 

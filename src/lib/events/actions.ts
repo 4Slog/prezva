@@ -10,6 +10,7 @@ import { sendVolunteerThankYouEmails } from '@/lib/volunteers/post-event'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveCreateTimes, resolveUpdateTimes } from '@/lib/events/event-times'
 import { inputToInstant } from '@/lib/datetime/zoned-input'
+import { EVENT_COLUMNS } from '@/lib/db/public-columns'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -190,8 +191,7 @@ export async function createEvent(formData: FormData) {
 
   const { data: event, error } = await supabase
     .from('events')
-    .insert({ ...parsed.data, ...times, timezone, created_by: user.id })
-    .select()
+    .insert({ ...parsed.data, ...times, timezone, created_by: user.id }).select(EVENT_COLUMNS)
     .single()
 
   if (error || !event) return { error: error?.message ?? 'Failed to create event' }
@@ -397,7 +397,7 @@ export async function getEventBySlug(slug: string) {
   const { data: event } = await supabase
     .from('events')
     .select(`
-      *,
+      ${EVENT_COLUMNS},
       organizations!inner(id, name, slug, org_members!inner(user_id, role))
     `)
     .eq('slug', slug)

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { enqueueVolunteerThankYou } from '@/lib/trigger'
 import { z } from 'zod'
+import { EVENT_COLUMNS } from '@/lib/db/public-columns'
 
 const UpdateSchema = z.object({
   title:       z.string().min(2).max(120).optional(),
@@ -61,7 +62,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const m = await getMembership(supabase, id, user.id)
     if (!m) return NextResponse.json({ error: 'Not found or forbidden' }, { status: 404 })
 
-    const { data, error } = await supabase.from('events').select('*').eq('id', id).single()
+    const { data, error } = await supabase.from('events').select(EVENT_COLUMNS).eq('id', id).single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data)
   } catch {
@@ -113,7 +114,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         }
       }
 
-      const { data } = await supabase.from('events').select('*').eq('id', id).single()
+      const { data } = await supabase.from('events').select(EVENT_COLUMNS).eq('id', id).single()
       return NextResponse.json(data)
     }
 
@@ -125,8 +126,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const { data, error } = await supabase
       .from('events')
       .update(parsed.data)
-      .eq('id', id)
-      .select()
+      .eq('id', id).select(EVENT_COLUMNS)
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

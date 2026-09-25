@@ -34,7 +34,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
   const [{ data: speakers }, { data: qaQuestions }, permSet] = await Promise.all([
     supabase
       .from('speakers')
-      .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at')
+      .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, is_published, decline_reason, checked_in_at')
       .eq('event_id', (event as any).id)
       .order('sort_order', { ascending: true }),
     admin
@@ -47,6 +47,19 @@ export default async function SpeakersDashboardPage({ params }: Props) {
     getOrgPermissions((event as any).org_id, user.id),
   ])
   const permissions = Array.from(permSet)
+
+  // Portal tokens are service-role only (0157). Only an organizer who manages
+  // speakers gets them, for the rows RLS already showed, on this event.
+  let speakerRows = (speakers ?? []) as any[]
+  if (permSet.has('speakers.manage') && speakerRows.length > 0) {
+    const { data: tokens } = await admin
+      .from('speakers')
+      .select('id, confirmation_token')
+      .eq('event_id', (event as any).id)
+      .in('id', speakerRows.map(sp => sp.id))
+    const byId = new Map((tokens ?? []).map(t => [t.id, t.confirmation_token]))
+    speakerRows = speakerRows.map(sp => ({ ...sp, confirmation_token: byId.get(sp.id) ?? null }))
+  }
 
   return (
     <div className="p-6">
@@ -65,7 +78,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
       </div>
       <SpeakersOrgClient
         event={event as any}
-        speakers={(speakers ?? []) as any[]}
+        speakers={speakerRows}
         permissions={permissions}
       />
       <DayOfInfoSection

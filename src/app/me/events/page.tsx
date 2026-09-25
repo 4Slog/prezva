@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 
 type RolePill =
@@ -62,7 +63,9 @@ export default async function MyEventsPage() {
       .select('id, event_id, status, created_at, check_ins(checked_in_at), events(id, title, slug, start_at, end_at, status, org_id, organizations(name, slug))')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
+    // Portal tokens are service-role only (0157): the caller's own speaker rows,
+    // matched by their signed-in email as on /me, read with the admin client.
+    createAdminClient()
       .from('speakers')
       .select('id, event_id, status, confirmation_token, event_role, events(id, title, slug, start_at, end_at, status)')
       .eq('email', user.email!)

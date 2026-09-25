@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { EVENT_COLUMNS, SESSION_COLUMNS } from '@/lib/db/public-columns'
 
 export async function getPublicEvent(slug: string) {
   const supabase = await createClient()
@@ -6,7 +7,7 @@ export async function getPublicEvent(slug: string) {
   // First try public (published) event
   const { data: publicEvent } = await supabase
     .from('events')
-    .select('*, organizations(name, logo_url, website, slug)')
+    .select(`${EVENT_COLUMNS}, organizations(name, logo_url, website, slug)`)
     .eq('slug', slug)
     .in('status', ['published', 'live', 'ended'])
     .single()
@@ -18,7 +19,7 @@ export async function getPublicEvent(slug: string) {
 
   const { data: draftEvent } = await supabase
     .from('events')
-    .select('*, organizations(name, logo_url, website, slug)')
+    .select(`${EVENT_COLUMNS}, organizations(name, logo_url, website, slug)`)
     .eq('slug', slug)
     .single()
   if (!draftEvent) return null
@@ -40,7 +41,7 @@ export async function getPublicAgenda(eventId: string) {
   const { data: sessions } = await supabase
     .from('sessions')
     .select(`
-      *,
+      ${SESSION_COLUMNS},
       tracks(id, name, color),
       rooms(id, name),
       session_speakers(role, speakers(id, name, job_title, company, photo_url)),
@@ -49,7 +50,10 @@ export async function getPublicAgenda(eventId: string) {
     .eq('event_id', eventId)
     .eq('is_published', true)
     .order('starts_at', { ascending: true })
-  return sessions ?? []
+  // Untyped rows, as before: the '*' select this replaced was never inferred,
+  // and the embeds come back as objects at runtime, not the arrays the parser
+  // would claim.
+  return (sessions ?? []) as any[]
 }
 
 export async function getPublicSpeakers(eventId: string) {
@@ -102,7 +106,7 @@ export async function getPublicSession(eventId: string, sessionId: string) {
   const { data } = await supabase
     .from('sessions')
     .select(`
-      *,
+      ${SESSION_COLUMNS},
       tracks(id, name, color),
       rooms(id, name),
       session_speakers(role, speakers(id, name, job_title, company, photo_url)),
@@ -112,7 +116,7 @@ export async function getPublicSession(eventId: string, sessionId: string) {
     .eq('id', sessionId)
     .eq('is_published', true)
     .maybeSingle()
-  return data
+  return data as any
 }
 
 export async function getBookmarks(userId: string, eventId: string) {

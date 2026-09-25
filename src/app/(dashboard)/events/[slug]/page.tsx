@@ -60,6 +60,13 @@ export default async function EventDetailPage({ params }: Props) {
 
   // Admin client: fetch tile badges + live counts
   const admin = createAdminClient()
+
+  // Lobby / MC display links carry bearer tokens that are service-role only
+  // (0157). getEventBySlug already required org membership; only a member row
+  // gets them, read for this event alone.
+  const { data: displayTokens } = memberRow
+    ? await admin.from('events').select('mc_token, lobby_token').eq('id', (event as any).id).maybeSingle()
+    : { data: null }
   const [badges, counts, groupStats] = await Promise.all([
     getAdminTileBadges((event as any).id),
     getEventCounts((event as any).id),
@@ -130,9 +137,9 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           <SaveAsTemplateButton eventId={event.id} defaultName={event.title} />
-          {(event as any).lobby_token && (
+          {displayTokens?.lobby_token && (
             <a
-              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/lobby/${(event as any).lobby_token}`}
+              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/lobby/${displayTokens.lobby_token}`}
               target="_blank"
               rel="noreferrer"
               style={{ fontSize: 12, color: 'var(--pz-muted)', textDecoration: 'none',
@@ -141,9 +148,9 @@ export default async function EventDetailPage({ params }: Props) {
               📺 Lobby display
             </a>
           )}
-          {(event as any).mc_token && (
+          {displayTokens?.mc_token && (
             <a
-              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/mc/${(event as any).mc_token}`}
+              href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'}/mc/${displayTokens.mc_token}`}
               target="_blank"
               rel="noreferrer"
               style={{ fontSize: 12, color: 'var(--pz-muted)', textDecoration: 'none',

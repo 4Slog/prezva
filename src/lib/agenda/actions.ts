@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { BUILTIN_SESSION_TYPES } from './session-types'
+import { SESSION_COLUMNS, SPEAKER_COLUMNS } from '@/lib/db/public-columns'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -240,7 +241,7 @@ export async function getSpeakers(eventId: string): Promise<Speaker[]> {
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
   const { data } = await supabase
-    .from('speakers').select('*').eq('event_id', eventId).order('sort_order')
+    .from('speakers').select(SPEAKER_COLUMNS).eq('event_id', eventId).order('sort_order')
   return (data ?? []) as Speaker[]
 }
 
@@ -251,7 +252,7 @@ export async function createSpeaker(eventId: string, input: unknown) {
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
   const { data, error } = await supabase
-    .from('speakers').insert({ event_id: eventId, ...parsed.data }).select().single()
+    .from('speakers').insert({ event_id: eventId, ...parsed.data }).select(SPEAKER_COLUMNS).single()
   if (error) return { error: error.message }
   await logAudit(supabase, null, user.id, 'speaker.create', 'speaker', (data as any).id, { name: parsed.data.name }, { eventId })
   revalidatePath('/events')
@@ -265,7 +266,7 @@ export async function updateSpeaker(eventId: string, speakerId: string, input: u
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
   const { data, error } = await supabase
-    .from('speakers').update(parsed.data).eq('id', speakerId).eq('event_id', eventId).select().single()
+    .from('speakers').update(parsed.data).eq('id', speakerId).eq('event_id', eventId).select(SPEAKER_COLUMNS).single()
   if (error) return { error: error.message }
   await logAudit(supabase, null, user.id, 'speaker.update', 'speaker', speakerId, undefined, { eventId })
   revalidatePath('/events')
@@ -312,7 +313,7 @@ export async function getSessions(eventId: string): Promise<Session[]> {
   await assertOrgMember(supabase, user.id, eventId)
   const { data } = await supabase
     .from('sessions')
-    .select('*, tracks(id, name, color), rooms(id, name), session_speakers(role, speakers(id, name, job_title, company, photo_url)), sponsored_by:event_sponsors(id, name, logo_url, website_url)')
+    .select(`${SESSION_COLUMNS}, tracks(id, name, color), rooms(id, name), session_speakers(role, speakers(id, name, job_title, company, photo_url)), sponsored_by:event_sponsors(id, name, logo_url, website_url)`)
     .eq('event_id', eventId)
     .order('starts_at')
   return ((data ?? []) as any[]).map(s => ({
@@ -344,7 +345,7 @@ export async function createSession(eventId: string, input: unknown) {
 
   const { speaker_ids, speaker_roles, ...sessionData } = parsed.data
   const { data: session, error } = await supabase
-    .from('sessions').insert({ event_id: eventId, ...sessionData }).select().single()
+    .from('sessions').insert({ event_id: eventId, ...sessionData }).select(SESSION_COLUMNS).single()
   if (error) return { error: error.message }
 
   if (speaker_ids?.length) {
@@ -377,7 +378,7 @@ export async function updateSession(eventId: string, sessionId: string, input: u
 
   const { speaker_ids, speaker_roles, ...sessionData } = parsed.data as any
   const { data, error } = await supabase
-    .from('sessions').update(sessionData).eq('id', sessionId).eq('event_id', eventId).select().single()
+    .from('sessions').update(sessionData).eq('id', sessionId).eq('event_id', eventId).select(SESSION_COLUMNS).single()
   if (error) return { error: error.message }
 
   if (speaker_ids !== undefined) {

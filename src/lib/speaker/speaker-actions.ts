@@ -164,31 +164,45 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string) {
 
 // ── T-095j: confirmation token ────────────────────────────────────────────────
 
-export async function getSpeakerByConfirmationToken(token: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
+// /speaker/confirm: the token alone identifies the speaker and the event.
+// confirmation_token is service-role only (0157), so the lookup uses the admin
+// client; every write is then pinned to that speaker on that event and must
+// hit a row.
+async function speakerByToken(token: string) {
+  if (typeof token !== 'string' || !token) return null
+  const { data } = await createAdminClient()
     .from('speakers')
     .select('id, event_id, name, email, status, events(title, slug)')
     .eq('confirmation_token', token)
-    .single()
-  return data as any
+    .maybeSingle()
+  return data
+}
+
+export async function getSpeakerByConfirmationToken(token: string) {
+  return (await speakerByToken(token)) as any
 }
 
 export async function confirmSpeakerSlot(token: string, action: 'confirmed' | 'declined') {
-  const supabase = await createClient()
-  const { error } = await supabase
+  if (action !== 'confirmed' && action !== 'declined') return { error: 'Invalid response' }
+  const sp = await speakerByToken(token)
+  if (!sp) return { error: 'Invitation not found' }
+  const admin = createAdminClient()
+  const { data: updated, error } = await admin
     .from('speakers')
     .update({
       status: action,
       confirmed_at: action === 'confirmed' ? new Date().toISOString() : null,
     })
-    .eq('confirmation_token', token)
+    .eq('id', sp.id)
+    .eq('event_id', sp.event_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!updated?.length) return { error: 'Invitation not found' }
 
-  if (!error && action === 'confirmed') {
-    const admin = createAdminClient()
+  if (action === 'confirmed') {
     const { data: spData } = await admin.from('speakers')
       .select('name, email, job_title, company, bio, photo_url, website, linkedin_url, twitter_handle, events(org_id)')
-      .eq('confirmation_token', token)
+      .eq('id', sp.id)
       .single()
     if (spData && (spData as any).email) {
       await admin.from('org_speakers').upsert({
@@ -209,20 +223,28 @@ export async function confirmSpeakerSlot(token: string, action: 'confirmed' | 'd
     }
   }
 
-  return { error: error?.message }
+  return { error: undefined }
 }
 
 export async function declineSpeakerSlot(token: string, reason?: string, alternative?: string) {
-  const supabase = await createClient()
-  const { error } = await supabase
+  if ((reason != null && typeof reason !== 'string') || (alternative != null && typeof alternative !== 'string')) {
+    return { error: 'Invalid response' }
+  }
+  const sp = await speakerByToken(token)
+  if (!sp) return { error: 'Invitation not found' }
+  const { data: updated, error } = await createAdminClient()
     .from('speakers')
     .update({
       status: 'declined',
-      decline_reason: reason || null,
-      decline_alternative: alternative || null,
+      decline_reason: reason?.slice(0, 1000) || null,
+      decline_alternative: alternative?.slice(0, 1000) || null,
     })
-    .eq('confirmation_token', token)
-  return { error: error?.message }
+    .eq('id', sp.id)
+    .eq('event_id', sp.event_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!updated?.length) return { error: 'Invitation not found' }
+  return { error: undefined }
 }
 
 // ── T-095c: speaker form ──────────────────────────────────────────────────────

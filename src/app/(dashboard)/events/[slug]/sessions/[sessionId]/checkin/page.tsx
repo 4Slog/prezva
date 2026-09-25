@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireEventOrgAccess } from '@/lib/auth/require-event-access'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getSessionCheckInAttendees } from '@/lib/checkin/actions'
 import SessionCheckInClient from './client'
 import Link from 'next/link'
@@ -20,17 +21,27 @@ export default async function SessionCheckInPage({ params }: Props) {
   const supabase = await createClient()
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, title, session_qr_token')
+    .select('id, title')
     .eq('id', sessionId)
     .eq('event_id', access!.event.id)
     .maybeSingle()
 
   if (!session) notFound()
 
+  // The QR token is service-role only (0157); the caller already has access to
+  // this event, and the read is pinned to this session on this event.
+  const { data: qr } = await createAdminClient()
+    .from('sessions')
+    .select('session_qr_token')
+    .eq('id', session.id)
+    .eq('event_id', access!.event.id)
+    .maybeSingle()
+  if (!qr?.session_qr_token) notFound()
+
   const attendees = await getSessionCheckInAttendees(access!.event.id, sessionId)
 
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
-  const sessionUrl = `${BASE_URL}/session-checkin/${(session as any).session_qr_token}`
+  const sessionUrl = `${BASE_URL}/session-checkin/${qr.session_qr_token}`
 
   return (
     <div className="mx-auto max-w-2xl">

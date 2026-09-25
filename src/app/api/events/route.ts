@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { z } from 'zod'
+import { EVENT_COLUMNS } from '@/lib/db/public-columns'
 
 const CreateSchema = z.object({
   org_id:      z.string().uuid(),
@@ -74,8 +75,7 @@ export async function POST(req: NextRequest) {
 
     const { data: event, error } = await supabase
       .from('events')
-      .insert({ ...parsed.data, timezone, created_by: user.id })
-      .select()
+      .insert({ ...parsed.data, timezone, created_by: user.id }).select(EVENT_COLUMNS)
       .single()
 
     if (error || !event) {
