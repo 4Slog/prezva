@@ -292,3 +292,76 @@ describe('runSendAnnouncement', () => {
     expect(result).toMatchObject({ reason: 'handed off to GHL' })
   })
 })
+
+// D-R2 (O144): the in-app audience is every targeted confirmed registration
+// with an account — independent of GHL hand-off, email opt-out, suppression
+// or a failed Resend batch.
+describe('runSendAnnouncement — in-app notification audience', () => {
+  const fetchMock = vi.fn()
+  const REGS = [
+    { id: 'r1', attendee_email: 'a@x.com', attendee_name: 'Ann A', ticket_type_id: 't1', user_id: 'u_ann' },
+    { id: 'r2', attendee_email: 'optout@x.com', attendee_name: 'Opt Out', ticket_type_id: 't1', user_id: 'u_optout' },
+    { id: 'r3', attendee_email: 'guest@x.com', attendee_name: 'Guest G', ticket_type_id: 't1', user_id: null },
+    { id: 'r4', attendee_email: 'bounce@x.com', attendee_name: 'Bo Unce', ticket_type_id: 't1', user_id: 'u_bounce' },
+    { id: 'r5', attendee_email: 'a2@x.com', attendee_name: 'Ann Again', ticket_type_id: 't2', user_id: 'u_ann' },
+  ]
+  const notifInserts = (calls: any[]) => calls.filter(c => c.table === 'user_notifications' && c.mode === 'upsert')
+  const notifiedUsers = (calls: any[]) => notifInserts(calls).flatMap(c => c.payload.map((r: any) => r.user_id)).sort()
+
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = 'test-resend-key'
+    fetchMock.mockReset()
+    isEventGhlLinkedMock.mockReset()
+    isEventGhlLinkedMock.mockResolvedValue({ linked: false, orgId: null, locationId: null })
+    vi.stubGlobal('fetch', fetchMock)
+  })
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  function run(cfg: Partial<Parameters<typeof buildResolver>[0]> = {}) {
+    const { admin, calls } = makeFakeAdmin(buildResolver({
+      annRow: baseAnn(),
+      claimRow: { status: 'scheduled', updated_at: RECENT() },
+      event: validEvent,
+      registrations: REGS,
+      prefs: [{ user_id: 'u_optout', email_announcements: false }],
+      suppressions: [{ email: 'bounce@x.com' }],
+      ...cfg,
+    }))
+    return runSendAnnouncement(ANN_ID, admin as any).then(result => ({ result, calls }))
+  }
+
+  it('standalone event: opted-out and suppressed accounts still get the in-app notice; guests and duplicates do not', async () => {
+    fetchMock.mockResolvedValue({ ok: true, text: async () => '' })
+    const { calls } = await run()
+    expect(notifInserts(calls)).toHaveLength(1)
+    expect(notifiedUsers(calls)).toEqual(['u_ann', 'u_bounce', 'u_optout'])
+    expect(notifInserts(calls)[0].payload[0]).toMatchObject({ type: 'announcement', title: 'Big News', url: 'https://prezva.app/e/prezva-conf', announcement_id: ANN_ID })
+    // Idempotent on a reclaimed run: duplicates are ignored, never re-inserted.
+    expect(notifInserts(calls)[0].options).toEqual({ onConflict: 'user_id,announcement_id', ignoreDuplicates: true })
+  })
+
+  it('GHL-linked event: notices are inserted before the hand-off return', async () => {
+    isEventGhlLinkedMock.mockResolvedValue({ linked: true, orgId: 'org_1', locationId: 'loc_123' })
+    const { result, calls } = await run()
+    expect(result).toMatchObject({ reason: 'handed off to GHL' })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(notifiedUsers(calls)).toEqual(['u_ann', 'u_bounce', 'u_optout'])
+    const insertAt = calls.findIndex(c => c.table === 'user_notifications')
+    const handoffAt = calls.findIndex(c => c.table === 'announcements' && c.payload?.status === 'handed_off')
+    expect(insertAt).toBeGreaterThan(-1)
+    expect(insertAt).toBeLessThan(handoffAt)
+  })
+
+  it('a failed email batch does not remove anyone from the in-app audience', async () => {
+    fetchMock.mockResolvedValue({ ok: false, text: async () => 'resend down' })
+    const { result, calls } = await run()
+    expect(result).toMatchObject({ sent: 0 })
+    expect(notifiedUsers(calls)).toEqual(['u_ann', 'u_bounce', 'u_optout'])
+  })
+
+  it('respects the announcement ticket-type targeting', async () => {
+    fetchMock.mockResolvedValue({ ok: true, text: async () => '' })
+    const { calls } = await run({ annRow: baseAnn({ audience_filter: { types: ['t2'] } }) })
+    expect(notifiedUsers(calls)).toEqual(['u_ann'])
+  })
+})

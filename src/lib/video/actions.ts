@@ -161,19 +161,16 @@ export async function createOneOnOneRoom(
       user.email ||
       user.id
 
-    try {
-      // TODO: wire web push when vapid keys confirmed
-      await createNotification(
-        targetRegData.user_id,
-        'video_chat_request',
-        'Video chat request',
-        `${displayName} wants to video chat with you`,
-        `/e/${eventSlug}/meet/${myRegId}`, // target's URL uses initiator's regId
-      )
-    } catch (err) {
-      console.error('[video] Failed to send video chat notification:', err)
-      // Non-blocking — room creation succeeds regardless
-    }
+    // TODO: wire web push when vapid keys confirmed
+    // Best-effort: room creation succeeds regardless; the failure is logged.
+    const { error: notifyError } = await createNotification(
+      targetRegData.user_id,
+      'video_chat_request',
+      'Video chat request',
+      `${displayName} wants to video chat with you`,
+      `/e/${eventSlug}/meet/${myRegId}`, // target's URL uses initiator's regId
+    )
+    if (notifyError) console.error('[video] Failed to send video chat notification:', notifyError)
   }
 
   return { meetUrl }

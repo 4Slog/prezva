@@ -26,6 +26,7 @@ import {
   UserCog,
   X,
 } from 'lucide-react'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 interface AttendeeShellEvent {
   title: string
@@ -38,12 +39,15 @@ interface AttendeeShellProps {
   event: AttendeeShellEvent
   hasRegistration: boolean
   avatarUrl?: string | null
+  // Unread in-app notifications for a signed-in account; null/undefined hides
+  // the bell (guests identified only by a registration token have no inbox).
+  unreadCount?: number | null
   children: React.ReactNode
 }
 
 const TAB_BAR_HEIGHT = 64
 
-export function AttendeeShell({ event, hasRegistration, avatarUrl, children }: AttendeeShellProps) {
+export function AttendeeShell({ event, hasRegistration, avatarUrl, unreadCount, children }: AttendeeShellProps) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
   const [meOpen, setMeOpen] = useState(false)
@@ -202,6 +206,7 @@ export function AttendeeShell({ event, hasRegistration, avatarUrl, children }: A
 
         {/* Right — registered: QR + Me menu | anonymous: Discover + Sign in */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+          {unreadCount != null && <NotificationBell initialUnreadCount={unreadCount} />}
           {hasRegistration ? (
             <>
               <Link

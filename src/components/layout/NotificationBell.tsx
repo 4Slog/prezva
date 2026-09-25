@@ -3,20 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
-  Bell, Megaphone, Handshake, GraduationCap, FileText, Sparkles, UserRound,
+  Bell, Megaphone, GraduationCap, Video,
   type LucideIcon,
 } from 'lucide-react'
-import { getNotifications, markAllRead, markRead } from '@/lib/notifications/notification-actions'
+import { getNotifications, markAllRead, markRead, type UserNotification } from '@/lib/notifications/notification-actions'
 
-interface Notification {
-  id: string
-  type: string
-  title: string
-  body: string | null
-  url: string | null
-  is_read: boolean
-  created_at: string
-}
+type Notification = UserNotification
 
 export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: number }) {
   const [open, setOpen] = useState(false)
@@ -45,14 +37,16 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
   }
 
   async function handleMarkAll() {
-    await markAllRead()
+    const res = await markAllRead()
+    if ('error' in res) return
     setUnread(0)
     setNotifications(n => n.map(x => ({ ...x, is_read: true })))
   }
 
   async function handleClick(notif: Notification) {
     if (!notif.is_read) {
-      await markRead(notif.id)
+      const res = await markRead(notif.id)
+      if ('error' in res) { setOpen(false); return }
       setUnread(u => Math.max(0, u - 1))
       setNotifications(n => n.map(x => x.id === notif.id ? { ...x, is_read: true } : x))
     }
@@ -61,12 +55,8 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
 
   const typeIcon: Record<string, LucideIcon> = {
     announcement: Megaphone,
-    meeting_request: Handshake,
     certificate: GraduationCap,
-    handout: FileText,
-    match: Sparkles,
-    follow: UserRound,
-    system: Bell,
+    video_chat_request: Video,
   }
 
   return (

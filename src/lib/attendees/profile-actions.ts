@@ -57,26 +57,3 @@ export async function getMyRegistrations() {
   return (data ?? []) as any[]
 }
 
-export async function getMyNotifications() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
-
-  // Get events the user is registered for
-  const { data: regData } = await supabase
-    .from('registrations')
-    .select('event_id')
-    .eq('user_id', user.id)
-  const eventIds = (regData ?? []).map((r: any) => r.event_id)
-  if (!eventIds.length) return []
-
-  const { data } = await supabase
-    .from('announcements')
-    .select('id, title, body, channel, sent_at, events(title, slug)')
-    .in('event_id', eventIds)
-    .not('sent_at', 'is', null)
-    .order('sent_at', { ascending: false })
-    .limit(50)
-
-  return (data ?? []) as any[]
-}

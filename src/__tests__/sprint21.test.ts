@@ -34,7 +34,6 @@ describe('Sprint 21 — Attendee App Surface', () => {
     expect(src).toContain('getUserProfile')
     expect(src).toContain('upsertUserProfile')
     expect(src).toContain('getMyRegistrations')
-    expect(src).toContain('getMyNotifications')
     expect(src).toContain("'use server'")
   })
 
@@ -113,7 +112,7 @@ describe('Sprint 21 — Attendee App Surface', () => {
     const path = join(SRC, 'app/me/notifications/page.tsx')
     expect(existsSync(path)).toBe(true)
     const src = readFileSync(path, 'utf-8')
-    expect(src).toContain('getMyNotifications')
+    expect(src).toContain('getNotifications')
   })
 
   // /me/settings

@@ -2,6 +2,7 @@ import { schedules, tasks } from '@trigger.dev/sdk/v3'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
 import { sendAnnouncementPush } from '@/lib/push/send'
+import { notifyAnnouncementInApp } from '@/lib/announcements/in-app'
 import type { sendAnnouncement } from './announcement'
 
 const CLAIM_STALE_MS = 10 * 60 * 1000
@@ -37,6 +38,10 @@ export async function runScheduledAnnouncementsPoll(
         .maybeSingle()
 
       if (!claimed) continue // owned by another run or terminal
+
+      // In-app notices go out whatever happens to the push (D-R2); idempotent
+      // if a stale row is reclaimed.
+      await notifyAnnouncementInApp(admin, row.id)
 
       try {
         await sendAnnouncementPush(row.event_id, row.title, row.body, admin)

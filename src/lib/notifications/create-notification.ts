@@ -17,13 +17,30 @@ import { createAdminClient } from '@/lib/supabase/admin'
 // Re-adding a session-bound helper to this file re-breaks the sweep, and it
 // breaks it at deploy time in a bundle nobody runs locally. Session-bound
 // notification code belongs in notification-actions.ts.
+
+// Must match the CHECK on user_notifications.type (migration 0155).
+export type NotificationType = 'announcement' | 'certificate' | 'video_chat_request'
+
+// Never throws. A failed insert is logged and returned so the caller can decide;
+// every current caller treats the in-app notice as best-effort.
 export async function createNotification(
   userId: string,
-  type: string,
+  type: NotificationType,
   title: string,
   body?: string,
   url?: string,
-) {
-  const admin = createAdminClient()
-  await admin.from('user_notifications').insert({ user_id: userId, type, title, body, url })
+): Promise<{ error: string | null }> {
+  try {
+    const admin = createAdminClient()
+    const { error } = await admin.from('user_notifications').insert({ user_id: userId, type, title, body, url })
+    if (error) {
+      console.error(`[notifications] insert failed (type=${type}): ${error.message}`)
+      return { error: error.message }
+    }
+    return { error: null }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.error(`[notifications] insert threw (type=${type}): ${message}`)
+    return { error: message }
+  }
 }

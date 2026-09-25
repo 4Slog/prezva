@@ -11,6 +11,10 @@ vi.mock('@trigger.dev/sdk/v3', () => ({
 vi.mock('@/lib/push/send', () => ({
   sendAnnouncementPush: pushMock,
 }))
+const notifyMock = vi.hoisted(() => vi.fn(async () => ({ error: null, count: 0 })))
+vi.mock('@/lib/announcements/in-app', () => ({
+  notifyAnnouncementInApp: notifyMock,
+}))
 
 import { runScheduledAnnouncementsPoll } from '../scheduled-announcements'
 
@@ -35,6 +39,7 @@ describe('runScheduledAnnouncementsPoll', () => {
     triggerMock.mockReset()
     triggerMock.mockResolvedValue({ id: 'run_1' })
     pushMock.mockReset()
+    notifyMock.mockClear()
   })
 
   it('selects due-scheduled + stale-sending rows and does NOT pre-lock email/both rows', async () => {
@@ -75,6 +80,8 @@ describe('runScheduledAnnouncementsPoll', () => {
     const result = await runScheduledAnnouncementsPoll(admin as any)
 
     expect(pushMock).toHaveBeenCalledWith('e1', 'T1', 'B1', expect.anything())
+    // D-R2: push-only announcements reach the in-app inbox too.
+    expect(notifyMock).toHaveBeenCalledWith(admin, 'p1')
 
     const claimCall = calls.find((c) => c.mode === 'update' && c.orFilter)
     expect(claimCall?.orFilter).toMatch(
@@ -96,6 +103,7 @@ describe('runScheduledAnnouncementsPoll', () => {
     const result = await runScheduledAnnouncementsPoll(admin as any)
 
     expect(pushMock).not.toHaveBeenCalled()
+    expect(notifyMock).not.toHaveBeenCalled()
     expect(calls.some((c) => c.mode === 'update' && !c.orFilter)).toBe(false) // no terminal write for a row we never claimed
     expect(result).toEqual({ processed: 1, enqueued: 0 })
   })

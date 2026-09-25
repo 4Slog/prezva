@@ -4,6 +4,7 @@ import { AttendeeShell } from '@/components/attendee/AttendeeShell'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { getUnreadCount } from '@/lib/notifications/notification-actions'
 
 export default async function AttendeeLayout({
   children,
@@ -20,13 +21,16 @@ export default async function AttendeeLayout({
   const hasRegistration = identity.type !== 'anonymous'
 
   let avatarUrl: string | null = null
+  let unreadCount: number | null = null
   if (identity.type === 'user') {
     const sb = await createClient()
     const admin = createAdminClient()
-    const [{ data: globalRow }, { data: overrideRow }] = await Promise.all([
+    const [{ data: globalRow }, { data: overrideRow }, unread] = await Promise.all([
       sb.from('profiles').select('avatar_url').eq('id', identity.userId).maybeSingle(),
       admin.from('attendee_profiles').select('avatar_url').eq('event_id', (event as any).id).eq('user_id', identity.userId).maybeSingle(),
+      getUnreadCount(),
     ])
+    unreadCount = unread
     avatarUrl = overrideRow?.avatar_url ?? globalRow?.avatar_url ?? null
   } else if (identity.type === 'registration') {
     const admin = createAdminClient()
@@ -45,6 +49,7 @@ export default async function AttendeeLayout({
       }}
       hasRegistration={hasRegistration}
       avatarUrl={avatarUrl}
+      unreadCount={unreadCount}
     >
       {children}
     </AttendeeShell>

@@ -2,10 +2,11 @@ import { vi } from 'vitest'
 
 export type Recorded = {
   table: string
-  mode: 'select' | 'update' | 'insert' | 'delete'
+  mode: 'select' | 'update' | 'insert' | 'upsert' | 'delete'
   filters: Record<string, any>
   orFilter?: string
   payload?: any
+  options?: any
   columns?: string
 }
 
@@ -34,6 +35,7 @@ export function makeFakeAdmin(resolver: Resolver) {
       select(columns?: string) { state.columns = columns; return chain },
       update(payload: any) { state.mode = 'update'; state.payload = payload; return chain },
       insert(rows: any) { state.mode = 'insert'; state.payload = rows; return chain },
+      upsert(rows: any, options?: any) { state.mode = 'upsert'; state.payload = rows; state.options = options; return chain },
       delete() { state.mode = 'delete'; return chain },
       eq(col: string, val: any) { state.filters[col] = { ...state.filters[col], eq: val }; return chain },
       neq(col: string, val: any) { state.filters[col] = { ...state.filters[col], neq: val }; return chain },
@@ -42,6 +44,7 @@ export function makeFakeAdmin(resolver: Resolver) {
       lt(col: string, val: any) { state.filters[col] = { ...state.filters[col], lt: val }; return chain },
       gte(col: string, val: any) { state.filters[col] = { ...state.filters[col], gte: val }; return chain },
       gt(col: string, val: any) { state.filters[col] = { ...state.filters[col], gt: val }; return chain },
+      not(col: string, op: string, val: any) { state.filters[col] = { ...state.filters[col], not: [op, val] }; return chain },
       or(expr: string) { state.orFilter = expr; return chain },
       limit(n: number) { state.filters.__limit = n; return chain },
       order() { return chain },

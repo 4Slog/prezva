@@ -6,6 +6,7 @@ import { escapeHtml } from '../lib/escape'
 import { sendAnnouncementPush } from '@/lib/push/send'
 import { isEventGhlLinked } from '@/lib/integrations/ghl/location'
 import { getSuppressedEmailSet } from '@/lib/email/suppression'
+import { insertAnnouncementNotifications, filterAnnouncementAudience, announcementEventUrl } from '@/lib/announcements/in-app'
 
 const CLAIM_STALE_MS = 10 * 60 * 1000
 
@@ -70,7 +71,22 @@ export async function runSendAnnouncement(
     }
     const orgName    = orgInfo.name
     const orgEmail   = orgInfo.email || undefined
-    const eventUrl   = eventSlug ? `https://prezva.app/e/${eventSlug}` : ''
+    const eventUrl   = announcementEventUrl(eventSlug)
+
+    const regQuery = supabase
+      .from('registrations')
+      .select('id, attendee_email, attendee_name, ticket_type_id, user_id')
+      .eq('event_id', ann.event_id)
+      .eq('status', 'confirmed')
+
+    const { data: regsRaw } = await regQuery
+
+    const regs = filterAnnouncementAudience(regsRaw ?? [], { types: audienceTypes }, { types: excludeTypes })
+
+    // In-app notices (D-R2): every targeted confirmed registration with an
+    // account, whatever happens to the email — GHL hand-off, opt-out,
+    // suppression or a failed batch. So this runs before any of those.
+    await insertAnnouncementNotifications(supabase, ann, regs, eventUrl)
 
     // GHL-linked events: GoHighLevel owns email delivery, so Prezva suppresses
     // its Resend blast and marks the announcement handed_off. For channel
@@ -83,22 +99,6 @@ export async function runSendAnnouncement(
         .update({ status: 'handed_off', recipient_count: 0 })
         .eq('id', announcementId)
       return { sent: 0, failed: 0, reason: 'handed off to GHL' }
-    }
-
-    const regQuery = supabase
-      .from('registrations')
-      .select('id, attendee_email, attendee_name, ticket_type_id, user_id')
-      .eq('event_id', ann.event_id)
-      .eq('status', 'confirmed')
-
-    const { data: regsRaw } = await regQuery
-
-    let regs = regsRaw ?? []
-    if (audienceTypes.length > 0) {
-      regs = regs.filter((r: any) => audienceTypes.includes(r.ticket_type_id))
-    }
-    if (excludeTypes.length > 0) {
-      regs = regs.filter((r: any) => !excludeTypes.includes(r.ticket_type_id))
     }
 
     if (regs.length === 0) {
@@ -212,7 +212,6 @@ export async function runSendAnnouncement(
       chunks.push(finalRegs.slice(i, i + CHUNK_SIZE))
     }
 
-    const deliveredUserIds: string[] = []
 
     for (const chunk of chunks) {
       const emails = chunk.map(buildEmailPayload)
@@ -226,26 +225,11 @@ export async function runSendAnnouncement(
       })
       if (res.ok) {
         sent += chunk.length
-        for (const reg of chunk) {
-          if ((reg as any).user_id) deliveredUserIds.push((reg as any).user_id)
-        }
       } else {
         const err = await res.text()
         console.error(`[announcement] batch failed (${chunk.length} recipients): ${err}`)
         failed += chunk.length
       }
-    }
-
-    // Single bulk insert for in-app notifications — only for successfully sent recipients.
-    if (deliveredUserIds.length > 0) {
-      const notifRows = deliveredUserIds.map((user_id) => ({
-        user_id,
-        type: 'announcement' as const,
-        title: ann.title,
-        body: ann.body ? ann.body.slice(0, 120) : undefined,
-        url: eventUrl || undefined,
-      }))
-      await supabase.from('user_notifications').insert(notifRows)
     }
 
     // Update announcement status based on delivery outcome

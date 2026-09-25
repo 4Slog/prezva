@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { enqueueAnnouncementDelivery } from '@/lib/trigger'
 import { sendAnnouncementPush } from '@/lib/push/send'
+import { notifyAnnouncementInApp } from '@/lib/announcements/in-app'
 
 export type AnnouncementChannel = 'email' | 'push' | 'both'
 
@@ -106,6 +107,8 @@ export async function createAnnouncement(eventId: string, formData: FormData) {
 
   if (!isScheduled) {
     if (parsed.data.channel === 'push') {
+      // In-app notices go out whatever happens to the push (D-R2).
+      await notifyAnnouncementInApp(createAdminClient(), data.id)
       try {
         await sendAnnouncementPush(eventId, parsed.data.title, parsed.data.body)
         await supabase.from('announcements').update({ status: 'sent', sent_at: new Date().toISOString(), recipient_count: recipientCount }).eq('id', data.id)

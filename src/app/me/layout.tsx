@@ -6,13 +6,18 @@ import { UserMenu } from '@/components/auth/UserMenu'
 import { ContextSwitcher } from '@/components/ContextSwitcher'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { NotificationBell } from '@/components/layout/NotificationBell'
+import { getUnreadCount } from '@/lib/notifications/notification-actions'
 
 export default async function MeLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
   const contexts = await getUserContexts(user.id)
   const superAdmin = isSuperAdmin(user.id)
   const supabase = await createClient()
-  const { data: profileRow } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle()
+  const [{ data: profileRow }, unreadCount] = await Promise.all([
+    supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle(),
+    getUnreadCount(),
+  ])
 
   const navLinks = [
     { href: '/me', label: 'Home' },
@@ -52,6 +57,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
             ))}
           </nav>
 
+          <NotificationBell initialUnreadCount={unreadCount} />
           <UserMenu email={user.email ?? ''} name={user.user_metadata?.full_name ?? user.email ?? ''} avatarUrl={profileRow?.avatar_url ?? null} />
         </div>
       </header>
