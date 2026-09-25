@@ -327,15 +327,11 @@ export async function embedRenewSpeakerToken(eventId: string, speakerId: string)
     .single()
   if (!speaker) return { error: 'Speaker not found' }
 
-  const { nanoid } = await import('nanoid')
-  const newToken = nanoid(32)
-
-  const { error } = await db
-    .from('speakers')
-    .update({ confirmation_token: newToken })
-    .eq('id', speakerId)
-    .eq('event_id', eventId)
-  if (error) return { error: error.message }
+  // Always a new token (D-R3: valid 7 days past now, or to the event window if
+  // later); the write is filtered by the speaker's own event.
+  const issued = await getOrCreateSpeakerToken(speakerId, { embedOrgId: orgId }, { rotate: true })
+  if ('error' in issued) return { error: issued.error }
+  const newToken = issued.token
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
   const hubUrl = `${appUrl}/speaker/${newToken}`

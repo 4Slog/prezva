@@ -68,7 +68,7 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
     }
     if (result.ok) {
       await navigator.clipboard.writeText(result.hubUrl)
-      setInviteResult(prev => ({ ...prev, [speakerId]: 'New link copied to clipboard!' }))
+      setInviteResult(prev => ({ ...prev, [speakerId]: result.emailError ? `${result.emailError}. New link copied to clipboard.` : 'New link copied to clipboard!' }))
     } else if (result.error) {
       setInviteResult(prev => ({ ...prev, [speakerId]: result.error }))
     }

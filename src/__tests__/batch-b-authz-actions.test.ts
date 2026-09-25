@@ -75,7 +75,8 @@ function seed() {
       { id: 'h2', session_id: 's-a', speaker_id: 'sp2', storage_path: 'a/h2.pdf' },
       { id: 'hb', session_id: 's-b', speaker_id: 'sp9', storage_path: 'b/hb.pdf' },
     ],
-    speaker_tokens: [{ token: 'tok-sp1', event_id: 'e1', speaker_id: 'sp1', expires_at: FUTURE }],
+    // Portal links are speakers.confirmation_token (D-R3); the event rides on the row.
+    speakers: [{ id: 'sp1', event_id: 'e1', name: 'Ann', email: null, status: 'confirmed', confirmation_token: 'tok-sp1', portal_token_expires_at: null, events: { id: 'e1', title: 'A', slug: 'ev-a', start_at: FUTURE, end_at: FUTURE } }],
     session_speakers: [{ session_id: 's-a', speaker_id: 'sp1' }],
     session_questions: [
       { id: 'q1', session_id: 's-a', event_id: 'e1', answered_at: null },

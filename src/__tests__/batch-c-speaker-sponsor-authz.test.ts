@@ -39,17 +39,15 @@ beforeEach(() => {
   h.allowed = new Set()
   h.db = createFakeDb({
     events: [
-      { id: 'e1', org_id: 'orgA', title: 'Event A', organizations: { name: 'Org <A>' } },
-      { id: 'e2', org_id: 'orgB', title: 'Event B', organizations: { name: 'Org B' } },
+      { id: 'e1', org_id: 'orgA', title: 'Event A', start_at: FUTURE, end_at: FUTURE, organizations: { name: 'Org <A>' } },
+      { id: 'e2', org_id: 'orgB', title: 'Event B', start_at: FUTURE, end_at: FUTURE, organizations: { name: 'Org B' } },
     ],
     speakers: [
-      { id: 'sp1', event_id: 'e1', name: 'Ann <b>', email: 'ann@x.test', confirmation_token: 'conf-sp1', bio: null },
-      { id: 'sp2', event_id: 'e1', name: 'Bob', email: 'bob@x.test', confirmation_token: 'conf-sp2', bio: null },
-      { id: 'sp9', event_id: 'e2', name: 'Zed', email: 'zed@x.test', confirmation_token: 'conf-sp9', bio: null },
-    ],
-    speaker_tokens: [
-      { token: 'tok-sp1', event_id: 'e1', speaker_id: 'sp1', expires_at: FUTURE },
-      { token: 'tok-sp9', event_id: 'e2', speaker_id: 'sp9', expires_at: FUTURE },
+      // Portal links are speakers.confirmation_token (D-R3). Nested selects are
+      // not resolved by the fake, so the event rides on the row.
+      { id: 'sp1', event_id: 'e1', name: 'Ann <b>', email: 'ann@x.test', confirmation_token: 'tok-sp1', portal_token_expires_at: null, bio: null, events: { id: 'e1', title: 'Event A', slug: 'ev-a', start_at: FUTURE, end_at: FUTURE } },
+      { id: 'sp2', event_id: 'e1', name: 'Bob', email: 'bob@x.test', confirmation_token: 'conf-sp2', portal_token_expires_at: null, bio: null, events: { id: 'e1', title: 'Event A', slug: 'ev-a', start_at: FUTURE, end_at: FUTURE } },
+      { id: 'sp9', event_id: 'e2', name: 'Zed', email: 'zed@x.test', confirmation_token: 'tok-sp9', portal_token_expires_at: null, bio: null, events: { id: 'e2', title: 'Event B', slug: 'ev-b', start_at: FUTURE, end_at: FUTURE } },
     ],
     speaker_conversations: [
       { id: 'c1', event_id: 'e1', speaker_id: 'sp1' },

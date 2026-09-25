@@ -102,12 +102,14 @@ vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn(() => h.db
 vi.mock('@/lib/auth/get-user', () => ({ requireUser: vi.fn(async () => ({ id: 'user-1' })) }))
 vi.mock('@/lib/trigger', async () => (await import('./helpers/auto-mock')).autoMockModule())
 
+const FUTURE = new Date(Date.now() + 86_400_000).toISOString()
+
 describe('speaker confirm / decline by token', () => {
   beforeEach(() => {
     h.db = createFakeDb({
       speakers: [
-        { id: 'sp1', event_id: 'e1', name: 'Ann', email: null, status: 'invited', confirmation_token: 'tok-1', events: { title: 'A', slug: 'a' } },
-        { id: 'sp2', event_id: 'e1', name: 'Bob', email: null, status: 'invited', confirmation_token: 'tok-2', events: { title: 'A', slug: 'a' } },
+        { id: 'sp1', event_id: 'e1', name: 'Ann', email: null, status: 'invited', confirmation_token: 'tok-1', portal_token_expires_at: null, events: { id: 'e1', title: 'A', slug: 'a', start_at: FUTURE, end_at: FUTURE } },
+        { id: 'sp2', event_id: 'e1', name: 'Bob', email: null, status: 'invited', confirmation_token: 'tok-2', portal_token_expires_at: null, events: { id: 'e1', title: 'A', slug: 'a', start_at: FUTURE, end_at: FUTURE } },
       ],
       org_speakers: [],
     })
@@ -116,7 +118,7 @@ describe('speaker confirm / decline by token', () => {
 
   it('confirm updates only the token’s own speaker', async () => {
     const { confirmSpeakerSlot } = await import('@/lib/speaker/speaker-actions')
-    expect(await confirmSpeakerSlot('tok-1', 'confirmed')).toEqual({ error: undefined })
+    expect(await confirmSpeakerSlot('tok-1', 'confirmed')).toEqual({ ok: true })
     expect(row('sp1').status).toBe('confirmed')
     expect(row('sp2').status).toBe('invited')
   })
@@ -131,7 +133,7 @@ describe('speaker confirm / decline by token', () => {
 
   it('decline records the reason on the token’s speaker only', async () => {
     const { declineSpeakerSlot } = await import('@/lib/speaker/speaker-actions')
-    expect(await declineSpeakerSlot('tok-2', 'busy', 'next year')).toEqual({ error: undefined })
+    expect(await declineSpeakerSlot('tok-2', 'busy', 'next year')).toEqual({ ok: true })
     expect(row('sp2')).toMatchObject({ status: 'declined', decline_reason: 'busy', decline_alternative: 'next year' })
     expect(row('sp1').status).toBe('invited')
   })

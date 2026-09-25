@@ -8,6 +8,7 @@ import { enqueueSpeakerInviteEmail } from '@/lib/trigger'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
+import { resolveSpeakerLink, SPEAKER_LINK_EXPIRED_MESSAGE } from '@/lib/speaker/speaker-link'
 import { escapeHtml } from '@/trigger/lib/escape'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
@@ -44,39 +45,17 @@ export async function createSpeaker(eventId: string, input: {
   return { data }
 }
 
+// Portal token -> { event_id, speaker_id } for the portal, the handout
+// route and the token-authorized actions. null for an unknown or expired link
+// (D-R3); pages that need to tell the two apart use resolveSpeakerLink.
 export async function validateSpeakerToken(token: string) {
-  const supabase = createAdminClient()
-
-  // Try speaker_tokens table first (legacy magic-link tokens, 64-char hex)
-  const { data: tokenRow } = await supabase
-    .from('speaker_tokens')
-    .select('event_id, speaker_id, expires_at, speakers(name, email, event_id)')
-    .eq('token', token)
-    .maybeSingle()
-
-  if (tokenRow) {
-    if (new Date((tokenRow as any).expires_at) < new Date()) return null
-    return tokenRow as any
-  }
-
-  // Fallback: look up by speakers.confirmation_token (48-char hex, used in invite/reminder URLs)
-  const { data: speakerRow } = await supabase
-    .from('speakers')
-    .select('id, event_id, name, email')
-    .eq('confirmation_token', token)
-    .maybeSingle()
-
-  if (!speakerRow) return null
-
+  const link = await resolveSpeakerLink(token)
+  if (!link || link.expired) return null
   return {
-    event_id: (speakerRow as any).event_id,
-    speaker_id: (speakerRow as any).id,
-    expires_at: null,
-    speakers: {
-      name: (speakerRow as any).name,
-      email: (speakerRow as any).email,
-      event_id: (speakerRow as any).event_id,
-    },
+    event_id: link.speaker.event_id,
+    speaker_id: link.speaker.id,
+    expires_at: link.expiresAt.toISOString(),
+    speakers: { name: link.speaker.name, email: link.speaker.email, event_id: link.speaker.event_id },
   }
 }
 
@@ -164,28 +143,20 @@ export async function sendSpeakerInvite(eventId: string, speakerId: string) {
 
 // ── T-095j: confirmation token ────────────────────────────────────────────────
 
-// /speaker/confirm: the token alone identifies the speaker and the event.
-// confirmation_token is service-role only (0157), so the lookup uses the admin
-// client; every write is then pinned to that speaker on that event and must
-// hit a row.
-async function speakerByToken(token: string) {
-  if (typeof token !== 'string' || !token) return null
-  const { data } = await createAdminClient()
-    .from('speakers')
-    .select('id, event_id, name, email, status, events(title, slug)')
-    .eq('confirmation_token', token)
-    .maybeSingle()
-  return data
-}
-
-export async function getSpeakerByConfirmationToken(token: string) {
-  return (await speakerByToken(token)) as any
+// /speaker/confirm actions: the token alone identifies the speaker and the
+// event; an unknown or expired link (D-R3) is refused, and the write is
+// filtered by that speaker's event and must hit a row.
+async function speakerForAnswer(token: string): Promise<{ id: string; event_id: string } | { error: string }> {
+  const link = await resolveSpeakerLink(token)
+  if (!link) return { error: 'Invitation not found' }
+  if (link.expired) return { error: SPEAKER_LINK_EXPIRED_MESSAGE }
+  return { id: link.speaker.id, event_id: link.speaker.event_id }
 }
 
 export async function confirmSpeakerSlot(token: string, action: 'confirmed' | 'declined') {
   if (action !== 'confirmed' && action !== 'declined') return { error: 'Invalid response' }
-  const sp = await speakerByToken(token)
-  if (!sp) return { error: 'Invitation not found' }
+  const sp = await speakerForAnswer(token)
+  if ('error' in sp) return { error: sp.error }
   const admin = createAdminClient()
   const { data: updated, error } = await admin
     .from('speakers')
@@ -223,16 +194,17 @@ export async function confirmSpeakerSlot(token: string, action: 'confirmed' | 'd
     }
   }
 
-  return { error: undefined }
+  return { ok: true as const }
 }
 
 export async function declineSpeakerSlot(token: string, reason?: string, alternative?: string) {
   if ((reason != null && typeof reason !== 'string') || (alternative != null && typeof alternative !== 'string')) {
     return { error: 'Invalid response' }
   }
-  const sp = await speakerByToken(token)
-  if (!sp) return { error: 'Invitation not found' }
-  const { data: updated, error } = await createAdminClient()
+  const sp = await speakerForAnswer(token)
+  if ('error' in sp) return { error: sp.error }
+  const admin = createAdminClient()
+  const { data: updated, error } = await admin
     .from('speakers')
     .update({
       status: 'declined',
@@ -244,7 +216,7 @@ export async function declineSpeakerSlot(token: string, reason?: string, alterna
     .select('id')
   if (error) return { error: error.message }
   if (!updated?.length) return { error: 'Invitation not found' }
-  return { error: undefined }
+  return { ok: true as const }
 }
 
 // ── T-095c: speaker form ──────────────────────────────────────────────────────
@@ -579,32 +551,32 @@ export async function updateSpeakerDayOfInfo(eventId: string, text: string) {
 
 // ── B11-34: token renewal ─────────────────────────────────────────────────────
 
+// "Renew link": always a new token (valid 7 days past now, or to the event
+// window if that is later). The speaker row decides the event; the caller must
+// hold speakers.manage on its org (checked inside getOrCreateSpeakerToken).
 export async function renewSpeakerToken(speakerId: string) {
   const user = await requireUser()
   const admin = createAdminClient()
 
+  let issued: Awaited<ReturnType<typeof getOrCreateSpeakerToken>>
+  try { issued = await getOrCreateSpeakerToken(speakerId, { userId: user.id }, { rotate: true }) } catch (e) { return catchPermission(e) }
+  if ('error' in issued) return { error: issued.error }
+
   const { data: sp } = await admin
     .from('speakers')
-    .select('id, event_id, name, email, events(org_id, title, organizations(name))')
+    .select('name, email, events(title, organizations(name))')
     .eq('id', speakerId)
-    .single()
-
-  if (!sp) return { error: 'Speaker not found' }
-
-  try { await assertPermission((sp as any).events?.org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
-
-  const { nanoid } = await import('nanoid')
-  const newToken = nanoid(32)
-
-  await admin.from('speakers').update({ confirmation_token: newToken }).eq('id', speakerId)
+    .eq('event_id', issued.eventId)
+    .maybeSingle()
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
-  const hubUrl = `${appUrl}/speaker/${newToken}`
-  const orgName = (sp as any).events?.organizations?.name ?? 'Event organizer'
-  const eventTitle = (sp as any).events?.title ?? 'the event'
+  const hubUrl = `${appUrl}/speaker/${issued.token}`
+  const orgName = (sp as any)?.events?.organizations?.name ?? 'Event organizer'
+  const eventTitle = (sp as any)?.events?.title ?? 'the event'
 
-  if ((sp as any).email) {
-    await fetch('https://api.resend.com/emails', {
+  let emailError: string | null = null
+  if ((sp as any)?.email) {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
@@ -614,16 +586,17 @@ export async function renewSpeakerToken(speakerId: string) {
         from: `${orgName} <noreply@prezva.app>`,
         to: (sp as any).email,
         subject: `Updated speaker portal link — ${eventTitle}`,
-        html: `<p>Hi ${(sp as any).name},</p>
-               <p>Your speaker portal link has been refreshed for ${eventTitle}.</p>
-               <p><a href="${hubUrl}">Access your speaker hub →</a></p>
+        html: `<p>Hi ${escapeHtml((sp as any).name ?? '')},</p>
+               <p>Your speaker portal link has been refreshed for ${escapeHtml(eventTitle)}.</p>
+               <p><a href="${escapeHtml(hubUrl)}">Access your speaker hub →</a></p>
                <p>Your previous link is no longer active.</p>
-               <p>— ${orgName}</p>`,
+               <p>— ${escapeHtml(orgName)}</p>`,
       }),
-    }).catch(() => {})
+    }).catch((e: unknown) => ({ ok: false, statusText: e instanceof Error ? e.message : String(e) }) as const)
+    if (!res.ok) emailError = 'New link created, but the email could not be sent — copy the link instead'
   }
 
-  return { ok: true, newToken, hubUrl }
+  return { ok: true as const, newToken: issued.token, hubUrl, emailError }
 }
 
 // ── B11-35: handout delete (admin-auth version) ───────────────────────────────

@@ -1,15 +1,20 @@
-import { notFound } from 'next/navigation'
-import { getSpeakerByConfirmationToken, confirmSpeakerSlot } from '@/lib/speaker/speaker-actions'
+import { notFound, redirect } from 'next/navigation'
+import { confirmSpeakerSlot } from '@/lib/speaker/speaker-actions'
+import { resolveSpeakerLink } from '@/lib/speaker/speaker-link'
+import { SpeakerLinkExpired } from '@/components/portal/SpeakerLinkExpired'
 import { createClient } from '@/lib/supabase/server'
 import { DeclineForm } from './decline-form'
 import { PortalShell } from '@/components/portal/PortalShell'
 
-type Props = { params: Promise<{ token: string }> }
+type Props = { params: Promise<{ token: string }>; searchParams: Promise<{ failed?: string }> }
 
-export default async function SpeakerConfirmPage({ params }: Props) {
+export default async function SpeakerConfirmPage({ params, searchParams }: Props) {
   const { token } = await params
-  const speaker = await getSpeakerByConfirmationToken(token)
-  if (!speaker) notFound()
+  const { failed } = await searchParams
+  const link = await resolveSpeakerLink(token)
+  if (!link) notFound()
+  if (link.expired) return <SpeakerLinkExpired eventName={link.event.title} speakerName={link.speaker.name} />
+  const speaker = { ...link.speaker, events: { title: link.event.title, slug: link.event.slug } }
 
   const supabase = await createClient()
   const { data: sessions } = await supabase
@@ -72,10 +77,17 @@ export default async function SpeakerConfirmPage({ params }: Props) {
             </div>
           )}
 
+          {failed && (
+            <p className="text-sm mb-4" role="alert" style={{ color: 'var(--pz-error)' }}>
+              We couldn&apos;t record your confirmation. Please try again or contact the organizer.
+            </p>
+          )}
+
           <div className="flex gap-3">
             <form action={async () => {
               'use server'
-              await confirmSpeakerSlot(token, 'confirmed')
+              const res = await confirmSpeakerSlot(token, 'confirmed')
+              redirect(`/speaker/confirm/${encodeURIComponent(token)}${'error' in res ? '?failed=1' : ''}`)
             }}>
               <button
                 type="submit"

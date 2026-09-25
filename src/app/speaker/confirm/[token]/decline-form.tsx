@@ -12,6 +12,7 @@ export function DeclineForm({ token }: Props) {
   const [showAlt, setShowAlt] = useState(false)
   const [alternative, setAlternative] = useState('')
   const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
   if (done) {
@@ -36,7 +37,8 @@ export function DeclineForm({ token }: Props) {
 
   function submit() {
     startTransition(async () => {
-      await declineSpeakerSlot(token, reason || undefined, alternative || undefined)
+      const res = await declineSpeakerSlot(token, reason || undefined, alternative || undefined)
+      if ('error' in res && res.error) { setError(res.error); return }
       setDone(true)
     })
   }
@@ -71,6 +73,7 @@ export function DeclineForm({ token }: Props) {
           placeholder="e.g. I'm available Oct 15–20…"
         />
       )}
+      {error && <p className="text-sm" role="alert" style={{ color: 'var(--pz-error)' }}>{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={submit}
