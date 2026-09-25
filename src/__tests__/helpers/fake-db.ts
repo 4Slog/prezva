@@ -29,6 +29,7 @@ export function createFakeDb(
     let values: any
     let limitN: number | null = null
     let returning = false
+    let conflictCols: string[] | null = null
     const rows = () => (tables[table] ??= [])
 
     const b: any = {}
@@ -47,7 +48,11 @@ export function createFakeDb(
     b.range = vi.fn(() => b)
     b.limit = vi.fn((n: number) => { limitN = n; return b })
     b.insert = vi.fn((v: any) => { op = 'insert'; values = v; return b })
-    b.upsert = vi.fn((v: any) => { op = 'upsert'; values = v; return b })
+    b.upsert = vi.fn((v: any, o?: { onConflict?: string }) => {
+      op = 'upsert'; values = v
+      conflictCols = o?.onConflict ? o.onConflict.split(',').map(c => c.trim()) : null
+      return b
+    })
     b.update = vi.fn((v: any) => { op = 'update'; values = v; return b })
     b.delete = vi.fn(() => { op = 'delete'; return b })
 
@@ -60,6 +65,22 @@ export function createFakeDb(
       if (op === 'insert' || op === 'upsert') {
         const fail = opts.failInsert?.[table]
         if (fail) return { data: null, error: fail, count: null }
+        // upsert with onConflict: merge into the row that matches those columns.
+        if (op === 'upsert' && conflictCols) {
+          const cols = conflictCols
+          const incoming = Array.isArray(values) ? values : [values]
+          const merged: Row[] = []
+          const fresh: Row[] = []
+          for (const v of incoming as Row[]) {
+            const hit = rows().find(r => cols.every(c => r[c] === v[c]))
+            if (hit) { Object.assign(hit, v); merged.push(hit) } else fresh.push(v)
+          }
+          if (fresh.length === 0) {
+            writes.push({ table, op, values, matched: merged.length })
+            return { data: returning ? merged : null, error: null, count: merged.length }
+          }
+          if (merged.length > 0) values = fresh
+        }
         const list = (Array.isArray(values) ? values : [values]).map((v: Row) => ({ id: v.id ?? `new-${rows().length + 1}`, ...v }))
         const clash = opts.unique?.[table]
         if (clash && list.some((n: Row) => rows().some(r => clash(r, n)))) {

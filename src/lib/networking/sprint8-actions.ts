@@ -204,6 +204,14 @@ const MeetingSchema = z.object({
   location: z.string().max(200).optional(),
 })
 
+// Statuses that block a new request between the same two people (either
+// direction), with what the sender is told.
+const MEETING_REQUEST_BLOCKED: Record<string, string> = {
+  pending: 'You already have a pending request with this person',
+  countered: 'A new time has been proposed — accept or decline it in your meeting requests',
+  accepted: 'You already have a meeting scheduled with this person',
+}
+
 export async function sendMeetingRequest(eventId: string, raw: unknown) {
   const user = await requireUser()
   const supabase = await createClient()
@@ -211,17 +219,22 @@ export async function sendMeetingRequest(eventId: string, raw: unknown) {
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const data = parsed.data
 
-  const { data: existing } = await supabase
-    .from('meeting_requests')
-    .select('id, status')
-    .eq('event_id', eventId)
-    .eq('requester_id', user.id)
-    .eq('recipient_id', data.recipient_id)
-    .single()
-
-  if (existing && (existing as any).status === 'pending') {
-    return { error: 'A pending meeting request already exists with this person' }
-  }
+  // O142 / D-R6: an open request between the two — in either direction —
+  // blocks a new one; the upsert below would otherwise overwrite it. Only a
+  // declined or cancelled request may be asked again.
+  const [{ data: mine, error: mineError }, { data: theirs, error: theirsError }] = await Promise.all([
+    supabase.from('meeting_requests').select('id, status')
+      .eq('event_id', eventId).eq('requester_id', user.id).eq('recipient_id', data.recipient_id).maybeSingle(),
+    supabase.from('meeting_requests').select('id, status')
+      .eq('event_id', eventId).eq('requester_id', data.recipient_id).eq('recipient_id', user.id).maybeSingle(),
+  ])
+  if (mineError || theirsError) return { error: (mineError ?? theirsError)!.message }
+  const mineStatus = (mine as { status?: string } | null)?.status ?? ''
+  const theirsStatus = (theirs as { status?: string } | null)?.status ?? ''
+  // Their request that I countered is waiting on them, not on me.
+  if (theirsStatus === 'countered') return { error: 'You proposed a new time — waiting for them to respond' }
+  const blocked = MEETING_REQUEST_BLOCKED[mineStatus] ?? MEETING_REQUEST_BLOCKED[theirsStatus]
+  if (blocked) return { error: blocked }
 
   const { error } = await supabase.from('meeting_requests').upsert({
     event_id: eventId,
@@ -231,6 +244,10 @@ export async function sendMeetingRequest(eventId: string, raw: unknown) {
     proposed_times: (data.proposed_times ?? []).map(t => ({ at: new Date(t.at).toISOString(), tz: t.tz })),
     location: data.location,
     status: 'pending',
+    // A re-request after a decline starts clean.
+    meeting_at: null,
+    meeting_counter_time: null,
+    meeting_counter_note: null,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'event_id,requester_id,recipient_id' })
 
