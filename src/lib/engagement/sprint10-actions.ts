@@ -8,16 +8,6 @@ import { POINT_VALUES } from '@/lib/engagement/point-values'
 import { awardPoints, awardPointsForReg } from '@/lib/engagement/points'
 import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 
-export async function getEmailCampaigns(eventId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('email_campaigns')
-    .select('*')
-    .eq('event_id', eventId)
-    .order('created_at', { ascending: false })
-  return (data ?? []) as any[]
-}
-
 // ── T-100a: live polling ───────────────────────────────────────────────────────
 
 export async function castPollVote(questionId: string, optionIndex: number) {

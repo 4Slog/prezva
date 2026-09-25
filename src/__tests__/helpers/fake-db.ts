@@ -35,7 +35,9 @@ export function createFakeDb(
     const b: any = {}
     const chain = (fn: Filter) => { filters.push(fn); return b }
     b.select = vi.fn(() => { if (op !== 'select') returning = true; return b })
-    b.eq = vi.fn((c: string, v: any) => chain(r => r[c] === v))
+    // 'rel.col' filters (embedded-resource filters) read the nested fixture object.
+    const val = (r: Row, c: string) => c.split('.').reduce((o: any, k) => (o == null ? undefined : o[k]), r)
+    b.eq = vi.fn((c: string, v: any) => chain(r => val(r, c) === v))
     b.neq = vi.fn((c: string, v: any) => chain(r => r[c] !== v))
     b.in = vi.fn((c: string, v: any[]) => chain(r => v.includes(r[c])))
     b.is = vi.fn((c: string, v: any) => chain(r => (r[c] ?? null) === v))

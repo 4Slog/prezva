@@ -46,6 +46,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
+type SessionWithRoom = { rooms?: { name: string | null; location_hint: string | null } | { name: string | null; location_hint: string | null }[] | null }
+
+// "Room · hint" for the live/next session cards (sessions have no location column).
+function withRoomLocation<T extends SessionWithRoom>(s: T): T & { location: string | null } {
+  const room = Array.isArray(s.rooms) ? s.rooms[0] : s.rooms
+  const location = [room?.name, room?.location_hint].filter(Boolean).join(' · ') || null
+  return { ...s, location }
+}
+
 export default async function PublicEventPage({ params, searchParams }: Props) {
   const { slug } = await params
   const { reg: regParam } = await searchParams
@@ -100,12 +109,14 @@ export default async function PublicEventPage({ params, searchParams }: Props) {
       const now = new Date().toISOString()
       const admin2 = createAdminClient()
       const [{ data: curSessions }, { data: nxtSession }, { data: lbPoints }] = await Promise.all([
-        admin2.from('event_sessions').select('id, title, starts_at, ends_at, location').eq('event_id', event.id).lte('starts_at', now).gte('ends_at', now).order('starts_at'),
-        admin2.from('event_sessions').select('id, title, starts_at, location').eq('event_id', event.id).gt('starts_at', now).order('starts_at').limit(1).maybeSingle(),
+        // O145: sessions (there is no event_sessions table); published only;
+        // the room is the location.
+        admin2.from('sessions').select('id, title, starts_at, ends_at, rooms(name, location_hint)').eq('event_id', event.id).eq('is_published', true).lte('starts_at', now).gte('ends_at', now).order('starts_at'),
+        admin2.from('sessions').select('id, title, starts_at, rooms(name, location_hint)').eq('event_id', event.id).eq('is_published', true).gt('starts_at', now).order('starts_at').limit(1).maybeSingle(),
         admin2.from('leaderboard_points').select('user_id, registration_id, points').eq('event_id', event.id),
       ])
-      currentSessions = curSessions ?? []
-      nextSession = nxtSession ?? null
+      currentSessions = (curSessions ?? []).map(withRoomLocation)
+      nextSession = nxtSession ? withRoomLocation(nxtSession) : null
 
       // Compute rank
       if (lbPoints && (reg.user_id || resolvedRegId)) {
