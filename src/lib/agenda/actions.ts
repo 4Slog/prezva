@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
+import { assertPermission } from '@/lib/auth/assert-permission'
+import { catchPermission } from '@/lib/auth/permission-error'
 import { logAudit } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -235,7 +237,17 @@ const SpeakerSchema = z.object({
   twitter_handle: z.string().nullable().optional(),
   sort_order: z.number().int().default(0),
   is_published: z.boolean().default(true),
+  // R91: no default — absent means "leave as is" (new rows start off).
+  show_email_publicly: z.boolean().optional(),
 })
+
+// R91: changing whether a speaker's email is public needs speakers.manage,
+// not just org membership.
+async function assertEmailSwitchAllowed(orgId: string, userId: string, show: boolean | undefined) {
+  if (show === undefined) return null
+  try { await assertPermission(orgId, userId, 'speakers.manage') } catch (e) { return catchPermission(e) }
+  return null
+}
 
 // speakers.email is service-only (0158), so the agenda API returns speakers without it.
 export async function getSpeakers(eventId: string): Promise<Speaker[]> {
@@ -252,11 +264,14 @@ export async function createSpeaker(eventId: string, input: unknown) {
   const parsed = SpeakerSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await assertOrgMember(supabase, user.id, eventId)
+  const denied = await assertEmailSwitchAllowed(event.org_id, user.id, parsed.data.show_email_publicly)
+  if (denied) return denied
   const { data, error } = await supabase
     .from('speakers').insert({ event_id: eventId, ...parsed.data }).select(SPEAKER_COLUMNS).single()
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'speaker.create', 'speaker', (data as any).id, { name: parsed.data.name }, { eventId })
+  await logAudit(supabase, null, user.id, 'speaker.create', 'speaker', (data as any).id,
+    { name: parsed.data.name, show_email_publicly: parsed.data.show_email_publicly ?? false }, { eventId })
   revalidatePath('/events')
   return { data }
 }
@@ -266,11 +281,14 @@ export async function updateSpeaker(eventId: string, speakerId: string, input: u
   const parsed = SpeakerSchema.partial().safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  await assertOrgMember(supabase, user.id, eventId)
+  const event = await assertOrgMember(supabase, user.id, eventId)
+  const denied = await assertEmailSwitchAllowed(event.org_id, user.id, parsed.data.show_email_publicly)
+  if (denied) return denied
   const { data, error } = await supabase
     .from('speakers').update(parsed.data).eq('id', speakerId).eq('event_id', eventId).select(SPEAKER_COLUMNS).single()
   if (error) return { error: error.message }
-  await logAudit(supabase, null, user.id, 'speaker.update', 'speaker', speakerId, undefined, { eventId })
+  await logAudit(supabase, null, user.id, 'speaker.update', 'speaker', speakerId,
+    parsed.data.show_email_publicly === undefined ? undefined : { show_email_publicly: parsed.data.show_email_publicly }, { eventId })
   revalidatePath('/events')
   return { data }
 }

@@ -23,6 +23,8 @@ export default async function SpeakerDetailPage({ params }: { params: Promise<{ 
             <div>
               <h1 style={{ fontSize:'1.5rem', fontWeight:800, color:'var(--pz-text)' }}>{(speaker as any).name}</h1>
               {(speaker as any).job_title && <p style={{ color:'var(--pz-muted)' }}>{(speaker as any).job_title}{(speaker as any).company ? ' · '+(speaker as any).company : ''}</p>}
+              {/* R91: present only when the speaker opted in */}
+              {speaker.email && <p style={{ marginTop:4 }}><a href={`mailto:${encodeURIComponent(speaker.email)}`} style={{ color:'var(--pz-teal)', fontSize:14 }}>{speaker.email}</a></p>}
             </div>
           </div>
         </div>

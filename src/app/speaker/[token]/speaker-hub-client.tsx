@@ -10,6 +10,7 @@ import {
   getSpeakerPortalConversation,
   getSpeakerPortalMessages,
   deleteHandout,
+  setSpeakerEmailVisibility,
 } from '@/lib/speaker/speaker-actions'
 import { createClient } from '@/lib/supabase/client'
 import { Field } from '@/components/ui/Field'
@@ -31,6 +32,10 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
   const [sessionsWithQA, setSessionsWithQA] = useState<any[]>(initialSessionsWithQA)
   const [formData, setFormData] = useState<Record<string, string>>(formSubmission)
   const [formSaved, setFormSaved] = useState(false)
+  // R91: off by default; the speaker decides.
+  const [emailPublic, setEmailPublic] = useState<boolean>(!!speaker?.show_email_publicly)
+  const [emailSwitchPending, setEmailSwitchPending] = useState(false)
+  const [emailSwitchError, setEmailSwitchError] = useState('')
   const [, startTransition] = useTransition()
 
   // Polls state
@@ -50,6 +55,20 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
     confirmed: 'var(--pz-success)',
     declined: 'var(--pz-error, var(--pz-error))',
     invited: 'var(--pz-warning, var(--pz-warning-fill))',
+  }
+
+  async function toggleEmailPublic(show: boolean) {
+    setEmailSwitchPending(true)
+    setEmailSwitchError('')
+    try {
+      const result = await setSpeakerEmailVisibility(token, show)
+      if ('error' in result && result.error) setEmailSwitchError(result.error)
+      else setEmailPublic(show)
+    } catch {
+      setEmailSwitchError('Could not save. Please try again.')
+    } finally {
+      setEmailSwitchPending(false)
+    }
   }
 
   async function saveForm() {
@@ -431,6 +450,16 @@ export function SpeakerHubClient({ token, event, speaker, sessionsWithQA: initia
                   </button>
                   {formSaved && <span className="text-xs" style={{ color: 'var(--pz-success)' }}>Saved!</span>}
                 </div>
+              </div>
+            )}
+            {speaker?.email && (
+              <div className="mt-4">
+                <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--pz-text)' }}>
+                  <input type="checkbox" checked={emailPublic} disabled={emailSwitchPending}
+                    onChange={e => toggleEmailPublic(e.target.checked)} />
+                  Show my email ({speaker.email}) on my public speaker profile
+                </label>
+                {emailSwitchError && <p className="text-xs mt-1" style={{ color: 'var(--pz-error)' }}>{emailSwitchError}</p>}
               </div>
             )}
             <a

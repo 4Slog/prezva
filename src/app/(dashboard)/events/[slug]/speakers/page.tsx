@@ -34,7 +34,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
   const [{ data: speakers }, { data: qaQuestions }, permSet] = await Promise.all([
     supabase
       .from('speakers')
-      .select('id, name, bio, photo_url, job_title, company, status, confirmed_at, is_published, decline_reason, checked_in_at')
+      .select('id, name, bio, photo_url, job_title, company, status, confirmed_at, is_published, decline_reason, checked_in_at, show_email_publicly')
       .eq('event_id', (event as any).id)
       .order('sort_order', { ascending: true }),
     admin

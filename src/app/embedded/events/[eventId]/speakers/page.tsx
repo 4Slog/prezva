@@ -12,6 +12,7 @@ import {
   embedAddSpeakerFromLibrary,
   embedSendSpeakerInvite,
   embedRenewSpeakerToken,
+  embedSetSpeakerEmailVisibility,
   embedGetQAQuestions,
   embedModerateQAQuestion,
 } from '@/lib/embedded/speakers-actions'
@@ -84,6 +85,7 @@ export default async function EmbedSpeakersPage({ params }: Props) {
           addSpeakerFromLibrary: embedAddSpeakerFromLibrary,
           sendSpeakerInvite: embedSendSpeakerInvite,
           renewSpeakerToken: embedRenewSpeakerToken,
+          setEmailVisibility: embedSetSpeakerEmailVisibility,
         }}
       />
       <DayOfInfoSection

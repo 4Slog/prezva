@@ -62,6 +62,39 @@ describe('0157 migration', () => {
   })
 })
 
+describe('0158 migration', () => {
+  const sql = readFileSync(join(process.cwd(), 'supabase/migrations/0158_hide_invite_code_creator_email_speaker_email.sql'), 'utf-8')
+    .replace(/--.*$/gm, '')
+
+  it('closes the invite code, creator email and speaker email, and repeats 0157’s secrets for those tables', () => {
+    expect(sql).toContain("('events',   ARRAY['mc_token', 'lobby_token', 'registration_invite_code', 'ghl_creator_email'])")
+    expect(sql).toContain("('speakers', ARRAY['confirmation_token', 'portal_token_expires_at', 'email'])")
+  })
+
+  it('adds show_email_publicly (default off) before the grant, so it is granted', () => {
+    const add = sql.indexOf('ADD COLUMN IF NOT EXISTS show_email_publicly boolean NOT NULL DEFAULT false')
+    expect(add).toBeGreaterThan(-1)
+    expect(sql.indexOf('GRANT SELECT (%s) ON public.%I TO anon, authenticated')).toBeGreaterThan(add)
+    expect(sql.indexOf("REVOKE SELECT ON public.%I FROM anon, authenticated")).toBeGreaterThan(add)
+    expect(sql).toMatch(/NOTIFY pgrst, 'reload schema'/)
+  })
+
+  it('together with 0157, closes every service-only column', () => {
+    const s157 = readFileSync(join(process.cwd(), 'supabase/migrations/0157_close_public_token_columns.sql'), 'utf-8').replace(/--.*$/gm, '')
+    const both = s157 + sql
+    for (const [table, cols] of Object.entries(SECRET_TOKEN_COLUMNS)) {
+      expect(both).toContain(`('${table}',`)
+      for (const c of cols) expect(both).toContain(`'${c}'`)
+    }
+  })
+
+  it('the speaker list grants show_email_publicly and not email', () => {
+    const names = SPEAKER_COLUMNS.split(',').map(c => c.trim())
+    expect(names).toContain('show_email_publicly')
+    expect(names).not.toContain('email')
+  })
+})
+
 // Static guard: a user client (createClient from supabase/server or
 // supabase/client) reading one of these tables must name its columns — '*',
 // a bare .select() after a write, or a service-only column now fails in

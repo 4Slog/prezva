@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { EVENT_COLUMNS, SESSION_COLUMNS } from '@/lib/db/public-columns'
 
 export async function getPublicEvent(slug: string) {
@@ -56,15 +57,39 @@ export async function getPublicAgenda(eventId: string) {
   return (sessions ?? []) as any[]
 }
 
-export async function getPublicSpeakers(eventId: string) {
+// R91 / E-R3: speakers.email is service-only (0158). The public speaker pages
+// (and only they — never agenda or session views) show it for published
+// speakers who switched show_email_publicly on. Rows still come from RLS; the
+// emails are merged into exactly those rows.
+async function publicSpeakerEmails(eventId: string, speakerIds?: string[]): Promise<Map<string, string>> {
+  if (speakerIds && speakerIds.length === 0) return new Map()
+  let q = createAdminClient()
+    .from('speakers')
+    .select('id, email')
+    .eq('event_id', eventId)
+    .eq('is_published', true)
+    .eq('show_email_publicly', true)
+  if (speakerIds) q = q.in('id', speakerIds)
+  const { data, error } = await q
+  if (error) {
+    console.error('[public speakers] email read failed', error.message)
+    return new Map()
+  }
+  return new Map((data ?? []).filter(r => r.email).map(r => [r.id, r.email as string]))
+}
+
+export async function getPublicSpeakers(eventId: string, opts: { withOptedInEmail?: boolean } = {}) {
   const supabase = await createClient()
-  const { data } = await supabase
+  const rowsQuery = supabase
     .from('speakers')
     .select('id, event_id, name, bio, photo_url, job_title, company, website, linkedin_url, twitter_handle, sort_order, is_published, event_role')
     .eq('event_id', eventId)
     .eq('is_published', true)
     .order('sort_order', { ascending: true })
-  return data ?? []
+  if (!opts.withOptedInEmail) return (await rowsQuery).data ?? []
+  // Both reads at once; emails are kept only for the ids RLS returned.
+  const [{ data }, emails] = await Promise.all([rowsQuery, publicSpeakerEmails(eventId)])
+  return (data ?? []).map(r => ({ ...r, email: emails.get(r.id) ?? null }))
 }
 
 export async function getPublicSpeaker(eventId: string, speakerId: string) {
@@ -78,7 +103,9 @@ export async function getPublicSpeaker(eventId: string, speakerId: string) {
     .eq('event_id', eventId)
     .eq('id', speakerId)
     .single()
-  return data
+  if (!data) return data
+  const emails = await publicSpeakerEmails(eventId, [data.id])
+  return { ...data, email: emails.get(data.id) ?? null }
 }
 
 export async function getPublicSponsors(eventId: string) {

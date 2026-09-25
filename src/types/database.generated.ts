@@ -4547,6 +4547,7 @@ export type Database = {
           name: string
           photo_url: string | null
           sort_order: number | null
+          show_email_publicly: boolean
           status: string
           twitter_handle: string | null
           updated_at: string | null
@@ -4573,6 +4574,7 @@ export type Database = {
           name: string
           photo_url?: string | null
           sort_order?: number | null
+          show_email_publicly?: boolean
           status?: string
           twitter_handle?: string | null
           updated_at?: string | null
@@ -4599,6 +4601,7 @@ export type Database = {
           name?: string
           photo_url?: string | null
           sort_order?: number | null
+          show_email_publicly?: boolean
           status?: string
           twitter_handle?: string | null
           updated_at?: string | null

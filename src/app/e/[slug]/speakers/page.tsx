@@ -16,7 +16,7 @@ export default async function PublicSpeakersPage({ params }: { params: Promise<{
   const { slug } = await params
   const event = await getPublicEvent(slug)
   if (!event) notFound()
-  const speakers = await getPublicSpeakers(event.id)
+  const speakers = await getPublicSpeakers(event.id, { withOptedInEmail: true })
 
   // Group by event_role
   const grouped: Record<string, any[]> = {}
@@ -76,6 +76,8 @@ function SpeakerCard({ sp, slug }: { sp: any; slug: string }) {
         <p style={{ fontWeight:700 }}>{sp.name}</p>
         {sp.job_title && <p style={{ fontSize:13, color:'var(--pz-muted)', marginTop:3 }}>{sp.job_title}</p>}
         {sp.company && sp.company !== sp.job_title && <p style={{ fontSize:13, color:'var(--pz-muted)' }}>{sp.company}</p>}
+        {/* R91: present only when the speaker opted in (inside a link, so plain text) */}
+        {sp.email && <p style={{ fontSize:12, color:'var(--pz-muted)', marginTop:3, wordBreak:'break-all' }}>{sp.email}</p>}
       </div>
     </Link>
   )

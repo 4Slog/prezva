@@ -19,7 +19,7 @@ export const SESSION_COLUMNS =
   'id, event_id, track_id, room_id, title, description, session_type, starts_at, ends_at, capacity, is_published, recording_url, slides_url, sort_order, created_at, updated_at, tags, visible_from, visible_until, video_url, ce_credit_hours, sponsored_by_id, mux_stream_id, mux_playback_id, livekit_room_name, recording_enabled, allow_rewatch, mux_asset_id, mux_asset_playback_id, simulive_scheduled_at, simulive_started_at'
 
 export const SPEAKER_COLUMNS =
-  'id, event_id, user_id, name, bio, photo_url, job_title, company, website, linkedin_url, twitter_handle, sort_order, is_published, created_at, updated_at, status, confirmed_at, event_role, decline_reason, decline_alternative, checked_in_at, ghl_contact_id'
+  'id, event_id, user_id, name, bio, photo_url, job_title, company, website, linkedin_url, twitter_handle, sort_order, is_published, created_at, updated_at, status, confirmed_at, event_role, decline_reason, decline_alternative, checked_in_at, ghl_contact_id, show_email_publicly'
 
 export const SPONSOR_COLUMNS =
   'id, event_id, name, website_url, logo_url, tier, sort_order, is_featured, created_at, updated_at, slug, description, contact_email, materials'

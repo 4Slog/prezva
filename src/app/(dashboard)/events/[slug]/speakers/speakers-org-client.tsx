@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken, getOrgSpeakerLibrary, addSpeakerFromLibrary } from '@/lib/speaker/speaker-actions'
+import { sendSpeakerInvite, createSpeaker, markSpeakerArrived, renewSpeakerToken, getOrgSpeakerLibrary, addSpeakerFromLibrary, setSpeakerEmailVisibilityAsOrganizer } from '@/lib/speaker/speaker-actions'
 import { Field } from '@/components/ui/Field'
 import { Gated } from '@/components/auth/Gated'
 
@@ -14,6 +14,7 @@ type EmbedSpeakerActions = {
   addSpeakerFromLibrary: (eventId: string, orgSpeakerId: string) => Promise<any>
   sendSpeakerInvite?: (eventId: string, speakerId: string) => Promise<any>
   renewSpeakerToken?: (eventId: string, speakerId: string) => Promise<any>
+  setEmailVisibility?: (eventId: string, speakerId: string, show: boolean) => Promise<{ ok?: true; error?: string }>
 }
 
 type Props = {
@@ -37,7 +38,11 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
   const [showAdd, setShowAdd] = useState(false)
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
-  const [form, setForm] = useState({ name: '', email: '', job_title: '', company: '', bio: '', event_role: 'speaker' })
+  const EMPTY_FORM = { name: '', email: '', job_title: '', company: '', bio: '', event_role: 'speaker', show_email_publicly: false }
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [emailSwitching, setEmailSwitching] = useState<Set<string>>(new Set())
+  const [emailSwitchError, setEmailSwitchError] = useState<Record<string, string>>({})
+  const canManage = permissions.includes('*') || permissions.includes('speakers.manage')
   const [showLibrary, setShowLibrary] = useState(false)
   const [libSpeakers, setLibSpeakers] = useState<any[]>([])
   const [libLoading, setLibLoading] = useState(false)
@@ -98,8 +103,27 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
       setAddError((result as any).error)
     } else {
       setSpeakers(prev => [...prev, (result as any).data])
-      setForm({ name: '', email: '', job_title: '', company: '', bio: '', event_role: 'speaker' })
+      setForm(EMPTY_FORM)
       setShowAdd(false)
+    }
+  }
+
+  // R91: whether this speaker's email shows on the public speaker pages.
+  async function toggleEmailPublic(speakerId: string, show: boolean) {
+    setEmailSwitching(prev => new Set(prev).add(speakerId))
+    setEmailSwitchError(prev => ({ ...prev, [speakerId]: '' }))
+    let message = ''
+    try {
+      const result: { ok?: true; error?: string } = embed
+        ? await (embedActions?.setEmailVisibility?.(event.id, speakerId, show) ?? Promise.resolve({ error: 'Not available' }))
+        : await setSpeakerEmailVisibilityAsOrganizer(event.id, speakerId, show)
+      if (result.error) message = result.error
+      else setSpeakers(prev => prev.map(sp => sp.id === speakerId ? { ...sp, show_email_publicly: show } : sp))
+    } catch {
+      message = 'Could not save. Please try again.'
+    } finally {
+      setEmailSwitching(prev => { const next = new Set(prev); next.delete(speakerId); return next })
+      setEmailSwitchError(prev => ({ ...prev, [speakerId]: message }))
     }
   }
 
@@ -236,6 +260,11 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
               <option value="vip">VIP</option>
             </select>
           </Field>
+          <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--pz-muted)' }}>
+            <input type="checkbox" checked={form.show_email_publicly}
+              onChange={e => setForm(f => ({ ...f, show_email_publicly: e.target.checked }))} />
+            Show this email on the public speaker page
+          </label>
           <Field label="Bio" htmlFor="spk-bio">
             <textarea id="spk-bio" value={form.bio} onChange={e => setForm(f => ({...f, bio: e.target.value}))} rows={3}
               className="w-full rounded-lg px-3 py-2 text-sm border" style={{ background: 'var(--pz-surface)', borderColor: 'var(--pz-border)', color: 'var(--pz-text)', resize: 'vertical' }} />
@@ -276,6 +305,16 @@ export function SpeakersOrgClient({ event, speakers: initialSpeakers, permission
                   {sp.job_title && ` · ${sp.job_title}`}
                   {sp.company && sp.company !== sp.job_title && `, ${sp.company}`}
                 </p>
+                {sp.email && canManage && (!embed || embedActions?.setEmailVisibility) && (
+                  <label className="flex items-center gap-1.5 text-xs mt-1 cursor-pointer" style={{ color: 'var(--pz-muted)' }}>
+                    <input type="checkbox" checked={!!sp.show_email_publicly} disabled={emailSwitching.has(sp.id)}
+                      onChange={e => toggleEmailPublic(sp.id, e.target.checked)} />
+                    Email shown on public speaker page
+                  </label>
+                )}
+                {emailSwitchError[sp.id] && (
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--pz-error)' }}>{emailSwitchError[sp.id]}</p>
+                )}
                 {sp.confirmed_at && (
                   <p className="text-xs mt-0.5" style={{ color: 'var(--pz-success)' }}>
                     Confirmed {new Date(sp.confirmed_at).toLocaleDateString()}

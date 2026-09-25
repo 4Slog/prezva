@@ -31,7 +31,7 @@ export default async function SpeakerHubPage({ params }: Props) {
 
   const { data: speaker } = await admin
     .from('speakers')
-    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at')
+    .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, show_email_publicly')
     .eq('id', speakerId)
     .eq('event_id', eventId)
     .single()

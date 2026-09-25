@@ -6,6 +6,7 @@ import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
 import { enqueueGhlSpeakerMessage } from '@/lib/trigger'
 import { z } from 'zod'
+import { logAudit } from '@/lib/audit/log'
 
 function escapeHtml(str: string): string {
   return str
@@ -30,7 +31,7 @@ async function resolveEmbedContext() {
     .eq('ghl_location_id', session.location_id)
     .maybeSingle()
   if (!link) throw new Error('Location not linked to any organization')
-  return { db, orgId: link.org_id }
+  return { db, orgId: link.org_id, ghlUserEmail: session.user_email ?? null }
 }
 
 async function assertEventOwnership(
@@ -57,6 +58,8 @@ const SpeakerInputSchema = z.object({
   company: z.string().max(255).nullable().optional(),
   bio: z.string().nullable().optional(),
   event_role: z.enum(['speaker', 'mc', 'chair', 'host', 'guest', 'vip']).default('speaker'),
+  // R91: no default — absent means "leave as is" (new rows start off).
+  show_email_publicly: z.boolean().optional(),
 })
 
 // ── Page data ─────────────────────────────────────────────────────────────────
@@ -70,7 +73,7 @@ export async function embedGetSpeakersPageData(eventId: string) {
     db
       .from('speakers')
       .select(
-        'id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at',
+        'id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at, show_email_publicly',
       )
       .eq('event_id', eventId)
       .order('sort_order', { ascending: true }),
@@ -90,7 +93,7 @@ export async function embedGetSpeakers(eventId: string) {
   const { data } = await db
     .from('speakers')
     .select(
-      'id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at',
+      'id, name, email, bio, photo_url, job_title, company, status, confirmed_at, confirmation_token, is_published, decline_reason, checked_in_at, show_email_publicly',
     )
     .eq('event_id', eventId)
     .order('sort_order', { ascending: true })
@@ -98,7 +101,7 @@ export async function embedGetSpeakers(eventId: string) {
 }
 
 export async function embedCreateSpeaker(eventId: string, input: unknown) {
-  const { db, orgId } = await resolveEmbedContext()
+  const { db, orgId, ghlUserEmail } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
   const parsed = SpeakerInputSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
@@ -112,12 +115,15 @@ export async function embedCreateSpeaker(eventId: string, input: unknown) {
       company: parsed.data.company ?? null,
       bio: parsed.data.bio ?? null,
       event_role: parsed.data.event_role,
+      show_email_publicly: parsed.data.show_email_publicly === true,
       status: 'invited',
       sort_order: 0,
     })
-    .select('id, name, email, status')
+    .select('id, name, email, status, show_email_publicly')
     .single()
   if (error) return { error: error.message }
+  await logAudit(null, orgId, null, 'speaker.create', 'speaker', data.id,
+    { name: data.name, show_email_publicly: data.show_email_publicly, via: 'embedded', ghl_user_email: ghlUserEmail }, { eventId })
   return { data }
 }
 
@@ -126,7 +132,7 @@ export async function embedUpdateSpeaker(
   speakerId: string,
   patch: unknown,
 ) {
-  const { db, orgId } = await resolveEmbedContext()
+  const { db, orgId, ghlUserEmail } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
   const parsed = SpeakerInputSchema.partial().safeParse(patch)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
@@ -138,7 +144,32 @@ export async function embedUpdateSpeaker(
     .select()
     .single()
   if (error) return { error: error.message }
+  if (parsed.data.show_email_publicly !== undefined) {
+    await logAudit(null, orgId, null, 'speaker.email_visibility', 'speaker', speakerId,
+      { show_email_publicly: parsed.data.show_email_publicly, by: 'organizer', via: 'embedded', ghl_user_email: ghlUserEmail }, { eventId })
+  }
   return { data }
+}
+
+// R91 per-row switch on the embedded speakers list. Same authority as every
+// other embedded speaker write (the GHL location is linked to this event's
+// org); writes only that one column on that event's speaker, audit-logged
+// with the GHL user's email.
+export async function embedSetSpeakerEmailVisibility(eventId: string, speakerId: string, show: boolean) {
+  if (typeof show !== 'boolean') return { error: 'Invalid response' }
+  const { db, orgId, ghlUserEmail } = await resolveEmbedContext()
+  await assertEventOwnership(db, eventId, orgId)
+  const { data: updated, error } = await db
+    .from('speakers')
+    .update({ show_email_publicly: show })
+    .eq('id', speakerId)
+    .eq('event_id', eventId)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!updated?.length) return { error: 'Speaker not found' }
+  await logAudit(null, orgId, null, 'speaker.email_visibility', 'speaker', speakerId,
+    { show_email_publicly: show, by: 'organizer', via: 'embedded', ghl_user_email: ghlUserEmail }, { eventId })
+  return { ok: true as const }
 }
 
 export async function embedDeleteSpeaker(eventId: string, speakerId: string) {

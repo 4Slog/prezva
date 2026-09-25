@@ -10,6 +10,7 @@ import { catchPermission } from '@/lib/auth/permission-error'
 import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
 import { resolveSpeakerLink, SPEAKER_LINK_EXPIRED_MESSAGE } from '@/lib/speaker/speaker-link'
 import { escapeHtml } from '@/trigger/lib/escape'
+import { logAudit } from '@/lib/audit/log'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
 
@@ -20,6 +21,7 @@ export async function createSpeaker(eventId: string, input: {
   company?: string
   bio?: string
   event_role?: string
+  show_email_publicly?: boolean
 }) {
   const admin = createAdminClient()
   const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).single()
@@ -36,13 +38,63 @@ export async function createSpeaker(eventId: string, input: {
       company: input.company || null,
       bio: input.bio || null,
       event_role: input.event_role ?? 'speaker',
+      // R91: off unless the organizer ticks it.
+      show_email_publicly: input.show_email_publicly === true,
       status: 'invited',
       sort_order: 0,
     })
-    .select('id, name, email, status')
+    .select('id, name, email, status, show_email_publicly')
     .single()
   if (error) return { error: error.message }
+  await logAudit(null, event.org_id, user.id, 'speaker.create', 'speaker', data.id,
+    { name: data.name, show_email_publicly: data.show_email_publicly }, { eventId })
   return { data }
+}
+
+// ── R91: the public-email switch ──────────────────────────────────────────────
+// Off by default. The speaker (portal link) and organizers with speakers.manage
+// can both flip it (R91); every change is audit-logged with who made it. When on, the public speaker pages (/e/[slug]/speakers and
+// /speakers/[id]) show the email, merged in server-side — the column itself
+// stays service-only (0158). Never shown on agenda or session views (E-R3).
+
+// The speaker, from their portal link: an unknown or expired link is refused,
+// and only that link's own row is written.
+export async function setSpeakerEmailVisibility(token: string, show: boolean) {
+  if (typeof show !== 'boolean') return { error: 'Invalid response' }
+  const sp = await speakerForAnswer(token)
+  if ('error' in sp) return { error: sp.error }
+  const { data: updated, error } = await createAdminClient()
+    .from('speakers')
+    .update({ show_email_publicly: show })
+    .eq('id', sp.id)
+    .eq('event_id', sp.event_id)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!updated?.length) return { error: 'Invitation not found' }
+  await logAudit(null, null, null, 'speaker.email_visibility', 'speaker', sp.id,
+    { show_email_publicly: show, by: 'speaker' }, { eventId: sp.event_id })
+  return { ok: true as const }
+}
+
+// An organizer with speakers.manage on the event's org.
+export async function setSpeakerEmailVisibilityAsOrganizer(eventId: string, speakerId: string, show: boolean) {
+  if (typeof show !== 'boolean') return { error: 'Invalid response' }
+  const user = await requireUser()
+  const admin = createAdminClient()
+  const { data: event } = await admin.from('events').select('org_id').eq('id', eventId).maybeSingle()
+  if (!event) return { error: 'Event not found' }
+  try { await assertPermission(event.org_id, user.id, 'speakers.manage') } catch (e) { return catchPermission(e) }
+  const { data: updated, error } = await admin
+    .from('speakers')
+    .update({ show_email_publicly: show })
+    .eq('id', speakerId)
+    .eq('event_id', eventId)
+    .select('id')
+  if (error) return { error: error.message }
+  if (!updated?.length) return { error: 'Speaker not found' }
+  await logAudit(null, event.org_id, user.id, 'speaker.email_visibility', 'speaker', speakerId,
+    { show_email_publicly: show, by: 'organizer' }, { eventId })
+  return { ok: true as const }
 }
 
 // Portal token -> { event_id, speaker_id } for the portal, the handout
