@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getPublicEvent, getPublicAgenda } from '@/lib/public/actions'
+import { getPublicEvent, getPublicAgenda, getBookmarks } from '@/lib/public/actions'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -33,16 +33,21 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
 
   let userId: string | null = null
   let registrationId: string | null = null
+  let initialBookmarks: string[] = []
   if (identity.type === 'user') {
     userId = identity.userId
     const supabase = await createClient()
-    const { data: reg } = await supabase
-      .from('registrations')
-      .select('id')
-      .eq('event_id', event.id)
-      .eq('user_id', identity.userId)
-      .eq('status', 'confirmed')
-      .maybeSingle()
+    const [bookmarked, { data: reg }] = await Promise.all([
+      getBookmarks(identity.userId, event.id),
+      supabase
+        .from('registrations')
+        .select('id')
+        .eq('event_id', event.id)
+        .eq('user_id', identity.userId)
+        .eq('status', 'confirmed')
+        .maybeSingle(),
+    ])
+    initialBookmarks = bookmarked
     registrationId = reg?.id ?? null
   } else if (identity.type === 'registration' && identity.eventId === event.id) {
     registrationId = identity.registrationId
@@ -57,7 +62,7 @@ export default async function PublicAgendaPage({ params }: { params: Promise<{ s
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
-        <AgendaClient sessions={sessions} eventId={event.id} userId={userId} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={requireEventTimezone((event as any).timezone)} registrationId={registrationId} />
+        <AgendaClient sessions={sessions} eventId={event.id} userId={userId} handoutsBySession={handoutsBySession} eventSlug={slug} timezone={requireEventTimezone((event as any).timezone)} registrationId={registrationId} initialBookmarks={initialBookmarks} />
       </div>
     </div>
   )

@@ -1,42 +1,35 @@
-import { createClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/auth/get-user'
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { requireUser } from '@/lib/auth/get-user'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { buildGdprExport } from '@/lib/gdpr/export'
 
+// E-R4: everything Prezva holds about the signed-in person, matched by their
+// user id and — only once confirmed — their auth email (guest registrations,
+// speaker/volunteer rows). A failed query fails the export rather than
+// returning a file that silently omits data.
 export async function GET() {
   const user = await requireUser()
-  const supabase = await createClient()
+  const verifiedEmail = user.email && user.email_confirmed_at ? user.email.trim().toLowerCase() : null
 
-  const [regsResult, messagesResult, surveyResult] = await Promise.all([
-    supabase
-      .from('registrations')
-      .select('id, event_id, ticket_type_id, status, amount_paid_cents, created_at, check_ins(checked_in_at)')
-      .eq('attendee_email', user.email ?? ''),
-    supabase
-      .from('messages')
-      .select('id, event_id, content, created_at')
-      .eq('sender_id', user.id),
-    supabase
-      .from('survey_responses')
-      .select('id, survey_id, created_at, survey_answers(question_id, answer_text)')
-      .eq('user_id', user.id),
-  ])
-
-  const exportData = {
-    exported_at: new Date().toISOString(),
-    account: {
-      id: user.id,
-      email: user.email,
-    },
-    registrations: regsResult.data ?? [],
-    messages: messagesResult.data ?? [],
-    survey_responses: surveyResult.data ?? [],
+  try {
+    const data = await buildGdprExport(createAdminClient() as unknown as SupabaseClient, {
+      userId: user.id,
+      email: verifiedEmail,
+    })
+    return new NextResponse(JSON.stringify(data, null, 2), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename="prezva-data-export-${Date.now()}.json"`,
+        'Cache-Control': 'no-store',
+      },
+    })
+  } catch (e) {
+    console.error('[gdpr export] failed', (e as Error).message)
+    return NextResponse.json(
+      { error: 'Your data export could not be completed. Please try again, or contact support if it keeps failing.' },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
+    )
   }
-
-  return new NextResponse(JSON.stringify(exportData, null, 2), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="prezva-data-export-${Date.now()}.json"`,
-    },
-  })
 }

@@ -25,12 +25,13 @@ export async function GET(
 
   const admin = createAdminClient()
 
-  const [{ data: bookmarks }, { data: event }] = await Promise.all([
+  // session_bookmarks has no event_id: the event comes through the session.
+  const [{ data: bookmarks, error: bookmarksError }, { data: event, error: eventError }] = await Promise.all([
     admin
       .from('session_bookmarks')
-      .select('session_id')
+      .select('session_id, sessions!inner(event_id)')
       .eq('user_id', userId)
-      .eq('event_id', id),
+      .eq('sessions.event_id', id),
     admin
       .from('events')
       .select('title, slug, timezone, venue_name, venue_city')
@@ -38,6 +39,10 @@ export async function GET(
       .maybeSingle(),
   ])
 
+  if (bookmarksError || eventError) {
+    console.error('[my-agenda.ics] read failed', bookmarksError?.message ?? eventError?.message)
+    return new NextResponse('Could not build your calendar. Please try again.', { status: 500 })
+  }
   if (!event) return new NextResponse('Not found', { status: 404 })
 
   const sessionIds = (bookmarks ?? []).map((b: any) => b.session_id)
@@ -47,11 +52,17 @@ export async function GET(
     })
   }
 
-  const { data: sessions } = await admin
+  const { data: sessions, error: sessionsError } = await admin
     .from('sessions')
     .select('id, title, description, starts_at, ends_at, rooms(name), session_speakers(speakers(name))')
     .in('id', sessionIds)
+    .eq('event_id', id)
+    .eq('is_published', true)
     .order('starts_at', { ascending: true })
+  if (sessionsError) {
+    console.error('[my-agenda.ics] sessions read failed', sessionsError.message)
+    return new NextResponse('Could not build your calendar. Please try again.', { status: 500 })
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 

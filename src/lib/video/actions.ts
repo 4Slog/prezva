@@ -14,6 +14,7 @@ import {
 } from '@/lib/video/mux'
 import { createRoom } from '@/lib/video/livekit'
 import { createNotification } from '@/lib/notifications/create-notification'
+import { videoDisplayName } from '@/lib/video/display-name'
 
 export async function enableSessionLivestream(sessionId: string, eventSlug: string) {
   let access: Awaited<ReturnType<typeof requireEventOrgAccess>>
@@ -150,17 +151,7 @@ export async function createOneOnOneRoom(
   const meetUrl = `/e/${eventSlug}/meet/${targetRegistrationId}`
 
   if (targetRegData.user_id) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, full_name')
-      .eq('id', user.id)
-      .maybeSingle()
-    const displayName =
-      (profile as { display_name?: string; full_name?: string } | null)?.display_name ||
-      (profile as { display_name?: string; full_name?: string } | null)?.full_name ||
-      user.email ||
-      user.id
-
+    const displayName = await videoDisplayName(supabase, user.id)
     // TODO: wire web push when vapid keys confirmed
     // Best-effort: room creation succeeds regardless; the failure is logged.
     const { error: notifyError } = await createNotification(

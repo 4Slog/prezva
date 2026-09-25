@@ -1,7 +1,7 @@
 'use client'
 import { useState, useTransition, useEffect, useRef } from 'react'
 import { Bookmark, BookmarkCheck, CheckCircle2 } from 'lucide-react'
-import { toggleBookmark } from '@/lib/public/bookmark-actions'
+import { setBookmark } from '@/lib/public/bookmark-actions'
 import { markSessionAttendance } from '@/lib/checkin/session-checkin-actions'
 import { submitVote } from '@/lib/engagement/poll-actions'
 import { createCommunityPost, getCommunityPosts } from '@/lib/networking/sprint8-actions'
@@ -26,6 +26,8 @@ type AgendaClientProps = {
   eventSlug?: string
   timezone?: string
   registrationId?: string | null
+  /** Session ids this user has bookmarked (own rows via RLS). */
+  initialBookmarks?: string[]
 }
 
 type LivePoll = {
@@ -203,8 +205,11 @@ function SessionDiscussionPanel({ sessionId, eventId, eventSlug, userId }: { ses
   )
 }
 
-export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '', timezone = 'UTC', registrationId = null }: AgendaClientProps) {
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
+export default function AgendaClient({ sessions, eventId, userId, handoutsBySession = {}, eventSlug = '', timezone = 'UTC', registrationId = null, initialBookmarks = [] }: AgendaClientProps) {
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() => new Set(initialBookmarks))
+  const [bookmarkError, setBookmarkError] = useState('')
+  // Per-session request counter: only the newest click's result is applied.
+  const bookmarkSeq = useRef<Record<string, number>>({})
   const [, startTransition] = useTransition()
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
@@ -256,14 +261,29 @@ export default function AgendaClient({ sessions, eventId, userId, handoutsBySess
 
   function handleBookmark(sessionId: string) {
     if (!userId) { setShowLoginPrompt(true); return }
-    setBookmarks(prev => { const n = new Set(prev); if (n.has(sessionId)) { n.delete(sessionId) } else { n.add(sessionId) } return n })
-    startTransition(() => { toggleBookmark(userId, eventId, sessionId) })
+    const wasOn = bookmarks.has(sessionId)
+    const want = !wasOn
+    const set = (on: boolean) => setBookmarks(prev => { const n = new Set(prev); if (on) n.add(sessionId); else n.delete(sessionId); return n })
+    const seq = (bookmarkSeq.current[sessionId] ?? 0) + 1
+    bookmarkSeq.current[sessionId] = seq
+    set(want)
+    setBookmarkError('')
+    startTransition(async () => {
+      let result: { bookmarked: boolean } | { error: string }
+      try { result = await setBookmark(sessionId, want) } catch { result = { error: 'Could not update your bookmark. Please try again.' } }
+      if (bookmarkSeq.current[sessionId] !== seq) return // a newer click owns this session
+      if ('error' in result) { set(wasOn); setBookmarkError(result.error) }
+      else set(result.bookmarked)
+    })
   }
   if (sessions.length === 0) return (
     <p style={{ color:'var(--pz-muted)', textAlign:'center', padding:'3rem 0' }}>No sessions published yet.</p>
   )
   return (
     <div>
+      {bookmarkError && (
+        <p role="alert" style={{ marginBottom: 12, fontSize: 13, color: 'var(--pz-error)' }}>{bookmarkError}</p>
+      )}
       {showLoginPrompt && (
         <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--pz-teal-bg)', border: '1px solid var(--pz-teal)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <span style={{ fontSize: 13, color: 'var(--pz-text)' }}>Sign in to bookmark sessions</span>

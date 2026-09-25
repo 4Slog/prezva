@@ -6,6 +6,7 @@ import { checkEligibility } from '@/lib/certificates/eligibility'
 import Link from 'next/link'
 import { Radio } from 'lucide-react'
 import LivePageClient from './LivePageClient'
+import { videoDisplayName } from '@/lib/video/display-name'
 
 type Props = {
   params: Promise<{ slug: string; sessionId: string }>
@@ -87,17 +88,7 @@ export default async function LiveSessionPage({ params }: Props) {
     .maybeSingle()
   const isOrganizer = !!orgMember
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, display_name')
-    .eq('id', userId)
-    .maybeSingle()
-
-  const displayName =
-    (profile as any)?.display_name ||
-    (profile as any)?.full_name ||
-    userId
-
+  const displayName = await videoDisplayName(supabase, userId)
   const isLive = !!session.mux_stream_id
 
   // Server-side gate: only expose mux_asset_playback_id when the requester is entitled.

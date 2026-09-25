@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/auth/get-user'
 import { generateToken } from '@/lib/video/livekit'
+import { videoDisplayName } from '@/lib/video/display-name'
 
 export async function POST(req: NextRequest) {
   const user = await getUser()
@@ -46,18 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No confirmed registration' }, { status: 403 })
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, display_name')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const displayName =
-    (profile as { full_name?: string; display_name?: string } | null)?.display_name ||
-    (profile as { full_name?: string; display_name?: string } | null)?.full_name ||
-    user.email ||
-    user.id
-
+  const displayName = await videoDisplayName(supabase, user.id)
   const { data: membership } = await supabase
     .from('org_members')
     .select('id')

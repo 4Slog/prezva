@@ -6,6 +6,7 @@ import Link from 'next/link'
 import LiveRoom from '@/components/video/LiveRoom'
 import { Avatar } from '@/components/identity/Avatar'
 import { HandleTag } from '@/components/identity/HandleTag'
+import { videoDisplayName } from '@/lib/video/display-name'
 
 type Props = {
   params: Promise<{ slug: string; inviteId: string }>
@@ -65,19 +66,9 @@ export default async function MeetPage({ params }: Props) {
     console.error('[video] createRoom on meet page:', err),
   )
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, full_name')
-    .eq('id', user.id)
-    .maybeSingle()
-  const displayName =
-    (profile as { display_name?: string; full_name?: string } | null)?.display_name ||
-    (profile as { display_name?: string; full_name?: string } | null)?.full_name ||
-    user.email ||
-    user.id
-
+  const displayName = await videoDisplayName(supabase, user.id)
   // Mint a fresh token server-side — passed to LiveRoom via RSC props, never in a URL or log
-  const token = await generateToken(roomName, user.id, displayName as string, true)
+  const token = await generateToken(roomName, user.id, displayName, true)
 
   return (
     <div style={{
@@ -137,7 +128,7 @@ export default async function MeetPage({ params }: Props) {
         <LiveRoom
           roomName={roomName}
           directToken={token}
-          participantName={displayName as string}
+          participantName={displayName}
           isOrganizer={true}
         />
       </div>

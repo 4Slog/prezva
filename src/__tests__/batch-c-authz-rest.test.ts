@@ -45,7 +45,11 @@ beforeEach(() => {
       { id: 'e1', org_id: 'orgA', slug: 'ev-a', title: 'A' },
       { id: 'e2', org_id: 'orgB', slug: 'ev-b', title: 'B' },
     ],
-    sessions: [{ id: 's-a', event_id: 'e1' }, { id: 's-b', event_id: 'e2' }],
+    sessions: [
+      { id: 's-a', event_id: 'e1', is_published: true, title: 'Opening', starts_at: '2026-10-01T14:00:00Z', ends_at: '2026-10-01T15:00:00Z' },
+      { id: 's-b', event_id: 'e2', is_published: true, title: 'Other', starts_at: '2026-10-01T14:00:00Z', ends_at: '2026-10-01T15:00:00Z' },
+      { id: 's-draft', event_id: 'e1', is_published: false, title: 'Secret draft', starts_at: '2026-10-01T16:00:00Z', ends_at: '2026-10-01T17:00:00Z' },
+    ],
     session_polls: [{ id: 'p-b', session_id: 's-b', event_id: 'e2', options: ['x', 'y'], session_poll_votes: [] }],
     registrations: [
       { id: 'reg-a', event_id: 'e1', qr_code: 'QR-A', status: 'confirmed', user_id: null, attendee_email: 'ann@x.test', sms_opt_in: true, attendee_phone: '+1555' },
@@ -61,7 +65,12 @@ beforeEach(() => {
       { id: 'dl-a', event_id: 'e1', resolved_at: null },
       { id: 'dl-b', event_id: 'e2', resolved_at: null },
     ],
-    session_bookmarks: [{ user_id: 'user-b', event_id: 'e1', session_id: 's-a' }],
+    // Real shape: (user_id, session_id) only; the event is reached through the
+    // sessions!inner embed, which the fake reads from the nested object.
+    session_bookmarks: [
+      { user_id: 'user-b', session_id: 's-a', sessions: { event_id: 'e1' } },
+      { user_id: 'user-b', session_id: 's-draft', sessions: { event_id: 'e1' } },
+    ],
     speakers: [{ id: 'sp-b', event_id: 'e2' }],
     event_sponsors: [{ id: 'spon-b', event_id: 'e2' }],
     org_speakers: [],
@@ -207,6 +216,26 @@ describe('my-agenda calendar', () => {
     h.user = { id: 'user-a' }
     const mine = await (await agendaIcs(new Request('http://x/cal.ics?userId=user-b'), params({ id: 'e1' }))).text()
     expect(mine).not.toContain('VEVENT')
+  })
+
+  it('the owner gets their bookmarked sessions of this event (no bookmarks.event_id)', async () => {
+    h.user = { id: 'user-b' }
+    const res = await agendaIcs(new Request('http://x/cal.ics'), params({ id: 'e1' }))
+    expect(res.status).toBe(200)
+    const ics = await res.text()
+    expect(ics).toContain('SUMMARY:Opening')
+    // A bookmark on a draft session never exposes it.
+    expect(ics).not.toContain('Secret draft')
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1)
+    const bm = h.db.client.from.mock.results.find((_r: any, i: number) => h.db.client.from.mock.calls[i][0] === 'session_bookmarks')!.value
+    expect(bm.eq).not.toHaveBeenCalledWith('event_id', expect.anything())
+    expect(bm.eq).toHaveBeenCalledWith('sessions.event_id', 'e1')
+  })
+
+  it('a bookmark on another event\'s session is not included', async () => {
+    h.user = { id: 'user-b' }
+    const ics = await (await agendaIcs(new Request('http://x/cal.ics'), params({ id: 'e2' }))).text()
+    expect(ics).not.toContain('VEVENT')
   })
 })
 

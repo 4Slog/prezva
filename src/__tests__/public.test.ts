@@ -6,7 +6,6 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { createClient } from '@/lib/supabase/server'
 import { getPublicEvent, getPublicAgenda, getPublicSpeakers, getBookmarks } from '@/lib/public/actions'
-import { toggleBookmark } from '@/lib/public/bookmark-actions'
 
 // A chainable mock where every method returns the chain AND
 // the chain itself is a Promise (resolves to { data, error })
@@ -91,17 +90,5 @@ describe('Public Actions', () => {
   it('getBookmarks returns empty on null', async () => {
     setup(null)
     expect(await getBookmarks('u', 'e')).toEqual([])
-  })
-
-  it('toggleBookmark removes when existing', async () => {
-    const chain = setup({ id: 'bm-1' })
-    chain.maybeSingle.mockResolvedValueOnce({ data: { id: 'bm-1' }, error: null })
-    expect(await toggleBookmark('u', 'e', 's')).toBe('removed')
-  })
-
-  it('toggleBookmark adds when not existing', async () => {
-    const chain = setup(null)
-    chain.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
-    expect(await toggleBookmark('u', 'e', 's')).toBe('added')
   })
 })
