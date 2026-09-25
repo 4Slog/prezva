@@ -28,8 +28,6 @@ interface Event {
   venue_city: string | null
   venue_state: string | null
   organizations: { name: string } | null
-  registration_invite_code?: string | null
-  registration_domain_restrict?: string | null
 }
 
 interface FormField {
@@ -46,6 +44,8 @@ interface RegisterPageClientProps {
   tickets: TicketType[]
   formFields?: FormField[]
   paymentsEnabled?: boolean
+  /** O147: the page learns only whether a code is required, never the code. */
+  requiresInviteCode?: boolean
 }
 
 function fmtPrice(cents: number, currency: string) {
@@ -62,7 +62,7 @@ function fmtDate(iso: string, tz: string) {
   })
 }
 
-export function RegisterPageClient({ event, tickets, formFields = [], paymentsEnabled = true }: RegisterPageClientProps) {
+export function RegisterPageClient({ event, tickets, formFields = [], paymentsEnabled = true, requiresInviteCode = false }: RegisterPageClientProps) {
   // Paid tickets are unavailable if the organizer's Stripe Connect is not ready
   function isPayable(t: TicketType) {
     return t.price_cents === 0 || paymentsEnabled
@@ -399,7 +399,7 @@ export function RegisterPageClient({ event, tickets, formFields = [], paymentsEn
             </div>
 
             {/* Invite code field if required */}
-            {event.registration_invite_code && (
+            {requiresInviteCode && (
               <Field label="Invite code" htmlFor="reg-invite-code" required helper="This event requires an invite code to register.">
                 <input
                   id="reg-invite-code"

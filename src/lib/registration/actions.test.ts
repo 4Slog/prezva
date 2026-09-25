@@ -140,6 +140,49 @@ describe('startRegistration — lane-scoped entitlement gate (GE-8 hardening)', 
   })
 })
 
+// ── O147: the invite code is read server-side, never through the user client ──
+
+describe('startRegistration — invite code (O147)', () => {
+  const TICKET = { id: TICKET_ID, event_id: EVENT_ID, is_active: true, sale_starts_at: null, sale_ends_at: null, price_cents: 0, type: 'free' }
+  function setup(invite: { data: any; error: any }) {
+    serverFromImpl = (table) => {
+      if (table === 'events') return makeChain({ maybeSingle: { data: BASE_EVENT, error: null } })
+      if (table === 'ticket_types') return makeChain({ maybeSingle: { data: TICKET, error: null } })
+      return makeChain()
+    }
+    adminFromImpl = (table) => {
+      if (table === 'events') return makeChain({ maybeSingle: invite })
+      return makeChain()
+    }
+  }
+  const INVITE_ERR = 'An invite code is required to register for this event.'
+
+  it('the user-client event read never names the invite code', async () => {
+    setup({ data: { registration_invite_code: null }, error: null })
+    await startRegistration(makeFormData())
+    const eventsChain = serverFrom.mock.results.find((_r, i) => serverFrom.mock.calls[i][0] === 'events')!.value
+    expect(String(eventsChain.select.mock.calls[0][0])).not.toContain('registration_invite_code')
+  })
+
+  it('refuses a missing or wrong code', async () => {
+    setup({ data: { registration_invite_code: 'CIVITAS' }, error: null })
+    expect(await startRegistration(makeFormData())).toEqual({ error: INVITE_ERR })
+    const fd = makeFormData(); fd.set('invite_code', 'nope')
+    expect(await startRegistration(fd)).toEqual({ error: INVITE_ERR })
+  })
+
+  it('accepts the right code in any case and gets past the check', async () => {
+    setup({ data: { registration_invite_code: 'CIVITAS' }, error: null })
+    const fd = makeFormData(); fd.set('invite_code', ' civitas ')
+    expect(await startRegistration(fd)).not.toEqual({ error: INVITE_ERR })
+  })
+
+  it('fails closed when the code cannot be read', async () => {
+    setup({ data: null, error: { message: 'boom' } })
+    expect(await startRegistration(makeFormData())).toEqual({ error: 'Could not load this event. Please try again.' })
+  })
+})
+
 // ── createRegistrationFromExternalPayment: idempotency (R55 Batch 2) ──────────
 
 describe('createRegistrationFromExternalPayment — external_order_id idempotency', () => {

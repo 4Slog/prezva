@@ -3,11 +3,30 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
+import { withSpeakerEmails } from '@/lib/speaker/speaker-emails'
+import { readEventInviteCode } from '@/lib/events/invite-code'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { requireEventTimezone, zonedInputToIso } from '@/lib/datetime/zoned-input'
 import { resolveCreateTimes } from '@/lib/events/event-times'
 import { EVENT_COLUMNS, SESSION_COLUMNS, SPEAKER_COLUMNS } from '@/lib/db/public-columns'
+import { randomInt } from 'node:crypto'
+
+// E-R2: a copy of an invite-only event is invite-only too, with its own new
+// code — the source's code is never carried over. No 0/O/1/I/L.
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+function freshInviteCode(): string {
+  let code = ''
+  for (let i = 0; i < 10; i++) code += INVITE_ALPHABET[randomInt(INVITE_ALPHABET.length)]
+  return code
+}
+
+// registration_invite_code is service-only (0158); callers authorize first.
+async function sourceRequiresInviteCode(eventId: string): Promise<{ required: boolean } | { error: string }> {
+  const res = await readEventInviteCode(eventId)
+  if ('error' in res) return { error: `Could not read the source event: ${res.error}` }
+  return { required: res.code !== null }
+}
 
 // ── T-088: Agenda CSV import ──────────────────────────────────────────────────
 
@@ -106,8 +125,9 @@ export async function importAgendaFromCsv(eventId: string, rows: Record<string, 
 
 // ── T-119: Clone event ────────────────────────────────────────────────────────
 
-export async function cloneEvent(eventId: string, newTitle: string, newSlug: string) {
+export async function cloneEvent(eventId: string, newTitle: string, newSlug: string): Promise<{ error?: string; id?: string; slug?: string }> {
   const supabase = await createClient()
+  const user = await requireUser()
 
   const { data: sourceEvent } = await supabase
     .from('events')
@@ -115,6 +135,18 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
     .eq('id', eventId)
     .single()
   if (!sourceEvent) return { error: 'Event not found' }
+
+  // The copy reads service-only columns (invite code, speaker email) with the
+  // admin client, so the caller must be able to create events in this org.
+  try { await assertPermission((sourceEvent as any).org_id, user.id, 'event.manage') } catch (e) { return catchPermission(e) }
+  const invite = await sourceRequiresInviteCode(eventId)
+  if ('error' in invite) return { error: invite.error }
+  // Speaker email is service-only, merged in after the permission check —
+  // loaded before anything is written so a failure leaves no partial copy.
+  const { data: speakerRows, error: speakerErr } = await supabase.from('speakers').select(SPEAKER_COLUMNS).eq('event_id', eventId)
+  if (speakerErr) return { error: `Could not read the source speakers: ${speakerErr.message}` }
+  let speakers: Array<Record<string, unknown> & { id: string }>
+  try { speakers = await withSpeakerEmails(eventId, speakerRows ?? []) } catch (e) { return { error: (e as Error).message } }
 
   // Create new event
   const { data: newEvent, error: evError } = await supabase
@@ -149,6 +181,7 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
       pass_fees_to_registrant: (sourceEvent as any).pass_fees_to_registrant,
       ...((sourceEvent as any).leaderboard_point_config ? { leaderboard_point_config: (sourceEvent as any).leaderboard_point_config } : {}),
       parent_event_id: eventId,
+      registration_invite_code: invite.required ? freshInviteCode() : null,
       status: 'draft',
     })
     .select('id')
@@ -166,10 +199,9 @@ export async function cloneEvent(eventId: string, newTitle: string, newSlug: str
   }
 
   // Clone speakers
-  const { data: speakers } = await supabase.from('speakers').select(SPEAKER_COLUMNS).eq('event_id', eventId)
-  if ((speakers ?? []).length > 0) {
+  if (speakers.length > 0) {
     await supabase.from('speakers').insert(
-      (speakers as any[]).map(s => ({ ...s, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined, status: 'invited', confirmed_at: null }))
+      speakers.map(s => ({ ...s, id: undefined, event_id: newEventId, created_at: undefined, updated_at: undefined, status: 'invited', confirmed_at: null }))
     )
   }
 
@@ -198,7 +230,11 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
 
   const { data: sessions } = await supabase.from('sessions').select(SESSION_COLUMNS).eq('event_id', eventId)
   const { data: tickets } = await supabase.from('ticket_types').select('*').eq('event_id', eventId)
-  const { data: speakers } = await supabase.from('speakers').select('name, email, bio, job_title, company').eq('event_id', eventId)
+  // speakers.email is service-only (0158); membership was checked above.
+  const { data: speakers, error: speakerErr } = await createAdminClient().from('speakers').select('name, email, bio, job_title, company').eq('event_id', eventId)
+  if (speakerErr) return { error: `Could not read speakers: ${speakerErr.message}` }
+  const invite = await sourceRequiresInviteCode(eventId)
+  if ('error' in invite) return { error: invite.error }
 
   const ev = event as any
   const templateData = {
@@ -230,6 +266,8 @@ export async function saveEventAsTemplate(eventId: string, name: string, descrip
       certificate_min_session_attendance_pct: ev.certificate_min_session_attendance_pct,
       leaderboard_point_config: ev.leaderboard_point_config,
       pass_fees_to_registrant: ev.pass_fees_to_registrant,
+      // E-R2: whether it was invite-only, never the code itself.
+      requires_invite_code: invite.required,
     },
     sessions: (sessions ?? []) as any[],
     tickets: (tickets ?? []) as any[],
@@ -326,6 +364,7 @@ export async function createEventFromTemplate(
     speaker_form_schema: ev.speaker_form_schema ?? [],
     pass_fees_to_registrant: ev.pass_fees_to_registrant ?? false,
     ...(ev.leaderboard_point_config ? { leaderboard_point_config: ev.leaderboard_point_config } : {}),
+    registration_invite_code: ev.requires_invite_code ? freshInviteCode() : null,
     status: 'draft',
   }).select('id').single()
 

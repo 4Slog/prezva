@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/certificate-data'
 import { createClient } from '@/lib/supabase/server'
+import { readEventInviteCode } from '@/lib/events/invite-code'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import { Field } from '@/components/ui/Field'
@@ -31,6 +32,16 @@ export default async function EventSettingsPage({ params }: Props) {
   if (!memberRow) notFound()
   const permSet = await getOrgPermissions((event as any).org_id, user.id)
   const isStaff = !permSet.has('*') && !permSet.has('event.manage')
+
+  // O147: the invite code is service-only. Only someone who can edit the
+  // event settings (event.manage) gets the code; read-only staff learn only
+  // that one is set.
+  const invite = await readEventInviteCode(event.id)
+  const inviteCode = !isStaff && 'code' in invite ? invite.code ?? '' : ''
+  const inviteHidden = isStaff && 'code' in invite && invite.code !== null
+  // Never render the editable field empty on a failed read: saving the
+  // Registration section would then erase the code.
+  if (!isStaff && 'error' in invite) throw new Error('Could not load registration settings. Please reload.')
 
   const { data: integrationRows } = await supabase
     .from('org_integrations')
@@ -241,7 +252,7 @@ export default async function EventSettingsPage({ params }: Props) {
           action={updateEvent.bind(null, event.id, 'registration')}
           resetKey={[
             event.capacity, event.waitlist_enabled, event.require_approval, event.allow_public_attendee_list,
-            (event as any).registration_invite_code, (event as any).registration_domain_restrict,
+            inviteCode, (event as any).registration_domain_restrict,
           ].join('|')}
           className="flex flex-col gap-4"
         >
@@ -285,8 +296,8 @@ export default async function EventSettingsPage({ params }: Props) {
               id="cfg-invite"
               name="registration_invite_code"
               type="text"
-              defaultValue={(event as any).registration_invite_code ?? ''}
-              placeholder="e.g. CIVITAS2026 — leave blank for open registration"
+              defaultValue={inviteCode}
+              placeholder={inviteHidden ? 'Invite code set (hidden)' : 'e.g. CIVITAS2026 — leave blank for open registration'}
               className={inputCls}
               maxLength={50}
             />

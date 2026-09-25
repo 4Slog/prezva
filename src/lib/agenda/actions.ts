@@ -44,7 +44,8 @@ export interface Speaker {
   id: string
   event_id: string
   name: string
-  email: string | null
+  /** Service-only (0158): absent on user-client (RLS) reads. */
+  email?: string | null
   bio: string | null
   photo_url: string | null
   job_title: string | null
@@ -236,6 +237,7 @@ const SpeakerSchema = z.object({
   is_published: z.boolean().default(true),
 })
 
+// speakers.email is service-only (0158), so the agenda API returns speakers without it.
 export async function getSpeakers(eventId: string): Promise<Speaker[]> {
   const user = await requireUser()
   const supabase = await createClient()

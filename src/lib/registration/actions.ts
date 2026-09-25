@@ -3,6 +3,7 @@
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { readEventInviteCode } from '@/lib/events/invite-code'
 import { getSessionIdentity } from '@/lib/auth/session-identity'
 import { resolveOwnedRegistration } from '@/lib/auth/owned-registration'
 import { createCheckoutSession } from '@/lib/stripe/checkout'
@@ -116,11 +117,17 @@ export async function startRegistration(formData: FormData) {
   // Load event + ticket
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, registration_invite_code, registration_domain_restrict, organizations(name, email, stripe_account_id)')
+    .select('id, title, slug, status, capacity, registration_count, timezone, start_at, venue_name, venue_city, venue_state, org_id, require_approval, event_type, virtual_url, registration_domain_restrict, organizations(name, email, stripe_account_id)')
     .eq('id', parsed.data.event_id)
     .maybeSingle()
 
   if (!event) return { error: 'Event not found' }
+
+  // O147: the invite code is service-only (0158). The row above is visible to
+  // this caller through RLS, so reading its code server-side reveals nothing.
+  const invite = await readEventInviteCode(event.id)
+  if ('error' in invite) return { error: 'Could not load this event. Please try again.' }
+  const requiredInviteCode = invite.code
   if (!['published', 'live'].includes(event.status)) {
     return { error: 'Registration is not open for this event' }
   }
@@ -161,9 +168,11 @@ export async function startRegistration(formData: FormData) {
 
   // Capacity check — enforce at DB level via trigger, but also check here
   // Per-event invite code check
-  const inviteCode = (parsed.data as any).invite_code as string | undefined
-  if ((event as any).registration_invite_code) {
-    if (!inviteCode || inviteCode.trim().toUpperCase() !== (event as any).registration_invite_code.trim().toUpperCase()) {
+  // Read straight from the form: RegisterSchema has no invite_code key, so
+  // parsed.data never carried it and invite-only registration always failed.
+  const inviteCode = typeof formData.get('invite_code') === 'string' ? (formData.get('invite_code') as string) : undefined
+  if (requiredInviteCode) {
+    if (!inviteCode || inviteCode.trim().toUpperCase() !== requiredInviteCode.toUpperCase()) {
       return { error: 'An invite code is required to register for this event.' }
     }
   }

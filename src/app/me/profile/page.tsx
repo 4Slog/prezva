@@ -1,6 +1,7 @@
 import { requireUser } from '@/lib/auth/get-user'
 import { getUserProfile } from '@/lib/attendees/profile-actions'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProfileClient } from './client'
 
 export default async function MyProfilePage() {
@@ -10,13 +11,18 @@ export default async function MyProfilePage() {
     createClient(),
   ])
 
+  // speakers.email is service-only (0158): match on the caller's own verified
+  // auth email server-side, the way /me does.
+  const userEmail = authUser.email?.toLowerCase() ?? null
   const [{ data: speakerRoles }, { data: volunteerRoles }, { count: eventCount }, { data: handleRow }] = await Promise.all([
-    supabase
-      .from('speakers')
-      .select('id, event_id, event_role, status, events(title, slug, start_at, status)')
-      .eq('email', authUser.email ?? '')
-      .in('status', ['confirmed', 'invited'])
-      .order('created_at', { ascending: false }),
+    userEmail
+      ? createAdminClient()
+          .from('speakers')
+          .select('id, event_id, event_role, status, events(title, slug, start_at, status)')
+          .eq('email', userEmail)
+          .in('status', ['confirmed', 'invited'])
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
     supabase
       .from('volunteers')
       .select('id, event_id, role, status, shift_response, events(title, slug, start_at, status)')

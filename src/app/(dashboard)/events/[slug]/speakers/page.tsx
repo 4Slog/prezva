@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { getOrgPermissions } from '@/lib/auth/assert-permission'
+import { getOrgPermissions, permits } from '@/lib/auth/assert-permission'
 import { SpeakersOrgClient } from './speakers-org-client'
 import { DayOfInfoSection } from './day-of-info-section'
 import { QAModerationClient } from './qa-moderation-client'
@@ -34,7 +34,7 @@ export default async function SpeakersDashboardPage({ params }: Props) {
   const [{ data: speakers }, { data: qaQuestions }, permSet] = await Promise.all([
     supabase
       .from('speakers')
-      .select('id, name, email, bio, photo_url, job_title, company, status, confirmed_at, is_published, decline_reason, checked_in_at')
+      .select('id, name, bio, photo_url, job_title, company, status, confirmed_at, is_published, decline_reason, checked_in_at')
       .eq('event_id', (event as any).id)
       .order('sort_order', { ascending: true }),
     admin
@@ -50,15 +50,25 @@ export default async function SpeakersDashboardPage({ params }: Props) {
 
   // Portal tokens are service-role only (0157). Only an organizer who manages
   // speakers gets them, for the rows RLS already showed, on this event.
+  // Email is service-only too (0158): organizers who can see speakers get it.
+  // One admin read for both, scoped to this event and the rows RLS showed. A
+  // failed read shows the list without them rather than failing the page.
   let speakerRows = (speakers ?? []) as any[]
-  if (permSet.has('speakers.manage') && speakerRows.length > 0) {
-    const { data: tokens } = await admin
+  const canManage = permits(permSet, 'speakers.manage')
+  const canSeeEmail = canManage || permits(permSet, 'speakers.view')
+  if (canSeeEmail && speakerRows.length > 0) {
+    const { data: secret, error: secretErr } = await admin
       .from('speakers')
-      .select('id, confirmation_token')
+      .select('id, email, confirmation_token')
       .eq('event_id', (event as any).id)
       .in('id', speakerRows.map(sp => sp.id))
-    const byId = new Map((tokens ?? []).map(t => [t.id, t.confirmation_token]))
-    speakerRows = speakerRows.map(sp => ({ ...sp, confirmation_token: byId.get(sp.id) ?? null }))
+    if (secretErr) console.error('[speakers page] service-only read failed', secretErr.message)
+    const byId = new Map((secret ?? []).map(r => [r.id, r]))
+    speakerRows = speakerRows.map(sp => ({
+      ...sp,
+      email: byId.get(sp.id)?.email ?? null,
+      ...(canManage ? { confirmation_token: byId.get(sp.id)?.confirmation_token ?? null } : {}),
+    }))
   }
 
   return (

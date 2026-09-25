@@ -30,8 +30,16 @@ describe('0157 migration', () => {
   const sql = readFileSync(join(process.cwd(), 'supabase/migrations/0157_close_public_token_columns.sql'), 'utf-8')
     .replace(/--.*$/gm, '')
 
-  it('covers every secret column of every table', () => {
-    for (const [table, cols] of Object.entries(SECRET_TOKEN_COLUMNS)) {
+  // 0158 closes the rest of SECRET_TOKEN_COLUMNS (invite code, creator and
+  // speaker email).
+  const CLOSED_BY_0157 = {
+    events: ['mc_token', 'lobby_token'],
+    sessions: ['session_qr_token'],
+    speakers: ['confirmation_token', 'portal_token_expires_at'],
+    event_sponsors: ['portal_access_token'],
+  }
+  it('covers every bearer-token column of every table', () => {
+    for (const [table, cols] of Object.entries(CLOSED_BY_0157)) {
       expect(sql).toContain(`('${table}',`)
       for (const c of cols) expect(sql).toContain(`'${c}'`)
     }
@@ -56,7 +64,10 @@ describe('0157 migration', () => {
 
 // Static guard: a user client (createClient from supabase/server or
 // supabase/client) reading one of these tables must name its columns — '*',
-// a bare .select() after a write, or a secret column now fails in production.
+// a bare .select() after a write, or a service-only column now fails in
+// production. Checked per table (speakers.email is service-only,
+// organizations.email is not), including embeds of these tables from any
+// user-client chain.
 describe('no user-client wildcard or secret read on token tables', () => {
   function files(dir: string): string[] {
     return readdirSync(dir).flatMap(name => {
@@ -72,22 +83,41 @@ describe('no user-client wildcard or secret read on token tables', () => {
     const last = assigns.at(-1)?.[1] ?? ''
     return /(?:^|\W)createClient\(/.test(last)
   }
+  const SECRET_OF = SECRET_TOKEN_COLUMNS as unknown as Record<string, readonly string[]>
+  const hasSecret = (table: string, text: string) =>
+    SECRET_OF[table].some(c => new RegExp(`(?<![\\w.])${c}\\b`).test(text))
+  // The top level of a select string, with embedded "rel(...)" groups removed.
+  const topLevel = (sel: string) => { let prev; do { prev = sel; sel = sel.replace(/[\w!:]+\s*\([^()]*\)/g, '') } while (sel !== prev); return sel }
+  const EMBED = new RegExp(`(?<![\\w.])(${TABLES.join('|')})(?:!\\w+)?\\s*\\(([^()]*)\\)`, 'g')
 
   it('finds none', () => {
     const hits: string[] = []
-    const secret = new RegExp(`\\b(${SECRETS.join('|')})\\b`)
     for (const f of files(join(process.cwd(), 'src'))) {
       const src = readFileSync(f, 'utf-8')
       if (!/supabase\/(server|client)'/.test(src)) continue
-      const re = new RegExp(`([A-Za-z_$][\\w$]*)\\s*\\.from\\(\\s*'(${TABLES.join('|')})'\\s*\\)`, 'g')
-      for (const m of src.matchAll(re)) {
+      for (const m of src.matchAll(/([A-Za-z_$][\w$]*)\s*\.from\(\s*'(\w+)'\s*\)/g)) {
         if (!userVar(src, m[1], m.index!)) continue
+        const table = m[2]
         const rest = src.slice(m.index! + m[0].length)
         const end = rest.search(/\n\s*\n|;\s*\n|\.from\(/)
         const chain = end === -1 ? rest : rest.slice(0, end)
         const line = src.slice(0, m.index).split('\n').length
-        if (/\.select\(\s*['`]\s*\*/.test(chain) || /\.select\(\s*\)/.test(chain) || secret.test(chain)) {
-          hits.push(`${f.replace(process.cwd() + '/', '')}:${line}`)
+        const where = `${f.replace(process.cwd() + '/', '')}:${line}`
+        if (TABLES.includes(table)) {
+          // Filters and orderings name columns as their first string argument
+          // (.eq('email', …), .order(…), .or('email.eq.…')); insert/update
+          // payloads may still write these columns — only SELECT is revoked.
+          const filterArgs = [...chain.matchAll(/\.(?!select\b)\w+\(\s*([`'"])([\s\S]*?)\1/g)].map(x => x[2]).join(' ')
+          const selects = [...chain.matchAll(/\.select\(\s*([`'"])([\s\S]*?)\1\s*\)/g)].map(x => x[2])
+          if (/\.select\(\s*['`]\s*\*/.test(chain) || /\.select\(\s*\)/.test(chain)
+            || selects.some(sel => hasSecret(table, topLevel(sel)))
+            || hasSecret(table, filterArgs)) {
+            hits.push(where)
+            continue
+          }
+        }
+        for (const e of chain.matchAll(EMBED)) {
+          if (e[2].trim() === '*' || hasSecret(e[1], e[2])) { hits.push(`${where} (embed ${e[1]})`); break }
         }
       }
     }
