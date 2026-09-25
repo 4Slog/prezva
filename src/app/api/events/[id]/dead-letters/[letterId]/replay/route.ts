@@ -3,33 +3,39 @@ import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { assertPermission } from '@/lib/auth/assert-permission'
 
+// Same shape as ../resolve: the item's event comes from the item row (an item
+// with no event is refused); the caller needs failed_jobs.manage on that
+// event's org; the URL's event (id or slug — the dashboard sends the slug)
+// must be that same event.
+//
+// No job type can be re-run from here yet. The old check_in_sync "replay"
+// self-POSTed a payload the check-in route always rejected and then reported
+// "Replay attempted" — a fake success. Every type now gets an honest 422 and
+// the item is left untouched; add a real handler per type when one exists.
+
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string; letterId: string }> }
 ) {
   const user = await requireUser()
-  const { id: eventId, letterId } = await params
+  const { id: eventRef, letterId } = await params
   const admin = createAdminClient()
 
-  // Verify the dead-letter item belongs to the event in the URL.
   const { data: item } = await admin
     .from('dead_letter_items')
-    .select('*')
+    .select('id, type, event_id')
     .eq('id', letterId)
     .maybeSingle()
+  if (!item?.event_id) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
-  if (item.event_id && item.event_id !== eventId) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  // Require org staff+ on the event before allowing replay.
   const { data: event } = await admin
     .from('events')
-    .select('org_id')
-    .eq('id', eventId)
+    .select('id, slug, org_id')
+    .eq('id', item.event_id)
     .maybeSingle()
-  if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!event || (eventRef !== event.id && eventRef !== event.slug)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   try {
     await assertPermission(event.org_id as string, user.id, 'failed_jobs.manage')
@@ -37,28 +43,5 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // For check_in_sync type: re-attempt the sync via the check-in API
-  if (item.type === 'check_in_sync') {
-    const payload = item.payload as { registration_id?: string; event_id?: string }
-    const eventId = item.event_id ?? payload.event_id
-    if (payload.registration_id && eventId) {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/events/${eventId}/checkin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        await admin.from('dead_letter_items').update({ resolved_at: new Date().toISOString() }).eq('id', letterId)
-        return NextResponse.json({ message: 'Replayed and resolved' })
-      }
-    }
-  }
-
-  // Generic: just mark retry_count incremented
-  await admin
-    .from('dead_letter_items')
-    .update({ retry_count: item.retry_count + 1, last_failed_at: new Date().toISOString() })
-    .eq('id', letterId)
-
-  return NextResponse.json({ message: `Replay attempted (type: ${item.type})` })
+  return NextResponse.json({ error: `Replay not supported for ${item.type}` }, { status: 422 })
 }

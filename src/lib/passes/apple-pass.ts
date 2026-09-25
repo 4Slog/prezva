@@ -1,7 +1,7 @@
-'use server'
+import 'server-only'
 
 import { PKPass } from 'passkit-generator'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 function isCertConfigured() {
   return !!(
@@ -17,12 +17,14 @@ function formatDate(iso: string, tz?: string) {
   return new Date(iso).toLocaleDateString('en-US', { timeZone: tz ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
+// Server-only, admin client: callers must authorize first
+// (authorizePassRequest). Not a server action — nothing client-side can call it.
 export async function generateAppleWalletPass(registrationId: string): Promise<{ buffer: Buffer; error?: never } | { error: string; buffer?: never }> {
   if (!isCertConfigured()) {
     return { error: 'Apple Wallet not configured' }
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data: reg } = await supabase
     .from('registrations')
     .select('*, events(title, start_at, end_at, timezone, venue_name, venue_city, venue_state)')

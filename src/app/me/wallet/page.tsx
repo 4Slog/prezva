@@ -145,7 +145,7 @@ function TicketCard({ reg, past, googleWalletEnabled }: { reg: any; past?: boole
           View ticket &amp; QR
         </Link>
 
-        {!past && googleWalletEnabled && (
+        {!past && googleWalletEnabled && reg.status === 'confirmed' && (
           <Link
             href={`/api/passes/google/${reg.id}?t=${encodeURIComponent(reg.qr_code ?? '')}`}
             target="_blank"

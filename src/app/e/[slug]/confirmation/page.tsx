@@ -222,11 +222,12 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
                     🎓 View certificate of attendance
                   </Link>
                 )}
-                {reg && (showAppleWallet || showGoogleWallet) && (
+                {/* Passes are issued only for a confirmed registration (authorizePassRequest). */}
+                {reg && reg.status === 'confirmed' && (showAppleWallet || showGoogleWallet) && (
                   <div className="flex gap-2 justify-center flex-wrap mt-1">
                     {showAppleWallet && (
                       <a
-                        href={`/api/passes/apple/${reg.id}`}
+                        href={`/api/passes/apple/${reg.id}?t=${encodeURIComponent(reg.qr_code ?? '')}`}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--pz-border)] px-3 py-1.5 text-xs text-[var(--pz-muted)] hover:text-[var(--pz-text)] hover:border-[var(--pz-teal)] transition-colors"
                       >
                         Add to Apple Wallet

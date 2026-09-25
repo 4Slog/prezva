@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { escapeHtml } from '@/trigger/lib/escape'
 
 async function validateToken(token: string) {
   const admin = createAdminClient()
@@ -336,7 +337,7 @@ export async function sendSponsorPortalInvite(sponsorId: string) {
   if (!sponsor) return { error: 'Sponsor not found' }
 
   const orgId = (sponsor as any).events?.org_id
-  await assertPermission(orgId, user.id, 'sponsors.manage')
+  try { await assertPermission(orgId, user.id, 'sponsors.manage') } catch (e) { return catchPermission(e) }
 
   const email = (sponsor as any).contact_email
   if (!email) return { error: 'No contact email set for this sponsor. Add one in sponsor settings first.' }
@@ -358,8 +359,8 @@ export async function sendSponsorPortalInvite(sponsorId: string) {
       from: `${orgName} <noreply@prezva.app>`,
       to: email,
       subject: `Your sponsor portal is ready — ${eventTitle}`,
-      html: `<p>Hi ${(sponsor as any).name} team,</p>
-             <p>Your sponsor portal for <strong>${eventTitle}</strong> is ready.</p>
+      html: `<p>Hi ${escapeHtml((sponsor as any).name ?? '')} team,</p>
+             <p>Your sponsor portal for <strong>${escapeHtml(eventTitle)}</strong> is ready.</p>
              <p>Use your portal to:</p>
              <ul>
                <li>Scan attendee badges to capture leads</li>
@@ -367,9 +368,9 @@ export async function sendSponsorPortalInvite(sponsorId: string) {
                <li>Export your lead list as CSV</li>
                <li>View event materials</li>
              </ul>
-             <p><a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#2DD4BF;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Open sponsor portal →</a></p>
+             <p><a href="${escapeHtml(portalUrl)}" style="display:inline-block;padding:12px 24px;background:#2DD4BF;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Open sponsor portal →</a></p>
              <p>Keep this link private — it provides direct access to your portal.</p>
-             <p>— ${orgName}</p>`,
+             <p>— ${escapeHtml(orgName)}</p>`,
     }),
   })
 
