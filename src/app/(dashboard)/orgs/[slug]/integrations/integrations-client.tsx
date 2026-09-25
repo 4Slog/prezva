@@ -8,12 +8,15 @@ interface IntegrationRow {
   statusKey: string
   badge: { label: string; bg: string; color: string }
   isConfigured: boolean
+  isConnectable: boolean
   isConnected: boolean
   lastSyncedAt: string | null
   hasVerifyMembership: boolean
 }
 
 interface IntegrationsClientProps {
+  /** null when the viewer cannot start the GHL flow (it requires org.settings). */
+  ghl: { status: string | null } | null
   sections: { title: string; integrations: IntegrationRow[] }[]
   orgId: string
   orgSlug: string
@@ -30,6 +33,19 @@ function relativeTime(ts: string | null): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h ago`
   return `${Math.floor(hrs / 24)}d ago`
+}
+
+function DisabledAction({ label, title }: { label: string; title: string }) {
+  return (
+    <button
+      disabled
+      className="rounded-lg px-3 py-1.5 text-xs font-semibold opacity-40 cursor-not-allowed"
+      style={{ background: 'var(--pz-border)', color: 'var(--pz-muted)' }}
+      title={title}
+    >
+      {label}
+    </button>
+  )
 }
 
 function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimpListId }: {
@@ -77,24 +93,20 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
           </div>
         </div>
         <div className="flex gap-2 shrink-0 ml-3">
-          {!row.isConnected && (
+          {!row.isConnected && !row.isConnectable && (
+            <DisabledAction label="Not available yet" title="This integration is not available yet" />
+          )}
+          {!row.isConnected && row.isConnectable && (
             row.isConfigured ? (
               <a
-                href={`/api/integrations/${row.provider}/auth?org_id=${orgId}`}
+                href={`/api/integrations/${row.provider}/auth?org_id=${encodeURIComponent(orgId)}&return_to=${encodeURIComponent(`/orgs/${orgSlug}/integrations`)}`}
                 className="rounded-lg px-3 py-1.5 text-xs font-semibold"
                 style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
               >
                 {row.statusKey === 'error' ? 'Reconnect' : 'Connect'}
               </a>
             ) : (
-              <button
-                disabled
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold opacity-40 cursor-not-allowed"
-                style={{ background: 'var(--pz-border)', color: 'var(--pz-muted)' }}
-                title="Integration credentials not yet configured"
-              >
-                Coming soon
-              </button>
+              <DisabledAction label="Coming soon" title="Integration credentials not yet configured" />
             )
           )}
           {row.isConnected && (
@@ -137,9 +149,42 @@ function IntegrationCard({ row, orgId, orgSlug, mailchimpLists, defaultMailchimp
   )
 }
 
-export function IntegrationsClient({ sections, orgId, orgSlug, mailchimpLists, defaultMailchimpListId }: IntegrationsClientProps) {
+// GoHighLevel connects (and reconnects) through its own OAuth flow, which
+// checks org.settings and binds the callback to this browser with a nonce.
+export function ghlConnectHref(orgId: string): string {
+  return `/api/oauth/start?org_id=${encodeURIComponent(orgId)}`
+}
+
+function GhlCard({ status, orgId }: { status: string | null; orgId: string }) {
+  const connected = status === 'connected'
+  return (
+    <div className="pz-card p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-[var(--pz-text)]">GoHighLevel</p>
+          <p className="text-xs text-[var(--pz-muted)] mt-1">{connected ? 'Connected' : status === 'error' ? 'Connection error' : 'Not connected'}</p>
+        </div>
+        <a
+          href={ghlConnectHref(orgId)}
+          className="rounded-lg px-3 py-1.5 text-xs font-semibold shrink-0 ml-3"
+          style={{ background: 'var(--pz-teal)', color: 'var(--pz-on-accent)' }}
+        >
+          {connected || status === 'error' ? 'Reconnect' : 'Connect'}
+        </a>
+      </div>
+    </div>
+  )
+}
+
+export function IntegrationsClient({ ghl, sections, orgId, orgSlug, mailchimpLists, defaultMailchimpListId }: IntegrationsClientProps) {
   return (
     <div className="space-y-8">
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--pz-muted)] mb-3">CRM</h2>
+        {ghl ? <GhlCard status={ghl.status} orgId={orgId} /> : (
+          <p className="text-xs text-[var(--pz-muted)]">GoHighLevel is managed by organization admins.</p>
+        )}
+      </div>
       {sections.map(section => (
         <div key={section.title}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--pz-muted)] mb-3">{section.title}</h2>

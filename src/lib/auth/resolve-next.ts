@@ -10,8 +10,12 @@
 // redirect to `${origin}${path}`. null means "no explicit destination" and the
 // caller falls back to getPostLoginRedirect.
 
-function isSafeRelativePath(path: string): boolean {
-  return path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/\\')
+// URL parsers strip tab/CR/LF anywhere in the string (so '/\t/evil.com'
+// becomes '//evil.com') and treat '\' like '/': any control character or
+// backslash is refused outright, not just at the start.
+export function isSafeRelativePath(path: string): boolean {
+  if (/[\u0000-\u001f\u007f\\]/.test(path)) return false
+  return path.startsWith('/') && !path.startsWith('//')
 }
 
 function isAuthCallback(path: string): boolean {

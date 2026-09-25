@@ -3,11 +3,13 @@ import { requireUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { listAdapters } from '@/lib/integrations/_shared/registry'
 import { mailchimpAdapter } from '@/lib/integrations/mailchimp/adapter'
+import { isConnectableProvider } from '@/lib/integrations/_shared/connectable'
+import { getOrgPermissions, permits } from '@/lib/auth/assert-permission'
 import Link from 'next/link'
 import { IntegrationsClient } from './integrations-client'
 import { INTEGRATION_STATUS_BADGE as STATUS_BADGE } from '@/lib/ui/category-colors'
 
-type Props = { params: Promise<{ slug: string }> }
+type Props = { params: Promise<{ slug: string }>; searchParams?: Promise<{ error?: string; connected?: string }> }
 
 
 const SECTION_MAP: Record<string, string> = {
@@ -41,8 +43,9 @@ const SECTION_ORDER = [
 
 const ASSOCIATION_PROVIDERS = new Set(['wildapricot', 'imis', 'memberclicks', 'yourmembership', 'glue_up', 'neon', 'novi'])
 
-export default async function OrgIntegrationsPage({ params }: Props) {
+export default async function OrgIntegrationsPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const { error: flashError, connected } = (await searchParams) ?? {}
   const user = await requireUser()
   const supabase = await createClient()
 
@@ -89,6 +92,8 @@ export default async function OrgIntegrationsPage({ params }: Props) {
       statusKey,
       badge: STATUS_BADGE[statusKey] ?? STATUS_BADGE.available,
       isConfigured,
+      // E-R5: every other provider is shown but cannot be connected (O150).
+      isConnectable: isConnectableProvider(adapter.provider),
       isConnected: statusKey === 'connected',
       lastSyncedAt: dbRow?.last_synced_at ?? null,
       hasVerifyMembership: ASSOCIATION_PROVIDERS.has(adapter.provider),
@@ -121,7 +126,15 @@ export default async function OrgIntegrationsPage({ params }: Props) {
         Credentials are managed via environment variables — contact your administrator to enable new integrations.
       </p>
 
+      {flashError && (
+        <p role="alert" className="mb-4 rounded-lg border border-[var(--pz-error)]/30 px-3 py-2 text-sm text-[var(--pz-error)]">{flashError.slice(0, 300)}</p>
+      )}
+      {connected && !flashError && (
+        <p className="mb-4 rounded-lg border border-[var(--pz-teal)] px-3 py-2 text-sm text-[var(--pz-text)]">Connected.</p>
+      )}
+
       <IntegrationsClient
+        ghl={permits(await getOrgPermissions(orgId, user.id), 'org.settings') ? { status: integrationMap['ghl']?.status ?? null } : null}
         sections={sections}
         orgId={orgId}
         orgSlug={slug}
