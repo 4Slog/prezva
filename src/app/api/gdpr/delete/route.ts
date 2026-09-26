@@ -1,74 +1,52 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
+import { BLOCKED_MESSAGE, deleteAccount, SOLE_OWNER_MESSAGE } from '@/lib/gdpr/delete'
+import { gdprSubject } from '@/lib/gdpr/export'
 
 const Schema = z.object({ confirm: z.literal(true) })
 
+// O152: account deletion, run from the GDPR export registry (src/lib/gdpr/
+// delete.ts). Matches the subject exactly as the export does — user id and,
+// only once confirmed, their auth email. Reports success only when every step
+// succeeded, including removing the auth user.
 export async function POST(req: NextRequest) {
   const user = await requireUser()
-  const supabase = await createClient()
-  const adminClient = createAdminClient()
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = Schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Pass { confirm: true } to confirm deletion' }, { status: 400 })
 
-  const userId = user.id
-  const userEmail = user.email ?? ''
+  const result = await deleteAccount(createAdminClient() as unknown as SupabaseClient, gdprSubject(user))
 
-  // 1. Anonymize financial records (keep for legal compliance, scrub PII)
-  await supabase
-    .from('registrations')
-    .update({
-      attendee_name: 'Deleted User',
-      attendee_email: `deleted-${userId}@redacted.local`,
-      attendee_phone: null,
-      attendee_company: null,
-    })
-    .eq('attendee_email', userEmail)
+  if (!result.ok) {
+    if (result.reason === 'sole_owner') {
+      return NextResponse.json({ success: false, error: SOLE_OWNER_MESSAGE(result.orgs) }, { status: 409 })
+    }
+    if (result.reason === 'blocked') {
+      return NextResponse.json({ success: false, error: BLOCKED_MESSAGE }, { status: 409 })
+    }
+    console.error('[gdpr delete] failed', { userId: user.id, step: result.step, error: result.message })
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Your account could not be deleted. Some of your data may already have been removed or anonymised, but your account still exists. Please try again, or contact support if it keeps failing.',
+      },
+      { status: 500 },
+    )
+  }
 
-  // 2. Delete all user-generated content and activity
-  await Promise.allSettled([
-    adminClient.from('messages').delete().eq('sender_id', userId),
-    adminClient.from('group_messages').delete().eq('sender_id', userId),
-    adminClient.from('community_posts').delete().eq('author_id', userId),
-    adminClient.from('community_replies').delete().eq('author_id', userId),
-    adminClient.from('community_upvotes').delete().eq('user_id', userId),
-    adminClient.from('survey_responses').delete().eq('user_id', userId),
-    supabase.from('leaderboard_points').delete().eq('user_id', userId),
-    supabase.from('session_feedback').delete().eq('user_id', userId),
-    supabase.from('session_bookmarks').delete().eq('user_id', userId),
-    supabase.from('session_notes').delete().eq('user_id', userId),
-    supabase.from('poll_votes').delete().eq('user_id', userId),
-    supabase.from('trivia_answers').delete().eq('user_id', userId),
-    supabase.from('icebreaker_completions').delete().eq('user_id', userId),
-    supabase.from('passport_visits').delete().eq('user_id', userId),
-    supabase.from('photo_contest_entries').delete().eq('user_id', userId),
-    supabase.from('photo_contest_votes').delete().eq('user_id', userId),
-    adminClient.from('attendee_profiles').delete().eq('user_id', userId),
-    supabase.from('push_subscriptions').delete().in(
-      'registration_id',
-      (await supabase
-        .from('registrations')
-        .select('id')
-        .eq('attendee_email', `deleted-${userId}@redacted.local`)
-        .then(r => (r.data ?? []).map(x => x.id)))
-    ),
-  ])
-
-  // 3. Delete the profile row
-  await adminClient.from('profiles').delete().eq('id', userId)
-
-  // 4. Delete the Supabase auth account — GDPR-required hard delete
-  await adminClient.auth.admin.deleteUser(userId)
-
-  // 5. Sign out current session
-  await supabase.auth.signOut()
+  // The auth user is gone; clearing this browser's session is best-effort.
+  try {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+  } catch {}
 
   return NextResponse.json({
     success: true,
-    note: 'Payment records have been retained for legal compliance. All other personal data has been removed.',
+    note: 'Your account has been deleted. Payment, attendance, certificate and waiver records are kept without your personal details; everything else has been removed.',
   })
 }

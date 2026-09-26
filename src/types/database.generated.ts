@@ -183,7 +183,7 @@ export type Database = {
           body: string
           channel: Database["public"]["Enums"]["announcement_channel"] | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           event_id: string
           exclude_filter: Json
           id: string
@@ -202,7 +202,7 @@ export type Database = {
           body: string
           channel?: Database["public"]["Enums"]["announcement_channel"] | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           event_id: string
           exclude_filter?: Json
           id?: string
@@ -221,7 +221,7 @@ export type Database = {
           body?: string
           channel?: Database["public"]["Enums"]["announcement_channel"] | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           event_id?: string
           exclude_filter?: Json
           id?: string
@@ -961,24 +961,24 @@ export type Database = {
           event_id: string | null
           id: string
           last_message_at: string | null
-          participant_a: string
-          participant_b: string
+          participant_a: string | null
+          participant_b: string | null
         }
         Insert: {
           created_at?: string | null
           event_id?: string | null
           id?: string
           last_message_at?: string | null
-          participant_a: string
-          participant_b: string
+          participant_a?: string | null
+          participant_b?: string | null
         }
         Update: {
           created_at?: string | null
           event_id?: string | null
           id?: string
           last_message_at?: string | null
-          participant_a?: string
-          participant_b?: string
+          participant_a?: string | null
+          participant_b?: string | null
         }
         Relationships: [
           {
@@ -1417,7 +1417,7 @@ export type Database = {
           checked_in_count: number | null
           cover_image_url: string | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           description: string | null
           end_at: string
           event_type: Database["public"]["Enums"]["event_type"] | null
@@ -1471,7 +1471,7 @@ export type Database = {
           checked_in_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           description?: string | null
           end_at: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
@@ -1525,7 +1525,7 @@ export type Database = {
           checked_in_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           description?: string | null
           end_at?: string
           event_type?: Database["public"]["Enums"]["event_type"] | null
@@ -2325,7 +2325,7 @@ export type Database = {
           created_at: string | null
           id: string
           read_at: string | null
-          sender_id: string
+          sender_id: string | null
           status: Database["public"]["Enums"]["message_status"] | null
         }
         Insert: {
@@ -2334,7 +2334,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           read_at?: string | null
-          sender_id: string
+          sender_id?: string | null
           status?: Database["public"]["Enums"]["message_status"] | null
         }
         Update: {
@@ -2343,7 +2343,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           read_at?: string | null
-          sender_id?: string
+          sender_id?: string | null
           status?: Database["public"]["Enums"]["message_status"] | null
         }
         Relationships: [
@@ -5582,21 +5582,21 @@ export type Database = {
           id: string
           registration_id: string | null
           signed_at: string | null
-          user_id: string
+          user_id: string | null
           waiver_id: string
         }
         Insert: {
           id?: string
           registration_id?: string | null
           signed_at?: string | null
-          user_id: string
+          user_id?: string | null
           waiver_id: string
         }
         Update: {
           id?: string
           registration_id?: string | null
           signed_at?: string | null
-          user_id?: string
+          user_id?: string | null
           waiver_id?: string
         }
         Relationships: [

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { requireUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { buildGdprExport } from '@/lib/gdpr/export'
+import { buildGdprExport, gdprSubject } from '@/lib/gdpr/export'
 
 // E-R4: everything Prezva holds about the signed-in person, matched by their
 // user id and — only once confirmed — their auth email (guest registrations,
@@ -10,13 +10,9 @@ import { buildGdprExport } from '@/lib/gdpr/export'
 // returning a file that silently omits data.
 export async function GET() {
   const user = await requireUser()
-  const verifiedEmail = user.email && user.email_confirmed_at ? user.email.trim().toLowerCase() : null
 
   try {
-    const data = await buildGdprExport(createAdminClient() as unknown as SupabaseClient, {
-      userId: user.id,
-      email: verifiedEmail,
-    })
+    const data = await buildGdprExport(createAdminClient() as unknown as SupabaseClient, gdprSubject(user))
     return new NextResponse(JSON.stringify(data, null, 2), {
       status: 200,
       headers: {
