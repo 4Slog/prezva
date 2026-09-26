@@ -391,6 +391,7 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
   const [editing, setEditing] = useState<Session | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   // ── Rooms manager ──
   const [roomsState, setRoomsState] = useState<Room[]>(initialRooms)
@@ -448,7 +449,10 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
 
   async function handleDelete(sessionId: string) {
     if (!confirm('Delete this session?')) return
-    await (embedActions?.deleteSession ?? deleteSession)(eventId, sessionId)
+    setDeleteError('')
+    const result = await (embedActions?.deleteSession ?? deleteSession)(eventId, sessionId)
+    // F-R4: a session with check-ins is refused; keep it in the list.
+    if (result?.error) { setDeleteError(result.error); return }
     setSessions(prev => prev.filter(s => s.id !== sessionId))
   }
 
@@ -570,6 +574,10 @@ export function AgendaClient({ eventId, orgId, timezone, initialSessions, tracks
           </div>
         )}
       </div>
+
+      {deleteError && (
+        <p role="alert" className="text-sm text-[var(--pz-error)] bg-[var(--pz-error)]/10 rounded-lg px-3 py-2">{deleteError}</p>
+      )}
 
       {/* Manage Rooms */}
       <div className="border border-[var(--border)] rounded-xl overflow-hidden">

@@ -42,7 +42,10 @@ export default async function VerifyCertificatePage({ params }: Props) {
               {ev?.start_at && (
                 <Row label="Date" value={new Date(ev.start_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} />
               )}
-              <Row label="Sessions attended" value={String(cert.sessions_attended)} />
+              {/* F-R2: a door-only attendance certificate has no session line, and 0 credits no CE line. */}
+              {cert.sessions_attended > 0 && (
+                <Row label="Sessions attended" value={String(cert.sessions_attended)} />
+              )}
               {Number(cert.ce_credit_hours) > 0 && (
                 <Row label="CE credit hours" value={String(cert.ce_credit_hours)} />
               )}

@@ -39,7 +39,7 @@ export default async function CertificatePage({ params }: Props) {
           </div>
         ) : identity.type !== 'user' ? (
           <ClaimToUnlock
-            reason="Create your free account to access your CE certificate."
+            reason="Create your free account to access your certificate."
             next={`/e/${slug}/certificate`}
             email={identity.type === 'registration' ? identity.attendeeEmail : undefined}
           />

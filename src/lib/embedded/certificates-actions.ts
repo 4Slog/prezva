@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { issueCertificateCore } from '@/lib/certificates/issue-core'
 import { enqueueCertificateIssueSweep } from '@/lib/trigger'
+import { countPublishedSessions } from '@/lib/certificates/published-sessions'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -80,8 +81,12 @@ export async function embedGetCertificatesData(eventId: string) {
     .eq('event_id', eventId)
     .eq('status', 'confirmed')
 
+  // F-R6: drives the zero-session warning on the embedded certificates page.
+  const publishedSessions = await countPublishedSessions(db, eventId)
+
   return {
     event,
+    publishedSessions,
     templates: templates ?? [],
     issuedCountsByTemplate,
     totalIssued,

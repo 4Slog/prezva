@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { deleteSessionGuarded } from '@/lib/agenda/session-delete'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { BUILTIN_SESSION_TYPES } from '@/lib/agenda/session-types'
 import { z } from 'zod'
@@ -298,10 +299,8 @@ export async function embedUpdateSession(
 export async function embedDeleteSession(eventId: string, sessionId: string) {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
-  const { error } = await db
-    .from('sessions').delete().eq('id', sessionId).eq('event_id', eventId)
-  if (error) return { error: error.message }
-  return { success: true }
+  // F-R4: refused while the session has check-ins.
+  return deleteSessionGuarded(db, db, eventId, sessionId)
 }
 
 // ── Rooms ─────────────────────────────────────────────────────────────────────

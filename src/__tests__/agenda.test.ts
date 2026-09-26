@@ -11,6 +11,22 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => Promise.resolve({ from: mockFrom })),
 }))
 
+// F-R4: deleteSession counts check_ins and session_attendance through the admin client.
+let adminCheckinCount = 0
+let adminAttendanceCount = 0
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn(() => ({
+    from: vi.fn((t: string) => {
+      const c: Record<string, any> = {}
+      c.select = vi.fn(() => c)
+      c.eq = vi.fn(() => c)
+      c.then = (res: (v: unknown) => unknown) =>
+        res({ count: t === 'session_attendance' ? adminAttendanceCount : adminCheckinCount, error: null })
+      return c
+    }),
+  })),
+}))
+
 import {
   getTracks, createTrack, updateTrack, deleteTrack,
   getRooms, createRoom,
@@ -192,13 +208,78 @@ describe('deleteSession', () => {
       if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
       if (t === 'sessions') {
         const c = makeChain()
-        // chain: delete().eq('id').eq('event_id') — last eq resolves
-        c.eq = vi.fn().mockReturnValueOnce(c).mockResolvedValueOnce({ error: null })
+        // chain: delete().eq('id').eq('event_id').select('id') — select resolves
+        c.select = vi.fn().mockResolvedValue({ data: [{ id: SESSION_ID }], error: null })
+        return c
+      }
+      return makeChain()
+    }
+    adminCheckinCount = 0
+    adminAttendanceCount = 0
+    const result = await deleteSession(EVENT_ID, SESSION_ID)
+    expect((result as any).success).toBe(true)
+  })
+
+  it('an RLS-filtered delete (0 rows) is an error, not success', async () => {
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'sessions') {
+        const c = makeChain()
+        c.select = vi.fn().mockResolvedValue({ data: [], error: null })
         return c
       }
       return makeChain()
     }
     const result = await deleteSession(EVENT_ID, SESSION_ID)
-    expect((result as any).success).toBe(true)
+    expect((result as any).success).toBeUndefined()
+    expect((result as any).error).toMatch(/permission/)
+  })
+
+  it('refuses a session with self-marked / virtual attendance (session_attendance)', async () => {
+    const sessionsChain = makeChain()
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'sessions') return sessionsChain
+      return makeChain()
+    }
+    adminCheckinCount = 0
+    adminAttendanceCount = 2
+    const result = await deleteSession(EVENT_ID, SESSION_ID)
+    expect((result as any).error).toBe('This session has check-ins — unpublish it instead.')
+    expect(sessionsChain.delete).not.toHaveBeenCalled()
+    adminAttendanceCount = 0
+  })
+
+  it('refuses a session that has check-ins, without deleting (F-R4)', async () => {
+    const sessionsChain = makeChain()
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'sessions') return sessionsChain
+      return makeChain()
+    }
+    adminCheckinCount = 3
+    const result = await deleteSession(EVENT_ID, SESSION_ID)
+    expect((result as any).error).toBe('This session has check-ins — unpublish it instead.')
+    expect(sessionsChain.delete).not.toHaveBeenCalled()
+    adminCheckinCount = 0
+  })
+
+  it('maps the 0159 FK backstop (23503) to the same refusal', async () => {
+    mockFromImpl = (t) => {
+      if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
+      if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
+      if (t === 'sessions') {
+        const c = makeChain()
+        c.select = vi.fn().mockResolvedValue({ data: null, error: { code: '23503', message: 'violates foreign key constraint' } })
+        return c
+      }
+      return makeChain()
+    }
+    adminCheckinCount = 0
+    const result = await deleteSession(EVENT_ID, SESSION_ID)
+    expect((result as any).error).toBe('This session has check-ins — unpublish it instead.')
   })
 })

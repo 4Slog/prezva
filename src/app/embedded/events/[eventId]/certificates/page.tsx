@@ -6,6 +6,7 @@ import {
   embedBulkIssueCertificates,
 } from '@/lib/embedded/certificates-actions'
 import BulkIssueButton from '@/app/(dashboard)/events/[slug]/certificates/bulk-issue-button'
+import { ZeroSessionCertificateWarning } from '@/components/certificates/ZeroSessionCertificateWarning'
 
 interface Props {
   params: Promise<{ eventId: string }>
@@ -31,7 +32,7 @@ export default async function EmbedCertificatesPage({ params }: Props) {
     redirect('/embedded/events')
   }
 
-  const { event, templates, issuedCountsByTemplate, totalIssued, confirmedCount } = data
+  const { event, templates, issuedCountsByTemplate, totalIssued, confirmedCount, publishedSessions } = data
   const minPct = (event as any)?.certificate_min_session_attendance_pct ?? 60
 
   return (
@@ -92,6 +93,11 @@ export default async function EmbedCertificatesPage({ params }: Props) {
           {(event as any)?.certificate_enabled ? 'Enabled' : 'Disabled'}
         </div>
       </div>
+
+      <ZeroSessionCertificateWarning
+        certificatesEnabled={event?.certificate_enabled}
+        publishedSessions={publishedSessions}
+      />
 
       {/* Template list — read-only */}
       {!templates || templates.length === 0 ? (

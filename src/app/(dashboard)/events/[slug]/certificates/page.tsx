@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import BulkIssueButton from './bulk-issue-button'
+import { countPublishedSessions } from '@/lib/certificates/published-sessions'
+import { ZeroSessionCertificateWarning } from '@/components/certificates/ZeroSessionCertificateWarning'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -78,6 +80,11 @@ export default async function CertificatesPage({ params }: Props) {
     .eq('status', 'confirmed')
 
   const minPct = (event as any).certificate_min_session_attendance_pct ?? 60
+  // F-R6: admin client for the same reason as confirmedCount above — the
+  // session client's sessions_select policy hides sessions from roles without
+  // agenda.view, which would show the zero-session warning on an event that
+  // has sessions. Membership was established above; this reveals a count only.
+  const publishedSessions = await countPublishedSessions(createAdminClient(), event.id)
 
   return (
     <div style={{ padding: '32px', maxWidth: '900px' }}>
@@ -139,6 +146,11 @@ export default async function CertificatesPage({ params }: Props) {
           {(event as any).certificate_enabled ? 'Enabled' : 'Disabled'}
         </div>
       </div>
+
+      <ZeroSessionCertificateWarning
+        certificatesEnabled={event.certificate_enabled}
+        publishedSessions={publishedSessions}
+      />
 
       {!templates || templates.length === 0 ? (
         <div

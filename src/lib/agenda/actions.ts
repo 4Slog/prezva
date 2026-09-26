@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { deleteSessionGuarded } from './session-delete'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
@@ -418,9 +420,11 @@ export async function deleteSession(eventId: string, sessionId: string) {
   const user = await requireUser()
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
-  const { error } = await supabase
-    .from('sessions').delete().eq('id', sessionId).eq('event_id', eventId)
-  if (error) return { error: error.message }
+  // Admin client for the check-in count only (F-R4): authorized above, and the
+  // count must see every check-in regardless of RLS. The delete stays on the
+  // user's client.
+  const result = await deleteSessionGuarded(supabase, createAdminClient(), eventId, sessionId)
+  if ('error' in result) return { error: result.error }
   await logAudit(supabase, null, user.id, 'session.delete', 'session', sessionId, undefined, { eventId })
   revalidatePath('/events')
   return { success: true }

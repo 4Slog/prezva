@@ -285,11 +285,13 @@ export async function issueCertificateCore(
   registrationId: string,
   source: CertificateIssueSource,
 ): Promise<{ data?: any; skipped?: true; error?: string }> {
-  const { data: existing } = await admin
+  const { data: existing, error: existingErr } = await admin
     .from('issued_certificates')
     .select('*')
     .eq('registration_id', registrationId)
     .maybeSingle()
+  // A failed read must not fall through to a second issue attempt.
+  if (existingErr) return { error: `Certificate lookup failed: ${existingErr.message}` }
 
   if (existing) {
     // Already synced — return it and make ZERO GHL calls. This is the hot path:
@@ -324,7 +326,15 @@ export async function issueCertificateCore(
     return { data: repairStampedAt ? { ...existing, ghl_synced_at: repairStampedAt } : existing }
   }
 
-  const eligibility = await checkEligibility(registrationId)
+  // F-R5: eligibility throws on any read error. Surface it as an error (not a
+  // skip, and never as eligible) so every door reports it.
+  let eligibility: Awaited<ReturnType<typeof checkEligibility>>
+  try {
+    eligibility = await checkEligibility(registrationId, admin)
+  } catch (e) {
+    console.error('[certificates] eligibility check failed:', registrationId, e)
+    return { error: 'Could not check certificate eligibility. Please try again.' }
+  }
   if (!eligibility.eligible) {
     return { skipped: true, error: eligibility.reason ?? 'Not eligible' }
   }

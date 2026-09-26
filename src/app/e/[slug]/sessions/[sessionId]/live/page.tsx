@@ -78,7 +78,12 @@ export default async function LiveSessionPage({ params }: Props) {
     )
   }
 
-  const eligibility = await checkEligibility(registration.id)
+  // Display only: a failed eligibility read hides the progress line rather
+  // than taking the live page down (checkEligibility throws on read errors).
+  const eligibility = await checkEligibility(registration.id).catch((e: unknown) => {
+    console.error('[live] eligibility check failed:', registration.id, e)
+    return null
+  })
 
   const { data: orgMember } = await supabase
     .from('org_members')

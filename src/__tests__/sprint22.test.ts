@@ -84,7 +84,10 @@ describe('Sprint 22 — Certificate Engine', () => {
     expect(src).toContain('application/pdf')
     expect(src).toContain('certificate_token')
     expect(src).toContain('412')
-    expect(src).toContain('checkEligibility')
+    // F-R3: eligibility is gated inside issueOrGetCertificate, which skips it
+    // once a certificate exists; the route no longer re-checks on download.
+    expect(src).toContain('issueOrGetCertificate')
+    expect(src).not.toContain('checkEligibility')
   })
 
   // Certificate page + client

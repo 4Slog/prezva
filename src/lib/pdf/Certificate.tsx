@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import type { CertificateTemplatePayload } from '@/lib/templates/certificates'
+import { templateForCredits } from '@/lib/certificates/ce-wording'
 
 export interface CertificateProps {
   attendeeName: string
@@ -35,7 +36,8 @@ export function renderBody(template: string, props: CertificateProps): string {
 }
 
 export function Certificate(props: CertificateProps) {
-  const { template } = props
+  // F-R2: a certificate with 0 CE credits renders with no CE wording at all.
+  const template = templateForCredits(props.template, props.ceCredits)
   const accent = template.accent_color ?? '#00BFA6'
 
   const styles = StyleSheet.create({

@@ -3,7 +3,10 @@ import { getEventBySlug, updateEvent, deleteEvent, updateEventDiscoverable, upda
 import Link from 'next/link'
 import { EventSettingsClient } from './settings-client'
 import { listOrgCertificateTemplates } from '@/lib/certificates/certificate-data'
+import { countPublishedSessions } from '@/lib/certificates/published-sessions'
+import { ZeroSessionCertificateWarning } from '@/components/certificates/ZeroSessionCertificateWarning'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { readEventInviteCode } from '@/lib/events/invite-code'
 import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
@@ -374,11 +377,16 @@ async function CertificateSettingsSection({
   inputCls: string
 }) {
   const certTemplates = await listOrgCertificateTemplates(event.org_id)
+  // Admin client: the session client hides sessions from roles without
+  // agenda.view (sessions_select), which would show a false zero-session
+  // warning. The page has already required org membership; count only.
+  const publishedSessions = await countPublishedSessions(createAdminClient(), event.id)
 
   return (
     <section className="pz-card p-6 mb-6">
       <h2 className="text-sm font-semibold text-[var(--pz-text)] mb-1">Certificates</h2>
       <p className="text-xs text-[var(--pz-muted)] mb-4">Issue CE-credit certificates to attendees who meet attendance requirements.</p>
+      <ZeroSessionCertificateWarning certificatesEnabled={event.certificate_enabled} publishedSessions={publishedSessions} />
       <SettingsSectionForm
         action={updateEvent.bind(null, event.id, 'certificates')}
         resetKey={[event.certificate_enabled, event.certificate_min_session_attendance_pct, event.certificate_template_id].join('|')}

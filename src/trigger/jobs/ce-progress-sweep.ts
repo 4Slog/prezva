@@ -64,7 +64,7 @@ export async function processCeProgressCandidate(
   candidate: CeProgressCandidate,
   config: GhlOrgConfig,
 ): Promise<CeProgressResult> {
-  const el = await checkEligibility(candidate.registrationId)
+  const el = await checkEligibility(candidate.registrationId, admin)
   const pct = el.sessionsTotal > 0 ? Math.round((el.sessionsAttended / el.sessionsTotal) * 100) : 0
   const credits = el.ceCredits
 
