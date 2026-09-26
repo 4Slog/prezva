@@ -361,6 +361,10 @@ describe.each(surfaces)('$name session scanner — offline', (s) => {
     setOnline(false)
     await scan(QR_ADA)
     await screen.findByText(/1 pending/)
+    // The listener attaches in a passive effect keyed on summary.pending; the
+    // IndexedDB → setSummary chain runs outside act(), so flush effects once
+    // before dispatching (deterministic, not a retry).
+    await act(async () => {})
     expect(fire()).toBe(true)
     unmount()
   })

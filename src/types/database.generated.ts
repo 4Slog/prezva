@@ -4546,8 +4546,9 @@ export type Database = {
           linkedin_url: string | null
           name: string
           photo_url: string | null
-          sort_order: number | null
+          portal_token_expires_at: string | null
           show_email_publicly: boolean
+          sort_order: number | null
           status: string
           twitter_handle: string | null
           updated_at: string | null
@@ -4573,8 +4574,9 @@ export type Database = {
           linkedin_url?: string | null
           name: string
           photo_url?: string | null
-          sort_order?: number | null
+          portal_token_expires_at?: string | null
           show_email_publicly?: boolean
+          sort_order?: number | null
           status?: string
           twitter_handle?: string | null
           updated_at?: string | null
@@ -4600,8 +4602,9 @@ export type Database = {
           linkedin_url?: string | null
           name?: string
           photo_url?: string | null
-          sort_order?: number | null
+          portal_token_expires_at?: string | null
           show_email_publicly?: boolean
+          sort_order?: number | null
           status?: string
           twitter_handle?: string | null
           updated_at?: string | null
@@ -5321,6 +5324,50 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications: {
+        Row: {
+          announcement_id: string | null
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          title: string
+          type: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          announcement_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          title: string
+          type: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          title?: string
+          type?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
             referencedColumns: ["id"]
           },
         ]
