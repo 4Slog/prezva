@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
-import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 
 export async function respondToVolunteerShift(
   token: string,
@@ -135,69 +135,11 @@ export async function resolveVolunteerAlert(alertId: string) {
   return { ok: true }
 }
 
-export async function signupAsVolunteer(
-  eventId: string,
-  name: string,
-  email: string,
-  phone: string | null,
-  role: string,
-  notes: string | null
-) {
-  const admin = createAdminClient()
-
-  const { data: existing } = await admin
-    .from('volunteers')
-    .select('id')
-    .eq('event_id', eventId)
-    .eq('email', email.toLowerCase())
-    .maybeSingle()
-
-  if (existing) return { error: 'You have already applied to volunteer for this event.' }
-
-  const { nanoid } = await import('nanoid')
-  const token = nanoid(32)
-
-  const { error } = await admin.from('volunteers').insert({
-    event_id: eventId,
-    name: name.trim(),
-    email: email.toLowerCase().trim(),
-    phone: phone?.trim() ?? null,
-    role,
-    notes,
-    status: 'pending',
-    portal_access_token: token,
-    assigned_sessions: [],
-  })
-
-  if (error) return { error: error.message }
-
-  const { data: event } = await admin
-    .from('events')
-    .select('title, organizations(name)')
-    .eq('id', eventId)
-    .single()
-
-  const orgName = (event as any)?.organizations?.name ?? 'Event organizer'
-  const eventTitle = (event as any)?.title ?? 'the event'
-
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
-      to: email,
-      subject: safeSubject(`Volunteer application received — ${eventTitle}`),
-      html: `<p>Hi ${escapeHtml(name)},</p>
-             <p>Thanks for applying to volunteer at <strong>${escapeHtml(eventTitle)}</strong>!</p>
-             <p>The organizer will review your application and send you a portal link with your assignment details.</p>
-             <p>— ${escapeHtml(orgName)}</p>`,
-    }),
-  }).catch(() => {})
-
-  return { ok: true }
+// O169 / H-R2: volunteer self-signup is closed for launch. It used to take
+// the role from the client and email any address; it now refuses every call
+// before any read, write or email. The approval flow is O175.
+export async function signupAsVolunteer(..._args: unknown[]): Promise<{ error: string }> {
+  return { error: 'Volunteer applications are not open.' }
 }
 
 export async function exportVolunteerHours(eventId: string) {

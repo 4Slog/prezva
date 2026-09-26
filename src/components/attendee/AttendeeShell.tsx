@@ -20,7 +20,6 @@ import {
   MapPin,
   Zap,
   Layers,
-  Heart,
   BookOpen,
   Award,
   UserCog,
@@ -77,7 +76,6 @@ export function AttendeeShell({ event, hasRegistration, avatarUrl, unreadCount, 
     { label: 'Passport',    href: `${base}/passport`,    icon: MapPin },
     { label: 'Icebreakers', href: `${base}/icebreakers`, icon: Zap },
     { label: 'Groups',      href: `${base}/groups`,      icon: Layers },
-    { label: 'Volunteer',   href: `${base}/volunteer`,   icon: Heart },
   ]
 
   const ME_ITEMS = [

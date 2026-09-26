@@ -31,7 +31,7 @@ import { applicationReceivedEmailHtml } from '@/lib/registration/emails'
 import { resendConfirmation, rejectRegistration, selfCancelRegistration } from '@/lib/registrations/actions'
 import { sendSurveyToAllAttendees } from '@/lib/surveys/actions'
 import { handoutEmail } from '@/lib/speaker/handout-email'
-import { respondToVolunteerShift, sendVolunteerAlert, signupAsVolunteer } from '@/lib/volunteers/actions'
+import { respondToVolunteerShift, sendVolunteerAlert } from '@/lib/volunteers/actions'
 import { sendVolunteerThankYouEmails } from '@/lib/volunteers/post-event'
 import { inviteMember, resendInvite } from '@/lib/orgs/actions'
 import { POST as lookupPOST } from '@/app/api/lookup/route'
@@ -157,13 +157,6 @@ describe('the 12 sites', () => {
     await sendVolunteerAlert('tok', 'urgent', EVIL)
     expectEscaped(sent()[0].html)
     expect(sent()[0].subject).not.toMatch(/[\r\n]/)
-  })
-
-  it('9: volunteer signup confirmation escapes the applicant name', async () => {
-    h.db = createFakeDb({ volunteers: [], events: [{ id: 'e1', title: EVIL, organizations: { name: EVIL } }] })
-    await signupAsVolunteer('e1', EVIL, 'v@x.com', null, 'general', null)
-    const mail = sent()[0]
-    expectEscaped(mail.html)
   })
 
   it('9: volunteer thank-you', async () => {
