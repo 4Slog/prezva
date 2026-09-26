@@ -4,6 +4,16 @@
 export const ZERO_SESSION_CERTIFICATE_WARNING =
   'Attendees will receive an attendance certificate with no CE credits until you add sessions.'
 
+// O166 / G-R8: the eligibility line on the certificates pages. With no
+// published sessions the percentage rule cannot apply; door check-in earns an
+// attendance certificate (F-R1).
+export const ZERO_SESSION_ELIGIBILITY =
+  'Attendees checked in at the door receive an attendance certificate (no CE credits).'
+
+export function certificateEligibilityText(publishedSessions: number | null, minPct: number): string {
+  return publishedSessions === 0 ? ZERO_SESSION_ELIGIBILITY : `Attendees who completed ≥${minPct}% of sessions`
+}
+
 export function ZeroSessionCertificateWarning({
   certificatesEnabled,
   publishedSessions,

@@ -7,7 +7,7 @@ import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import BulkIssueButton from './bulk-issue-button'
 import { countPublishedSessions } from '@/lib/certificates/published-sessions'
 import { countIssuedCertificates, issuedCountLabel } from '@/lib/certificates/issued-counts'
-import { ZeroSessionCertificateWarning } from '@/components/certificates/ZeroSessionCertificateWarning'
+import { ZeroSessionCertificateWarning, certificateEligibilityText } from '@/components/certificates/ZeroSessionCertificateWarning'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -136,7 +136,7 @@ export default async function CertificatesPage({ params }: Props) {
       >
         <div style={{ fontSize: '13px', color: 'var(--pz-muted)' }}>
           <span style={{ color: 'var(--pz-text)', fontWeight: 600 }}>Eligibility: </span>
-          Attendees who completed ≥{minPct}% of sessions
+          {certificateEligibilityText(publishedSessions, minPct)}
         </div>
         <div
           style={{

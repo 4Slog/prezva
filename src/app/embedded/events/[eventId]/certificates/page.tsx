@@ -6,7 +6,7 @@ import {
   embedBulkIssueCertificates,
 } from '@/lib/embedded/certificates-actions'
 import BulkIssueButton from '@/app/(dashboard)/events/[slug]/certificates/bulk-issue-button'
-import { ZeroSessionCertificateWarning } from '@/components/certificates/ZeroSessionCertificateWarning'
+import { ZeroSessionCertificateWarning, certificateEligibilityText } from '@/components/certificates/ZeroSessionCertificateWarning'
 import { issuedCountLabel } from '@/lib/certificates/issued-counts'
 
 interface Props {
@@ -78,7 +78,7 @@ export default async function EmbedCertificatesPage({ params }: Props) {
       >
         <div style={{ fontSize: '13px', color: 'var(--pz-muted)' }}>
           <span style={{ color: 'var(--pz-text)', fontWeight: 600 }}>Eligibility: </span>
-          Attendees who completed ≥{minPct}% of sessions
+          {certificateEligibilityText(publishedSessions, minPct)}
         </div>
         <div
           style={{
