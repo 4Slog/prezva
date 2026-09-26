@@ -19,7 +19,6 @@ import {
   Trophy,
   MapPin,
   Zap,
-  Layers,
   BookOpen,
   Award,
   UserCog,
@@ -75,7 +74,6 @@ export function AttendeeShell({ event, hasRegistration, avatarUrl, unreadCount, 
     { label: 'Leaderboard', href: `${base}/leaderboard`, icon: Trophy },
     { label: 'Passport',    href: `${base}/passport`,    icon: MapPin },
     { label: 'Icebreakers', href: `${base}/icebreakers`, icon: Zap },
-    { label: 'Groups',      href: `${base}/groups`,      icon: Layers },
   ]
 
   const ME_ITEMS = [
