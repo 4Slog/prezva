@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
+import { inactiveVolunteerResponse, isVolunteerActive } from '@/lib/volunteers/active'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
 
   const { data: vol } = await admin
     .from('volunteers')
-    .select('id, role, event_id')
+    .select('id, role, event_id, status, shift_response')
     .eq('portal_access_token', token)
     .single()
 
@@ -20,6 +21,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   if (!['check-in', 'registration-desk', 'team-lead'].includes((vol as any).role)) {
     return NextResponse.json({ error: 'This volunteer role does not have attendee search' }, { status: 403 })
   }
+  // O158: attendee names and emails are for active volunteers only.
+  if (!isVolunteerActive(vol as { status: string | null; shift_response: string | null })) return inactiveVolunteerResponse()
 
   // registrations has no checked_in_at and registration_status has no
   // 'checked_in' (either made the whole query fail): a door check-in is a

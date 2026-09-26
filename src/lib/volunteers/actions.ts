@@ -20,11 +20,17 @@ export async function respondToVolunteerShift(
 
   if (!vol) return { error: 'Invalid token' }
 
-  await admin.from('volunteers').update({
+  // O158: the response was written blind; a failed write now reports failure
+  // instead of telling the volunteer (and the organizer) it was saved.
+  const { error: saveError } = await admin.from('volunteers').update({
     shift_response: response,
     shift_response_at: new Date().toISOString(),
     shift_decline_reason: declineReason ?? null,
   }).eq('id', (vol as any).id)
+  if (saveError) {
+    console.error('[volunteers] shift response write failed', saveError.message)
+    return { error: 'Could not save your response. Please try again.' }
+  }
 
   const eventTitle = (vol as any).events?.title ?? 'the event'
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { inactiveVolunteerResponse, isVolunteerActive } from '@/lib/volunteers/active'
 
 export async function POST(
   _req: Request,
@@ -12,6 +13,9 @@ export async function POST(
     .rpc('get_volunteer_by_token', { p_token: token })
 
   if (!volunteer) return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+  // O158: clocking in used to set status 'checked_in' for anyone, un-declining
+  // a declined volunteer.
+  if (!isVolunteerActive(volunteer)) return inactiveVolunteerResponse()
   if (volunteer.clocked_in_at) return NextResponse.json({ error: 'Already clocked in' }, { status: 409 })
 
   const clocked_in_at = new Date().toISOString()

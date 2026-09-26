@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { inactiveVolunteerResponse, isVolunteerActive } from '@/lib/volunteers/active'
 import { recordDoorQrCheckIn, QR_LOOKUP_FAILED, QR_NOT_FOUND_FOR_EVENT } from '@/lib/checkin/door-checkin'
 
 export async function POST(
@@ -22,6 +23,8 @@ export async function POST(
   if (!allowedRoles.includes(volunteer.role)) {
     return NextResponse.json({ error: 'This volunteer role does not have check-in access' }, { status: 403 })
   }
+  // O158: a declined or no-show volunteer's token no longer checks people in.
+  if (!isVolunteerActive(volunteer)) return inactiveVolunteerResponse()
 
   // O153 / F-R14: the shared door check-in — R90 refusals, door-once, audit
   // with the volunteer as actor, points, source 'volunteer', case-insensitive
