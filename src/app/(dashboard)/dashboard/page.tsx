@@ -74,7 +74,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     ticketCountResult, publishedCountResult, stripeRow,
   ] = await Promise.all([
     supabase.from('org_members').select('id').eq('org_id', orgId).limit(2),
-    supabase.from('org_integrations').select('id').eq('org_id', orgId).eq('status', 'active').limit(1),
+    supabase.from('org_integrations').select('id').eq('org_id', orgId).eq('status', 'connected').limit(1),
     // Confirmed registrations across all org events
     orgEventIds.length > 0
       ? supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'confirmed').in('event_id', orgEventIds)
@@ -102,7 +102,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   const hasTickets = ticketCount > 0
   const hasPublishedEvent = publishedCount > 0
   const hasMultipleMembers = (membersResult.data?.length ?? 0) > 1
-  const hasIntegration = (integrationsResult.data?.length ?? 0) > 0
+  // O172: 'connected' is the live status ('active' is not a value of
+  // integration_status, so the old query always errored). A failed read never
+  // marks the item complete.
+  if (integrationsResult.error) console.error('[dashboard] integration checklist read failed', integrationsResult.error.message)
+  const hasIntegration = !integrationsResult.error && (integrationsResult.data?.length ?? 0) > 0
   const hasStripeConnected = (stripeRow as any)?.data?.charges_enabled === true
 
   const checklistItems = [
