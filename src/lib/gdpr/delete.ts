@@ -19,8 +19,9 @@ import {
 //
 // Order:
 //   1. preflight, before any write: refuse a sole owner of an organization
-//      (F-R11) and a row we cannot release (group_conversations.created_by)
-//   2. collect the subject's registration ids BEFORE anything is renamed
+//      (F-R11)
+//   2. collect the subject's registration ids BEFORE anything is renamed, and
+//      remove the subject's groups that no one else is in (O163)
 //   3. storage objects owned by construction (avatar, attendee photos)
 //   4. every registry rule except registrations; registration-keyed tables
 //      are found through the ids from step 2
@@ -47,17 +48,10 @@ export const GDPR_ACTOR_REFERENCES: ActorReference[] = [
   { table: 'community_reports', col: 'resolved_by', by: 'user' },
   { table: 'org_invites', col: 'invited_by', by: 'user' },
   { table: 'staff_invites', col: 'invited_by', by: 'user' },
+  // O156: the group stays for its other members; a null creator still blocks
+  // adding members (sprint8-group-actions). 0163 made it nullable.
+  { table: 'group_conversations', col: 'created_by', by: 'user' },
 ]
-
-// NOT NULL references to auth.users with no ON DELETE action that the delete
-// cannot release: auth.admin.deleteUser would fail on them after every other
-// step had run, so they are checked up front and the delete refused cleanly.
-export const GDPR_BLOCKING_REFERENCES: { table: string; col: string }[] = [
-  { table: 'group_conversations', col: 'created_by' },
-]
-
-export const BLOCKED_MESSAGE =
-  'Your account cannot be deleted automatically because you created a group conversation. Please contact support to finish deleting your account.'
 
 export const SOLE_OWNER_MESSAGE = (orgs: string[]) =>
   `You are the only owner of ${orgs.join(', ')}. Transfer ownership to another member before deleting your account.`
@@ -65,7 +59,6 @@ export const SOLE_OWNER_MESSAGE = (orgs: string[]) =>
 export type DeleteAccountResult =
   | { ok: true }
   | { ok: false; reason: 'sole_owner'; orgs: string[] }
-  | { ok: false; reason: 'blocked'; table: string }
   | { ok: false; reason: 'failed'; step: string; message: string }
 
 class StepError extends Error {
@@ -168,6 +161,21 @@ async function applyRule(db: SupabaseClient, spec: ExportTable, subject: Subject
   const rows = await readMatched(db, spec, subject, regIds)
   if (rows.length === 0) return
 
+  if (rule.action === 'release') {
+    // O163: the subject leaves a shared row; it goes only when no one is left.
+    for (const part of chunks(rows.map(r => r.id))) {
+      for (const col of rule.columns) {
+        const { error } = await db.from(t).update({ [col]: null }).in('id', part).eq(col, subject.userId)
+        check(t, error)
+      }
+      let empty = db.from(t).delete().in('id', part)
+      for (const col of rule.columns) empty = empty.is(col, null)
+      const { error } = await empty
+      check(t, error)
+    }
+    return
+  }
+
   if (rule.action === 'delete') {
     const { bucket, column, form } = rule.storage!
     // The path columns are attendee-writable (RLS lets a user write their own
@@ -233,6 +241,33 @@ function ownedObjects(subject: Subject, regIds: string[]): { bucket: string; pat
   return [{ bucket: 'user-avatars', paths }]
 }
 
+async function subjectGroupIds(db: SupabaseClient, userId: string): Promise<string[]> {
+  const { data: member, error: memberErr } = await db
+    .from('group_conversation_members').select('conversation_id').eq('user_id', userId)
+  check('group_conversation_members (groups)', memberErr)
+  const { data: created, error: createdErr } = await db
+    .from('group_conversations').select('id').eq('created_by', userId)
+  check('group_conversations (groups)', createdErr)
+  return [...new Set([
+    ...((member ?? []) as { conversation_id: string }[]).map(m => m.conversation_id),
+    ...((created ?? []) as { id: string }[]).map(g => g.id),
+  ])]
+}
+
+// O163: a group the subject was in (or created) with no other members is
+// removed; its members and messages go with it (both cascade).
+async function removeGroupsLeftEmpty(db: SupabaseClient, userId: string, groupIds: string[]) {
+  for (const id of groupIds) {
+    const { count, error } = await db
+      .from('group_conversation_members').select('user_id', { count: 'exact', head: true })
+      .eq('conversation_id', id).neq('user_id', userId)
+    check('group_conversation_members (empty groups)', error)
+    if ((count ?? 0) > 0) continue
+    const { error: delErr } = await db.from('group_conversations').delete().eq('id', id)
+    check('group_conversations (empty groups)', delErr)
+  }
+}
+
 function escapeLike(v: string): string {
   return v.replace(/([\\%_])/g, '\\$1')
 }
@@ -241,16 +276,15 @@ export async function deleteAccount(db: SupabaseClient, subject: Subject): Promi
   try {
     const orgs = await soleOwnedOrgs(db, subject.userId)
     if (orgs.length > 0) return { ok: false, reason: 'sole_owner', orgs }
-    for (const { table, col } of GDPR_BLOCKING_REFERENCES) {
-      const { count, error } = await db.from(table).select('id', { count: 'exact', head: true }).eq(col, subject.userId)
-      check(`${table} (preflight)`, error)
-      if ((count ?? 0) > 0) return { ok: false, reason: 'blocked', table }
-    }
 
     // Registration ids first: registration-keyed tables are found through
     // them, and the registrations step renames the email they were found by.
     const registrations = await readMatched(db, GDPR_REGISTRATIONS, subject, [])
     const regIds = registrations.map(r => r.id)
+    // O163: a group with no one but the subject is removed before the
+    // subject's membership rows go, judged by the OTHER members — a count our
+    // own deletes never change — so a retry after a later failure cannot miss it.
+    await removeGroupsLeftEmpty(db, subject.userId, await subjectGroupIds(db, subject.userId))
 
     for (const { bucket, paths } of ownedObjects(subject, regIds)) {
       for (const part of chunks(paths)) {

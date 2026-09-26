@@ -37,6 +37,9 @@ type Match =
 //   anonymise  keep the row, overwrite personal columns; a function value is
 //              computed per row (unique columns, rotated secrets)
 //   keep       retained as-is, with the reason (liability, compliance, proof)
+//   release    the row is shared with other people: null each listed column
+//              that holds the subject's user id, and delete the row only once
+//              every listed column is null (no one is left) — O163
 //   profile    the profiles row itself: removed by the auth user delete
 //              (profiles.id cascades from auth.users), the final step
 export type AnonymiseValue = string | number | boolean | null | ((row: { id: string }) => string)
@@ -49,11 +52,13 @@ export type DeleteRule =
       children?: { table: string; fk: string; set: Record<string, AnonymiseValue> }
     }
   | { action: 'keep'; reason: string }
+  | { action: 'release'; columns: string[] }
   | { action: 'profile' }
 
 export type ExportTable = { table: string; match: Match[]; label?: string; deleteRule: DeleteRule }
 
 const DELETED_NAME = 'Deleted User'
+export const DELETED_MESSAGE = '[deleted]'
 const redactedEmail = (row: { id: string }) => `deleted-${row.id}@redacted.local`
 const rotated = () => randomBytes(24).toString('hex')
 const del: DeleteRule = { action: 'delete' }
@@ -125,10 +130,14 @@ export const GDPR_EXPORT_TABLES: ExportTable[] = [
   { table: 'community_photos', match: [{ col: 'user_id', by: 'user' }], deleteRule: { action: 'delete', storage: { bucket: 'event-photos', column: 'photo_url', form: 'publicUrl' } } },
   { table: 'community_rsvps', match: [{ col: 'user_id', by: 'user' }], deleteRule: del },
   { table: 'community_upvotes', match: [{ col: 'user_id', by: 'user' }], deleteRule: del },
-  { table: 'conversations', match: [{ col: 'participant_a', by: 'user' }, { col: 'participant_b', by: 'user' }], deleteRule: del },
-  { table: 'messages', match: [{ col: 'sender_id', by: 'user' }], deleteRule: del },
+  // O163 (Paul): the other person keeps the thread. The subject's messages
+  // become "[deleted]" with no sender; a 1:1 conversation is removed only when
+  // both participants are gone; the subject leaves their groups, and a group
+  // left with no members is removed (delete.ts).
+  { table: 'conversations', match: [{ col: 'participant_a', by: 'user' }, { col: 'participant_b', by: 'user' }], deleteRule: { action: 'release', columns: ['participant_a', 'participant_b'] } },
+  { table: 'messages', match: [{ col: 'sender_id', by: 'user' }], deleteRule: { action: 'anonymise', set: { body: DELETED_MESSAGE, sender_id: null } } },
   { table: 'group_conversation_members', match: [{ col: 'user_id', by: 'user' }], deleteRule: del },
-  { table: 'group_messages', match: [{ col: 'sender_id', by: 'user' }], deleteRule: del },
+  { table: 'group_messages', match: [{ col: 'sender_id', by: 'user' }], deleteRule: { action: 'anonymise', set: { body: DELETED_MESSAGE, sender_id: null } } },
   { table: 'meeting_requests', match: [{ col: 'requester_id', by: 'user' }, { col: 'recipient_id', by: 'user' }], deleteRule: del },
   { table: 'user_notifications', match: [{ col: 'user_id', by: 'user' }], deleteRule: del },
   { table: 'speakers', match: [{ col: 'user_id', by: 'user' }, { col: 'email', by: 'email' }], deleteRule: { action: 'anonymise', set: { user_id: null, name: DELETED_NAME, email: null, bio: null, photo_url: null, job_title: null, company: null, website: null, linkedin_url: null, twitter_handle: null, confirmation_token: null, ghl_contact_id: null, decline_reason: null, decline_alternative: null, show_email_publicly: false } } },
@@ -155,7 +164,7 @@ export const GDPR_EXCLUDED_TABLES: Record<string, string> = {
   organizations: 'organization record (created_by is the founding staff member; email is the org contact)',
   org_templates: 'created_by records the staff author of an organization template',
   surveys: 'created_by records the staff author of an organization survey',
-  group_conversations: 'created_by only; the subject’s membership and messages are exported',
+  group_conversations: 'created_by only (nulled by the delete; 0163); the subject’s membership and messages are exported',
   event_documents: 'uploaded_by records the staff uploader of an organization document',
   session_documents: 'uploaded_by records the staff uploader of an organization document',
   event_sponsors: 'contact_email is a sponsor company’s contact; sponsor people are in sponsor_contacts',

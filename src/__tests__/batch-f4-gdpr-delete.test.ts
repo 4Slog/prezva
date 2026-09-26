@@ -74,7 +74,7 @@ describe('registry coverage', () => {
   const all = [GDPR_REGISTRATIONS, ...GDPR_EXPORT_TABLES]
 
   it('every registry table has a delete rule', () => {
-    const missing = all.filter(t => !t.deleteRule || !['delete', 'anonymise', 'keep', 'profile'].includes(t.deleteRule.action))
+    const missing = all.filter(t => !t.deleteRule || !['delete', 'anonymise', 'keep', 'release', 'profile'].includes(t.deleteRule.action))
     expect(missing.map(t => t.table)).toEqual([])
     for (const t of all) if (t.deleteRule.action === 'keep') expect(t.deleteRule.reason.length).toBeGreaterThan(10)
     expect(all.filter(t => t.deleteRule.action === 'profile').map(t => t.table)).toEqual(['profiles'])
@@ -138,9 +138,16 @@ describe('deleteAccount', () => {
     expect(T.daily_check_ins[0].checked_in_by).toBeNull()
     expect(T.session_attendance[0].checked_in_by).toBeNull()
 
-    // Conversations + messages the subject is part of are gone; others untouched.
-    expect(T.conversations.map(c => c.id)).toEqual(['cv2'])
-    expect(T.messages.map(m => m.id)).toEqual(['ms2'])
+    // O163 (G-R7): the other participant keeps the thread; the subject's
+    // messages read "[deleted]" with no sender; others untouched.
+    expect(T.conversations).toEqual([
+      { id: 'cv1', participant_a: null, participant_b: 'u2' },
+      { id: 'cv2', participant_a: 'u2', participant_b: 'u3' },
+    ])
+    expect(T.messages).toEqual([
+      { id: 'ms1', conversation_id: 'cv1', sender_id: null, body: '[deleted]' },
+      { id: 'ms2', conversation_id: 'cv2', sender_id: 'u2' },
+    ])
 
     // Speaker row anonymised, other speakers untouched.
     expect(T.speakers.find(s => s.id === 'sp1')).toMatchObject({ user_id: null, name: 'Deleted User', email: null, bio: null, show_email_publicly: false })
@@ -215,12 +222,12 @@ describe('deleteAccount', () => {
     expect(rerun.deletedUsers).toEqual(['u1'])
   })
 
-  it('a group-conversation creator is refused before any write', async () => {
+  it('a group-conversation creator is no longer refused (O156, G-R7)', async () => {
     const db = world()
     db.tables.group_conversations = [{ id: 'g1', created_by: 'u1', name: 'Team' }]
-    expect(await deleteAccount(db.client, SUBJECT)).toEqual({ ok: false, reason: 'blocked', table: 'group_conversations' })
-    expect(db.writes).toEqual([])
-    expect(db.removedFiles).toEqual([])
+    db.tables.group_conversation_members = [{ conversation_id: 'g1', user_id: 'u2' }]
+    expect(await deleteAccount(db.client, SUBJECT)).toEqual({ ok: true })
+    expect(db.tables.group_conversations).toEqual([{ id: 'g1', created_by: null, name: 'Team' }])
   })
 
   it('removes the avatar and attendee photos by derived path, and clears staff check-in emails', async () => {

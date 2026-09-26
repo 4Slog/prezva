@@ -1877,21 +1877,21 @@ export type Database = {
       group_conversations: {
         Row: {
           created_at: string | null
-          created_by: string
+          created_by: string | null
           event_id: string
           id: string
           name: string
         }
         Insert: {
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           event_id: string
           id?: string
           name: string
         }
         Update: {
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           event_id?: string
           id?: string
           name?: string
@@ -1912,21 +1912,21 @@ export type Database = {
           conversation_id: string
           created_at: string | null
           id: string
-          sender_id: string
+          sender_id: string | null
         }
         Insert: {
           body: string
           conversation_id: string
           created_at?: string | null
           id?: string
-          sender_id: string
+          sender_id?: string | null
         }
         Update: {
           body?: string
           conversation_id?: string
           created_at?: string | null
           id?: string
-          sender_id?: string
+          sender_id?: string | null
         }
         Relationships: [
           {

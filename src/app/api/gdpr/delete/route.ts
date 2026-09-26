@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
-import { BLOCKED_MESSAGE, deleteAccount, SOLE_OWNER_MESSAGE } from '@/lib/gdpr/delete'
+import { deleteAccount, SOLE_OWNER_MESSAGE } from '@/lib/gdpr/delete'
 import { gdprSubject } from '@/lib/gdpr/export'
 
 const Schema = z.object({ confirm: z.literal(true) })
@@ -25,9 +25,6 @@ export async function POST(req: NextRequest) {
   if (!result.ok) {
     if (result.reason === 'sole_owner') {
       return NextResponse.json({ success: false, error: SOLE_OWNER_MESSAGE(result.orgs) }, { status: 409 })
-    }
-    if (result.reason === 'blocked') {
-      return NextResponse.json({ success: false, error: BLOCKED_MESSAGE }, { status: 409 })
     }
     console.error('[gdpr delete] failed', { userId: user.id, step: result.step, error: result.message })
     return NextResponse.json(
