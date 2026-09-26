@@ -4,6 +4,7 @@ import { createElement, type ReactElement } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { issueOrGetCertificate } from '@/lib/certificates/certificate-data'
+import { CERTIFICATE_NOT_AVAILABLE, isCertificateServable } from '@/lib/certificates/servable'
 import { Certificate } from '@/lib/pdf/Certificate'
 import { DEFAULT_CERTIFICATE_TEMPLATE } from '@/lib/templates/certificates'
 import type { CertificateTemplatePayload } from '@/lib/templates/certificates'
@@ -20,12 +21,16 @@ export async function GET(
   // Admin client: certificate download accessible by owner or token bearer (unguessable UUID + secret token)
   const admin = createAdminClient()
 
-  const { data: reg } = await admin
+  const { data: reg, error: regErr } = await admin
     .from('registrations')
-    .select('id, user_id, certificate_token, attendee_name, attendee_email, events(id, title, start_at, organizations(id, name, logo_url))')
+    .select('id, user_id, status, certificate_token, attendee_name, attendee_email, events(id, title, start_at, organizations(id, name, logo_url))')
     .eq('id', regId)
     .maybeSingle()
 
+  if (regErr) {
+    console.error('[certificate] registration lookup failed', { regId, error: regErr.message })
+    return NextResponse.json({ error: 'Your certificate could not be prepared. Please try again later.' }, { status: 500 })
+  }
   if (!reg) return new NextResponse('Not found', { status: 404 })
 
   const supabase = await createClient()
@@ -33,6 +38,13 @@ export async function GET(
   const ownerMatch = user?.id === reg.user_id
   const tokenMatch = token && token === reg.certificate_token
   if (!ownerMatch && !tokenMatch) return new NextResponse('Forbidden', { status: 403 })
+
+  // O157: a cancelled or refunded registration's certificate is not served
+  // (the stored row is kept). Checked before issueOrGetCertificate so nothing
+  // is issued or repaired for it either.
+  if (!isCertificateServable(reg.status)) {
+    return NextResponse.json({ error: CERTIFICATE_NOT_AVAILABLE }, { status: 410 })
+  }
 
   // F-R3: an issued certificate is final. issueOrGetCertificate returns the
   // stored row WITHOUT re-running eligibility when one exists, and only gates

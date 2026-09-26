@@ -10,6 +10,7 @@ import { ghlAdapter } from '@/lib/integrations/ghl/adapter'
 import { ghlPut } from '@/lib/integrations/ghl/client'
 import { eventCompletionDateInEventTz } from '@/lib/ghl/event-date'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { certificateDownloadUrl } from './servable'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared certificate-issue core for BOTH issuance doors: the dashboard
@@ -58,7 +59,7 @@ type MergeFieldWriteOutcome = 'written' | 'nothing-to-write' | 'no-contact' | 'f
 // dropped the completion date from every embed-issued certificate — the same
 // class of silent divergence this module exists to end.
 const REGISTRATION_SELECT =
-  'event_id, user_id, attendee_name, attendee_email, events(org_id, title, slug, end_at, timezone)'
+  'event_id, user_id, attendee_name, attendee_email, certificate_token, events(org_id, title, slug, end_at, timezone)'
 
 export async function getOrCreateDefaultTemplate(orgId: string): Promise<string | null> {
   // Admin client: template management bypasses RLS for server-side cert generation
@@ -382,14 +383,15 @@ export async function issueCertificateCore(
 
   // Enqueue certificate delivery email (non-blocking)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
-  const eventSlug = (reg.events as any)?.slug ?? ''
   void enqueueCertificateEmail({
     registrationId,
     attendeeEmail:   (reg as any).attendee_email,
     attendeeName:    (reg as any).attendee_name,
     eventTitle:      (reg.events as any)?.title ?? '',
-    certDownloadUrl: `${appUrl}/api/certificates/${registrationId}`,
-    verifyUrl:       `${appUrl}/e/${eventSlug}/certificate?id=${cert.id}`,
+    // O157: the download link carries the registration's certificate token so
+    // it works signed out; the verify link is the public verification page.
+    certDownloadUrl: certificateDownloadUrl(appUrl, registrationId, (reg as any).certificate_token ?? null),
+    verifyUrl:       `${appUrl}/verify/${encodeURIComponent(cert.verification_id)}`,
     ceCredits:       eligibility.ceCredits ?? undefined,
   })
 

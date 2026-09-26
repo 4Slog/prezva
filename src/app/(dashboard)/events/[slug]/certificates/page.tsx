@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/get-user'
 import { getOrgPermissions } from '@/lib/auth/assert-permission'
 import BulkIssueButton from './bulk-issue-button'
 import { countPublishedSessions } from '@/lib/certificates/published-sessions'
+import { countIssuedCertificates, issuedCountLabel } from '@/lib/certificates/issued-counts'
 import { ZeroSessionCertificateWarning } from '@/components/certificates/ZeroSessionCertificateWarning'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -85,6 +86,8 @@ export default async function CertificatesPage({ params }: Props) {
   // agenda.view, which would show the zero-session warning on an event that
   // has sessions. Membership was established above; this reveals a count only.
   const publishedSessions = await countPublishedSessions(createAdminClient(), event.id)
+  // O157: admin client for the same reason — the void count joins registrations.
+  const issuedTotals = await countIssuedCertificates(createAdminClient(), event.id)
 
   return (
     <div style={{ padding: '32px', maxWidth: '900px' }}>
@@ -97,7 +100,10 @@ export default async function CertificatesPage({ params }: Props) {
             Issue certificates of attendance to qualified attendees
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {issuedTotals && issuedTotals.issued > 0 && (
+            <span style={{ fontSize: 13, color: 'var(--pz-muted)' }}>{issuedCountLabel(issuedTotals)}</span>
+          )}
           <BulkIssueButton eventId={(event as any).id} confirmedCount={confirmedCount ?? 0} permissions={permissions} />
           <button
             style={{

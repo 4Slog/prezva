@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { isCertificateServable } from './servable'
 
 export async function getMyIssuedCertificates() {
   const supabase = await createClient()
@@ -13,11 +14,13 @@ export async function getMyIssuedCertificates() {
 
   const { data: regs } = await supabase
     .from('registrations')
-    .select('id')
+    .select('id, status')
     .eq('user_id', user.id)
 
   const regIds = regs?.map(r => r.id) ?? []
   if (regIds.length === 0) return []
+  // O157: the wallet marks a certificate whose registration is no longer confirmed.
+  const statusById = new Map((regs ?? []).map(r => [r.id, r.status as string | null]))
 
   const admin = createAdminClient()
   const { data } = await admin
@@ -26,7 +29,7 @@ export async function getMyIssuedCertificates() {
     .in('registration_id', regIds)
     .order('created_at', { ascending: false })
 
-  return (data ?? []) as any[]
+  return ((data ?? []) as any[]).map(c => ({ ...c, servable: isCertificateServable(statusById.get(c.registration_id)) }))
 }
 
 export async function upsertCertificateTemplate(

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import { CERTIFICATE_NOT_VALID, isCertificateServable } from '@/lib/certificates/servable'
 
 type Props = { params: Promise<{ verificationId: string }> }
 
@@ -9,15 +10,19 @@ export default async function VerifyCertificatePage({ params }: Props) {
 
   // Admin client: public certificate verification endpoint — lookup by verification_id
   const admin = createAdminClient()
-  const { data: cert } = await admin
+  const { data: cert, error } = await admin
     .from('issued_certificates')
-    .select('id, ce_credit_hours, sessions_attended, created_at, events(title, start_at, slug), registrations(attendee_name)')
+    .select('id, ce_credit_hours, sessions_attended, created_at, events(title, start_at, slug), registrations(attendee_name, status)')
     .eq('verification_id', verificationId)
     .maybeSingle()
+  if (error) console.error('[verify] certificate lookup failed', { verificationId, error: error.message })
 
-  const isValid = !!cert
   const ev = cert?.events as any
   const reg = cert?.registrations as any
+  // O157: the row is kept when its registration is cancelled or refunded; the
+  // page then says the certificate is no longer valid and shows no details.
+  const isVoid = !!cert && !isCertificateServable(reg?.status)
+  const isValid = !!cert && !isVoid
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pz-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
@@ -63,6 +68,16 @@ export default async function VerifyCertificatePage({ params }: Props) {
                 </Link>
               </div>
             )}
+          </div>
+        ) : isVoid ? (
+          <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-error)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--pz-error-bg)', borderBottom: '1px solid var(--pz-error)', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>✗</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--pz-error)' }}>Certificate No Longer Valid</span>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ fontSize: 14, color: 'var(--pz-muted)' }}>{CERTIFICATE_NOT_VALID}</p>
+            </div>
           </div>
         ) : (
           <div style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-error)', borderRadius: 12, overflow: 'hidden' }}>

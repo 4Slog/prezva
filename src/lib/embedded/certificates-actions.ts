@@ -6,6 +6,7 @@ import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { issueCertificateCore } from '@/lib/certificates/issue-core'
 import { enqueueCertificateIssueSweep } from '@/lib/trigger'
 import { countPublishedSessions } from '@/lib/certificates/published-sessions'
+import { countIssuedCertificates } from '@/lib/certificates/issued-counts'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -71,6 +72,8 @@ export async function embedGetCertificatesData(eventId: string) {
   }
 
   const totalIssued = (issuedRows ?? []).length
+  // O157: how many of those are void (registration cancelled or refunded).
+  const issuedCounts = await countIssuedCertificates(db, eventId)
 
   // R62: the size of what the bulk button will queue. Confirmed registrations,
   // NOT eligible attendees. It rides along on this loader rather than getting
@@ -90,6 +93,7 @@ export async function embedGetCertificatesData(eventId: string) {
     templates: templates ?? [],
     issuedCountsByTemplate,
     totalIssued,
+    issuedCounts,
     confirmedCount: confirmedCount ?? 0,
   }
 }

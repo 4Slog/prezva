@@ -75,7 +75,7 @@ export default async function MyWalletPage() {
             {certs.map((cert: any) => {
               const ev = cert.events
               return (
-                <div key={cert.id} style={{ background: 'var(--pz-surface)', border: '1px solid var(--pz-teal)', borderRadius: 10, padding: '1.25rem' }}>
+                <div key={cert.id} style={{ background: 'var(--pz-surface)', border: `1px solid ${cert.servable ? 'var(--pz-teal)' : 'var(--pz-border)'}`, borderRadius: 10, padding: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div>
                       <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--pz-text)', marginBottom: 3 }}>
@@ -87,11 +87,18 @@ export default async function MyWalletPage() {
                         {cert.sessions_attended > 0 ? ` · ${cert.sessions_attended} sessions` : ''}
                       </p>
                     </div>
-                    <span style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
-                      EARNED
-                    </span>
+                    {cert.servable ? (
+                      <span style={{ fontSize: 11, background: 'var(--pz-teal-bg)', color: 'var(--pz-teal-ink)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+                        EARNED
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, background: 'var(--pz-border)', color: 'var(--pz-muted)', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+                        No longer valid
+                      </span>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  {/* O157: no download or verify link once the registration is not confirmed. */}
+                  {cert.servable && <div style={{ display: 'flex', gap: 8 }}>
                     {ev?.slug && (
                       <Link
                         href={`/e/${ev.slug}/certificate`}
@@ -106,7 +113,7 @@ export default async function MyWalletPage() {
                     >
                       Verify
                     </Link>
-                  </div>
+                  </div>}
                 </div>
               )
             })}
