@@ -62,6 +62,9 @@ export default async function OrgIntegrationsPage({ params, searchParams }: Prop
 
   const adapters = listAdapters()
 
+  const perms = await getOrgPermissions(orgId, user.id)
+
+  // Safe columns only, through the member's RLS client (O155).
   const { data: orgIntegrations } = await supabase
     .from('org_integrations')
     .select('provider, status, last_synced_at, directionality_preferences')
@@ -75,8 +78,14 @@ export default async function OrgIntegrationsPage({ params, searchParams }: Prop
   // Load Mailchimp lists if connected
   let mailchimpLists: { id: string; name: string; memberCount: number }[] = []
   let defaultMailchimpListId: string | null = null
-  if (integrationMap['mailchimp']?.status === 'connected') {
-    try { mailchimpLists = await mailchimpAdapter.getLists(orgId) } catch { /* non-fatal */ }
+  // O155: getLists reads the Mailchimp token on the service-role client, so it
+  // runs only for a member who holds org.integrations on this org.
+  if (integrationMap['mailchimp']?.status === 'connected' && permits(perms, 'org.integrations')) {
+    try {
+      mailchimpLists = await mailchimpAdapter.getLists(orgId)
+    } catch (e) {
+      console.error('[integrations] mailchimp lists failed', e instanceof Error ? e.message : String(e))
+    }
     defaultMailchimpListId = (integrationMap['mailchimp']?.directionality_preferences as any)?.defaultListId ?? null
   }
 
@@ -134,7 +143,7 @@ export default async function OrgIntegrationsPage({ params, searchParams }: Prop
       )}
 
       <IntegrationsClient
-        ghl={permits(await getOrgPermissions(orgId, user.id), 'org.settings') ? { status: integrationMap['ghl']?.status ?? null } : null}
+        ghl={permits(perms, 'org.settings') ? { status: integrationMap['ghl']?.status ?? null } : null}
         sections={sections}
         orgId={orgId}
         orgSlug={slug}

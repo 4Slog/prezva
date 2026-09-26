@@ -2,7 +2,7 @@ import type { IntegrationAdapter, IntegrationStatus } from '../_shared/adapter'
 import { getAuthUrl, exchangeCodeForTokens, refreshAccessToken } from '../_shared/oauth'
 import { encryptToken, decryptToken } from '../_shared/encryption'
 import { logIntegrationError } from '../_shared/sync-errors'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const PROVIDER = 'google_drive'
 const SCOPES = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.readonly']
@@ -22,11 +22,12 @@ class GoogleDriveAdapter implements IntegrationAdapter {
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     try {
       const tokens = await exchangeCodeForTokens(PROVIDER, code, redirectUri, (process.env.GOOGLE_DRIVE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID)!, (process.env.GOOGLE_DRIVE_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET)!)
       const encryptedToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null
-      await supabase.from('org_integrations').upsert({ org_id: orgId, provider: PROVIDER, status: 'connected', encrypted_refresh_token: encryptedToken, scopes: SCOPES, last_synced_at: new Date().toISOString() }, { onConflict: 'org_id,provider' })
+      const { error: saveError } = await supabase.from('org_integrations').upsert({ org_id: orgId, provider: PROVIDER, status: 'connected', encrypted_refresh_token: encryptedToken, scopes: SCOPES, last_synced_at: new Date().toISOString() }, { onConflict: 'org_id,provider' })
+      if (saveError) throw new Error(`${this.displayName} connect failed: ${saveError.message}`)
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'handleCallback', err); throw err }
   }
 
@@ -34,7 +35,7 @@ class GoogleDriveAdapter implements IntegrationAdapter {
   // RLS-filtered update that matched nothing) used to leave the org looking
   // disconnected while its tokens stayed stored.
   async disconnect(orgId: string): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const { data, error } = await supabase
       .from('org_integrations')
       .update({ status: 'available', encrypted_refresh_token: null, encrypted_access_token: null, token_expires_at: null })
@@ -47,14 +48,16 @@ class GoogleDriveAdapter implements IntegrationAdapter {
 
   async getStatus(orgId: string): Promise<IntegrationStatus> {
     if (!this.isConfigured()) return 'awaiting_credentials'
-    const supabase = await createClient()
-    const { data } = await supabase.from('org_integrations').select('status').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from('org_integrations').select('status').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    if (error) throw new Error(`${this.displayName} status read failed: ${error.message}`)
     return (data?.status as IntegrationStatus) ?? 'available'
   }
 
   async getAccessToken(orgId: string): Promise<string | null> {
-    const supabase = await createClient()
-    const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    if (error) throw new Error(`${this.displayName} token read failed: ${error.message}`)
     if (!data?.encrypted_refresh_token) return null
     try {
       const decrypted = decryptToken(data.encrypted_refresh_token)

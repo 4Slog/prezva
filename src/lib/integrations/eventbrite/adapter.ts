@@ -14,6 +14,7 @@ import { getAuthUrl, exchangeCodeForTokens } from '../_shared/oauth'
 import { encryptToken, decryptToken } from '../_shared/encryption'
 import { logIntegrationError } from '../_shared/sync-errors'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const PROVIDER = 'eventbrite'
 
@@ -36,30 +37,34 @@ class EventbriteAdapter implements IntegrationAdapter {
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     try {
       const tokens = await exchangeCodeForTokens(PROVIDER, code, redirectUri, process.env.EVENTBRITE_CLIENT_ID!, process.env.EVENTBRITE_CLIENT_SECRET!)
       // Eventbrite returns long-lived access_token (no refresh)
       const encryptedToken = encryptToken(tokens.access_token)
-      await supabase.from('org_integrations').upsert({ org_id: orgId, provider: PROVIDER, status: 'connected', encrypted_refresh_token: encryptedToken, last_synced_at: new Date().toISOString() }, { onConflict: 'org_id,provider' })
+      const { error: saveError } = await supabase.from('org_integrations').upsert({ org_id: orgId, provider: PROVIDER, status: 'connected', encrypted_refresh_token: encryptedToken, last_synced_at: new Date().toISOString() }, { onConflict: 'org_id,provider' })
+      if (saveError) throw new Error(`${this.displayName} connect failed: ${saveError.message}`)
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'handleCallback', err); throw err }
   }
 
   async disconnect(orgId: string): Promise<void> {
-    const supabase = await createClient()
-    await supabase.from('org_integrations').update({ status: 'available', encrypted_refresh_token: null }).eq('org_id', orgId).eq('provider', PROVIDER)
+    const supabase = createAdminClient()
+    const { error } = await supabase.from('org_integrations').update({ status: 'available', encrypted_refresh_token: null }).eq('org_id', orgId).eq('provider', PROVIDER)
+    if (error) throw new Error(`${this.displayName} disconnect failed: ${error.message}`)
   }
 
   async getStatus(orgId: string): Promise<IntegrationStatus> {
     if (!this.isConfigured()) return 'awaiting_credentials'
-    const supabase = await createClient()
-    const { data } = await supabase.from('org_integrations').select('status').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from('org_integrations').select('status').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    if (error) throw new Error(`${this.displayName} status read failed: ${error.message}`)
     return (data?.status as IntegrationStatus) ?? 'available'
   }
 
   private async getAccessToken(orgId: string): Promise<string | null> {
-    const supabase = await createClient()
-    const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).single()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from('org_integrations').select('encrypted_refresh_token').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    if (error) throw new Error(`${this.displayName} token read failed: ${error.message}`)
     if (!data?.encrypted_refresh_token) return null
     try {
       return decryptToken(data.encrypted_refresh_token)
@@ -137,7 +142,8 @@ class EventbriteAdapter implements IntegrationAdapter {
       }
     } while (continuation)
 
-    await supabase.from('org_integrations').update({ last_synced_at: new Date().toISOString() }).eq('org_id', orgId).eq('provider', PROVIDER)
+    const { error: syncedErr } = await createAdminClient().from('org_integrations').update({ last_synced_at: new Date().toISOString() }).eq('org_id', orgId).eq('provider', PROVIDER)
+    if (syncedErr) await logIntegrationError(orgId, PROVIDER, 'importAttendees', syncedErr.message)
     return { imported, skipped, errors }
   }
 }

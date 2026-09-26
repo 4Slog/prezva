@@ -1,7 +1,7 @@
 import type { IntegrationAdapter, IntegrationStatus } from '../_shared/adapter'
 import { encryptToken, decryptToken } from '../_shared/encryption'
 import { logIntegrationError } from '../_shared/sync-errors'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const PROVIDER = 'wildapricot'
 
@@ -30,7 +30,7 @@ class WildApricotAdapter implements IntegrationAdapter {
   }
 
   async handleCallback(code: string, orgId: string, redirectUri: string): Promise<void> {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     try {
       const credentials = Buffer.from(`${process.env.WILDAPRICOT_CLIENT_ID!}:${process.env.WILDAPRICOT_CLIENT_SECRET!}`).toString('base64')
       const res = await fetch(TOKEN_ENDPOINT, {
@@ -57,30 +57,34 @@ class WildApricotAdapter implements IntegrationAdapter {
         }
       } catch { /* non-fatal */ }
 
-      await supabase.from('org_integrations').upsert({
+      const { error: saveError } = await supabase.from('org_integrations').upsert({
         org_id: orgId, provider: PROVIDER, status: 'connected',
         encrypted_refresh_token: encryptedToken,
         directionality_preferences: { accountId },
         last_synced_at: new Date().toISOString(),
       }, { onConflict: 'org_id,provider' })
+      if (saveError) throw new Error(`${this.displayName} connect failed: ${saveError.message}`)
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'handleCallback', err); throw err }
   }
 
   async disconnect(orgId: string): Promise<void> {
-    const supabase = await createClient()
-    await supabase.from('org_integrations').update({ status: 'available', encrypted_refresh_token: null }).eq('org_id', orgId).eq('provider', PROVIDER)
+    const supabase = createAdminClient()
+    const { error } = await supabase.from('org_integrations').update({ status: 'available', encrypted_refresh_token: null }).eq('org_id', orgId).eq('provider', PROVIDER)
+    if (error) throw new Error(`${this.displayName} disconnect failed: ${error.message}`)
   }
 
   async getStatus(orgId: string): Promise<IntegrationStatus> {
     if (!this.isConfigured()) return 'awaiting_credentials'
-    const supabase = await createClient()
-    const { data } = await supabase.from('org_integrations').select('status').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from('org_integrations').select('status').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    if (error) throw new Error(`${this.displayName} status read failed: ${error.message}`)
     return (data?.status as IntegrationStatus) ?? 'available'
   }
 
   private async getAccessToken(orgId: string): Promise<{ token: string; accountId: string } | null> {
-    const supabase = await createClient()
-    const { data } = await supabase.from('org_integrations').select('encrypted_refresh_token, directionality_preferences').eq('org_id', orgId).eq('provider', PROVIDER).single()
+    const supabase = createAdminClient()
+    const { data, error } = await supabase.from('org_integrations').select('encrypted_refresh_token, directionality_preferences').eq('org_id', orgId).eq('provider', PROVIDER).maybeSingle()
+    if (error) throw new Error(`${this.displayName} token read failed: ${error.message}`)
     if (!data?.encrypted_refresh_token) return null
     try {
       const decrypted = decryptToken(data.encrypted_refresh_token)
@@ -99,7 +103,9 @@ class WildApricotAdapter implements IntegrationAdapter {
   }
 
   async verifyMembership(orgId: string, email: string): Promise<boolean> {
-    const creds = await this.getAccessToken(orgId)
+    let creds: { token: string; accountId: string } | null
+    try { creds = await this.getAccessToken(orgId) }
+    catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'verifyMembership', err, { email }); return false }
     if (!creds || !creds.accountId) return false
     try {
       const res = await fetch(

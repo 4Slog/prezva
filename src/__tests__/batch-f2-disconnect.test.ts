@@ -131,13 +131,14 @@ describe('Google Drive adapter disconnect', () => {
     const db = createFakeDb({
       org_integrations: [{ id: 'g1', org_id: ORG, provider: 'google_drive', status: 'connected', encrypted_refresh_token: 'r', encrypted_access_token: 'a', token_expires_at: 'x' }],
     })
-    h.server = db.client
+    // O155: the adapter writes through the service-role client.
+    h.admin = db.client
     await googleDriveAdapter.disconnect(ORG)
     expect(db.tables.org_integrations[0]).toMatchObject({ status: 'available', encrypted_refresh_token: null, encrypted_access_token: null, token_expires_at: null })
   })
 
   it('throws when nothing was updated', async () => {
-    h.server = createFakeDb({ org_integrations: [] }).client
+    h.admin = createFakeDb({ org_integrations: [] }).client
     await expect(googleDriveAdapter.disconnect(ORG)).rejects.toThrow(/no integration row/)
   })
 })
