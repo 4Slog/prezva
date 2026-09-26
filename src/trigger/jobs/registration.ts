@@ -2,6 +2,7 @@ import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
 import { isEventGhlLinked } from '@/lib/integrations/ghl/location'
+import { escapeHtml, safeDisplayName, safeHref, safeSubject } from '@/lib/email/escape'
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
@@ -76,7 +77,7 @@ export const sendConfirmationEmail = schemaTask({
     const volunteerSection = volunteerMatch ? `
       <div style="margin-top:12px;padding:12px 16px;background:#3B82F615;border-left:3px solid #3B82F6;border-radius:4px;">
         <p style="margin:0 0 4px;font-weight:700;color:#3B82F6;font-size:13px;">
-          🙋 You're also volunteering at this event${volunteerMatch.role ? ` as ${volunteerMatch.role}` : ''}
+          🙋 You're also volunteering at this event${volunteerMatch.role ? ` as ${escapeHtml(volunteerMatch.role)}` : ''}
         </p>
         <p style="margin:0;font-size:13px;color:#374151;">
           <a href="${BASE_URL}/volunteer/${volunteerMatch.portal_access_token}" style="color:#3B82F6;">
@@ -108,6 +109,11 @@ export const sendConfirmationEmail = schemaTask({
       console.error('[trigger] QR upload failed, falling back to api.qrserver.com:', err)
     }
 
+    // O170: attendee and organizer text is escaped; the join link only when it is a clean http(s) URL.
+    const attendeeNameHtml = escapeHtml(payload.attendeeName)
+    const eventTitleHtml = escapeHtml(payload.eventTitle)
+    const orgNameHtml = escapeHtml(payload.orgName)
+    const virtualHref = safeHref(payload.virtualUrl)
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -117,10 +123,10 @@ export const sendConfirmationEmail = schemaTask({
           <h1 style="color:#F0F4F8;font-size:22px;margin:0;">You're registered!</h1>
         </div>
         <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-          <p style="font-size:15px;">Hi ${payload.attendeeName},</p>
-          <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> is confirmed.</p>
+          <p style="font-size:15px;">Hi ${attendeeNameHtml},</p>
+          <p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${eventTitleHtml}</strong> is confirmed.</p>
           <p style="margin:4px 0;">📅 ${dateStr}</p>
-          ${payload.eventVenue ? `<p style="margin:4px 0;">📍 ${payload.eventVenue}</p>` : ''}
+          ${payload.eventVenue ? `<p style="margin:4px 0;">📍 ${escapeHtml(payload.eventVenue)}</p>` : ''}
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
@@ -133,10 +139,10 @@ export const sendConfirmationEmail = schemaTask({
             <p style="color:#94A3B8;font-size:11px;margin:0 0 4px;">Check-in PIN (use with your email if you don&apos;t have your QR)</p>
             <p style="color:#F0F4F8;font-size:22px;font-weight:700;margin:0;letter-spacing:6px;font-family:monospace;">${payload.pin}</p>
           </div>
-          ${['virtual','hybrid'].includes(payload.eventType ?? '') && payload.virtualUrl ? `
+          ${['virtual','hybrid'].includes(payload.eventType ?? '') && virtualHref ? `
           <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 4px;">Join link</p>
-            <a href="${payload.virtualUrl}" style="color:#00BFA6;font-size:16px;font-weight:700;text-decoration:none;">Join online →</a>
+            <a href="${virtualHref}" style="color:#00BFA6;font-size:16px;font-weight:700;text-decoration:none;">Join online →</a>
           </div>` : ''}
           ${payload.pressToken ? `
           <div style="margin:20px 0;padding:16px;background:#1E3A5F;border-radius:8px;">
@@ -160,7 +166,7 @@ export const sendConfirmationEmail = schemaTask({
           </p>
           <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
           <p style="color:#475569;font-size:12px;margin:0;">
-            Sent by ${payload.orgName} via <a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
+            Sent by ${orgNameHtml} via <a href="${eventUrl}" style="color:#00BFA6;text-decoration:none;">Prezva</a>.
           </p>
           <p style="font-size:11px;color:#475569;text-align:center;margin-top:16px;">
             <a href="${unsubUrl}" style="color:#64748B;">Unsubscribe from reminder emails</a> ·
@@ -203,9 +209,9 @@ export const sendConfirmationEmail = schemaTask({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:      `${payload.orgName} <noreply@prezva.app>`,
+        from:      `${safeDisplayName(payload.orgName)} <noreply@prezva.app>`,
         to:        payload.attendeeEmail,
-        subject:   `${payload.orgName}: You're registered for ${payload.eventTitle}${roleNote}`,
+        subject:   safeSubject(`${payload.orgName}: You're registered for ${payload.eventTitle}${roleNote}`),
         html,
         text:      textParts,
         reply_to:  payload.orgEmail || undefined,
@@ -309,8 +315,8 @@ export const processWaitlist = schemaTask({
           <h1 style="color:#F0F4F8;font-size:22px;margin:0;">Good news — you're in!</h1>
         </div>
         <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-          <p style="font-size:15px;">Hi ${next.attendee_name.trim().split(/\s+/)[0]},</p>
-          <p style="font-size:15px;">A spot opened up for <strong style="color:#F0F4F8;">${payload.eventTitle}</strong> and you've been confirmed off the waitlist.</p>
+          <p style="font-size:15px;">Hi ${escapeHtml(next.attendee_name.trim().split(/\s+/)[0])},</p>
+          <p style="font-size:15px;">A spot opened up for <strong style="color:#F0F4F8;">${escapeHtml(payload.eventTitle)}</strong> and you've been confirmed off the waitlist.</p>
           <div style="background:#0D1B2A;border:1px solid #1E3A5F;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:center;">
             <p style="color:#94A3B8;font-size:12px;margin:0 0 10px;">Your check-in QR code</p>
             <img
@@ -359,7 +365,7 @@ export const processWaitlist = schemaTask({
       body: JSON.stringify({
         from: `Prezva <noreply@prezva.app>`,
         to: next.attendee_email,
-        subject: `Good news — a spot opened up for ${payload.eventTitle}`,
+        subject: safeSubject(`Good news — a spot opened up for ${payload.eventTitle}`),
         html,
         text: wlText,
         headers: { 'List-Unsubscribe': `<${wlUnsubAllUrl}>` },

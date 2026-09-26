@@ -1,6 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
-import { escapeHtml } from '../lib/escape'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 import { createAdminClient } from '../lib/supabase-admin'
 import { sendSpeakerEmail } from '@/lib/speaker/send-speaker-email'
 
@@ -85,7 +85,7 @@ export const sendSpeakerInviteEmail = schemaTask({
         email: payload.speakerEmail,
         ghlContactId: payload.speakerGhlContactId ?? null,
       },
-      subject: `You're speaking at ${payload.eventTitle} — here's your portal`,
+      subject: safeSubject(`You're speaking at ${payload.eventTitle} — here's your portal`),
       html,
       text,
       resend: {

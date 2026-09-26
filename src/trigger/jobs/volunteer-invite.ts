@@ -1,6 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
-import { escapeHtml } from '../lib/escape'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 import { zoneName } from '@/lib/datetime/zoned-input'
 
 export const sendVolunteerInviteEmail = schemaTask({
@@ -100,7 +100,7 @@ export const sendVolunteerInviteEmail = schemaTask({
       body: JSON.stringify({
         from:     'Prezva Events <noreply@prezva.app>',
         to:       payload.volunteerEmail,
-        subject:  `You're volunteering at ${payload.eventTitle} — here's your portal`,
+        subject:  safeSubject(`You're volunteering at ${payload.eventTitle} — here's your portal`),
         html,
         text,
         reply_to: payload.orgEmail || undefined,

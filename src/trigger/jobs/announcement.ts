@@ -2,7 +2,7 @@ import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createAdminClient } from '../lib/supabase-admin'
-import { escapeHtml } from '../lib/escape'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 import { sendAnnouncementPush } from '@/lib/push/send'
 import { isEventGhlLinked } from '@/lib/integrations/ghl/location'
 import { getSuppressedEmailSet } from '@/lib/email/suppression'
@@ -196,9 +196,9 @@ export async function runSendAnnouncement(
       ].filter(Boolean).join('\n')
 
       return {
-        from:     `${orgName} <noreply@prezva.app>`,
+        from:     `${safeDisplayName(orgName)} <noreply@prezva.app>`,
         to:       reg.attendee_email,
-        subject:  `${orgName}: ${ann.title}`,
+        subject:  safeSubject(`${orgName}: ${ann.title}`),
         html,
         text,
         reply_to: orgEmail,

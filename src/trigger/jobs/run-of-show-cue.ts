@@ -1,5 +1,6 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 
 export const rosCueNotificationTask = schedules.task({
   id: 'run-of-show-cue-notifications',
@@ -35,12 +36,12 @@ export const rosCueNotificationTask = schedules.task({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `${orgName} <noreply@prezva.app>`,
+          from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
           to: item.responsible_email,
-          subject: `⏰ Your cue in 10 minutes: ${item.title}`,
-          html: `<p>Hi ${item.responsible_person ?? 'there'},</p>
-                 <p>Your cue <strong>${item.title}</strong> starts in approximately 10 minutes at ${new Date(item.time_at).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' })}.</p>
-                 <p>— ${orgName}</p>`,
+          subject: safeSubject(`⏰ Your cue in 10 minutes: ${item.title}`),
+          html: `<p>Hi ${escapeHtml(item.responsible_person ?? 'there')},</p>
+                 <p>Your cue <strong>${escapeHtml(item.title ?? '')}</strong> starts in approximately 10 minutes at ${new Date(item.time_at).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' })}.</p>
+                 <p>— ${escapeHtml(orgName)}</p>`,
         }),
       }).catch(() => {})
       await admin.from('run_of_show_items')

@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 
 // Server-only post-event volunteer helpers. They take an eventId on trust (the
 // caller — events/actions.ts's completion flow — authorizes first), so they
@@ -94,15 +95,15 @@ export async function sendVolunteerThankYouEmails(eventId: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${orgName} <noreply@prezva.app>`,
+        from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
         to: vol.email,
-        subject: `Thank you for volunteering at ${eventTitle}!`,
-        html: `<p>Hi ${vol.name},</p>
-               <p>Thank you for volunteering at <strong>${eventTitle}</strong>!</p>
-               ${hours ? `<p>You contributed <strong>${hours} hours</strong> as ${vol.role}. That makes a real difference.</p>` : ''}
+        subject: safeSubject(`Thank you for volunteering at ${eventTitle}!`),
+        html: `<p>Hi ${escapeHtml(vol.name ?? '')},</p>
+               <p>Thank you for volunteering at <strong>${escapeHtml(eventTitle)}</strong>!</p>
+               ${hours ? `<p>You contributed <strong>${hours} hours</strong> as ${escapeHtml(vol.role ?? '')}. That makes a real difference.</p>` : ''}
                <p>We truly appreciate your time and dedication.</p>
                ${surveyUrl ? `<p><a href="${surveyUrl}" style="display:inline-block;padding:10px 20px;background:#2DD4BF;color:#0D1B2A;text-decoration:none;border-radius:6px;font-weight:700">Share your feedback →</a></p>` : ''}
-               <p>— ${orgName}</p>`,
+               <p>— ${escapeHtml(orgName)}</p>`,
       }),
     }).catch(() => {})
   }

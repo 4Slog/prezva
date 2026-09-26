@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
-import { escapeHtml } from '@/trigger/lib/escape'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 
 async function validateToken(token: string) {
   const admin = createAdminClient()
@@ -356,9 +356,9 @@ export async function sendSponsorPortalInvite(sponsorId: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `${orgName} <noreply@prezva.app>`,
+      from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
       to: email,
-      subject: `Your sponsor portal is ready — ${eventTitle}`,
+      subject: safeSubject(`Your sponsor portal is ready — ${eventTitle}`),
       html: `<p>Hi ${escapeHtml((sponsor as any).name ?? '')} team,</p>
              <p>Your sponsor portal for <strong>${escapeHtml(eventTitle)}</strong> is ready.</p>
              <p>Use your portal to:</p>

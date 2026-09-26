@@ -7,15 +7,7 @@ import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
 import { enqueueGhlSpeakerMessage } from '@/lib/trigger'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit/log'
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-}
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 
 // ── Embed context ─────────────────────────────────────────────────────────────
 
@@ -337,7 +329,7 @@ export async function embedSendSpeakerInvite(eventId: string, speakerId: string)
     speakerId,
     eventId,
     orgId,
-    subject: `You're speaking at ${eventTitle} — here's your portal`,
+    subject: safeSubject(`You're speaking at ${eventTitle} — here's your portal`),
     html,
   })
 
@@ -396,7 +388,7 @@ export async function embedRenewSpeakerToken(eventId: string, speakerId: string)
       speakerId,
       eventId,
       orgId,
-      subject: `Updated speaker portal link — ${eventTitle}`,
+      subject: safeSubject(`Updated speaker portal link — ${eventTitle}`),
       html,
     })
   }
@@ -561,7 +553,7 @@ export async function embedSendSpeakerMessage(eventId: string, conversationId: s
         speakerId,
         eventId,
         orgId,
-        subject: `New message re: ${eventTitle}`,
+        subject: safeSubject(`New message re: ${eventTitle}`),
         html,
       })
     }

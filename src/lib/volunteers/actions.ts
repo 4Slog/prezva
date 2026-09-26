@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 
 export async function respondToVolunteerShift(
   token: string,
@@ -52,9 +53,9 @@ export async function respondToVolunteerShift(
       body: JSON.stringify({
         from: 'Prezva <noreply@prezva.app>',
         to: orgEmail,
-        subject: `Volunteer ${response}: ${(vol as any).name} — ${eventTitle}`,
-        html: `<p>${(vol as any).name} has <strong>${response}</strong> their volunteer shift for ${eventTitle}.</p>
-               ${declineReason ? `<p>Reason: ${declineReason}</p>` : ''}`,
+        subject: safeSubject(`Volunteer ${response}: ${(vol as any).name} — ${eventTitle}`),
+        html: `<p>${escapeHtml((vol as any).name ?? '')} has <strong>${response}</strong> their volunteer shift for ${escapeHtml(eventTitle)}.</p>
+               ${declineReason ? `<p>Reason: ${escapeHtml(declineReason)}</p>` : ''}`,
       }),
     }).catch(() => {})
   }
@@ -103,9 +104,9 @@ export async function sendVolunteerAlert(
         body: JSON.stringify({
           from: 'Prezva Alerts <noreply@prezva.app>',
           to: orgEmail,
-          subject: `URGENT: ${(vol as any).name} — ${(vol as any).events?.title}`,
-          html: `<p><strong>Urgent alert from volunteer ${(vol as any).name}:</strong></p>
-                 <p>${message}</p>
+          subject: safeSubject(`URGENT: ${(vol as any).name} — ${(vol as any).events?.title}`),
+          html: `<p><strong>Urgent alert from volunteer ${escapeHtml((vol as any).name ?? '')}:</strong></p>
+                 <p>${escapeHtml(message)}</p>
                  <p>Sent at ${new Date().toLocaleTimeString()}</p>`,
         }),
       }).catch(() => {})
@@ -186,13 +187,13 @@ export async function signupAsVolunteer(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: `${orgName} <noreply@prezva.app>`,
+      from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
       to: email,
-      subject: `Volunteer application received — ${eventTitle}`,
-      html: `<p>Hi ${name},</p>
-             <p>Thanks for applying to volunteer at <strong>${eventTitle}</strong>!</p>
+      subject: safeSubject(`Volunteer application received — ${eventTitle}`),
+      html: `<p>Hi ${escapeHtml(name)},</p>
+             <p>Thanks for applying to volunteer at <strong>${escapeHtml(eventTitle)}</strong>!</p>
              <p>The organizer will review your application and send you a portal link with your assignment details.</p>
-             <p>— ${orgName}</p>`,
+             <p>— ${escapeHtml(orgName)}</p>`,
     }),
   }).catch(() => {})
 

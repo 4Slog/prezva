@@ -1,6 +1,6 @@
 import { schemaTask } from '@trigger.dev/sdk'
 import { z } from 'zod'
-import { escapeHtml } from '../lib/escape'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 import { createAdminClient } from '../lib/supabase-admin'
 import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
@@ -74,7 +74,7 @@ export const sendCertificateEmail = schemaTask({
       registrationId: payload.registrationId,
       to: payload.attendeeEmail,
       attendeeName: payload.attendeeName,
-      subject: `${payload.eventTitle}: Your certificate is ready`,
+      subject: safeSubject(`${payload.eventTitle}: Your certificate is ready`),
       html,
       text,
       from: 'Prezva <noreply@prezva.app>',

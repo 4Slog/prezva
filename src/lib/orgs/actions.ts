@@ -12,6 +12,7 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
 import { createOrganization } from './create-organization'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 
 // ── Validation schemas ───────────────────────────────────────────────────────
 
@@ -163,7 +164,7 @@ export async function inviteMember(orgId: string, formData: FormData) {
         <h1 style="color:#2DD4BF;margin:0;font-size:1.5rem;">You're invited!</h1>
       </div>
       <div style="background:#112240;padding:24px;border-radius:0 0 12px 12px;color:#F0F4F8;">
-        <p>You've been invited to join <strong>${org?.name ?? 'an organization'}</strong> on Prezva as <strong>${parsed.data.role}</strong>.</p>
+        <p>You've been invited to join <strong>${escapeHtml(org?.name ?? 'an organization')}</strong> on Prezva as <strong>${escapeHtml(parsed.data.role)}</strong>.</p>
         <div style="margin:24px 0;text-align:center;">
           <a href="${inviteUrl}" style="background:#2DD4BF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;">Accept Invitation</a>
         </div>
@@ -182,7 +183,7 @@ export async function inviteMember(orgId: string, formData: FormData) {
     body: JSON.stringify({
       from: 'Prezva <noreply@prezva.app>',
       to: parsed.data.email,
-      subject: `You're invited to join ${org?.name ?? 'an organization'} on Prezva`,
+      subject: safeSubject(`You're invited to join ${org?.name ?? 'an organization'} on Prezva`),
       html,
     }),
   })
@@ -252,8 +253,8 @@ export async function resendInvite(inviteId: string) {
     body: JSON.stringify({
       from: 'Prezva <noreply@prezva.app>',
       to: (invite as any).email,
-      subject: `Reminder: You've been invited to join ${orgName} on Prezva`,
-      html: `<p>This is a reminder that you've been invited to join <strong>${orgName}</strong> as a ${(invite as any).role} on Prezva.</p>
+      subject: safeSubject(`Reminder: You've been invited to join ${orgName} on Prezva`),
+      html: `<p>This is a reminder that you've been invited to join <strong>${escapeHtml(orgName)}</strong> as a ${escapeHtml(String((invite as any).role ?? ''))} on Prezva.</p>
              <p><a href="${inviteUrl}">Accept invitation →</a></p>`,
     }),
   }).catch(() => {})

@@ -7,7 +7,7 @@ import { catchPermission } from '@/lib/auth/permission-error'
 import { doorRefusal, doorRefusalMessage } from '@/lib/checkin/admission'
 import { isUniqueViolation } from '@/lib/checkin/offline-sync'
 import { logAudit } from '@/lib/audit/log'
-import { escapeHtml } from '@/trigger/lib/escape'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 
 export async function refundRegistration(registrationId: string, force?: boolean) {
@@ -111,10 +111,10 @@ export async function resendConfirmation(registrationId: string) {
       registrationId: reg.id,
       to: reg.attendee_email,
       attendeeName: reg.attendee_name,
-      subject: `Your registration for ${ev.title}`,
+      subject: safeSubject(`Your registration for ${ev.title}`),
       html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-        <p>Hi ${reg.attendee_name.trim().split(/\s+/)[0]},</p>
-        <p>This is your confirmation for <strong>${ev.title}</strong>.</p>
+        <p>Hi ${escapeHtml(reg.attendee_name.trim().split(/\s+/)[0])},</p>
+        <p>This is your confirmation for <strong>${escapeHtml(ev.title ?? '')}</strong>.</p>
         <p><a href="${appUrl}/e/${ev.slug}/confirmation?token=${reg.qr_code}" style="background:#2DD4BF;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">View Ticket</a></p>
       </div>`,
       from: 'noreply@prezva.app',
@@ -284,7 +284,7 @@ export async function rejectRegistration(registrationId: string, reason?: string
   })
 
   const orgName = ev?.organizations?.name ?? 'Prezva'
-  const reasonText = reason ? `<p style="font-size:15px;">Reason: ${reason}</p>` : ''
+  const reasonText = reason ? `<p style="font-size:15px;">Reason: ${escapeHtml(reason)}</p>` : ''
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
@@ -293,19 +293,19 @@ export async function rejectRegistration(registrationId: string, reason?: string
         <h1 style="color:#F0F4F8;font-size:22px;margin:12px 0 0;">Registration update</h1>
       </div>
       <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-        <p style="font-size:15px;">Hi ${reg.attendee_name},</p>
-        <p style="font-size:15px;">We're sorry — your registration for <strong style="color:#F0F4F8;">${ev.title}</strong> was not approved.</p>
+        <p style="font-size:15px;">Hi ${escapeHtml(reg.attendee_name ?? '')},</p>
+        <p style="font-size:15px;">We're sorry — your registration for <strong style="color:#F0F4F8;">${escapeHtml(ev.title ?? '')}</strong> was not approved.</p>
         ${reasonText}
         <p style="font-size:15px;">If you have questions, please contact the event organizer.</p>
         <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
-        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>.</p>
+        <p style="color:#475569;font-size:12px;">Sent by ${escapeHtml(orgName)} via <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>.</p>
       </div>
     </div>
   `
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: `${orgName} <noreply@prezva.app>`, to: reg.attendee_email, subject: `${orgName}: Registration update for ${ev.title}`, html }),
+    body: JSON.stringify({ from: `${safeDisplayName(orgName)} <noreply@prezva.app>`, to: reg.attendee_email, subject: safeSubject(`${orgName}: Registration update for ${ev.title}`), html }),
   })
 
   return { ok: true }
@@ -405,13 +405,13 @@ export async function selfCancelRegistration(registrationId: string) {
         <h1 style="color:#F0F4F8;font-size:22px;margin:12px 0 0;">Registration ${isPaid ? 'cancellation requested' : 'cancelled'}</h1>
       </div>
       <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-        <p style="font-size:15px;">Hi ${reg.attendee_name},</p>
+        <p style="font-size:15px;">Hi ${escapeHtml(reg.attendee_name ?? '')},</p>
         ${isPaid
-          ? `<p style="font-size:15px;">Your cancellation request for <strong style="color:#F0F4F8;">${ev.title}</strong> has been received. The organizer will process your refund per their policy.</p>`
-          : `<p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${ev.title}</strong> has been cancelled.</p>`
+          ? `<p style="font-size:15px;">Your cancellation request for <strong style="color:#F0F4F8;">${escapeHtml(ev.title ?? '')}</strong> has been received. The organizer will process your refund per their policy.</p>`
+          : `<p style="font-size:15px;">Your registration for <strong style="color:#F0F4F8;">${escapeHtml(ev.title ?? '')}</strong> has been cancelled.</p>`
         }
         <hr style="border:none;border-top:1px solid #1E3A5F;margin:20px 0;" />
-        <p style="color:#475569;font-size:12px;">Sent by ${orgName} via <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>.</p>
+        <p style="color:#475569;font-size:12px;">Sent by ${escapeHtml(orgName)} via <a href="${appUrl}" style="color:#2DD4BF;">Prezva</a>.</p>
       </div>
     </div>
   `
@@ -419,9 +419,9 @@ export async function selfCancelRegistration(registrationId: string) {
     registrationId: reg.id,
     to: reg.attendee_email,
     attendeeName: reg.attendee_name,
-    subject: `${orgName}: Registration ${isPaid ? 'cancellation requested' : 'cancelled'} — ${ev.title}`,
+    subject: safeSubject(`${orgName}: Registration ${isPaid ? 'cancellation requested' : 'cancelled'} — ${ev.title}`),
     html,
-    from: `${orgName} <noreply@prezva.app>`,
+    from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
   })
 
   if (isPaid) {
@@ -444,7 +444,7 @@ export async function selfCancelRegistration(registrationId: string) {
         body: JSON.stringify({
           from: 'noreply@prezva.app',
           to: orgEmail,
-          subject: `Cancellation request: ${reg.attendee_name} — ${ev.title}`,
+          subject: safeSubject(`Cancellation request: ${reg.attendee_name} — ${ev.title}`),
           html: `<p>${escapeHtml(reg.attendee_name ?? '')} (${escapeHtml(reg.attendee_email ?? '')}) has requested a cancellation for ${escapeHtml(ev.title ?? '')}. Please process the refund via your Stripe dashboard — the ticket stays valid until it is refunded.</p>`,
         }),
       })

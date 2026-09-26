@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { validateSpeakerToken } from '@/lib/speaker/speaker-actions'
 import { speakerHandoutLimiter, checkRateLimit } from '@/lib/ratelimit'
 import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
+import { safeDisplayName } from '@/lib/email/escape'
+import { handoutEmail } from '@/lib/speaker/handout-email'
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -140,25 +142,15 @@ async function notifyAttendeesOfHandout(
 
   for (const reg of regs) {
     const firstName = (reg as any).attendee_name?.trim().split(/\s+/)[0] ?? 'there'
-    const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-      <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
-        <h1 style="color:#F0F4F8;font-size:18px;margin:0;">New materials available: ${sessionTitle}</h1>
-      </div>
-      <div style="background:#0F2236;padding:24px 32px;border-radius:0 0 12px 12px;color:#CBD5E1;">
-        <p style="font-size:15px;">Hi ${firstName},</p>
-        <p style="font-size:15px;">${orgName} has uploaded new materials for <strong style="color:#F0F4F8;">${sessionTitle}</strong> at ${eventTitle}.</p>
-        <p style="margin:16px 0;"><a href="${agendaUrl}" style="color:#2DD4BF;text-decoration:none;">Download at the agenda page →</a></p>
-        <p style="color:#475569;font-size:12px;">Powered by <a href="https://prezva.app" style="color:#2DD4BF;text-decoration:none;">Prezva</a></p>
-      </div>
-    </div>`
+    const { html, subject } = handoutEmail({ firstName, orgName, sessionTitle, eventTitle, agendaUrl })
 
     await deliverAttendeeEmail(admin, {
       registrationId: (reg as any).id,
       to: (reg as any).attendee_email,
       attendeeName: (reg as any).attendee_name,
-      subject: `New materials: ${sessionTitle} — ${eventTitle}`,
+      subject,
       html,
-      from: `${orgName} <noreply@prezva.app>`,
+      from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
     })
   }
 }

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/get-user'
 import { randomBytes, randomInt } from 'node:crypto'
 import { z } from 'zod'
-import { escapeHtml } from '@/trigger/lib/escape'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 
 const GHL_TRANSFER_MESSAGE = 'Transfers for this event are handled by the organizer.'
 
@@ -107,7 +107,7 @@ export async function transferRegistration(
       body: JSON.stringify({
         from: 'Prezva <noreply@prezva.app>',
         to: email.data,
-        subject: `You've received a ticket for ${rawTitle}`,
+        subject: safeSubject(`You've received a ticket for ${rawTitle}`),
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
             <h1 style="color:#F0F4F8;font-size:20px;margin:0;">Ticket transferred to you</h1>
@@ -127,7 +127,7 @@ export async function transferRegistration(
       body: JSON.stringify({
         from: 'Prezva <noreply@prezva.app>',
         to: (reg as any).attendee_email,
-        subject: `Your ticket for ${rawTitle} has been transferred`,
+        subject: safeSubject(`Your ticket for ${rawTitle} has been transferred`),
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <div style="background:#0D1B2A;padding:24px 32px;border-radius:12px 12px 0 0;">
             <h1 style="color:#F0F4F8;font-size:20px;margin:0;">Ticket transfer confirmed</h1>

@@ -1,6 +1,6 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { createAdminClient } from '../lib/supabase-admin'
-import { escapeHtml } from '../lib/escape'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 import { sendSpeakerEmail } from '@/lib/speaker/send-speaker-email'
 
 export const speakerSessionReminderTask = schedules.task({
@@ -70,10 +70,10 @@ export const speakerSessionReminderTask = schedules.task({
               email: speaker.email,
               ghlContactId: speaker.ghl_contact_id,
             },
-            subject: `Your session starts in ~15 minutes — ${session.title}`,
+            subject: safeSubject(`Your session starts in ~15 minutes — ${session.title}`),
             html,
             text,
-            resend: { from: `${orgName} <noreply@prezva.app>` },
+            resend: { from: `${safeDisplayName(orgName)} <noreply@prezva.app>` },
           })
 
           await admin

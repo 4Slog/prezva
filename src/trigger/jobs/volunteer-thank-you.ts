@@ -1,7 +1,7 @@
 import { schemaTask, logger } from '@trigger.dev/sdk'
 import { z } from 'zod'
 import { createAdminClient } from '../lib/supabase-admin'
-import { escapeHtml } from '../lib/escape'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 
 type VolunteerRow = {
   name: string | null
@@ -160,9 +160,9 @@ export const sendVolunteerThankYouEmail = schemaTask({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from:     `${payload.orgName} <noreply@prezva.app>`,
+            from:     `${safeDisplayName(payload.orgName)} <noreply@prezva.app>`,
             to:       v.email,
-            subject:  `Thank you for volunteering at ${payload.eventTitle}`,
+            subject:  safeSubject(`Thank you for volunteering at ${payload.eventTitle}`),
             html,
             text,
             reply_to: payload.orgEmail || undefined,

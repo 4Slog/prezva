@@ -9,7 +9,7 @@ import { assertPermission } from '@/lib/auth/assert-permission'
 import { catchPermission } from '@/lib/auth/permission-error'
 import { getOrCreateSpeakerToken } from '@/lib/speaker/speaker-token'
 import { resolveSpeakerLink, SPEAKER_LINK_EXPIRED_MESSAGE } from '@/lib/speaker/speaker-link'
-import { escapeHtml } from '@/trigger/lib/escape'
+import { escapeHtml, safeDisplayName, safeSubject } from '@/lib/email/escape'
 import { logAudit } from '@/lib/audit/log'
 
 // ── T-095a: speaker token management ──────────────────────────────────────────
@@ -546,9 +546,9 @@ export async function sendSpeakerMessage(conversationId: string, body: string): 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${orgName.replace(/[<>"\r\n]/g, '')} <noreply@prezva.app>`,
+        from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
         to: (speaker as any).email,
-        subject: `New message re: ${(event as any)?.title ?? 'your session'}`,
+        subject: safeSubject(`New message re: ${(event as any)?.title ?? 'your session'}`),
         html: `<p>Hi ${escapeHtml((speaker as any).name ?? '')},</p>
                <p>${escapeHtml(orgName)} sent you a message:</p>
                <blockquote style="border-left:3px solid #2DD4BF;padding:0 1rem;color:#555;white-space:pre-wrap">${escapeHtml(text)}</blockquote>
@@ -635,9 +635,9 @@ export async function renewSpeakerToken(speakerId: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${orgName} <noreply@prezva.app>`,
+        from: `${safeDisplayName(orgName)} <noreply@prezva.app>`,
         to: (sp as any).email,
-        subject: `Updated speaker portal link — ${eventTitle}`,
+        subject: safeSubject(`Updated speaker portal link — ${eventTitle}`),
         html: `<p>Hi ${escapeHtml((sp as any).name ?? '')},</p>
                <p>Your speaker portal link has been refreshed for ${escapeHtml(eventTitle)}.</p>
                <p><a href="${escapeHtml(hubUrl)}">Access your speaker hub →</a></p>

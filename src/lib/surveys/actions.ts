@@ -8,6 +8,7 @@ import { catchPermission } from '@/lib/auth/permission-error'
 import { deliverAttendeeEmail } from '@/lib/email/deliver-attendee-email'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { escapeHtml, safeSubject } from '@/lib/email/escape'
 
 export type QuestionType = 'text' | 'rating' | 'multiple_choice' | 'boolean'
 
@@ -267,10 +268,10 @@ export async function sendSurveyToAllAttendees(surveyId: string, eventId: string
         registrationId: reg.id,
         to: reg.attendee_email,
         attendeeName: reg.attendee_name,
-        subject: `Your feedback matters — ${event.title}`,
+        subject: safeSubject(`Your feedback matters — ${event.title}`),
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-          <p>Hi ${reg.attendee_name},</p>
-          <p>Thank you for attending <strong>${event.title}</strong>. We'd love your feedback.</p>
+          <p>Hi ${escapeHtml(reg.attendee_name ?? '')},</p>
+          <p>Thank you for attending <strong>${escapeHtml(event.title ?? '')}</strong>. We'd love your feedback.</p>
           <p><a href="${surveyUrl}" style="background:#2DD4BF;color:#0D1B2A;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">Take the survey</a></p>
           <p style="font-size:12px;color:#888;">Or copy: ${surveyUrl}</p>
         </div>`,
