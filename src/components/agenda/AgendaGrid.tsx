@@ -113,7 +113,15 @@ export function AgendaGrid({ sessions, tracks, rooms, timezone = 'UTC', onEdit, 
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{s.title}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-semibold truncate">{s.title}</p>
+                    {/* O165: organizers see unpublished sessions; attendees never do. */}
+                    {s.is_published === false && (
+                      <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-[var(--pz-warning-bg)] text-[var(--pz-text)] border border-[var(--pz-warning-fill)]">
+                        Unpublished
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2 mt-1 text-xs opacity-75">
                     <span className="capitalize">{s.session_type}</span>
                     {s.track && <span>· {s.track.name}</span>}

@@ -112,11 +112,20 @@ async function assertOrgAccess(
 
 // ─── TRACKS ────────────────────────────────────────────────────────────────────
 
-const TrackSchema = z.object({
+// O165 / G-R4: base schemas carry no .default() — zod applies a default even
+// under .partial(), so an edit that omitted a field used to reset it. Create
+// schemas add the defaults; update schemas are base.partial(), so an omitted
+// field is left unchanged.
+const TrackBase = z.object({
   name: z.string().min(1),
-  color: z.string().default('#3B82F6'),
-  sort_order: z.number().int().default(0),
+  color: z.string(),
+  sort_order: z.number().int(),
 })
+const TrackCreateSchema = TrackBase.extend({
+  color: TrackBase.shape.color.default('#3B82F6'),
+  sort_order: TrackBase.shape.sort_order.default(0),
+})
+const TrackUpdateSchema = TrackBase.partial()
 
 export async function getTracks(eventId: string): Promise<Track[]> {
   const user = await requireUser()
@@ -129,7 +138,7 @@ export async function getTracks(eventId: string): Promise<Track[]> {
 
 export async function createTrack(eventId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = TrackSchema.safeParse(input)
+  const parsed = TrackCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
@@ -143,7 +152,7 @@ export async function createTrack(eventId: string, input: unknown) {
 
 export async function updateTrack(eventId: string, trackId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = TrackSchema.partial().safeParse(input)
+  const parsed = TrackUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
@@ -169,12 +178,14 @@ export async function deleteTrack(eventId: string, trackId: string) {
 
 // ─── ROOMS ─────────────────────────────────────────────────────────────────────
 
-const RoomSchema = z.object({
+const RoomBase = z.object({
   name: z.string().min(1),
   capacity: z.number().int().nullable().optional(),
   location_hint: z.string().nullable().optional(),
-  sort_order: z.number().int().default(0),
+  sort_order: z.number().int(),
 })
+const RoomCreateSchema = RoomBase.extend({ sort_order: RoomBase.shape.sort_order.default(0) })
+const RoomUpdateSchema = RoomBase.partial()
 
 export async function getRooms(eventId: string): Promise<Room[]> {
   const user = await requireUser()
@@ -187,7 +198,7 @@ export async function getRooms(eventId: string): Promise<Room[]> {
 
 export async function createRoom(eventId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = RoomSchema.safeParse(input)
+  const parsed = RoomCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
@@ -201,7 +212,7 @@ export async function createRoom(eventId: string, input: unknown) {
 
 export async function updateRoom(eventId: string, roomId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = RoomSchema.partial().safeParse(input)
+  const parsed = RoomUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   await assertOrgMember(supabase, user.id, eventId)
@@ -227,7 +238,7 @@ export async function deleteRoom(eventId: string, roomId: string) {
 
 // ─── SPEAKERS ──────────────────────────────────────────────────────────────────
 
-const SpeakerSchema = z.object({
+const SpeakerBase = z.object({
   name: z.string().min(1),
   email: z.string().email().nullable().optional(),
   bio: z.string().nullable().optional(),
@@ -237,11 +248,16 @@ const SpeakerSchema = z.object({
   website: z.string().url().nullable().optional(),
   linkedin_url: z.string().url().nullable().optional(),
   twitter_handle: z.string().nullable().optional(),
-  sort_order: z.number().int().default(0),
-  is_published: z.boolean().default(true),
+  sort_order: z.number().int(),
+  is_published: z.boolean(),
   // R91: no default — absent means "leave as is" (new rows start off).
   show_email_publicly: z.boolean().optional(),
 })
+const SpeakerCreateSchema = SpeakerBase.extend({
+  sort_order: SpeakerBase.shape.sort_order.default(0),
+  is_published: SpeakerBase.shape.is_published.default(true),
+})
+const SpeakerUpdateSchema = SpeakerBase.partial()
 
 // R91: changing whether a speaker's email is public needs speakers.manage,
 // not just org membership.
@@ -263,7 +279,7 @@ export async function getSpeakers(eventId: string): Promise<Speaker[]> {
 
 export async function createSpeaker(eventId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = SpeakerSchema.safeParse(input)
+  const parsed = SpeakerCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   const event = await assertOrgMember(supabase, user.id, eventId)
@@ -280,7 +296,7 @@ export async function createSpeaker(eventId: string, input: unknown) {
 
 export async function updateSpeaker(eventId: string, speakerId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = SpeakerSchema.partial().safeParse(input)
+  const parsed = SpeakerUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   const event = await assertOrgMember(supabase, user.id, eventId)
@@ -309,25 +325,32 @@ export async function deleteSpeaker(eventId: string, speakerId: string) {
 
 // ─── SESSIONS ──────────────────────────────────────────────────────────────────
 
-const SessionSchema = z.object({
+const SessionBase = z.object({
   title: z.string().min(1),
   description: z.string().nullable().optional(),
-  session_type: z.string().min(1).max(50).default('talk'),
+  session_type: z.string().min(1).max(50),
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   track_id: z.string().uuid().nullable().optional(),
   room_id: z.string().uuid().nullable().optional(),
   sponsored_by_id: z.string().uuid().nullable().optional(),
   capacity: z.number().int().nullable().optional(),
-  is_published: z.boolean().default(true),
+  is_published: z.boolean(),
   recording_url: z.string().url().nullable().optional(),
   slides_url: z.string().url().nullable().optional(),
-  sort_order: z.number().int().default(0),
+  sort_order: z.number().int(),
   ce_credit_hours: z.number().min(0).max(24).nullable().optional(),
   virtual_url: z.string().url().nullable().optional(),
   speaker_ids: z.array(z.string().uuid()).optional(),
   speaker_roles: z.record(z.string(), z.string()).optional(),
 })
+// Create defaults to published (every create path, the API POST included).
+const SessionCreateSchema = SessionBase.extend({
+  session_type: SessionBase.shape.session_type.default('talk'),
+  is_published: SessionBase.shape.is_published.default(true),
+  sort_order: SessionBase.shape.sort_order.default(0),
+})
+const SessionUpdateSchema = SessionBase.partial()
 
 export async function getSessions(eventId: string): Promise<Session[]> {
   const user = await requireUser()
@@ -349,7 +372,7 @@ export async function getSessions(eventId: string): Promise<Session[]> {
 
 export async function createSession(eventId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = SessionSchema.safeParse(input)
+  const parsed = SessionCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   const event = await assertOrgMember(supabase, user.id, eventId)
@@ -382,7 +405,7 @@ export async function createSession(eventId: string, input: unknown) {
 
 export async function updateSession(eventId: string, sessionId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = SessionSchema.partial().safeParse(input)
+  const parsed = SessionUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   const event = await assertOrgMember(supabase, user.id, eventId)
@@ -446,11 +469,14 @@ export async function getAgenda(eventId: string) {
 
 // ─── ORG SESSION TYPES ─────────────────────────────────────────────────────────
 
-const OrgSessionTypeSchema = z.object({
+// No defaults: create and update share the base; update is base.partial().
+const OrgSessionTypeBase = z.object({
   label: z.string().min(1).max(50),
   color: z.string().nullable().optional(),
   sort_order: z.number().int().optional(),
 })
+const OrgSessionTypeCreateSchema = OrgSessionTypeBase
+const OrgSessionTypeUpdateSchema = OrgSessionTypeBase.partial()
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -467,7 +493,7 @@ export async function getOrgSessionTypes(orgId: string): Promise<OrgSessionType[
 
 export async function createOrgSessionType(orgId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = OrgSessionTypeSchema.safeParse(input)
+  const parsed = OrgSessionTypeCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   await assertOrgAccess(supabase, user.id, orgId)
@@ -487,7 +513,7 @@ export async function createOrgSessionType(orgId: string, input: unknown) {
 
 export async function updateOrgSessionType(orgId: string, typeId: string, input: unknown) {
   const user = await requireUser()
-  const parsed = OrgSessionTypeSchema.partial().safeParse(input)
+  const parsed = OrgSessionTypeUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   await assertOrgAccess(supabase, user.id, orgId)

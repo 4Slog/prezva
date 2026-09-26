@@ -92,44 +92,65 @@ async function assertSessionForeignKeys(
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
-const SessionSchema = z.object({
+// O165 / G-R4: base schemas carry no .default() — zod applies a default even
+// under .partial(), so an edit that omitted a field used to reset it. Create
+// schemas add the defaults; update schemas are base.partial(), so an omitted
+// field is left unchanged.
+const SessionBase = z.object({
   title: z.string().min(1),
   description: z.string().nullable().optional(),
-  session_type: z.string().min(1).max(50).default('talk'),
+  session_type: z.string().min(1).max(50),
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   track_id: z.string().uuid().nullable().optional(),
   room_id: z.string().uuid().nullable().optional(),
   sponsored_by_id: z.string().uuid().nullable().optional(),
   capacity: z.number().int().nullable().optional(),
-  is_published: z.boolean().default(true),
+  is_published: z.boolean(),
   recording_url: z.string().url().nullable().optional(),
   slides_url: z.string().url().nullable().optional(),
-  sort_order: z.number().int().default(0),
+  sort_order: z.number().int(),
   ce_credit_hours: z.number().min(0).max(24).nullable().optional(),
   virtual_url: z.string().url().nullable().optional(),
   speaker_ids: z.array(z.string().uuid()).optional(),
   speaker_roles: z.record(z.string(), z.string()).optional(),
 })
-
-const TrackSchema = z.object({
-  name: z.string().min(1),
-  color: z.string().default('#3B82F6'),
-  sort_order: z.number().int().default(0),
+// Create defaults to published (every create path, the API POST included).
+const SessionCreateSchema = SessionBase.extend({
+  session_type: SessionBase.shape.session_type.default('talk'),
+  is_published: SessionBase.shape.is_published.default(true),
+  sort_order: SessionBase.shape.sort_order.default(0),
 })
+const SessionUpdateSchema = SessionBase.partial()
 
-const RoomSchema = z.object({
+const TrackBase = z.object({
+  name: z.string().min(1),
+  color: z.string(),
+  sort_order: z.number().int(),
+})
+const TrackCreateSchema = TrackBase.extend({
+  color: TrackBase.shape.color.default('#3B82F6'),
+  sort_order: TrackBase.shape.sort_order.default(0),
+})
+const TrackUpdateSchema = TrackBase.partial()
+
+const RoomBase = z.object({
   name: z.string().min(1),
   capacity: z.number().int().nullable().optional(),
   location_hint: z.string().nullable().optional(),
-  sort_order: z.number().int().default(0),
+  sort_order: z.number().int(),
 })
+const RoomCreateSchema = RoomBase.extend({ sort_order: RoomBase.shape.sort_order.default(0) })
+const RoomUpdateSchema = RoomBase.partial()
 
-const OrgSessionTypeSchema = z.object({
+// No defaults: create and update share the base; update is base.partial().
+const OrgSessionTypeBase = z.object({
   label: z.string().min(1).max(50),
   color: z.string().nullable().optional(),
   sort_order: z.number().int().optional(),
 })
+const OrgSessionTypeCreateSchema = OrgSessionTypeBase
+const OrgSessionTypeUpdateSchema = OrgSessionTypeBase.partial()
 
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -195,7 +216,7 @@ export async function embedGetAgendaData(eventId: string) {
 export async function embedCreateSession(eventId: string, input: unknown) {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
-  const parsed = SessionSchema.safeParse(input)
+  const parsed = SessionCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   if (parsed.data.session_type) {
@@ -245,7 +266,7 @@ export async function embedUpdateSession(
 ) {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
-  const parsed = SessionSchema.partial().safeParse(input)
+  const parsed = SessionUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   if (parsed.data.session_type) {
@@ -308,7 +329,7 @@ export async function embedDeleteSession(eventId: string, sessionId: string) {
 export async function embedCreateRoom(eventId: string, input: unknown) {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
-  const parsed = RoomSchema.safeParse(input)
+  const parsed = RoomCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const { data, error } = await db
     .from('rooms').insert({ event_id: eventId, ...parsed.data }).select().single()
@@ -330,7 +351,7 @@ export async function embedDeleteRoom(eventId: string, roomId: string) {
 export async function embedCreateTrack(eventId: string, input: unknown) {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
-  const parsed = TrackSchema.safeParse(input)
+  const parsed = TrackCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const { data, error } = await db
     .from('tracks').insert({ event_id: eventId, ...parsed.data }).select().single()
@@ -345,7 +366,7 @@ export async function embedUpdateTrack(
 ) {
   const { db, orgId } = await resolveEmbedContext()
   await assertEventOwnership(db, eventId, orgId)
-  const parsed = TrackSchema.partial().safeParse(input)
+  const parsed = TrackUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const { data, error } = await db
     .from('tracks')
@@ -372,7 +393,7 @@ export async function embedDeleteTrack(eventId: string, trackId: string) {
 export async function embedCreateOrgSessionType(orgId: string, input: unknown) {
   const { db, orgId: resolvedOrgId } = await resolveEmbedContext()
   if (orgId !== resolvedOrgId) return { error: 'Access denied' }
-  const parsed = OrgSessionTypeSchema.safeParse(input)
+  const parsed = OrgSessionTypeCreateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const slug = slugify(parsed.data.label)
   if (!slug) return { error: 'Label produces an empty slug' }
@@ -394,7 +415,7 @@ export async function embedUpdateOrgSessionType(
 ) {
   const { db, orgId: resolvedOrgId } = await resolveEmbedContext()
   if (orgId !== resolvedOrgId) return { error: 'Access denied' }
-  const parsed = OrgSessionTypeSchema.partial().safeParse(input)
+  const parsed = OrgSessionTypeUpdateSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const updates: Record<string, unknown> = {}
   if (parsed.data.label !== undefined) {

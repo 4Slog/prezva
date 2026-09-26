@@ -55,6 +55,8 @@ export function SessionForm({ timezone, tracks, rooms, speakers, sponsors = [], 
     }), {} as Record<string, string>)
   )
   const [ceHours, setCeHours] = useState<string>(session?.ce_credit_hours != null ? String(session.ce_credit_hours) : '')
+  // O165: new sessions start published; an edit shows and saves the current value.
+  const [published, setPublished] = useState<boolean>(session?.is_published ?? true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -100,6 +102,7 @@ export function SessionForm({ timezone, tracks, rooms, speakers, sponsors = [], 
         speaker_ids: Object.keys(speakerRoles),
         speaker_roles: speakerRoles,
         ce_credit_hours: ceHours !== '' ? parseFloat(ceHours) : null,
+        is_published: published,
       })
     } catch (e: any) {
       setError(e.message)
@@ -212,6 +215,14 @@ export function SessionForm({ timezone, tracks, rooms, speakers, sponsors = [], 
           placeholder="0.00"
         />
       </Field>
+
+      <label htmlFor="sess-published" className="flex items-start gap-2 text-sm text-[var(--pz-text)]">
+        <input id="sess-published" type="checkbox" className="mt-0.5" checked={published} onChange={e => setPublished(e.target.checked)} />
+        <span>
+          Published
+          <span className="block text-xs text-[var(--pz-muted)]">Unpublished sessions are hidden from attendees and do not count toward certificates.</span>
+        </span>
+      </label>
 
       {speakers.length > 0 && (
         <div>
