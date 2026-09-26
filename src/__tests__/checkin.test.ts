@@ -146,7 +146,8 @@ describe('checkInByQR', () => {
     mockFromImpl = (t) => {
       if (t === 'events') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockEvent, error: null }) })
       if (t === 'org_members') return makeChain({ single: vi.fn().mockResolvedValue({ data: mockMember, error: null }) })
-      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'not found' } }) })
+      // .single() with no row is PGRST116; any other code is a failed lookup.
+      if (t === 'registrations') return makeChain({ single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116', message: 'not found' } }) })
       return makeChain()
     }
     const result = await checkInByQR(EVENT_ID, 'INVALID-QR')

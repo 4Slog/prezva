@@ -9,6 +9,9 @@ import { ilikeAnyOf } from '@/lib/db/postgrest-filter'
 import { doorRefusal, doorRefusalMessage, isAdmittable, type DoorRefusal } from '@/lib/checkin/admission'
 import { isSuperAdmin } from '@/lib/admin/gate'
 import { logAudit } from '@/lib/audit/log'
+import { recordDoorQrCheckIn } from '@/lib/checkin/door-checkin'
+import type { CheckInResult, OfflineWrite } from '@/lib/checkin/types'
+export type { CheckInResult, OfflineWrite } from '@/lib/checkin/types'
 import { revalidatePath } from 'next/cache'
 import { enqueueGhlStageMove } from '@/lib/trigger'
 import { ghlLocationIdForOrg } from '@/lib/integrations/ghl/location'
@@ -40,23 +43,6 @@ import {
   type OfflineSyncResponse,
 } from '@/lib/checkin/offline-sync'
 
-export interface CheckInResult {
-  success: boolean
-  registration?: {
-    id: string
-    attendee_name: string
-    attendee_email: string
-    ticket_name: string
-    already_checked_in: boolean
-    check_in_time?: string
-  }
-  error?: string
-  points_awarded?: number
-  // Set on a refused GHL ticket scan (R79): staff may record an override (R81).
-  canOverride?: boolean
-  // Set when the door refuses a ticket (R90): who, why, and what to do.
-  refusal?: DoorRefusal
-}
 
 // A registration's door result when it is already in (no check-in time known).
 function alreadyCheckedInResult(reg: unknown): CheckInResult {
@@ -122,115 +108,11 @@ export async function checkInByQR(
   const event = await getEventOrg(supabase, eventId)
   try { await assertPermission(event.org_id, user.id, 'checkin.manage') } catch (e) { return { success: false, error: (e as Error).message } }
 
-  const result = await recordDoorQrCheckIn(supabase, user.id, eventId, qrCode, deviceId)
+  const result = await recordDoorQrCheckIn(supabase, { kind: 'staff', userId: user.id }, eventId, qrCode, deviceId)
   if (result.success && !result.registration?.already_checked_in) revalidatePath('/events')
   return result
 }
 
-// Offline marker for a queued check-in (R87). checked_in_source stays the
-// surface; these columns say it came from a device queue.
-export interface OfflineWrite {
-  checkedInAt: string
-  clientScannedAt: string | null
-  clientEntryId: string
-}
-
-// Core door QR write, shared by the online scan and the offline sync (R84). Not
-// exported: the caller has already authorised staffUserId for the event. The
-// online scan passes no `offline` and writes exactly as before (checked_in_at
-// is the database default, now). The offline sync passes the resolved scan time
-// and the R87 columns, and throws on a database failure so the entry is
-// retried, not refused.
-async function recordDoorQrCheckIn(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  staffUserId: string,
-  eventId: string,
-  qrCode: string,
-  deviceId: string,
-  offline?: OfflineWrite,
-): Promise<CheckInResult> {
-  const { data: reg, error: regErr } = await supabase
-    .from('registrations')
-    .select('id, user_id, attendee_name, attendee_email, status, ticket_types(name)')
-    .eq('event_id', eventId)
-    .eq('qr_code', qrCode.toLowerCase())
-    .single()
-
-  if (offline && regErr && regErr.code !== 'PGRST116') throw new Error(regErr.message)
-  if (regErr || !reg) return { success: false, error: 'QR code not found for this event' }
-  // R90: the door admits confirmed registrations only; a refusal writes nothing.
-  const refusal = doorRefusal((reg as any).status, (reg as any).attendee_name)
-  if (refusal) return { success: false, error: doorRefusalMessage(refusal), refusal }
-
-  const { data: existing } = await supabase
-    .from('check_ins')
-    .select('id, checked_in_at')
-    .eq('registration_id', (reg as any).id)
-    .is('session_id', null)
-    .limit(1)
-    .maybeSingle()
-
-  const alreadyCheckedIn = (checkInTime?: string): CheckInResult => ({
-    success: true,
-    registration: {
-      id: (reg as any).id,
-      attendee_name: (reg as any).attendee_name,
-      attendee_email: (reg as any).attendee_email,
-      ticket_name: (reg as any).ticket_types?.name ?? '',
-      already_checked_in: true,
-      check_in_time: checkInTime,
-    },
-  })
-
-  if (existing) return alreadyCheckedIn((existing as any).checked_in_at)
-
-  const { error: ciErr } = await supabase.from('check_ins').insert({
-    event_id: eventId,
-    registration_id: (reg as any).id,
-    checked_in_by: staffUserId,
-    method: 'qr_scan',
-    device_id: deviceId,
-    synced_at: new Date().toISOString(),
-    ...(offline ? {
-      checked_in_at: offline.checkedInAt,
-      checked_in_source: 'dashboard',
-      is_offline: true,
-      client_scanned_at: offline.clientScannedAt,
-      client_entry_id: offline.clientEntryId,
-    } : {}),
-  })
-
-  if (ciErr) {
-    // 23505: a replayed queue entry (client_entry_id), or another device got
-    // this registration in first (check_ins_door_once) — already checked in.
-    if (isUniqueViolation(ciErr)) return alreadyCheckedIn()
-    if (offline) throw new Error(ciErr.message)
-    return { success: false, error: ciErr.message }
-  }
-
-  await logAudit(supabase, null, staffUserId, 'checkin.scan', 'registrations', (reg as any).id,
-    offline ? { method: 'qr_scan', offline: true } : { method: 'qr_scan' }, { eventId })
-
-  let points_awarded = 0
-  if ((reg as any).user_id) {
-    const { awardPoints } = await import('@/lib/engagement/points')
-    try {
-      points_awarded = await awardPoints(eventId, (reg as any).user_id, 'checkin')
-    } catch {}
-  }
-
-  return {
-    success: true,
-    registration: {
-      id: (reg as any).id,
-      attendee_name: (reg as any).attendee_name,
-      attendee_email: (reg as any).attendee_email,
-      ticket_name: (reg as any).ticket_types?.name ?? '',
-      already_checked_in: false,
-    },
-    points_awarded,
-  }
-}
 
 export async function checkInBySearch(
   eventId: string,
@@ -396,7 +278,7 @@ export async function processOfflineQueue(raw: unknown): Promise<OfflineSyncResp
       continue
     }
     try {
-      const r = await recordDoorQrCheckIn(supabase, user.id, eventId, entry.qr_code, deviceId, {
+      const r = await recordDoorQrCheckIn(supabase, { kind: 'staff', userId: user.id }, eventId, entry.qr_code, deviceId, {
         checkedInAt: time.checkedInAt,
         clientScannedAt: time.clientScannedAt,
         clientEntryId: entry.entryId,

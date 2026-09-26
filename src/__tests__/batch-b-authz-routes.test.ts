@@ -52,8 +52,8 @@ function seed() {
       { id: 'v2', event_id: 'e2', name: 'Bob', email: 'b@x.io', role: 'check-in', status: 'invited', portal_access_token: 'pt2' },
     ],
     registrations: [
-      { id: 'reg-a', event_id: 'e1', qr_code: 'QR-A', status: 'confirmed', attendee_name: 'Ann' },
-      { id: 'reg-b', event_id: 'e2', qr_code: 'QR-B', status: 'confirmed', attendee_name: 'Ben' },
+      { id: 'reg-a', event_id: 'e1', qr_code: 'qr-a', status: 'confirmed', attendee_name: 'Ann' },
+      { id: 'reg-b', event_id: 'e2', qr_code: 'qr-b', status: 'confirmed', attendee_name: 'Ben' },
     ],
     check_ins: [],
   })

@@ -108,7 +108,7 @@ describe('volunteer check-in (#15)', () => {
   function setup(regStatus = 'confirmed', checkIns: any[] = []) {
     h.db = createFakeDb(
       {
-        registrations: [{ id: 'r1', event_id: 'e1', qr_code: 'QR1', status: regStatus, attendee_name: 'Ann', ticket_types: { name: 'GA' } }],
+        registrations: [{ id: 'r1', event_id: 'e1', qr_code: 'qr1', status: regStatus, attendee_name: 'Ann', ticket_types: { name: 'GA' } }],
         check_ins: checkIns,
       },
       { unique: { check_ins: (a, b) => a.registration_id === b.registration_id && a.session_id == null && b.session_id == null } },
@@ -143,7 +143,7 @@ describe('volunteer check-in (#15)', () => {
       const b = from(t)
       if (t === 'check_ins' && reads++ === 0) {
         h.db.tables.check_ins.push({ id: 'c-other', registration_id: 'r1', session_id: null, checked_in_at: '2026-10-01T15:00:00Z' })
-        return { ...b, select: () => ({ eq: () => ({ is: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }
+        return { ...b, select: () => ({ eq: () => ({ is: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) }) }
       }
       return b
     })

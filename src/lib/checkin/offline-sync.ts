@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { CheckInResult } from '@/lib/checkin/actions'
+import type { CheckInResult } from '@/lib/checkin/types'
 
 // R84: shared contract for the event-door offline queue. Both sync routes
 // (dashboard and embedded) accept the same batch and return one result per
