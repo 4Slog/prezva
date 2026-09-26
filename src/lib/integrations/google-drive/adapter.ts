@@ -30,9 +30,19 @@ class GoogleDriveAdapter implements IntegrationAdapter {
     } catch (err: any) { await logIntegrationError(orgId, PROVIDER, 'handleCallback', err); throw err }
   }
 
+  // O151: clears BOTH stored tokens and reports failure. A silent error (or an
+  // RLS-filtered update that matched nothing) used to leave the org looking
+  // disconnected while its tokens stayed stored.
   async disconnect(orgId: string): Promise<void> {
     const supabase = await createClient()
-    await supabase.from('org_integrations').update({ status: 'available', encrypted_refresh_token: null }).eq('org_id', orgId).eq('provider', PROVIDER)
+    const { data, error } = await supabase
+      .from('org_integrations')
+      .update({ status: 'available', encrypted_refresh_token: null, encrypted_access_token: null, token_expires_at: null })
+      .eq('org_id', orgId)
+      .eq('provider', PROVIDER)
+      .select('id')
+    if (error) throw new Error(`Google Drive disconnect failed: ${error.message}`)
+    if (!data || data.length === 0) throw new Error('Google Drive disconnect matched no integration row')
   }
 
   async getStatus(orgId: string): Promise<IntegrationStatus> {
