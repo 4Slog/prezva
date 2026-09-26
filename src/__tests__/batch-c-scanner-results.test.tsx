@@ -42,6 +42,8 @@ const ERR = { success: false, error: 'Registration not found' }
 
 const tick = async (ms = 0) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms) }) }
 const click = async (label: string | RegExp) => { fireEvent.click(screen.getByText(label)); await tick() }
+// Yield real macrotasks (Dexie, WebCrypto — setImmediate is not faked) inside act until `done` holds.
+const until = async (done: () => boolean) => { while (!done()) await act(async () => { await new Promise(r => setImmediate(r)) }) }
 
 beforeEach(() => {
   // setTimeout/Date only: Dexie (fake-indexeddb) needs real setImmediate/microtasks.
@@ -203,14 +205,18 @@ describe('SessionCheckInScanner', () => {
       attendees: [],
     })
     actions.scan.mockRejectedValue(new TypeError('Failed to fetch'))
+    actions.fetchPack.mockClear()
     renderIt()
     scanner.code = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
-    await tick(50)
+    // O164: useSessionOffline opens its device store after a real WebCrypto
+    // digest (not fake-timer material). A scan before that shows the sticky
+    // "not ready" refusal, which then blocks every later camera frame — the CI
+    // flake. The hook asks for the pack only once the store is open, so wait
+    // for that call, then scan once. Condition-based; the test timeout bounds it.
+    await until(() => actions.fetchPack.mock.calls.length > 0)
     await click('camera')
-    // Dexie runs on real macrotasks (setImmediate is not faked): yield to them
-    // until the device-list outcome is shown. Generous cap for slow CI runners.
-    const settle = () => act(async () => { await new Promise(r => setImmediate(r)); await vi.advanceTimersByTimeAsync(5) })
-    for (let i = 0; i < 2000 && !screen.queryByText(/Not on this device/); i++) await settle()
+    // The device-list lookup also runs on real Dexie macrotasks.
+    await until(() => !!screen.queryByText(/Not on this device|not ready yet/))
     expect(screen.getByText(/Not on this device/)).toBeInTheDocument()
     expect(screen.getByText('Queue for re-check')).toBeInTheDocument()
     expect(screen.getByText('Override…')).toBeInTheDocument()
