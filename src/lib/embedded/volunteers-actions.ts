@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyEmbeddedSession, COOKIE_NAME } from '@/lib/embedded/session'
 import { optionalInputToInstant } from '@/lib/datetime/zoned-input'
 import { enqueueVolunteerInvite } from '@/lib/trigger'
+import { INVITE_SEND_FAILED, REINVITE_RESET, isVolunteerDeclined, reinviteRestore } from '@/lib/volunteers/reinvite'
 import { z } from 'zod'
 
 // ── Embed context (session → location → org) ─────────────────────────────────
@@ -169,7 +170,23 @@ export async function embedResendVolunteerInvite(volunteerId: string, eventId: s
   const event = volunteer.events as { title: string; start_at: string; timezone: string } | null
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://prezva.app'
 
-  void enqueueVolunteerInvite({
+  // O168: re-inviting a declined volunteer restores their access.
+  const reset = isVolunteerDeclined(volunteer)
+  // Captured before the reset, in case the invite cannot be sent.
+  const restore = reinviteRestore(volunteer)
+  if (reset) {
+    const { error } = await db
+      .from('volunteers')
+      .update(REINVITE_RESET)
+      .eq('id', volunteerId)
+      .eq('event_id', eventId)
+    if (error) {
+      console.error('[volunteers] re-invite reset failed', { volunteerId, error: error.message })
+      return { error: INVITE_SEND_FAILED }
+    }
+  }
+
+  const handle = await enqueueVolunteerInvite({
     volunteerName:  volunteer.name,
     volunteerEmail: volunteer.email,
     volunteerRole:  volunteer.role,
@@ -180,6 +197,14 @@ export async function embedResendVolunteerInvite(volunteerId: string, eventId: s
     eventTimezone:  event?.timezone,
     portalUrl:      `${appUrl}/volunteer/${volunteer.portal_access_token}`,
   })
+  if (!handle) {
+    // No invite went out: the volunteer stays as they were.
+    if (reset) {
+      const { error } = await db.from('volunteers').update(restore).eq('id', volunteerId).eq('event_id', eventId)
+      if (error) console.error('[volunteers] re-invite restore failed', { volunteerId, error: error.message })
+    }
+    return { error: INVITE_SEND_FAILED }
+  }
 
   return { ok: true }
 }

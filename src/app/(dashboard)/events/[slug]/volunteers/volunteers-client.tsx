@@ -6,6 +6,7 @@ import { Field } from '@/components/ui/Field'
 import { zoneName, zoneShortName } from '@/lib/datetime/zoned-input'
 import { Gated } from '@/components/auth/Gated'
 import { VOLUNTEER_STATUS_COLORS as STATUS_COLORS, VOLUNTEER_ALERT_TYPE_COLORS as ALERT_TYPE_COLORS } from '@/lib/ui/category-colors'
+import { REINVITE_RESET, isVolunteerDeclined } from '@/lib/volunteers/reinvite'
 
 interface Volunteer {
   id: string
@@ -188,6 +189,9 @@ export function VolunteersClient({
       setVolunteers(v => v.filter(x => x.id !== id))
     } else if (action === 'checkin') {
       setVolunteers(v => v.map(x => x.id === id ? { ...x, status: 'checked_in' } : x))
+    } else if (action === 'resend') {
+      // O168: the server reset a declined volunteer to invited; show it.
+      setVolunteers(v => v.map(x => x.id === id && isVolunteerDeclined(x) ? { ...x, status: REINVITE_RESET.status, shift_response: null } : x))
     }
   }
 
